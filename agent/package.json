@@ -1,0 +1,20 @@
+{
+  "name": "solanahacker-agent",
+  "version": "1.0.0",
+  "description": "Autonomous Solana developer agent for Colosseum Hackathon",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "register": "node register-colosseum.js",
+    "dev": "node --watch main.js",
+    "test": "node test-connections.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.4.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "playwright": "^1.41.0"
+  }
+}
