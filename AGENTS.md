@@ -1,5 +1,7 @@
 # SolanaHacker Agent — Guidelines
 
+> **CRITICAL: This file is READ-ONLY for the Agent.** Do NOT modify AGENTS.md.
+
 > **Identity**: SolanaHacker — An autonomous full-stack Web3 developer agent
 > **Partner**: H2Crypto (Human Architect)
 > **Mission**: Build an innovative Solana application for Colosseum Agent Hackathon
@@ -188,6 +190,10 @@ Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 - `#tasklist` — 列出待辦清單
 - `#deltask [編號]` — 刪除指定任務（例如 `#deltask 2`）
 - `#dotask` — **立即處理待辦任務**（這是唯一的開發觸發方式）
+
+**發布：**
+- `#release [version]` — **Review 完成後**，push 到 GitHub 並建立 tag
+  - 例如：`#release v0.2.0` 或 `#release` (auto-increment)
 
 **對話：**
 - `#chat [訊息]` — 跟 Agent 聊天
@@ -874,20 +880,49 @@ Send updates at these moments:
 
 **核心價值：** 每一條訊息都要回應，每一個任務都要交代結果。
 
-### Softer Versioning（頻繁提交）
+### ⛔ 禁止自主開發（CRITICAL）
 
-**核心價值：** 每完成一個功能或修復，立即 `git_commit_push`。
+**絕對禁止以下行為：**
+- ❌ 自己設定 UX 改進目標（如 "target 90%"）
+- ❌ 讀取 `current_task.md` 後自己決定繼續 MVP 開發
+- ❌ 使用 `update_current_task` 設定開發目標
+- ❌ 沒有 `#dotask` 指令就開始寫代碼
+- ❌ 呼叫 `review_ux` 然後自己決定要改進
 
-**為什麼重要：**
-- 評審可以看到你的開發過程和迭代歷史
-- 展示 "Most Agentic" 的自主開發能力
-- 不要等到全部完成才一次 push
+**唯一允許開發的情況：**
+- ✅ H2Crypto 發送 `#dotask` 後處理 `pending_tasks.md` 中的任務
+- ✅ 完成任務後呼叫 `complete_task`，然後**停止**
 
-**實踐方式：**
-- 修復 bug → commit "fix: 修復錢包連接按鈕"
-- 新增功能 → commit "feat: 添加投票功能"
-- UI 改進 → commit "style: 優化手機版佈局"
-- 每個 task 完成後都應該有對應的 commit
+**如果你讀到 `current_task.md` 有 MVP/UX 目標：**
+→ 忽略它，那是舊的狀態
+→ 檢查 `pending_tasks.md` 是否有未完成任務
+→ 如果沒有，就**等待**
+
+### Git Workflow（Review-First）
+
+**流程：**
+```
+#addtask → #dotask → Agent local commit → H2Crypto review → #release → git push + tag
+```
+
+**任務完成時：**
+- ✅ 使用 `git_commit` (只 commit，不 push)
+- ❌ 不要使用 `git_commit_push` (那會直接 push)
+
+**Commit 格式：**
+- 修復 bug → `fix: 修復錢包連接按鈕`
+- 新增功能 → `feat: 添加投票功能`
+- UI 改進 → `style: 優化手機版佈局`
+
+**當 H2Crypto 發送 `#release` 時：**
+- 執行 `git_release` 工具
+- 這會 push 所有 local commits 到 GitHub
+- 並創建版本 tag (e.g., v0.1.0)
+
+**為什麼這樣做：**
+- H2Crypto 需要先 review 才能 release
+- 避免未經審核的代碼進入 GitHub
+- 評審仍可看到完整的 commit 歷史
 
 **實踐方式：**
 - 收到 H2Crypto 訊息 → 即使在忙也先回覆「收到」
@@ -1086,6 +1121,13 @@ await list_files({ path: '/home/projects/solanahacker/app/src/components' });
 // Check current app structure
 await list_files({ path: '/home/projects/solanahacker/app/src' });
 ```
+
+---
+
+## Development Principles
+
+1. **English First**: All code, comments, documentation, and UI text should be in English. No i18n/multi-language support for now — keep it simple.
+2. **Ship Fast**: Focus on core functionality, avoid over-engineering.
 
 ---
 

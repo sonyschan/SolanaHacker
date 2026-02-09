@@ -139,6 +139,31 @@ export const TOOL_DEFINITIONS = [
       properties: {},
     },
   },
+  {
+    name: 'check_console_errors',
+    description:
+      'Check browser console for JavaScript errors WITHOUT taking screenshots (saves tokens). ' +
+      'USE THIS TOOL WHEN: ' +
+      '(1) User reports a JS error, console error, or "something is broken" ' +
+      '(2) Debugging UI interactions like button clicks that do not work ' +
+      '(3) Verifying a bug fix actually resolved the error ' +
+      '(4) Before marking a JS-related task as complete ' +
+      'Returns list of console errors/warnings found after optional interaction. ' +
+      'TIP: Use this BEFORE take_screenshot to catch errors cheaply.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        click_selector: {
+          type: 'string',
+          description: 'Optional CSS selector or text to click (e.g., "button:has-text(Connect)" or "#submit-btn"). Leave empty to just load the page.',
+        },
+        wait_ms: {
+          type: 'number',
+          description: 'Milliseconds to wait after action before collecting errors (default: 3000)',
+        },
+      },
+    },
+  },
 
   // --- Communication ---
   {
@@ -182,9 +207,25 @@ export const TOOL_DEFINITIONS = [
 
   // --- Git ---
   {
+    name: 'git_commit',
+    description:
+      'Stage all changes and commit LOCALLY (no push). Includes: app/, memory/journal/, docs/. Use after completing each task. H2Crypto will review before #release.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          description: 'Commit message (use conventional format: fix:, feat:, style:, etc.)',
+        },
+      },
+      required: ['message'],
+    },
+  },
+
+  {
     name: 'git_commit_push',
     description:
-      'Stage all changes in the project directory, commit with the given message, and push to GitHub. Use after each significant code change.',
+      '⚠️ DEPRECATED: Use git_commit instead. This pushes directly without review. Only use if H2Crypto explicitly requests immediate push.',
     input_schema: {
       type: 'object',
       properties: {
@@ -194,6 +235,22 @@ export const TOOL_DEFINITIONS = [
         },
       },
       required: ['message'],
+    },
+  },
+
+  {
+    name: 'git_release',
+    description:
+      'Push all local commits to GitHub and create a version tag. Only use when H2Crypto sends #release command.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        version: {
+          type: 'string',
+          description: 'Version tag (e.g., "v0.1.0"). If "auto", will auto-increment from last tag.',
+        },
+      },
+      required: ['version'],
     },
   },
 
@@ -261,28 +318,18 @@ export const TOOL_DEFINITIONS = [
   {
     name: 'update_current_task',
     description:
-      'Update the current_task.md file to track what you\'re working on. Use when starting a new task or when task status changes.',
+      '⚠️ RESTRICTED: Only use this to set WAITING status after completing tasklist work. Do NOT use to set UX improvement goals or continue MVP development. Use complete_task instead when finishing tasks.',
     input_schema: {
       type: 'object',
       properties: {
         phase: {
           type: 'string',
-          enum: ['IDEA', 'POC', 'MVP', 'SUBMIT', 'WAITING'],
-          description: 'Current hackathon phase',
+          enum: ['WAITING'],  // v3.1: Restricted to WAITING only
+          description: 'Must be WAITING - other phases require H2Crypto approval',
         },
         status: {
           type: 'string',
-          description: 'Brief status (e.g., "Building feature X", "Waiting for approval")',
-        },
-        next_steps: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'List of next steps to take',
-        },
-        blockers: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Any blockers or things needed from H2Crypto',
+          description: 'Status message (should indicate waiting for H2Crypto)',
         },
       },
       required: ['phase', 'status'],
@@ -363,7 +410,7 @@ export const TOOL_DEFINITIONS = [
   {
     name: 'complete_task',
     description:
-      'Mark a task as completed. This will: 1) Mark the task as done in pending_tasks.md, 2) Save it to memory/completed_tasks/ with metadata, 3) Update index.md with last 10 completed tasks. Use this IMMEDIATELY after completing each task.',
+      'Mark a task as completed. This will: 1) Mark the task as done in pending_tasks.md, 2) Save it to memory/completed_tasks/ with metadata, 3) Update index.md with last 10 completed tasks. ⚠️ BEFORE calling this for UI tasks: Verify your changes are visible in the running app by taking a screenshot! If changes are not visible, the task is NOT complete.',
     input_schema: {
       type: 'object',
       properties: {
@@ -416,6 +463,7 @@ const DANGEROUS_CMD =
  */
 export function createToolExecutors(deps) {
   const {
+    baseDir,      // Project root for git commands
     workDir,
     knowledgeDir,
     screenshotsDir,
@@ -424,6 +472,9 @@ export function createToolExecutors(deps) {
     reviewer,
     colosseum,
   } = deps;
+
+  // Git commands run from project root (baseDir) to include memory/, docs/, etc.
+  const gitDir = baseDir || workDir;
 
   // Mutable dev server reference
   let devServer = null;
@@ -640,6 +691,74 @@ export function createToolExecutors(deps) {
       }
     },
 
+    async check_console_errors({ click_selector = '', wait_ms = 3000 }) {
+      if (!devServer) {
+        return 'Error: Dev server is not running. Start it first with dev_server({ action: "start" }).';
+      }
+      try {
+        const { chromium } = require('playwright');
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+
+        const consoleErrors = [];
+        const consoleWarnings = [];
+
+        // Capture all console messages
+        page.on('console', (msg) => {
+          const text = msg.text();
+          if (msg.type() === 'error') {
+            consoleErrors.push(text);
+          } else if (msg.type() === 'warning' && (text.includes('key') || text.includes('deprecat'))) {
+            consoleWarnings.push(text);
+          }
+        });
+        page.on('pageerror', (err) => {
+          consoleErrors.push(`[PageError] ${err.message}`);
+        });
+
+        // Load page
+        const url = `http://localhost:${devServerPort}`;
+        await page.goto(url);
+        await page.waitForTimeout(2000);
+
+        // Optional: click an element
+        let clickResult = '';
+        if (click_selector) {
+          try {
+            const element = await page.locator(click_selector).first();
+            if (await element.isVisible()) {
+              await element.click();
+              clickResult = `Clicked: ${click_selector}`;
+              await page.waitForTimeout(wait_ms);
+            } else {
+              clickResult = `Element not visible: ${click_selector}`;
+            }
+          } catch (clickErr) {
+            clickResult = `Click failed: ${clickErr.message}`;
+          }
+        }
+
+        await browser.close();
+
+        // Format result
+        const result = {
+          errors: consoleErrors.length,
+          warnings: consoleWarnings.length,
+          click: clickResult || 'No click action',
+          error_list: consoleErrors.slice(0, 10).map(e => e.slice(0, 200)),
+          warning_list: consoleWarnings.slice(0, 5).map(w => w.slice(0, 150)),
+        };
+
+        if (consoleErrors.length === 0 && consoleWarnings.length === 0) {
+          return `✅ No console errors found. ${clickResult}`;
+        }
+
+        return JSON.stringify(result, null, 2);
+      } catch (err) {
+        return `Error checking console: ${err.message}`;
+      }
+    },
+
     async send_telegram({ message, screenshot_path }) {
       try {
         await telegram.sendDevlog(message, screenshot_path);
@@ -661,30 +780,102 @@ export function createToolExecutors(deps) {
       }
     },
 
-    async git_commit_push({ message }) {
-      if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
-        return 'Error: Git not configured (missing GITHUB_TOKEN or GITHUB_REPO in environment).';
-      }
+    async git_commit({ message }) {
       try {
-        await execAsync('git add -A', { cwd: workDir });
+        // Use gitDir (project root) to include memory/, docs/, app/, etc.
+        await execAsync('git add -A', { cwd: gitDir });
 
         // Check if there are staged changes
         try {
-          await execAsync('git diff --cached --quiet', { cwd: workDir });
+          await execAsync('git diff --cached --quiet', { cwd: gitDir });
           return 'No changes to commit.';
         } catch {
           // Exit code 1 = there ARE changes — expected
         }
 
         // Use execFile to avoid shell injection from agent-crafted commit messages
-        await execFileAsync('git', ['commit', '-m', message], { cwd: workDir });
+        await execFileAsync('git', ['commit', '-m', message], { cwd: gitDir });
+
+        // Get commit hash for reference
+        const { stdout: hash } = await execAsync('git rev-parse --short HEAD', { cwd: gitDir });
+        return `✅ Committed locally (${hash.trim()}): "${message}"\n\nIncludes: app/, memory/, docs/\n⏳ Waiting for H2Crypto review. Use #release when ready to push.`;
+      } catch (err) {
+        return `Git error: ${err.message}`;
+      }
+    },
+
+    async git_commit_push({ message }) {
+      if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
+        return 'Error: Git not configured (missing GITHUB_TOKEN or GITHUB_REPO in environment).';
+      }
+      try {
+        // Use gitDir (project root) to include memory/, docs/, app/, etc.
+        await execAsync('git add -A', { cwd: gitDir });
+
+        // Check if there are staged changes
+        try {
+          await execAsync('git diff --cached --quiet', { cwd: gitDir });
+          return 'No changes to commit.';
+        } catch {
+          // Exit code 1 = there ARE changes — expected
+        }
+
+        // Use execFile to avoid shell injection from agent-crafted commit messages
+        await execFileAsync('git', ['commit', '-m', message], { cwd: gitDir });
         await execAsync('git push -u origin main --force-with-lease', {
-          cwd: workDir,
+          cwd: gitDir,
           timeout: 30000,
         });
         return `Committed and pushed: "${message}"`;
       } catch (err) {
         return `Git error: ${err.message}`;
+      }
+    },
+
+    async git_release({ version }) {
+      if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
+        return 'Error: Git not configured (missing GITHUB_TOKEN or GITHUB_REPO in environment).';
+      }
+      try {
+        // Check if there are unpushed commits
+        const { stdout: status } = await execAsync('git status -sb', { cwd: gitDir });
+
+        // Auto-increment version if requested
+        let tagVersion = version;
+        if (version === 'auto') {
+          try {
+            const { stdout: lastTag } = await execAsync('git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"', { cwd: gitDir });
+            const parts = lastTag.trim().replace('v', '').split('.');
+            const patch = parseInt(parts[2] || 0) + 1;
+            tagVersion = `v${parts[0] || 0}.${parts[1] || 0}.${patch}`;
+          } catch {
+            tagVersion = 'v0.1.0';
+          }
+        }
+
+        // Push commits
+        await execAsync('git push -u origin main --force-with-lease', {
+          cwd: gitDir,
+          timeout: 30000,
+        });
+
+        // Create and push tag
+        await execFileAsync('git', ['tag', '-a', tagVersion, '-m', `Release ${tagVersion}`], { cwd: gitDir });
+        await execAsync(`git push origin ${tagVersion}`, {
+          cwd: gitDir,
+          timeout: 30000,
+        });
+
+        // Get commit count since last tag (for summary)
+        let commitCount = '?';
+        try {
+          const { stdout } = await execAsync(`git rev-list --count HEAD ^$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo HEAD~100) 2>/dev/null || echo "?"`, { cwd: gitDir });
+          commitCount = stdout.trim();
+        } catch { /* ignore */ }
+
+        return `🚀 Released ${tagVersion}!\n\n📦 Pushed to GitHub: ${process.env.GITHUB_REPO}\n🏷️ Tag created: ${tagVersion}\n📝 Commits included: ${commitCount}`;
+      } catch (err) {
+        return `Git release error: ${err.message}`;
       }
     },
 
@@ -755,7 +946,19 @@ export function createToolExecutors(deps) {
       return `Journal entry added to ${today}.md`;
     },
 
-    async update_current_task({ phase, status, next_steps = [], blockers = [] }) {
+    async update_current_task({ phase, status }) {
+      // v3.1: Restrict to WAITING phase only - prevent Agent from setting development goals
+      if (phase !== 'WAITING') {
+        return `❌ BLOCKED: update_current_task is restricted to WAITING phase only. You cannot set ${phase} goals without H2Crypto approval. Use complete_task to mark tasks done, then wait for #dotask.`;
+      }
+
+      // Block any status that looks like development work
+      const blockedKeywords = ['UX', 'MVP', 'improvement', 'target', '90%', 'score', 'building', 'developing', 'continue'];
+      const statusLower = status.toLowerCase();
+      if (blockedKeywords.some(kw => statusLower.includes(kw.toLowerCase()))) {
+        return `❌ BLOCKED: Cannot set development goals. Status "${status}" looks like self-assigned work. Wait for H2Crypto's #dotask.`;
+      }
+
       const memoryDir = path.join(workDir, '..', 'memory', 'journal');
       if (!fs.existsSync(memoryDir)) {
         fs.mkdirSync(memoryDir, { recursive: true });
@@ -764,26 +967,23 @@ export function createToolExecutors(deps) {
 
       const content = `# Current Task
 
-> What SolanaHacker is currently working on. Updated on each significant action.
+## Status: ⏸️ ${status}
 
----
+## Phase: WAITING
 
-## Status: ${status}
+**DO NOT start development work.** Wait for H2Crypto's #dotask command.
 
-## Current Phase: ${phase}
-
-## Next Steps:
-${next_steps.length ? next_steps.map((s) => `- [ ] ${s}`).join('\n') : '- (none defined)'}
-
-## Blockers:
-${blockers.length ? blockers.map((b) => `- ${b}`).join('\n') : 'None'}
+## Rules:
+- Do NOT set UX improvement goals
+- Do NOT continue MVP development on your own
+- ONLY work on tasks explicitly given via #dotask
 
 ---
 
 *Last updated: ${new Date().toISOString()}*
 `;
       fs.writeFileSync(taskPath, content);
-      return `Current task updated: ${phase} — ${status}`;
+      return `✅ Status set to WAITING: ${status}. Now wait for H2Crypto.`;
     },
 
     async add_bug_solution({ category, error, context = '', root_cause = '', solution, prevention = '' }) {
@@ -991,7 +1191,36 @@ ${indexEntries.map(e => `| ${e.id} | ${e.date} | ${e.task} |`).join('\n')}
 
       // Check if all tasks are now complete (no more - [ ])
       const remaining = updated.filter(line => line.includes('- [ ]'));
+
+      // Update current_task.md to prevent Agent from continuing on its own
+      const currentTaskPath = path.join(memoryBase, 'journal', 'current_task.md');
+      const now2 = new Date().toISOString();
+
       if (remaining.length === 0) {
+        // All tasks done - set to waiting state
+        const waitingState = `# Current Task
+
+> What SolanaHacker is currently working on. Updated on each significant action.
+
+---
+
+## Status: ⏸️ WAITING - All Tasks Complete
+
+**DO NOT start new work.** Wait for H2Crypto's next instruction.
+
+## Completed Just Now
+- ${fullTaskText.slice(0, 80)}
+
+## Next Action
+- Wait for \`#addtask\` or \`#dotask\` from H2Crypto
+- Do NOT read old MVP/POC status and continue working
+
+---
+
+*Last updated: ${now2}*
+`;
+        fs.writeFileSync(currentTaskPath, waitingState);
+
         // Auto-clear completed tasks
         const cleaned = updated.filter(line => {
           if (line.startsWith('#') || line.startsWith('>') || line.trim() === '') return true;
@@ -999,8 +1228,31 @@ ${indexEntries.map(e => `| ${e.id} | ${e.date} | ${e.task} |`).join('\n')}
           return true;
         });
         fs.writeFileSync(tasksPath, cleaned.join('\n'));
-        return `✅ Task archived to ${taskId}.md! All tasks complete - cleared tasklist.`;
+        return `✅ Task archived to ${taskId}.md! All tasks complete - cleared tasklist. Now WAIT for H2Crypto.`;
       }
+
+      // More tasks remaining - update current_task to reflect this
+      const processingState = `# Current Task
+
+> What SolanaHacker is currently working on. Updated on each significant action.
+
+---
+
+## Status: 📋 Processing Tasklist
+
+**System will auto-load next task.** Do NOT manually look for work.
+
+## Just Completed
+- ${fullTaskText.slice(0, 80)}
+
+## Remaining Tasks
+${remaining.length} task(s) waiting
+
+---
+
+*Last updated: ${now2}*
+`;
+      fs.writeFileSync(currentTaskPath, processingState);
 
       return `✅ Task archived to ${taskId}.md! ${remaining.length} task(s) remaining.`;
     },

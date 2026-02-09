@@ -22,7 +22,7 @@ import { GrokWriter } from './grok-writer.js';
 import { UXReviewer } from './ux-reviewer.js';
 import { ColosseumAPI } from './colosseum-api.js';
 import { TOOL_DEFINITIONS, createToolExecutors } from './agent-tools.js';
-import { SKILL_REGISTRY, LOAD_SKILL_TOOL, loadSkill, getSkillHints } from './skills.js';
+import { SKILL_REGISTRY, LOAD_SKILL_TOOL, loadSkill, getSkillHints } from './skill-loader.js';
 import { ChatMode } from './chat-mode.js';
 
 const execAsync = promisify(exec);
@@ -81,6 +81,7 @@ class SolanaHackerAgent {
 
     // Tool executors (core tools only)
     const tools = createToolExecutors({
+      baseDir: CONFIG.baseDir,  // For git commands (project root)
       workDir: CONFIG.workDir,
       knowledgeDir: CONFIG.knowledgeDir,
       screenshotsDir: CONFIG.screenshotsDir,
@@ -392,9 +393,13 @@ Begin by checking your current task and memory. If there's pending work, continu
           continue;
         }
 
-        // Delete task
+        // Delete task(s) - supports single or multiple
         if (cmd.type === 'delete_task') {
           await this.chatMode.deleteTask(cmd.command);
+          continue;
+        }
+        if (cmd.type === 'delete_tasks') {
+          await this.chatMode.deleteTasks(cmd.command); // cmd.command is array
           continue;
         }
 
@@ -402,6 +407,18 @@ Begin by checking your current task and memory. If there's pending work, continu
         if (cmd.type === 'process_tasks') {
           await this.processTasksNow();
           return; // Exit chat loop, now in Dev Mode
+        }
+
+        // Release - push to GitHub and create tag
+        if (cmd.type === 'release') {
+          const version = cmd.command || 'auto';
+          try {
+            const result = await this.executors.git_release({ version });
+            await this.telegram.sendDevlog(result);
+          } catch (err) {
+            await this.telegram.sendDevlog(`❌ Release 失敗: ${err.message}`);
+          }
+          continue;
         }
 
         // Sleep mode
@@ -436,9 +453,12 @@ Begin by checking your current task and memory. If there's pending work, continu
           continue;
         }
 
-        // Chat message
+        // Chat message (v3.2: supports image attachments)
         if (cmd.type === 'chat') {
-          await this.chatMode.handleChat(cmd.command);
+          await this.chatMode.handleChat({
+            message: cmd.command,
+            imagePath: cmd.imagePath,  // Will be null if no image
+          });
           continue;
         }
 
@@ -633,12 +653,16 @@ After completing tasklist tasks, read this file and resume the previous work.
         `## v3.1 Instructions (SEQUENTIAL PROCESSING):\n` +
         `⚠️ Focus ONLY on this ONE task above. Do NOT look for other tasks.\n\n` +
         `1. Complete this task fully\n` +
-        `2. When done, use complete_task tool:\n` +
+        `2. **For UI/UX tasks**: Ensure changes are visible in running app!\n` +
+        `   - New components MUST be imported and rendered in App.jsx/TestApp.jsx\n` +
+        `   - Take screenshot to VERIFY changes appear on http://165.22.136.40:5173\n` +
+        `   - If screenshot doesn't show your changes, the task is NOT complete!\n` +
+        `3. When done, use complete_task tool:\n` +
         `   \`complete_task({ task_text: "...", summary: "what was done" })\`\n` +
-        `3. Send Telegram update:\n` +
+        `4. Send Telegram update with screenshot:\n` +
         `   ✅ 任務完成：[任務名稱]\n` +
         `   📝 成果：[簡述結果]\n` +
-        `4. After complete_task, the system will automatically load the next task\n\n` +
+        `5. After complete_task, the system will automatically load the next task\n\n` +
         `Start now!`
     });
 
@@ -676,8 +700,9 @@ After completing tasklist tasks, read this file and resume the previous work.
         `## Current Task (${taskInfo.total - taskInfo.remaining} of ${taskInfo.total})\n${taskInfo.task}\n\n` +
         `⚠️ Focus ONLY on this ONE task. Same process:\n` +
         `1. Complete the task\n` +
-        `2. Use complete_task when done\n` +
-        `3. Send Telegram update\n\n` +
+        `2. **For UI/UX tasks**: Verify changes are visible in running app (take screenshot!)\n` +
+        `3. Use complete_task when done\n` +
+        `4. Send Telegram update with screenshot\n\n` +
         `Start now!`
     });
 
@@ -988,10 +1013,10 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
               role: 'user',
               content:
                 'Your previous conversation encountered an error and was reset. ' +
-                'IMPORTANT: First read memory/journal/current_task.md to check your current PHASE (IDEA/POC/MVP/SUBMIT). ' +
-                'Do NOT regress to an earlier phase. If current_task says MVP, continue MVP work. ' +
-                'If current_task says POC approved, proceed to MVP. ' +
-                'Then check the project state with list_files, review_ux, and continue from your current phase.',
+                'IMPORTANT: v3 Architecture - You are in Task-Only Mode. ' +
+                'Check memory/journal/pending_tasks.md - if there are pending tasks, process them one by one. ' +
+                'If no pending tasks, WAIT for H2Crypto to send #dotask command. ' +
+                'Do NOT start autonomous development work without explicit task instructions.',
             }];
             this.repairAttempts = 0;
             this.saveState();
@@ -1074,18 +1099,25 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
           this.waitingCount = 0;
         }
 
-        // Nudge agent to continue work (not waiting)
-        this.messages.push({
-          role: 'user',
-          content:
-            '[SYSTEM - NOT H2Crypto] You signaled end_turn but should continue working.\n\n' +
-            'IMPORTANT REMINDERS:\n' +
-            '1. Complete your current phase work before requesting review\n' +
-            '2. If you fixed a bug from #chat, return to your previous task (check current_task.md)\n' +
-            '3. For UI improvements, use the UX Design Automation Flow (v0)\n' +
-            '4. Only wait if you have submitted for H2Crypto review\n\n' +
-            'Read current_task.md and continue your work.',
-        });
+        // v3: Check if there are pending tasks, otherwise wait
+        const hasPendingTasks = this.getFirstPendingTask();
+        if (hasPendingTasks) {
+          this.messages.push({
+            role: 'user',
+            content:
+              '[SYSTEM] You signaled end_turn but there are pending tasks.\n\n' +
+              'Check memory/journal/pending_tasks.md and process the next task.\n' +
+              'Use complete_task when done with each task.',
+          });
+        } else {
+          this.messages.push({
+            role: 'user',
+            content:
+              '[SYSTEM] No pending tasks. You can now wait for H2Crypto.\n' +
+              'If you just completed a task, send a summary to Telegram.\n' +
+              'Do NOT start autonomous development work.',
+          });
+        }
         continue;
       }
 
@@ -1304,8 +1336,9 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
           // Enter standby mode - don't crash, just wait for reset
           await this.enterStandbyMode('API credits exhausted');
 
-          // After standby mode exits (reset received), retry
-          continue;
+          // After standby mode exits (reset received), go back to main loop
+          // Don't retry - messages were cleared during reset
+          return { content: [{ type: 'text', text: '[Standby mode exited - resetting to Chat Mode]' }], stop_reason: 'end_turn' };
         }
 
         // Rate limited — retry with backoff
@@ -1423,7 +1456,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         parts.push(
           `[ARCHITECT QUESTION] H2Crypto is asking: "${cmd.command}"\n\n` +
           `Please answer this question via Telegram (use send_telegram). ` +
-          `After answering, continue with your current work.`
+          `After answering, check pending_tasks.md - if tasks exist, process them. Otherwise wait.`
         );
         console.log(`[Agent] Injected question: ${cmd.command}`);
         // Reset waiting state - question needs response
@@ -1431,19 +1464,54 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
       }
 
       if (cmd.type === 'chat') {
-        parts.push(
-          `[H2CRYPTO MESSAGE] ${cmd.command}\n\n` +
-          `Handle this message appropriately:\n` +
-          `- Bug report / issue → FIX IT, then return to your previous task\n` +
-          `- Question → Answer via Telegram, then continue working\n` +
-          `- Instruction → Execute it, then return to your previous task\n` +
-          `- Feedback → Acknowledge and apply it\n\n` +
-          `CRITICAL: After handling this message:\n` +
-          `1. Read current_task.md to remember your PHASE and what you were doing\n` +
-          `2. Check UX score with review_ux if in POC/MVP phase\n` +
-          `3. If UX < 90%, CONTINUE IMPROVING - do NOT request approval\n` +
-          `4. Return to your previous work - DO NOT ask H2Crypto what to do next`
-        );
+        // Check for attached image
+        if (cmd.imagePath && fs.existsSync(cmd.imagePath)) {
+          try {
+            const imageBuffer = fs.readFileSync(cmd.imagePath);
+            const base64Image = imageBuffer.toString('base64');
+            const mediaType = cmd.imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+            // Add multimodal message with image
+            this.messages.push({
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mediaType,
+                    data: base64Image,
+                  },
+                },
+                {
+                  type: 'text',
+                  text: `[H2CRYPTO MESSAGE with IMAGE] ${cmd.command || '(看圖片)'}\n\n` +
+                    `H2Crypto sent you an image. Analyze it and respond appropriately.\n` +
+                    `If it's a bug screenshot, identify and fix the issue.\n` +
+                    `If it's a design reference, understand and apply the concept.`,
+                },
+              ],
+            });
+            console.log(`[Agent] Injected chat with image: ${cmd.imagePath}`);
+          } catch (err) {
+            console.error(`[Agent] Failed to read image: ${err.message}`);
+            parts.push(`[H2CRYPTO MESSAGE] ${cmd.command} (圖片讀取失敗)`);
+          }
+        } else {
+          parts.push(
+            `[H2CRYPTO MESSAGE] ${cmd.command}\n\n` +
+            `Handle this message appropriately:\n` +
+            `- Bug report / issue → FIX IT immediately\n` +
+            `- Question → Answer via Telegram\n` +
+            `- Instruction → Execute it\n` +
+            `- Feedback → Acknowledge and apply it\n\n` +
+            `CRITICAL: v3 Architecture - Task-Only Mode:\n` +
+            `- Do NOT start autonomous development work\n` +
+            `- Do NOT check UX score and continue improving on your own\n` +
+            `- After handling this message, WAIT for next #dotask command\n` +
+            `- Only work on tasks from pending_tasks.md when triggered by #dotask`
+          );
+        }
         console.log(`[Agent] Injected chat: ${cmd.command}`);
         // Reset waiting state - user is engaging
         this.waitingCount = 0;
@@ -1525,7 +1593,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         content: [
           {
             type: 'text',
-            text: 'Understood. I will check the current project state and continue working.',
+            text: 'Understood. I will check pending_tasks.md for any tasks to process.',
           },
         ],
       },
@@ -1533,7 +1601,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         role: 'user',
         content:
           '[CONTEXT NOTE] Earlier conversation messages were pruned to save context. ' +
-          'The project is in progress. Use list_files and review_ux to understand current state before making changes.',
+          'v3 Architecture: Check pending_tasks.md - if tasks exist, process them. Otherwise wait for #dotask.',
       },
       ...tail,
     ];
@@ -1654,10 +1722,36 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         alternated[i] = {
           role: 'user',
           content:
-            '[System] Previous tool results were from a pruned context. Continue working on the project.',
+            '[System] Previous tool results were from a pruned context. Check pending_tasks.md for tasks.',
         };
       } else if (valid.length < msg.content.length) {
         alternated[i] = { ...msg, content: valid };
+      }
+    }
+
+    // Phase 4: Ensure all messages have non-empty content (Claude API requirement)
+    for (let i = 0; i < alternated.length; i++) {
+      const msg = alternated[i];
+      const isEmpty = (
+        msg.content === undefined ||
+        msg.content === null ||
+        msg.content === '' ||
+        (Array.isArray(msg.content) && msg.content.length === 0)
+      );
+
+      if (isEmpty) {
+        console.log(`[Agent] Fixing empty content at message ${i} (role: ${msg.role})`);
+        if (msg.role === 'assistant') {
+          alternated[i] = {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Continuing work...' }],
+          };
+        } else {
+          alternated[i] = {
+            role: 'user',
+            content: '[System] Continue.',
+          };
+        }
       }
     }
 

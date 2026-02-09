@@ -1,0 +1,9 @@
+
+# Secrets
+.env
+.env.*
+*.log
+.git-credentials
+agent/.env
+node_modules/
+*/node_modules/

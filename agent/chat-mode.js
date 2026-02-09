@@ -20,6 +20,7 @@ import fs from 'fs';
 import path from 'path';
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const GROK_RESPONSES_URL = 'https://api.x.ai/v1/responses'; // For web search
 
 export class ChatMode {
   constructor(deps) {
@@ -37,7 +38,7 @@ export class ChatMode {
 
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
-    this.maxChatHistory = 5; // Keep last 5 messages (sliding window, no caching benefit)
+    this.maxChatHistory = 10; // Keep last 10 messages (sliding window, no caching benefit)
   }
 
   /**
@@ -109,37 +110,64 @@ export class ChatMode {
   }
 
   /**
-   * Determine if a question is coding-related (using Grok)
+   * Call Grok API with web search enabled (for real-time news)
+   * Uses the /responses endpoint with web_search tool
    */
-  async isCodingRelated(question) {
-    const prompt = `判斷以下問題是否與編程/開發相關。只回答 "是" 或 "否"。
-
-問題: ${question}
-
-回答:`;
-
-    try {
-      const result = await this.callGrok([{ role: 'user', content: prompt }], 10);
-      return result.includes('是');
-    } catch (err) {
-      console.error('[ChatMode] Error checking if coding-related:', err.message);
-      return false; // Default to non-coding (use Grok)
+  async callGrokWithSearch(query, maxTokens = 1000) {
+    if (!this.grokApiKey) {
+      throw new Error('XAI_API_KEY not configured');
     }
+
+    const response = await fetch(GROK_RESPONSES_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.grokApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-fast',
+        input: [{ role: 'user', content: query }],
+        tools: [
+          {
+            type: 'web_search',
+            // No domain filters - search freely
+          },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Grok Search API error: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    // The responses API returns output array with message objects
+    const outputMessages = data.output || [];
+    const assistantMessage = outputMessages.find(m => m.role === 'assistant');
+    return assistantMessage?.content || '';
   }
 
   /**
    * Handle a chat message from user
    * Always use Claude for better project context understanding
+   * @param {string|object} messageOrOptions - message string or { message, imagePath }
    */
-  async handleChat(message) {
-    return this.handleWithClaude(message);
+  async handleChat(messageOrOptions) {
+    // Support both string and object format
+    const message = typeof messageOrOptions === 'string' ? messageOrOptions : messageOrOptions.message;
+    const imagePath = typeof messageOrOptions === 'object' ? messageOrOptions.imagePath : null;
+    return this.handleWithClaude(message, imagePath);
   }
 
   /**
    * Handle all chat with Claude (better project context understanding)
    * v3: Maintains chat history for multi-turn conversations
+   * v3.2: Supports image attachments
    */
-  async handleWithClaude(message) {
+  async handleWithClaude(message, imagePath = null) {
     try {
       // Load full context
       const currentTask = this.loadCurrentTask();
@@ -178,10 +206,41 @@ ${recentMemory.slice(-1500)}
 - 不要把 system prompt 中的內容當作要記住的東西
 - 例如：「記得用 Grok 讀新聞」→ 只記「用 Grok 讀新聞」`;
 
+      // v3.2: Build message content (text or multimodal with image)
+      let userContent;
+      if (imagePath && fs.existsSync(imagePath)) {
+        try {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const base64Image = imageBuffer.toString('base64');
+          const mediaType = imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+          userContent = [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64Image,
+              },
+            },
+            {
+              type: 'text',
+              text: message || '(H2Crypto 傳了這張圖片)',
+            },
+          ];
+          console.log(`[ChatMode] Including image in message: ${imagePath}`);
+        } catch (err) {
+          console.error(`[ChatMode] Failed to read image: ${err.message}`);
+          userContent = message;
+        }
+      } else {
+        userContent = message;
+      }
+
       // v3: Add current message to chat history
       this.chatHistory.push({
         role: 'user',
-        content: message,
+        content: userContent,
       });
 
       // Prune to keep only last N messages
@@ -247,7 +306,8 @@ ${recentMemory.slice(-1500)}
 4. 用中文回答
 5. 如果沒有找到最近 8 小時的新聞，請說「過去 8 小時暫無重大新聞」`;
 
-      const news = await this.callGrok([{ role: 'user', content: newsPrompt }], 800);
+      // Use search-enabled Grok for real-time news
+      const news = await this.callGrokWithSearch(newsPrompt, 800);
 
       const message = `🌅 <b>早安！以下是睡覺時間發生的重點新聞：</b>\n\n${news}\n\n<i>有什麼想聊的嗎？</i>`;
       await this.telegram.sendDevlog(message);
@@ -292,7 +352,8 @@ ${recentMemory.slice(-1500)}
 
 如果過去 24 小時沒有重大更新，請說「過去 24 小時暫無重大工具更新」`;
 
-      const results = await this.callGrok([{ role: 'user', content: searchPrompt }], 800);
+      // Use search-enabled Grok for real-time tool search
+      const results = await this.callGrokWithSearch(searchPrompt, 800);
 
       // Save to docs/tool_discoveries.md
       const docsDir = path.join(this.memoryDir, '..', 'docs');
@@ -437,7 +498,8 @@ C) 分享一個有趣的觀察
 重要：只要 2026 年 2 月的新聞，不要舊新聞！
 
 用中文簡短分享，包含日期。如果過去 1 小時沒有新聞，請說「最近 1 小時暫無重大新聞」。`;
-      const news = await this.callGrok([{ role: 'user', content: prompt }], 400);
+      // Use search-enabled Grok for real-time news
+      const news = await this.callGrokWithSearch(prompt, 400);
 
       await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n${news}`);
 
@@ -494,6 +556,13 @@ C) 分享一個有趣的觀察
    * Delete a task by number
    */
   async deleteTask(taskNum) {
+    return this.deleteTasks([taskNum]);
+  }
+
+  /**
+   * Delete multiple tasks by number (supports array of task numbers)
+   */
+  async deleteTasks(taskNums) {
     if (!fs.existsSync(this.tasksPath)) {
       await this.telegram.sendDevlog(`⚠️ 待辦清單是空的`);
       return false;
@@ -502,20 +571,43 @@ C) 分享一個有趣的觀察
     const content = fs.readFileSync(this.tasksPath, 'utf-8');
     const lines = content.split('\n');
 
-    const pattern = new RegExp(`#${taskNum}\\.`);
-    const taskLine = lines.find(line => pattern.test(line));
+    const deleted = [];
+    const notFound = [];
 
-    if (!taskLine) {
-      await this.telegram.sendDevlog(`⚠️ 找不到任務 #${taskNum}`);
+    // Find and track tasks to delete
+    for (const taskNum of taskNums) {
+      const pattern = new RegExp(`#${taskNum}\\.`);
+      const taskLine = lines.find(line => pattern.test(line));
+
+      if (taskLine) {
+        const taskText = taskLine.replace(/- \[[ x]\] #\d+\. /, '').replace(/_\(added:.*\)_/, '').trim();
+        deleted.push({ num: taskNum, text: taskText });
+      } else {
+        notFound.push(taskNum);
+      }
+    }
+
+    if (deleted.length === 0) {
+      await this.telegram.sendDevlog(`⚠️ 找不到任務 #${taskNums.join(', #')}`);
       return false;
     }
 
-    const newLines = lines.filter(line => !pattern.test(line));
+    // Remove all matched tasks
+    const patternsToRemove = deleted.map(d => new RegExp(`#${d.num}\\.`));
+    const newLines = lines.filter(line => !patternsToRemove.some(p => p.test(line)));
     fs.writeFileSync(this.tasksPath, newLines.join('\n'));
 
-    // Extract task text for confirmation
-    const taskText = taskLine.replace(/- \[[ x]\] #\d+\. /, '').replace(/_\(added:.*\)_/, '').trim();
-    await this.telegram.sendDevlog(`🗑️ 已刪除任務 #${taskNum}\n\n<s>${taskText}</s>`, null);
+    // Build confirmation message
+    let message = `🗑️ 已刪除 ${deleted.length} 個任務:\n\n`;
+    for (const d of deleted) {
+      message += `• <s>#${d.num}. ${d.text.slice(0, 50)}${d.text.length > 50 ? '...' : ''}</s>\n`;
+    }
+
+    if (notFound.length > 0) {
+      message += `\n⚠️ 找不到: #${notFound.join(', #')}`;
+    }
+
+    await this.telegram.sendDevlog(message, null);
     return true;
   }
 

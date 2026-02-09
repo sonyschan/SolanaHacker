@@ -164,4 +164,20 @@ renderer.domElement.addEventListener('webglcontextlost', (e) => {
 
 ---
 
+
+### React / Solana Wallets: installHook.js:1 Encountered two children with the
+**Error**: `installHook.js:1 Encountered two children with the same key, MetaMask. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.`
+**Context**: React components rendering Solana wallet adapters in WalletModalProvider
+**Root Cause**: Multiple wallet adapters were being created with identical name properties, causing React to see duplicate keys when rendering the wallet selection modal
+**Solution**: Modified walletSingleton.js to create absolutely unique identifiers for each wallet adapter:
+1. Generate unique IDs using counter + timestamp + random string
+2. Override adapter.name with unique identifier (e.g., "Phantom_1_1770544000_abc123")  
+3. Store original name in adapter.displayName for UI purposes
+4. Add adapter.key property for React key usage
+5. Apply multiple layers of deduplication and React key safety checks
+6. Verify no duplicate keys exist in development logs
+**Prevention**: Always ensure wallet adapters have unique identifiers when creating multiple instances. Use singleton pattern to prevent recreation. Test wallet modal rendering to verify unique React keys.
+
+---
+
 <!-- Add new bug solutions above this line -->
