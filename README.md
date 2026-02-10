@@ -147,17 +147,17 @@ npm run preview
 
 ## 🚧 Roadmap
 
-### ✅ MVP (Current)
+### ✅ MVP (Completed)
 - [x] Basic voting interface
-- [x] Wallet connection
+- [x] Wallet connection  
 - [x] Value cycle visualization
 - [x] Rarity system
 
-### 🔄 Beta (4-6 weeks)
-- [ ] Real AI meme generation
-- [ ] Complete auction flow
-- [ ] Weekly lottery system
-- [ ] Mobile optimization
+### 🔄 Beta (Current Phase - 4-6 weeks)
+- [ ] Real AI meme generation (Gemini API integration)
+- [ ] Complete auction flow (UI completed, bidding logic pending)
+- [ ] Weekly lottery system (UI completed, drawing logic pending)
+- [x] Mobile optimization (responsive design completed)
 - [ ] User analytics dashboard
 
 ### 🎯 Launch (8-10 weeks)
