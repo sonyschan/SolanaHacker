@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import WalletConnection from './WalletConnection';
 
 const Dashboard = ({ 
   userTickets, 
   votingStreak, 
   onDisconnectWallet,
   setUserTickets,
-  setVotingStreak 
+  setVotingStreak,
+  walletAddress
 }) => {
   const [activeTab, setActiveTab] = useState('forge');
   const [votingPhase, setVotingPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
@@ -497,12 +499,7 @@ const Dashboard = ({
                 </div>
               </div>
               
-              <button
-                onClick={onDisconnectWallet}
-                className="px-4 py-2 bg-white/5 backdrop-blur-md border border-red-400/20 rounded-lg text-red-300 hover:bg-red-500/10 hover:border-red-400/50 transition-all duration-300 text-sm"
-              >
-                Disconnect
-              </button>
+              <WalletConnection variant="secondary" showAddress={true} />
             </div>
           </div>
         </div>

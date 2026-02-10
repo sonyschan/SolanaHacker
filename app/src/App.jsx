@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import HomePage from './components/HomePage';
 import Dashboard from './components/Dashboard';
 import './index.css';
 
 function App() {
-  const [walletConnected, setWalletConnected] = useState(false);
+  const { connected, connecting, publicKey } = useWallet();
   const [currentView, setCurrentView] = useState('home');
   const [userTickets, setUserTickets] = useState(87); // Mock data
   const [votingStreak, setVotingStreak] = useState(3);
 
-  // Mock wallet connection
+  // Auto-switch to dashboard when wallet connects
+  useEffect(() => {
+    if (connected && publicKey) {
+      setCurrentView('dashboard');
+    } else {
+      setCurrentView('home');
+    }
+  }, [connected, publicKey]);
+
+  // Mock wallet connection (for backward compatibility)
   const connectWallet = () => {
-    setWalletConnected(true);
-    setCurrentView('dashboard');
+    // This will be handled by the real wallet connection now
+    console.log('Use WalletConnection component instead');
   };
 
   const disconnectWallet = () => {
-    setWalletConnected(false);
-    setCurrentView('home');
+    // This will be handled by the real wallet disconnection now
+    console.log('Use WalletConnection component instead');
   };
 
   return (
@@ -25,7 +35,8 @@ function App() {
       {currentView === 'home' ? (
         <HomePage 
           onConnectWallet={connectWallet}
-          walletConnected={walletConnected}
+          walletConnected={connected}
+          connecting={connecting}
         />
       ) : (
         <Dashboard
@@ -34,6 +45,7 @@ function App() {
           onDisconnectWallet={disconnectWallet}
           setUserTickets={setUserTickets}
           setVotingStreak={setVotingStreak}
+          walletAddress={publicKey?.toBase58()}
         />
       )}
     </div>

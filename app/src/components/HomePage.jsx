@@ -1,6 +1,7 @@
 import React from 'react';
+import WalletConnection from './WalletConnection';
 
-const HomePage = ({ onConnectWallet, walletConnected }) => {
+const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
       {/* Enhanced Animated background */}
@@ -40,15 +41,7 @@ const HomePage = ({ onConnectWallet, walletConnected }) => {
             </div>
           </div>
           
-          <button
-            onClick={onConnectWallet}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-medium hover:scale-105 transition-all duration-300 shadow-lg shadow-cyan-500/25 group"
-          >
-            <span className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-white rounded-full group-hover:animate-ping" />
-              <span>{walletConnected ? 'Enter App' : 'Connect Wallet'}</span>
-            </span>
-          </button>
+          <WalletConnection variant="primary" />
         </div>
       </nav>
 
@@ -86,16 +79,7 @@ const HomePage = ({ onConnectWallet, walletConnected }) => {
           
           {/* Enhanced CTA with value props */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-            <button
-              onClick={onConnectWallet}
-              className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg shadow-cyan-500/25 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10 flex items-center space-x-2">
-                <span>Start Earning SOL</span>
-                <span className="text-lg">→</span>
-              </span>
-            </button>
+            <WalletConnection variant="primary" className="px-8 py-4 text-lg" />
             <button className="px-8 py-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-lg font-medium hover:bg-white/10 transition-all duration-300 group">
               <span className="flex items-center space-x-2">
                 <span>📺 Watch Demo</span>
@@ -305,16 +289,7 @@ const HomePage = ({ onConnectWallet, walletConnected }) => {
               Don't miss today's vote!
             </p>
             <div className="space-y-4">
-              <button
-                onClick={onConnectWallet}
-                className="px-12 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg text-xl font-bold hover:scale-105 transition-all duration-300 shadow-lg shadow-cyan-500/25 group relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative z-10 flex items-center space-x-3">
-                  <span>Connect Wallet & Start Now</span>
-                  <span className="text-2xl group-hover:translate-x-1 transition-transform">→</span>
-                </span>
-              </button>
+              <WalletConnection variant="primary" className="px-12 py-4 text-xl font-bold" />
               <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
                 <div className="flex items-center space-x-2">
                   <span className="text-green-400">✓</span>
