@@ -263,14 +263,14 @@ export class TelegramBridge {
         return;
       }
 
-      // === #dotask — Process pending tasks immediately ===
+      // === #dotask — Process WIP task immediately ===
       if (text === '#dotask') {
         this.mustQueue.push({
           type: 'process_tasks',
           timestamp: Date.now(),
         });
-        this.bot.sendMessage(this.chatId, '🚀 收到！正在處理待辦任務...');
-        console.log('[TG] Process tasks now requested');
+        this.bot.sendMessage(this.chatId, '🚀 收到！正在處理任務...');
+        console.log('[TG] Process WIP task requested');
         return;
       }
 
@@ -374,6 +374,22 @@ export class TelegramBridge {
         this.bot.sendMessage(this.chatId, '⏹️ 收到停止指令...');
         return;
       }
+
+      // === DEFAULT: Treat any unmatched message as #chat ===
+      // This allows natural conversation without needing to prefix with #chat
+      if (text && text.trim()) {
+        const photoPath = msg.photo ? await this.downloadPhoto(msg) : null;
+        this.mustQueue.push({
+          type: 'chat',
+          command: text.trim(),
+          imagePath: photoPath,
+          timestamp: Date.now(),
+          messageId: msg.message_id,
+        });
+        this.bot.sendMessage(this.chatId, '💬 已送出，Agent 將會回應');
+        console.log(`[TG] Default chat: ${text.slice(0, 50)}...`);
+        return;
+      }
     });
 
     this.bot.on('error', (error) => {
@@ -437,31 +453,86 @@ ${message}
   }
 
   /**
+   * Split long message into chunks for Telegram (max 4096 chars)
+   */
+  _splitMessage(text, maxLength = 4000) {
+    if (text.length <= maxLength) return [text];
+
+    const chunks = [];
+    let remaining = text;
+
+    while (remaining.length > 0) {
+      if (remaining.length <= maxLength) {
+        chunks.push(remaining);
+        break;
+      }
+
+      // Try to split at newline
+      let splitIndex = remaining.lastIndexOf('\n', maxLength);
+      if (splitIndex < maxLength * 0.5) {
+        // No good newline found, try space
+        splitIndex = remaining.lastIndexOf(' ', maxLength);
+      }
+      if (splitIndex < maxLength * 0.5) {
+        // No good split point, force split
+        splitIndex = maxLength;
+      }
+
+      chunks.push(remaining.slice(0, splitIndex));
+      remaining = remaining.slice(splitIndex).trimStart();
+    }
+
+    return chunks;
+  }
+
+  /**
    * Send a devlog update with optional screenshot (with secret masking + HTML sanitization)
+   * Auto-splits messages longer than 4096 chars
    */
   async sendDevlog(message, screenshotPath = null) {
     // Mask secrets and sanitize HTML for Telegram
     const safeMessage = sanitizeHtmlForTelegram(maskSecrets(message));
+
+    // Split into chunks if too long
+    const chunks = this._splitMessage(safeMessage);
+
     try {
-      if (screenshotPath && fs.existsSync(screenshotPath)) {
-        await this.bot.sendPhoto(this.chatId, screenshotPath, {
-          caption: safeMessage.slice(0, 1024), // Telegram caption limit
-          parse_mode: 'HTML',
-        });
-      } else {
-        await this.bot.sendMessage(this.chatId, safeMessage, {
-          parse_mode: 'HTML',
-        });
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const isFirst = i === 0;
+        const partLabel = chunks.length > 1 ? `\n\n📄 (${i + 1}/${chunks.length})` : '';
+        const chunkWithLabel = chunk + partLabel;
+
+        if (isFirst && screenshotPath && fs.existsSync(screenshotPath)) {
+          await this.bot.sendPhoto(this.chatId, screenshotPath, {
+            caption: chunkWithLabel.slice(0, 1024), // Telegram caption limit
+            parse_mode: 'HTML',
+          });
+        } else {
+          await this.bot.sendMessage(this.chatId, chunkWithLabel, {
+            parse_mode: 'HTML',
+          });
+        }
+
+        // Small delay between chunks to avoid rate limiting
+        if (i < chunks.length - 1) {
+          await new Promise(r => setTimeout(r, 300));
+        }
       }
-      console.log('[TG] Devlog sent successfully');
+      console.log(`[TG] Devlog sent successfully (${chunks.length} part${chunks.length > 1 ? 's' : ''})`);
     } catch (error) {
-      // If HTML parsing still fails, try without parse_mode
-      if (error.message?.includes('parse entities')) {
-        console.log('[TG] HTML parse failed, retrying as plain text');
+      // If HTML parsing fails, try without parse_mode
+      if (error.message?.includes('parse entities') || error.message?.includes('too long')) {
+        console.log('[TG] HTML parse failed or too long, retrying as plain text');
         try {
           const plainMessage = safeMessage.replace(/<[^>]+>/g, ''); // Strip all HTML
-          await this.bot.sendMessage(this.chatId, plainMessage);
-          console.log('[TG] Devlog sent as plain text');
+          const plainChunks = this._splitMessage(plainMessage);
+          for (let i = 0; i < plainChunks.length; i++) {
+            const partLabel = plainChunks.length > 1 ? `\n\n(${i + 1}/${plainChunks.length})` : '';
+            await this.bot.sendMessage(this.chatId, plainChunks[i] + partLabel);
+            if (i < plainChunks.length - 1) await new Promise(r => setTimeout(r, 300));
+          }
+          console.log(`[TG] Devlog sent as plain text (${plainChunks.length} part${plainChunks.length > 1 ? 's' : ''})`);
           return;
         } catch (retryErr) {
           console.error('[TG] Retry failed:', retryErr.message);

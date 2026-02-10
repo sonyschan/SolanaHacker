@@ -35,9 +35,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG = {
   baseDir: '/home/projects/solanahacker',
   workDir: '/home/projects/solanahacker/app',
-  knowledgeDir: '/home/projects/solanahacker/knowledge',
   memoryDir: '/home/projects/solanahacker/memory',
-  docsDir: '/home/projects/solanahacker/docs',
+  docsDir: '/home/projects/solanahacker/docs',  // Reference docs (product spec, design guides)
   screenshotsDir: '/home/projects/solanahacker/screenshots',
   logsDir: '/home/projects/solanahacker/logs',
   devServerPort: 5173,
@@ -83,7 +82,7 @@ class SolanaHackerAgent {
     const tools = createToolExecutors({
       baseDir: CONFIG.baseDir,  // For git commands (project root)
       workDir: CONFIG.workDir,
-      knowledgeDir: CONFIG.knowledgeDir,
+      docsDir: CONFIG.docsDir,
       screenshotsDir: CONFIG.screenshotsDir,
       devServerPort: CONFIG.devServerPort,
       telegram: this.telegram,
@@ -104,7 +103,7 @@ class SolanaHackerAgent {
         return `Skill "${skill_name}" is already loaded. Tools available: ${this.getSkillToolNames(skill_name).join(', ')}`;
       }
 
-      const skill = loadSkill(skill_name, {
+      const skill = await loadSkill(skill_name, {
         workDir: CONFIG.workDir,
         writer: this.writer,
       });
@@ -144,7 +143,7 @@ class SolanaHackerAgent {
       baseDir: CONFIG.baseDir,
       reviewer: this.reviewer,
       devServerPort: CONFIG.devServerPort,
-      knowledgeDir: CONFIG.knowledgeDir,
+      docsDir: CONFIG.docsDir,
     });
 
     // Build system prompt (with embedded knowledge base)
@@ -152,12 +151,11 @@ class SolanaHackerAgent {
   }
 
   /**
-   * Get tool names for a specific skill
+   * Get tool names for a specific skill (from registry metadata, no async needed)
    */
   getSkillToolNames(skillName) {
-    const skillDef = loadSkill(skillName, { workDir: CONFIG.workDir, writer: this.writer });
-    if (!skillDef) return [];
-    return skillDef.tools.map((t) => t.name);
+    const skill = SKILL_REGISTRY.find(s => s.name === skillName);
+    return skill ? skill.tools : [];
   }
 
   /**
@@ -176,6 +174,53 @@ class SolanaHackerAgent {
    */
   getExecutor(toolName) {
     return this.executors[toolName] || this.skillExecutors[toolName];
+  }
+
+  /**
+   * Get a snapshot of project structure to help Agent navigate files
+   * v3.2: Reduces wasted turns from path guessing
+   */
+  getProjectStructureSnapshot() {
+    const lines = [];
+    const workDir = CONFIG.workDir;
+
+    try {
+      // List src/ structure (most important for dev tasks)
+      const srcDir = path.join(workDir, 'src');
+      if (fs.existsSync(srcDir)) {
+        lines.push('src/');
+        const srcFiles = fs.readdirSync(srcDir);
+        for (const file of srcFiles) {
+          const filePath = path.join(srcDir, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            lines.push(`  ${file}/`);
+            // List component files
+            try {
+              const subFiles = fs.readdirSync(filePath).slice(0, 10);
+              for (const sf of subFiles) {
+                lines.push(`    ${sf}`);
+              }
+            } catch {}
+          } else {
+            lines.push(`  ${file}`);
+          }
+        }
+      }
+
+      // List key root files in workDir
+      const rootFiles = ['package.json', 'vite.config.js', 'index.html', 'tailwind.config.js'];
+      const existingRootFiles = rootFiles.filter(f => fs.existsSync(path.join(workDir, f)));
+      if (existingRootFiles.length > 0) {
+        lines.push('');
+        lines.push('Root files: ' + existingRootFiles.join(', '));
+      }
+
+    } catch (err) {
+      lines.push(`(Error reading structure: ${err.message})`);
+    }
+
+    return lines.join('\n') || '(No src/ directory found)';
   }
 
   // ============================================
@@ -224,23 +269,23 @@ class SolanaHackerAgent {
         longTermMemory += `\n\n### H2Crypto's Values\n${content.slice(0, 2000)}`;
       }
 
-      // Bug solutions
-      const bugsPath = path.join(knowledgeDir, 'bugs.md');
-      if (fs.existsSync(bugsPath)) {
-        const content = fs.readFileSync(bugsPath, 'utf-8');
-        longTermMemory += `\n\n### Bug Solutions (searchable)\n${content.slice(0, 3000)}`;
+      // Bug solutions index (v4: folder-based registry)
+      const bugsIndexPath = path.join(knowledgeDir, 'bugs', 'index.md');
+      if (fs.existsSync(bugsIndexPath)) {
+        const content = fs.readFileSync(bugsIndexPath, 'utf-8');
+        longTermMemory += `\n\n### Bug Solutions Registry\n${content}\n\n**To get full solution:** \`lookup_bug({ error: "error message" })\``;
       }
     }
 
-    // Load reference knowledge base
-    let refKnowledge = '';
-    if (fs.existsSync(CONFIG.knowledgeDir)) {
+    // Load reference docs (product spec, design guides, etc.)
+    let refDocs = '';
+    if (fs.existsSync(CONFIG.docsDir)) {
       const files = fs
-        .readdirSync(CONFIG.knowledgeDir)
+        .readdirSync(CONFIG.docsDir)
         .filter((f) => f.endsWith('.md') || f.endsWith('.txt'));
       for (const file of files) {
-        const content = fs.readFileSync(path.join(CONFIG.knowledgeDir, file), 'utf-8');
-        refKnowledge += `\n\n### ${file}\n${content.slice(0, 2000)}`;
+        const content = fs.readFileSync(path.join(CONFIG.docsDir, file), 'utf-8');
+        refDocs += `\n\n### ${file}\n${content.slice(0, 2000)}`;
       }
     }
 
@@ -258,8 +303,8 @@ ${longTermMemory || '(No long-term memory yet)'}
 
 ---
 
-## Reference Knowledge Base
-${refKnowledge || '(No knowledge files found)'}
+## Reference Docs
+${refDocs || '(No docs files found)'}
 
 ---
 
@@ -409,6 +454,14 @@ Begin by checking your current task and memory. If there's pending work, continu
 
         // Process tasks now - switch to Dev Mode with task list
         if (cmd.type === 'process_tasks') {
+          // Guard: Block if already processing
+          if (this.processingTasklist || this.currentMode === 'dev') {
+            await this.telegram.sendDevlog(
+              `🚫 <b>Agent 正在處理任務中！</b>\n\n` +
+              `請等待當前任務完成後再發送 <code>#dotask</code>。`
+            );
+            continue;
+          }
           await this.processTasksNow();
           return; // Exit chat loop, now in Dev Mode
         }
@@ -517,71 +570,193 @@ Begin by checking your current task and memory. If there's pending work, continu
     this.currentMode = 'chat';
   }
 
+  // ============================================
+  //  Work-in-Progress (WIP) System - v4
+  // ============================================
+
   /**
-   * Check if there are pending tasks in tasklist
-   * @returns {string|null} - Pending tasks content or null if none
+   * Get the WIP file path
    */
-  getPendingTasks() {
-    const tasksPath = path.join(CONFIG.memoryDir, 'journal', 'pending_tasks.md');
-    if (!fs.existsSync(tasksPath)) return null;
-
-    const content = fs.readFileSync(tasksPath, 'utf-8');
-    // Check for uncompleted tasks
-    if (!content.includes('- [ ]')) return null;
-
-    // Extract only uncompleted tasks
-    const lines = content.split('\n');
-    const pendingLines = lines.filter(line => line.includes('- [ ]'));
-    return pendingLines.length > 0 ? pendingLines.join('\n') : null;
+  getWIPPath() {
+    return path.join(CONFIG.memoryDir, 'journal', 'work_in_progress.md');
   }
 
   /**
-   * Get ONLY the first pending task (v3: sequential task processing)
-   * Returns { task: string, remaining: number } or null
+   * Read current Work-in-Progress
+   * Returns { task, started, progress, filesModified, lastAction } or null
    */
-  getFirstPendingTask() {
-    const tasksPath = path.join(CONFIG.memoryDir, 'journal', 'pending_tasks.md');
-    if (!fs.existsSync(tasksPath)) return null;
+  getWorkInProgress() {
+    const wipPath = this.getWIPPath();
+    if (!fs.existsSync(wipPath)) return null;
 
-    const content = fs.readFileSync(tasksPath, 'utf-8');
-    const lines = content.split('\n');
-    const pendingLines = lines.filter(line => line.includes('- [ ]'));
+    const content = fs.readFileSync(wipPath, 'utf-8');
+    if (!content.trim() || content.includes('No active task')) return null;
 
-    if (pendingLines.length === 0) return null;
+    // Parse WIP file (supports both "## Task:" and "## Task" formats)
+    const taskMatch = content.match(/## Task:?\s*\n([\s\S]*?)(?=\n##|$)/);
+    const startedMatch = content.match(/(?:Started|Created):\s*([^\n]+)/);
+    const lastUpdateMatch = content.match(/Last Update(?:d)?:\s*([^\n]+)/);
+    const progressMatch = content.match(/## Progress:?\s*\n([\s\S]*?)(?=\n##|$)/);
+    const attemptsMatch = content.match(/## Attempts Log:?\s*\n([\s\S]*?)(?=\n##|$)/);
+    const filesMatch = content.match(/## Files Modified:?\s*\n([\s\S]*?)(?=\n##|$)/);
+    const lastActionMatch = content.match(/## Last Action:?\s*\n([\s\S]*?)(?=\n##|$)/);
+
+    // Parse attempts, filtering out placeholder text
+    let attempts = attemptsMatch ? attemptsMatch[1].trim() : '';
+    if (attempts.includes('記錄嘗試過的方法')) {
+      attempts = '';
+    }
 
     return {
-      task: pendingLines[0],
-      remaining: pendingLines.length - 1,
-      total: pendingLines.length,
+      task: taskMatch ? taskMatch[1].trim() : null,
+      started: startedMatch ? startedMatch[1].trim() : null,
+      lastUpdate: lastUpdateMatch ? lastUpdateMatch[1].trim() : null,
+      progress: progressMatch ? progressMatch[1].trim() : '',
+      attempts: attempts,
+      filesModified: filesMatch ? filesMatch[1].trim() : '',
+      lastAction: lastActionMatch ? lastActionMatch[1].trim() : '',
+      raw: content,
     };
   }
 
   /**
-   * Clear completed tasks from tasklist (auto-cleanup)
+   * Set a new task in Work-in-Progress
    */
-  clearCompletedTasks() {
-    const tasksPath = path.join(CONFIG.memoryDir, 'journal', 'pending_tasks.md');
-    if (!fs.existsSync(tasksPath)) return;
+  setWorkInProgress(taskDescription) {
+    const wipPath = this.getWIPPath();
+    const journalDir = path.dirname(wipPath);
+    if (!fs.existsSync(journalDir)) {
+      fs.mkdirSync(journalDir, { recursive: true });
+    }
 
-    const content = fs.readFileSync(tasksPath, 'utf-8');
-    const lines = content.split('\n');
+    const now = new Date().toISOString();
+    const content = `# Work in Progress
 
-    // Keep header and uncompleted tasks only
-    const kept = lines.filter(line => {
-      if (line.startsWith('#') || line.startsWith('>') || line.trim() === '') return true;
-      if (line.includes('- [ ]')) return true; // Keep uncompleted
-      if (line.includes('- [x]')) return false; // Remove completed
-      return true; // Keep other lines
-    });
+> Single active task - tracked for resume capability
 
-    fs.writeFileSync(tasksPath, kept.join('\n'));
-    console.log('[Agent] Cleared completed tasks from tasklist');
+## Task:
+${taskDescription}
+
+## Metadata:
+- Created: ${now}
+- Last Updated: ${now}
+- Status: pending
+
+## Progress:
+- [ ] Task started
+
+## Attempts Log:
+(記錄嘗試過的方法和結果，避免重複嘗試)
+
+## Files Modified:
+(none yet)
+
+## Last Action:
+Waiting for #dotask to begin...
+`;
+
+    fs.writeFileSync(wipPath, content, 'utf-8');
+    console.log(`[Agent] WIP set: ${taskDescription.slice(0, 50)}...`);
+    return true;
+  }
+
+  /**
+   * Update progress in Work-in-Progress (called by Agent during work)
+   * @param {object} options
+   * @param {string} options.checkpoint - Progress checkpoint to add
+   * @param {string} options.filesModified - Updated files list
+   * @param {string} options.lastAction - Current action description
+   * @param {string} options.attempt - Log an attempt (what was tried and result)
+   */
+  updateWorkProgress({ checkpoint, filesModified, lastAction, attempt }) {
+    const wipPath = this.getWIPPath();
+    if (!fs.existsSync(wipPath)) return false;
+
+    let content = fs.readFileSync(wipPath, 'utf-8');
+    const now = new Date().toISOString();
+    const timeStr = now.split('T')[1].slice(0, 5);
+
+    // Update Last Updated timestamp (handles both "Last Update:" and "Last Updated:")
+    content = content.replace(/- Last Update(?:d)?:\s*[^\n]+/, `- Last Updated: ${now}`);
+    // Also update Status to in_progress
+    content = content.replace(/- Status:\s*\w+/, `- Status: in_progress`);
+
+    // Add checkpoint to Progress if provided
+    if (checkpoint) {
+      const progressMatch = content.match(/(## Progress:?\s*\n)([\s\S]*?)((?=\n##)|$)/);
+      if (progressMatch) {
+        const existingProgress = progressMatch[2];
+        const newProgress = existingProgress.trim() + `\n- [x] ${checkpoint}`;
+        content = content.replace(progressMatch[0], `${progressMatch[1]}${newProgress}\n\n`);
+      }
+    }
+
+    // Add attempt to Attempts Log if provided
+    if (attempt) {
+      const attemptsMatch = content.match(/(## Attempts Log:?\s*\n)([\s\S]*?)((?=\n##)|$)/);
+      if (attemptsMatch) {
+        let existingAttempts = attemptsMatch[2].trim();
+        // Remove placeholder text
+        if (existingAttempts.includes('記錄嘗試過的方法')) {
+          existingAttempts = '';
+        }
+        const newAttempts = existingAttempts + `\n- [${timeStr}] ${attempt}`;
+        content = content.replace(attemptsMatch[0], `${attemptsMatch[1]}${newAttempts.trim()}\n\n`);
+      }
+    }
+
+    // Update Files Modified if provided
+    if (filesModified) {
+      content = content.replace(
+        /## Files Modified:?\s*\n[\s\S]*?(?=\n##|$)/,
+        `## Files Modified:\n${filesModified}\n\n`
+      );
+    }
+
+    // Update Last Action if provided
+    if (lastAction) {
+      content = content.replace(
+        /## Last Action:?\s*\n[\s\S]*?(?=\n##|$)/,
+        `## Last Action:\n${lastAction}\n`
+      );
+    }
+
+    fs.writeFileSync(wipPath, content, 'utf-8');
+    return true;
+  }
+
+  /**
+   * Clear Work-in-Progress (called after task completion)
+   */
+  clearWorkInProgress() {
+    const wipPath = this.getWIPPath();
+    const content = `# Work in Progress
+
+No active task. Use #addtask to set a task, then #dotask to begin.
+`;
+    fs.writeFileSync(wipPath, content, 'utf-8');
+    console.log('[Agent] WIP cleared');
+  }
+
+  /**
+   * Check if there's an active task
+   */
+  hasActiveTask() {
+    const wip = this.getWorkInProgress();
+    return wip && wip.task;
   }
 
   /**
    * Save current work context to short-term memory before switching to tasks
+   * @deprecated - replaced by WIP system
    */
   saveCurrentWorkContext() {
+    // Now handled by WIP system
+    console.log('[Agent] saveCurrentWorkContext called (deprecated, using WIP)');
+  }
+
+  // Legacy compatibility - kept for reference
+  _legacySaveContext() {
     const journalDir = path.join(CONFIG.memoryDir, 'journal');
     const pausedWorkPath = path.join(journalDir, 'paused_work.md');
 
@@ -610,19 +785,26 @@ After completing tasklist tasks, read this file and resume the previous work.
   }
 
   /**
-   * Process pending tasks immediately (#dotask command)
-   * v3: Context is cleared between tasks, token usage is tracked
+   * Process task immediately (#dotask command)
+   * v4: Uses Work-in-Progress system with progress tracking
    */
   async processTasksNow() {
-    console.log('[Agent] Processing tasks now (v3.1 - sequential)...');
+    console.log('[Agent] Processing task now (v4 - WIP system)...');
 
-    // v3.1: Get ONLY the first task (prevent simultaneous processing)
-    const taskInfo = this.getFirstPendingTask();
+    // v4: Read Work-in-Progress
+    const wip = this.getWorkInProgress();
 
-    if (!taskInfo) {
-      await this.telegram.sendDevlog('📋 待辦清單是空的！沒有任務需要處理。');
+    if (!wip || !wip.task) {
+      await this.telegram.sendDevlog(
+        '📋 <b>沒有待處理的任務！</b>\n\n' +
+        '使用 <code>#addtask [任務描述]</code> 新增任務，\n' +
+        '然後用 <code>#dotask</code> 開始工作。'
+      );
       return;
     }
+
+    // Check if this is a resume (has previous progress)
+    const isResume = wip.progress && !wip.progress.includes('Task started');
 
     // Switch to Dev Mode for task processing
     this.currentMode = 'dev';
@@ -640,41 +822,62 @@ After completing tasklist tasks, read this file and resume the previous work.
     // v3: Clear chat history when switching to task mode
     this.chatMode.clearChatHistory();
 
-    // Load completed tasks index for context
-    const completedIndexPath = path.join(CONFIG.memoryDir, 'completed_tasks', 'index.md');
-    let completedTasksContext = '';
-    if (fs.existsSync(completedIndexPath)) {
-      completedTasksContext = `\n## Recently Completed Tasks (for reference)\n${fs.readFileSync(completedIndexPath, 'utf-8').slice(0, 1000)}\n\n`;
+    // v3.2: Get project structure snapshot to help Agent navigate
+    const projectStructure = this.getProjectStructureSnapshot();
+
+    // Build context message based on whether this is a new task or resume
+    let taskContext = '';
+    if (isResume) {
+      // Build attempts section (critical for avoiding repeated failures)
+      let attemptsSection = '';
+      if (wip.attempts) {
+        attemptsSection = `### ⚠️ ATTEMPTS ALREADY TRIED (DO NOT REPEAT THESE):\n${wip.attempts}\n\n`;
+      }
+
+      taskContext = `## ⚡ RESUMING TASK (conversation was reset)\n\n` +
+        `**You were working on this task and got interrupted.**\n` +
+        `**Review the progress below and CONTINUE from where you left off.**\n\n` +
+        `### Previous Progress:\n${wip.progress}\n\n` +
+        attemptsSection +
+        `### Files Modified:\n${wip.filesModified || '(none recorded)'}\n\n` +
+        `### Last Action:\n${wip.lastAction || '(none recorded)'}\n\n` +
+        `---\n\n`;
     }
 
-    // v3.1: Add task-focused initial message with ONLY ONE task
+    // v4: Add task-focused initial message with WIP context
     this.messages.push({
       role: 'user',
       content:
-        `[TASK MODE - v3.1] H2Crypto says: Process this task NOW.\n\n` +
-        `${completedTasksContext}` +
-        `## Current Task (1 of ${taskInfo.total})\n${taskInfo.task}\n\n` +
-        `## v3.1 Instructions (SEQUENTIAL PROCESSING):\n` +
-        `⚠️ Focus ONLY on this ONE task above. Do NOT look for other tasks.\n\n` +
-        `1. Complete this task fully\n` +
-        `2. **For UI/UX tasks**: Ensure changes are visible in running app!\n` +
-        `   - New components MUST be imported and rendered in App.jsx/TestApp.jsx\n` +
-        `   - Take screenshot to VERIFY changes appear on http://165.22.136.40:5173\n` +
-        `   - If screenshot doesn't show your changes, the task is NOT complete!\n` +
-        `3. When done, use complete_task tool:\n` +
-        `   \`complete_task({ task_text: "...", summary: "what was done" })\`\n` +
-        `4. Send Telegram update with screenshot:\n` +
-        `   ✅ 任務完成：[任務名稱]\n` +
-        `   📝 成果：[簡述結果]\n` +
-        `5. After complete_task, the system will automatically load the next task\n\n` +
-        `Start now!`
+        `[TASK MODE - v4] H2Crypto says: ${isResume ? 'CONTINUE' : 'Process'} this task NOW.\n\n` +
+        `## Project Structure (paths relative to workDir)\n` +
+        `${projectStructure}\n\n` +
+        `${taskContext}` +
+        `## Current Task\n${wip.task}\n\n` +
+        `## Instructions:\n` +
+        `**Path Rules:**\n` +
+        `- Code files: "src/App.jsx", "src/components/HomePage.jsx"\n` +
+        `- DO NOT prefix with "app/" - workDir is already app/\n\n` +
+        `**Steps:**\n` +
+        `1. ${isResume ? 'Review progress above and CONTINUE' : 'Complete this task fully'}\n` +
+        `2. For UI tasks: Take screenshot to VERIFY changes appear\n` +
+        `3. When done: \`complete_task({ summary: "what was done" })\`\n` +
+        `4. Send Telegram update with results\n\n` +
+        `${isResume ? '⚡ RESUME NOW - pick up where you left off!' : 'Start now!'}`
+    });
+
+    // Update WIP to show we're starting/resuming
+    this.updateWorkProgress({
+      lastAction: isResume ? 'Resuming after conversation reset...' : 'Starting task...',
     });
 
     await this.telegram.sendDevlog(
-      `🚀 <b>開始處理待辦任務！</b>\n\n` +
-      `📋 任務進度：1/${taskInfo.total}\n` +
-      `<pre>${taskInfo.task}</pre>\n\n` +
-      `<i>v3.1: 一次只處理一個任務，完成後自動載入下一個</i>`
+      isResume
+        ? `⚡ <b>恢復任務！</b>\n\n` +
+          `<pre>${wip.task.slice(0, 100)}</pre>\n\n` +
+          `<i>從上次進度繼續...</i>`
+        : `🚀 <b>開始處理任務！</b>\n\n` +
+          `<pre>${wip.task.slice(0, 100)}</pre>\n\n` +
+          `<i>v4: WIP 系統 - 支援中斷恢復</i>`
     );
 
     // Clear state file since we're starting fresh with tasks
@@ -682,41 +885,14 @@ After completing tasklist tasks, read this file and resume the previous work.
   }
 
   /**
-   * v3.1: Load next task after completing one (called after complete_task)
+   * v4: No longer needed - WIP is single task
+   * @deprecated
    */
   async loadNextTask() {
-    const taskInfo = this.getFirstPendingTask();
-
-    if (!taskInfo) {
-      return false; // No more tasks
-    }
-
-    console.log(`[Agent] Loading next task (${taskInfo.remaining} more after this)`);
-
-    // Clear messages but keep turn count for token tracking
-    this.messages = [];
-
-    // Add next task message
-    this.messages.push({
-      role: 'user',
-      content:
-        `[NEXT TASK] Previous task completed! Here's your next task:\n\n` +
-        `## Current Task (${taskInfo.total - taskInfo.remaining} of ${taskInfo.total})\n${taskInfo.task}\n\n` +
-        `⚠️ Focus ONLY on this ONE task. Same process:\n` +
-        `1. Complete the task\n` +
-        `2. **For UI/UX tasks**: Verify changes are visible in running app (take screenshot!)\n` +
-        `3. Use complete_task when done\n` +
-        `4. Send Telegram update with screenshot\n\n` +
-        `Start now!`
-    });
-
-    await this.telegram.sendDevlog(
-      `📋 <b>下一個任務</b>\n\n` +
-      `<pre>${taskInfo.task}</pre>\n\n` +
-      `<i>剩餘 ${taskInfo.remaining} 個任務</i>`
-    );
-
-    return true; // More tasks loaded
+    // v4: WIP system only supports one task at a time
+    // After complete_task, WIP is cleared and Agent returns to Chat Mode
+    console.log('[Agent] loadNextTask called but deprecated in v4 - use WIP system');
+    return false;
   }
 
   /**
@@ -916,46 +1092,15 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         }
       }
 
-      // === TASK PRIORITY CHECK (v3.1: one task at a time) ===
-      // Tasklist tasks have higher priority than current work
-      // Check every 10 turns or when not actively processing tasks
-      if (!this.processingTasklist && this.turn % 10 === 0) {
-        const taskInfo = this.getFirstPendingTask();
-        if (taskInfo) {
-          console.log('[Agent] Found pending tasks in tasklist - switching to task mode (v3.1)');
-          this.saveCurrentWorkContext();
-          this.processingTasklist = true;
+      // === TASK CHECK (v4: WIP system) ===
+      // v4: Task checking is simplified - just check if there's an active WIP
+      // No more task queue - one task at a time via #addtask + #dotask
 
-          // v3.1: Inject ONLY the first task (not all tasks)
-          this.messages.push({
-            role: 'user',
-            content:
-              `[HIGH PRIORITY - TASKLIST] New task has been added.\n\n` +
-              `STOP your current work and process this task FIRST:\n\n` +
-              `## Current Task (1 of ${taskInfo.total})\n${taskInfo.task}\n\n` +
-              `⚠️ Focus ONLY on this ONE task.\n` +
-              `Instructions:\n` +
-              `1. Complete this task\n` +
-              `2. Use: complete_task({ task_text: "..." })\n` +
-              `3. System will auto-load next task (if any)\n` +
-              `4. After ALL tasks done, read paused_work.md and resume previous work`
-          });
-
-          await this.telegram.sendDevlog(
-            `📋 <b>發現新任務！</b>\n\n` +
-            `📋 任務進度：1/${taskInfo.total}\n` +
-            `<pre>${taskInfo.task}</pre>\n\n` +
-            `<i>v3.1: 一次只處理一個任務</i>`
-          );
-        }
-      }
-
-      // Check if tasklist processing is complete (no more pending tasks)
+      // Check if task processing is complete
       if (this.processingTasklist) {
-        const stillPending = this.getPendingTasks();
-        if (!stillPending) {
-          console.log('[Agent] Tasklist completed (v3) - clearing context and returning to Chat Mode');
-          this.clearCompletedTasks();
+        const hasTask = this.hasActiveTask();
+        if (!hasTask) {
+          console.log('[Agent] Task completed (v4) - clearing context and returning to Chat Mode');
 
           // v3: Calculate and report token usage
           const elapsedMin = Math.round((Date.now() - (this.taskStartTime || Date.now())) / 60000);
@@ -964,10 +1109,10 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
             : '';
 
           await this.telegram.sendDevlog(
-            `✅ <b>待辦任務全部完成！</b>\n\n` +
+            `✅ <b>任務完成！</b>\n\n` +
             `⏱️ 耗時：約 ${elapsedMin} 分鐘\n` +
             `${tokenReport}\n\n` +
-            `<i>v3: 已返回 Chat Mode，等待下一個 #dotask</i>`
+            `<i>v4: 已返回 Chat Mode，使用 #addtask 新增下一個任務</i>`
           );
 
           // v3: Clear context and return to Chat Mode (no auto-resume)
@@ -1013,13 +1158,18 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
               `嘗試修復 3 次仍無法恢復。\n` +
               `正在重置對話，從現有專案狀態繼續...`
             );
+            // v4: After reset, check WIP for task to resume
+            const wip = this.getWorkInProgress();
+            const wipContext = wip && wip.task
+              ? `You were working on: "${wip.task.slice(0, 100)}"\nCheck memory/journal/work_in_progress.md for your progress and CONTINUE from where you left off.`
+              : 'No active task. WAIT for H2Crypto to send #dotask command.';
+
             this.messages = [{
               role: 'user',
               content:
                 'Your previous conversation encountered an error and was reset. ' +
-                'IMPORTANT: v3 Architecture - You are in Task-Only Mode. ' +
-                'Check memory/journal/pending_tasks.md - if there are pending tasks, process them one by one. ' +
-                'If no pending tasks, WAIT for H2Crypto to send #dotask command. ' +
+                'IMPORTANT: v4 Architecture - Work-in-Progress system. ' +
+                `${wipContext} ` +
                 'Do NOT start autonomous development work without explicit task instructions.',
             }];
             this.repairAttempts = 0;
@@ -1103,21 +1253,21 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
           this.waitingCount = 0;
         }
 
-        // v3: Check if there are pending tasks, otherwise wait
-        const hasPendingTasks = this.getFirstPendingTask();
-        if (hasPendingTasks) {
+        // v3: Check if there is active WIP, otherwise wait
+        const hasWIP = this.hasActiveTask();
+        if (hasWIP) {
           this.messages.push({
             role: 'user',
             content:
-              '[SYSTEM] You signaled end_turn but there are pending tasks.\n\n' +
-              'Check memory/journal/pending_tasks.md and process the next task.\n' +
-              'Use complete_task when done with each task.',
+              '[SYSTEM] You signaled end_turn but there is an active Work-in-Progress.\n\n' +
+              'Check memory/journal/work_in_progress.md and continue the task.\n' +
+              'Use complete_task when done.',
           });
         } else {
           this.messages.push({
             role: 'user',
             content:
-              '[SYSTEM] No pending tasks. You can now wait for H2Crypto.\n' +
+              '[SYSTEM] No active task. You can now wait for H2Crypto.\n' +
               'If you just completed a task, send a summary to Telegram.\n' +
               'Do NOT start autonomous development work.',
           });
@@ -1142,10 +1292,9 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
           try {
             const executor = this.getExecutor(toolName);
             if (!executor) {
-              // Check if it's a skill tool that hasn't been loaded
+              // Check if it's a skill tool that hasn't been loaded (use registry metadata)
               const requiredSkill = SKILL_REGISTRY.find((s) => {
-                const skillDef = loadSkill(s.name, { workDir: CONFIG.workDir, writer: this.writer });
-                return skillDef && skillDef.tools.some((t) => t.name === toolName);
+                return s.tools && s.tools.includes(toolName);
               });
 
               if (requiredSkill) {
@@ -1460,7 +1609,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         parts.push(
           `[ARCHITECT QUESTION] H2Crypto is asking: "${cmd.command}"\n\n` +
           `Please answer this question via Telegram (use send_telegram). ` +
-          `After answering, check pending_tasks.md - if tasks exist, process them. Otherwise wait.`
+          `After answering, check if you have an active task in work_in_progress.md. Otherwise wait.`
         );
         console.log(`[Agent] Injected question: ${cmd.command}`);
         // Reset waiting state - question needs response
@@ -1506,14 +1655,11 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
             `[H2CRYPTO MESSAGE] ${cmd.command}\n\n` +
             `Handle this message appropriately:\n` +
             `- Bug report / issue → FIX IT immediately\n` +
-            `- Question → Answer via Telegram\n` +
+            `- Question → Answer briefly via Telegram\n` +
             `- Instruction → Execute it\n` +
             `- Feedback → Acknowledge and apply it\n\n` +
-            `CRITICAL: v3 Architecture - Task-Only Mode:\n` +
-            `- Do NOT start autonomous development work\n` +
-            `- Do NOT check UX score and continue improving on your own\n` +
-            `- After handling this message, WAIT for next #dotask command\n` +
-            `- Only work on tasks from pending_tasks.md when triggered by #dotask`
+            `IMPORTANT: After handling this message, CONTINUE with your current task.\n` +
+            `Do NOT stop working unless H2Crypto explicitly tells you to stop.`
           );
         }
         console.log(`[Agent] Injected chat: ${cmd.command}`);
@@ -1597,7 +1743,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         content: [
           {
             type: 'text',
-            text: 'Understood. I will check pending_tasks.md for any tasks to process.',
+            text: 'Understood. I will check work_in_progress.md for any active task.',
           },
         ],
       },
@@ -1605,7 +1751,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         role: 'user',
         content:
           '[CONTEXT NOTE] Earlier conversation messages were pruned to save context. ' +
-          'v3 Architecture: Check pending_tasks.md - if tasks exist, process them. Otherwise wait for #dotask.',
+          'v3 Architecture: Check work_in_progress.md - if active task exists, continue it. Otherwise wait for #dotask.',
       },
       ...tail,
     ];
@@ -1726,7 +1872,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         alternated[i] = {
           role: 'user',
           content:
-            '[System] Previous tool results were from a pruned context. Check pending_tasks.md for tasks.',
+            '[System] Previous tool results were from a pruned context. Check work_in_progress.md for active task.',
         };
       } else if (valid.length < msg.content.length) {
         alternated[i] = { ...msg, content: valid };
