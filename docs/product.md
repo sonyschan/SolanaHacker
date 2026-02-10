@@ -2,6 +2,10 @@
 
 > AI-powered meme NFT voting platform with democratic rarity system and SOL rewards
 
+**🚀 Live Demo**: [http://165.22.136.40:5173](http://165.22.136.40:5173)  
+**📦 Repository**: [GitHub - SolanaHacker](https://github.com/sonyschan/SolanaHacker)  
+**🏆 Hackathon**: [Colosseum Hackathon Entry](https://arena.colosseum.org/)
+
 ---
 
 ## 🎯 Product Overview
@@ -11,8 +15,11 @@
 ### Core Value Proposition
 - **免費參與**: 投票不需任何費用
 - **真實獎勵**: 贏得實際的 SOL 獎金
-- **民主定價**: 社群投票決定 NFT 稀有度和價值
+- **民主定價**: 社群投票決定 NFT 稀有度和價值  
 - **持續參與**: 週期性獎勵系統保持用戶活躍
+- **稀缺性驅動**: 每日僅鑄造 1 個 NFT，創造真正稀缺性
+- **公平機制**: Random Ticket Rewards 防止投票操控
+- **100% 社群決定**: 完全由社群決定稀有度，無平台干預
 
 ---
 
@@ -60,23 +67,26 @@
 - **客觀性**: 自動化計算，無人為干預
 
 #### Step 4: 鑄造 NFT (價值實現) - 稀缺性驅動
-- **限制**: 每日僅鑄造 1 個 NFT (最高稀有度獲勝者)
+- **每日限制**: 僅鑄造 1 個 NFT (最高稀有度獲勝者) - 創造真正稀缺性
 - **流程**: 自動鑄造到 Solana 區塊鏈
 - **拍賣**: 3 天拍賣期，最高價得標
 - **拍賣規則**: 起標價 0.01 SOL，最小加價 5%，自動退款機制
 - **平台**: 內建市場，無需外部平台
+- **安全**: Multi-sig wallet 管理，Smart contract audits
 
 #### Step 5: 獎池累積 (價值聚合)
 - **來源**: NFT 拍賣收益 (80% 進入獎池，20% 用於營運)
 - **累積**: 每週獎池，透明追蹤
-- **安全**: 多重簽章金庫管理
+- **安全**: Multi-sig wallet 管理，資金安全保障
 - **增長**: 隨 NFT 銷售額增長
+- **公平遊戲**: Fair play 機制確保公正分配
 
 #### Step 6: 分配獎勵 (價值回饋)
 - **時程**: 每週日晚上 8 點 UTC
-- **方式**: 基於持有彩票數量的抽獎
-- **貨幣**: SOL 獎勵直接發放
+- **方式**: Random Ticket Rewards - 基於持有彩票數量的公平抽獎
+- **貨幣**: SOL 獎勵直接發放到錢包
 - **驗證**: 鏈上分配證明，完全透明
+- **防操控**: 隨機抽籤機制防止投票系統被操控
 
 ---
 
@@ -157,19 +167,23 @@
 ## 🛠️ 技術架構
 
 ### 前端技術棧
-- **框架**: React 18 + Vite
-- **樣式**: Tailwind CSS
+- **框架**: React 18 + Vite (快速開發環境)
+- **樣式**: Tailwind CSS (響應式設計)
 - **錢包整合**: Solana Wallet Adapter
-- **狀態管理**: React Context
+- **狀態管理**: React Context + Zustand
 - **UI 元件**: 自定義響應式設計
+- **部署**: Vite build + 自訂服務器
 
 ### 後端服務
 - **區塊鏈**: Solana mainnet/devnet
 - **錢包連接**: Phantom, Solflare, Torus, MathWallet 支援
 - **NFT 標準**: Metaplex Token Metadata Program
-- **智能合約**: 分為投票程序、NFT 程序、拍賣程序
-- **DEX 整合**: Jupiter Swap 支援
-- **框架**: Anchor 框架
+- **智能合約架構**: 三個核心程序
+  - **Voting Program**: 處理投票邏輯和彩票發放
+  - **NFT Program**: 管理 NFT 鑄造和元數據
+  - **Auction Program**: 處理拍賣機制和資金管理
+- **DEX 整合**: Jupiter Swap API 支援代幣交換
+- **框架**: Anchor 框架 (Rust)
 
 ### AI 整合
 - **梗圖生成**: Gemini API (gemini-2.5-flash-image 用於 UX 資產，gemini-3-pro-image-preview 用於 NFT 藝術)
@@ -178,11 +192,30 @@
 - **內容審核**: 自動化過濾
 - **品質控制**: 參與度預測模型
 
+### 專案結構
+```
+├── app/                  # React 前端應用
+│   ├── src/
+│   │   ├── components/   # React 組件
+│   │   ├── pages/        # 頁面組件
+│   │   ├── hooks/        # 自定義 hooks
+│   │   ├── utils/        # 工具函數
+│   │   └── context/      # React Context
+│   ├── public/           # 靜態資源
+│   └── dist/            # 建構輸出
+├── programs/            # Solana 智能合約
+│   ├── voting/          # 投票程序
+│   ├── nft/            # NFT 程序
+│   └── auction/        # 拍賣程序
+├── tests/              # 測試文件
+└── docs/               # 文檔
+```
+
 ### 資料架構
-- **投票儲存**: 鏈上以確保透明
-- **元資料**: IPFS 用於 NFT 資產
-- **分析**: 鏈下追蹤
-- **獎池**: 多重簽章金庫
+- **投票儲存**: 鏈上以確保透明性和不可篡改
+- **元資料**: IPFS 用於 NFT 資產儲存
+- **分析**: 鏈下追蹤用戶行為和平台統計
+- **獎池**: Multi-sig wallet 安全管理資金
 
 ---
 
@@ -190,21 +223,24 @@
 
 ### 用戶參與度
 - **日活躍用戶**: 目標 500+
+- **每日投票數**: 2,000+ 次投票
 - **投票完成率**: >80% 的連接用戶完成兩階段投票
-- **回訪率**: >60% 週用戶留存
+- **用戶留存率**: 
+  - 7天留存: 40%+
+  - 30天留存: 20%+
 - **會話時長**: 每次訪問平均 >10 分鐘
 - **參與率**: 每日至少 70% 的用戶參與投票
 
 ### 經濟健康度
 - **獎池增長**: 每週最少 10 SOL
-- **NFT 銷售率**: >50% 的鑄造 NFT 在拍賣中售出 (每日 1 個)
+- **NFT 銷售率**: 80%+ 的鑄造 NFT 在拍賣中售出 (每日 1 個限制)
 - **平均售價**: 每個 NFT 最少 0.5 SOL
 - **平台收入**: 月收入目標 5 SOL (來自 20% 拍賣手續費)
 
 ### 內容品質
 - **梗圖通過率**: >70% 達到 Uncommon+ 稀有度
 - **社交分享**: 25% 的投票梗圖被外部分享
-- **社群反饋**: 正面情緒 >80%
+- **用戶滿意度**: 4.5+/5.0 評分
 
 ### 平台成長
 - **用戶獲取**: 每週 100 新用戶
@@ -216,25 +252,25 @@
 
 ## 🚀 發布策略 & 路線圖
 
-### Phase 1: MVP 發布 (目前)
+### MVP Phase (目前)
 - **時程**: 2-4 週
 - **功能**: 核心投票、基礎稀有度、錢包連接
 - **目標**: 證明概念，50+ 定期用戶
 - **成功**: 完成 3 個完整的週循環
 
-### Phase 2: NFT 整合 (第 2 個月)
+### Beta Phase (第 2 個月)
 - **功能**: 自動 NFT 鑄造、拍賣系統
 - **基礎設施**: IPFS 整合、元資料標準
 - **目標**: 第一個成功的 NFT 銷售
 - **成功**: 10+ NFT 售出，中獎者正 ROI
 
-### Phase 3: 進階功能 (第 3-4 個月)
+### Launch Phase (第 3-4 個月)
 - **功能**: 進階稀有度演算法、用戶檔案
 - **社交**: 排行榜、成就系統
 - **移動**: 漸進式網頁應用優化
 - **目標**: 500+ DAU，可持續經濟
 
-### Phase 4: 規模化 & 優化 (第 5-6 個月)
+### Scale Phase (第 5-6 個月)
 - **功能**: 多類別梗圖、品牌合作
 - **技術**: 效能優化、API 改進
 - **行銷**: 影響者合作、病毒行銷活動
@@ -425,5 +461,90 @@
 
 ---
 
-*最後更新: 2026-02-10*
-*版本: 2.1 - 與 README.md 同步版*
+## 🚀 開發者指引
+
+### 快速開始
+
+```bash
+# 複製專案
+git clone https://github.com/sonyschan/SolanaHacker.git
+cd SolanaHacker
+
+# 安裝依賴
+cd app
+npm install
+
+# 啟動開發伺服器
+npm run dev
+# 或
+npm start
+```
+
+### 建構與部署
+
+```bash
+# 建構生產版本
+npm run build
+
+# 預覽建構結果
+npm run preview
+```
+
+### 環境配置
+
+建立 `.env` 檔案並設定必要的 API keys:
+
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_GROK_API_KEY=your_grok_api_key
+VITE_SOLANA_RPC_URL=your_solana_rpc_url
+```
+
+### 開發工具
+
+- **React DevTools**: 用於組件調試
+- **Solana CLI**: 用於區塊鏈互動
+- **Anchor CLI**: 用於智能合約開發
+
+---
+
+## 📞 聯繫與支援
+
+### 社群頻道
+- **Discord**: [加入我們的 Discord](https://discord.gg/memeforge)
+- **Twitter**: [@MemeForge_SOL](https://twitter.com/MemeForge_SOL)
+- **Telegram**: [MemeForge Community](https://t.me/memeforge)
+
+### 開發支援
+- **GitHub Issues**: [回報問題](https://github.com/sonyschan/SolanaHacker/issues)
+- **GitHub Discussions**: [功能討論](https://github.com/sonyschan/SolanaHacker/discussions)
+- **Email**: dev@memeforge.app
+
+### 回饋與建議
+我們歡迎任何回饋和建議！請通過以下方式聯繫：
+1. GitHub Issues 回報 bug 或功能請求
+2. Discord 參與社群討論
+3. Twitter 關注最新動態
+
+---
+
+## 📄 授權條款
+
+本專案採用 MIT License 授權 - 詳見 [LICENSE](LICENSE) 檔案
+
+---
+
+## 🏆 致謝
+
+感謝所有為 MemeForge 專案貢獻的開發者、設計師和社群成員！
+
+特別感謝：
+- **Solana Foundation** - 區塊鏈基礎設施
+- **Metaplex** - NFT 標準和工具
+- **Google Gemini** - AI 圖像生成
+- **Colosseum** - Hackathon 平台支持
+
+---
+
+*最後更新: 2026-02-10*  
+*版本: 2.2 - 與 README.md 完全同步*

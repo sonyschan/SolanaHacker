@@ -31,10 +31,10 @@ export class ChatMode {
     this.baseDir = deps.baseDir || path.join(this.memoryDir, '..');
     this.reviewer = deps.reviewer; // UXReviewer for browse_url
     this.devServerPort = deps.devServerPort || 5173;
-    this.knowledgeDir = deps.knowledgeDir || path.join(this.baseDir, 'knowledge');
+    this.docsDir = deps.docsDir || path.join(this.baseDir, 'docs');
     console.log(`[ChatMode] Initialized with baseDir: ${this.baseDir}`);
     this.valuesPath = path.join(this.memoryDir, 'knowledge', 'values.md');
-    this.tasksPath = path.join(this.memoryDir, 'journal', 'pending_tasks.md');
+    this.wipPath = path.join(this.memoryDir, 'journal', 'work_in_progress.md');
     this.contextPath = path.join(this.memoryDir, 'journal', 'chat_context.md');
 
     this.sleepToday = false;
@@ -43,7 +43,7 @@ export class ChatMode {
 
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
-    this.maxChatHistory = 10; // Keep last 10 messages (sliding window, no caching benefit)
+    this.maxChatHistory = 50; // Keep last 50 messages (sliding window)
 
     // v4: Enhanced tools for Chat Mode
     this.chatTools = [
@@ -54,7 +54,7 @@ export class ChatMode {
         input_schema: {
           type: 'object',
           properties: {
-            path: { type: 'string', description: 'Path like "knowledge/product.md", "AGENTS.md", or "app/src/App.jsx".' },
+            path: { type: 'string', description: 'Path like "docs/product.md", "AGENTS.md", or "app/src/App.jsx".' },
           },
           required: ['path'],
         },
@@ -65,11 +65,34 @@ export class ChatMode {
         input_schema: {
           type: 'object',
           properties: {
-            path: { type: 'string', description: 'File path like "knowledge/product.md"' },
+            path: { type: 'string', description: 'File path like "docs/product.md"' },
             old_text: { type: 'string', description: 'The exact text to find and replace' },
             new_text: { type: 'string', description: 'The new text to replace it with' },
           },
           required: ['path', 'old_text', 'new_text'],
+        },
+      },
+      {
+        name: 'write_file',
+        description: 'Write content to a file. Creates the file if it does not exist. Use for creating new files or completely rewriting existing ones.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'File path like "app/src/components/NewComponent.jsx"' },
+            content: { type: 'string', description: 'Complete file content to write' },
+          },
+          required: ['path', 'content'],
+        },
+      },
+      {
+        name: 'list_files',
+        description: 'List files and directories in a path. Use to explore project structure.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'Directory path relative to project root. Default: "." (root)' },
+            recursive: { type: 'boolean', description: 'List recursively (skips node_modules, .git). Default: false' },
+          },
         },
       },
 
@@ -96,6 +119,47 @@ export class ChatMode {
           properties: {
             click_selector: { type: 'string', description: 'Optional CSS selector to click before checking errors' },
           },
+        },
+      },
+      {
+        name: 'take_screenshot',
+        description: 'Take a screenshot of the running dev server to verify UI changes. Returns the screenshot path. Use after making UI changes to confirm they look correct.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            viewport: { type: 'string', enum: ['desktop', 'mobile'], description: 'Viewport size. desktop: 1280x720, mobile: 375x812. Default: desktop' },
+          },
+        },
+      },
+
+      // --- Dev Server ---
+      {
+        name: 'dev_server',
+        description: 'Control the Vite development server. Use to start/restart the frontend after waking up or if it crashes.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: ['start', 'restart', 'stop', 'status'],
+              description: 'start: Launch dev server. restart: Kill and relaunch. stop: Kill. status: Check if running.',
+            },
+          },
+          required: ['action'],
+        },
+      },
+
+      // --- Shell ---
+      {
+        name: 'run_command',
+        description: 'Execute a shell command in the app directory. Use for npm install, npm run build, etc. Dangerous commands are blocked.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            command: { type: 'string', description: 'Shell command to run (e.g., "npm install", "npm run build")' },
+            timeout_ms: { type: 'number', description: 'Timeout in ms. Default: 120000 (2 min)' },
+          },
+          required: ['command'],
         },
       },
 
@@ -291,7 +355,20 @@ export class ChatMode {
     // The responses API returns output array with message objects
     const outputMessages = data.output || [];
     const assistantMessage = outputMessages.find(m => m.role === 'assistant');
-    return assistantMessage?.content || '';
+
+    // Handle content that might be string or array of content blocks
+    const content = assistantMessage?.content;
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      // Extract text from content blocks
+      return content
+        .filter(block => block.type === 'text' || typeof block === 'string')
+        .map(block => typeof block === 'string' ? block : block.text)
+        .join('\n');
+    }
+    // Fallback: stringify if it's an unexpected object
+    return JSON.stringify(content);
   }
 
   /**
@@ -332,7 +409,7 @@ ${recentMemory.slice(-1500)}
 
 ## 重要專案資訊
 - 專案名稱: MemeForge
-- 產品規格: knowledge/product.md（會被載入 context）
+- 產品規格: docs/product.md（會被載入 context）
 - 圖片生成: 使用 Gemini API（不是 Grok！）
   - UX 資產: gemini-2.5-flash-image
   - NFT 藝術: gemini-3-pro-image-preview
@@ -350,23 +427,32 @@ ${recentMemory.slice(-1500)}
 ### 檔案操作
 - **read_file**：讀取檔案內容，回覆時要說明具體內容（不要只說「已讀取」）
 - **edit_file**：精準替換文字，優先使用（比重寫整個檔案安全）
+- **write_file**：創建新檔案或完全重寫檔案
+- **list_files**：列出目錄內容，探索專案結構
 
 ### 網頁瀏覽
 - **browse_url**：截取網頁畫面 + Claude Vision 分析設計
   - 用於：分析競品設計、學習 UI 風格、檢查外部網站
   - 返回：截圖路徑 + 詳細視覺分析
 
-### Debug
+### Debug & 驗證
 - **check_console_errors**：檢查 dev server 的瀏覽器 console 錯誤
-  - 用於：快速診斷 JS 錯誤，不需要截圖
-  - 可選：click_selector 點擊元素後再檢查
+- **take_screenshot**：截取 dev server 畫面並發送到 Telegram
+  - 用於：驗證 UI 修改是否正確顯示
+  - 支援 desktop/mobile viewport
+
+### Dev Server & Shell
+- **dev_server**：控制前端開發伺服器（start/restart/stop/status）
+- **run_command**：執行 shell 指令（在 app/ 目錄）
+  - 用於：npm install, npm run build 等
+  - 危險指令會被阻擋
 
 ### Git 操作
 - **git_commit**：Commit 變更（不 push），等 H2Crypto review
 - **git_release**：Push + 建立 tag，版本可用 "auto" 自動遞增
 
 ### 記憶系統
-- **read_knowledge**：讀取知識庫（knowledge/*.md）
+- **read_knowledge**：讀取參考文件（docs/*.md）
 - **search_memory**：搜尋記憶（bugs, patterns, decisions, values）
 - **remember**：記住 H2Crypto 說的重要事項
 
@@ -379,11 +465,13 @@ ${recentMemory.slice(-1500)}
 
 | 類型 | 正確路徑 |
 |------|---------|
-| 產品規格 | knowledge/product.md |
+| 產品規格 | **docs/product.md** ← 注意是 docs/ 不是 knowledge/ |
 | 程式碼 | app/src/App.jsx |
 | 日誌 | memory/journal/2026-02-09.md |
-| Agent 記憶 | memory/knowledge/values.md |
-| 知識庫 | knowledge/*.md |
+| Agent 記憶 | memory/knowledge/values.md（這裡沒有 product.md！）|
+| 參考文件 | docs/*.md |
+
+⚠️ product.md 在 **docs/** 目錄，不在 memory/knowledge/！
 
 ## 「記得」指令處理
 當 H2Crypto 說「記得...」或「Remember...」時：
@@ -450,14 +538,20 @@ ${recentMemory.slice(-1500)}
       let iterations = 0;
       let collectedText = []; // v3.6: Collect all text during loop
       let lastToolResults = []; // v3.6: Track last tool results
+      let sentViaTelegram = false; // v4.1: Track if send_telegram was used
       const historyLengthBeforeTools = this.chatHistory.length; // v3.8: Track for cleanup
 
-      while (response.stop_reason === 'tool_use' && iterations < 10) {
+      while (response.stop_reason === 'tool_use' && iterations < 30) {
         iterations++;
 
-        // v3.4: Send intermediate text updates to user (progress updates)
+        // v4.1: Don't send progress text if send_telegram is in this response
+        // (Agent will send its own message via the tool)
         const textBlocks = response.content.filter(b => b.type === 'text');
-        if (textBlocks.length > 0) {
+        const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+        const hasSendTelegram = toolUseBlocks.some(b => b.name === 'send_telegram');
+
+        // v3.4: Send intermediate text updates (but skip if send_telegram is being used)
+        if (textBlocks.length > 0 && !hasSendTelegram) {
           const progressText = textBlocks.map(b => b.text).join('\n');
           if (progressText.trim()) {
             collectedText.push(progressText);
@@ -465,12 +559,15 @@ ${recentMemory.slice(-1500)}
           }
         }
 
-        const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
         const toolResults = [];
         lastToolResults = []; // Reset for this iteration
 
         for (const toolUse of toolUseBlocks) {
           const result = await this.executeChatTool(toolUse.name, toolUse.input);
+          // v4.1: Track if send_telegram was successfully used
+          if (toolUse.name === 'send_telegram' && result.includes('[OK]')) {
+            sentViaTelegram = true;
+          }
           toolResults.push({
             type: 'tool_result',
             tool_use_id: toolUse.id,
@@ -566,7 +663,12 @@ ${recentMemory.slice(-1500)}
       }
       console.log(`[ChatMode] History: ${this.chatHistory.length} messages`);
 
-      await this.telegram.sendDevlog(`💬 ${answer}`);
+      // v4.1: Skip final message if already sent via send_telegram tool
+      if (!sentViaTelegram) {
+        await this.telegram.sendDevlog(`💬 ${answer}`);
+      } else {
+        console.log('[ChatMode] Skipping final message (already sent via send_telegram)');
+      }
       return answer;
     } catch (err) {
       console.error('[ChatMode] Claude error:', err.message);
@@ -641,6 +743,56 @@ ${recentMemory.slice(-1500)}
         const newContent = content.replace(input.old_text, input.new_text);
         fs.writeFileSync(filePath, newContent, 'utf-8');
         return `Successfully replaced "${input.old_text.slice(0, 30)}..." with "${input.new_text.slice(0, 30)}..." in ${normalizedPath}`;
+      }
+
+      if (toolName === 'write_file') {
+        const normalizedPath = this.normalizePath(input.path);
+        const filePath = path.join(this.baseDir, normalizedPath);
+        console.log(`[ChatMode] write_file: ${normalizedPath}`);
+
+        // Create parent directories if needed
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+
+        fs.writeFileSync(filePath, input.content, 'utf-8');
+        return `Successfully wrote ${input.content.length} characters to ${normalizedPath}`;
+      }
+
+      if (toolName === 'list_files') {
+        const targetPath = input.path || '.';
+        const normalizedPath = this.normalizePath(targetPath);
+        const fullPath = path.join(this.baseDir, normalizedPath);
+        console.log(`[ChatMode] list_files: ${normalizedPath}`);
+
+        if (!fs.existsSync(fullPath)) {
+          return `Error: Path not found: ${normalizedPath}`;
+        }
+
+        const listDir = (dir, prefix = '', recursive = false) => {
+          const items = fs.readdirSync(dir);
+          let result = [];
+
+          for (const item of items) {
+            // Skip common noise
+            if (['node_modules', '.git', 'dist', '.next', '.cache'].includes(item)) continue;
+
+            const itemPath = path.join(dir, item);
+            const stat = fs.statSync(itemPath);
+            const isDir = stat.isDirectory();
+
+            result.push(`${prefix}${isDir ? '📁 ' : '📄 '}${item}`);
+
+            if (recursive && isDir) {
+              result = result.concat(listDir(itemPath, prefix + '  ', true));
+            }
+          }
+          return result;
+        };
+
+        const files = listDir(fullPath, '', input.recursive || false);
+        return `Contents of ${normalizedPath}:\n${files.join('\n')}`;
       }
 
       // --- Web Browsing ---
@@ -719,6 +871,151 @@ ${recentMemory.slice(-1500)}
         }
       }
 
+      if (toolName === 'take_screenshot') {
+        if (!this.reviewer) {
+          return 'Error: UXReviewer not available. Cannot take screenshots.';
+        }
+        try {
+          await this.reviewer.init();
+          const url = `http://localhost:${this.devServerPort}`;
+          const viewport = input.viewport || 'desktop';
+
+          let screenshotPath;
+          if (viewport === 'mobile') {
+            screenshotPath = await this.reviewer.takeMobileScreenshot(url, 'chat');
+          } else {
+            screenshotPath = await this.reviewer.takeScreenshot(url, 'chat');
+          }
+
+          // Send screenshot to Telegram so H2Crypto can see it
+          if (this.telegram && fs.existsSync(screenshotPath)) {
+            await this.telegram.sendPhoto(screenshotPath, `📸 Screenshot (${viewport})`);
+          }
+
+          return `Screenshot saved: ${screenshotPath}\nViewport: ${viewport}\nURL: ${url}\n\n✅ Screenshot sent to Telegram for review.`;
+        } catch (err) {
+          return `Error taking screenshot: ${err.message}`;
+        }
+      }
+
+      // --- Dev Server ---
+      if (toolName === 'dev_server') {
+        try {
+          const { exec, spawn } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+          const appDir = path.join(this.baseDir, 'app');
+          const port = this.devServerPort;
+
+          const killPort = async () => {
+            try {
+              const { stdout } = await execAsync(`lsof -ti:${port} 2>/dev/null || true`);
+              if (stdout.trim()) {
+                const pids = stdout.trim().split('\n');
+                for (const pid of pids) {
+                  try { await execAsync(`kill -9 ${pid}`); } catch {}
+                }
+                await new Promise(r => setTimeout(r, 1000));
+              }
+            } catch {}
+          };
+
+          const checkStatus = async () => {
+            try {
+              const { stdout } = await execAsync(`lsof -ti:${port} 2>/dev/null || true`);
+              return stdout.trim() !== '';
+            } catch { return false; }
+          };
+
+          switch (input.action) {
+            case 'status': {
+              const running = await checkStatus();
+              return running
+                ? `✅ Dev server is running on port ${port}\nURL: http://165.22.136.40:${port}`
+                : `❌ Dev server is NOT running on port ${port}`;
+            }
+            case 'stop': {
+              await killPort();
+              return `Dev server stopped (port ${port} cleared)`;
+            }
+            case 'start':
+            case 'restart': {
+              if (input.action === 'restart') await killPort();
+
+              // Check if already running for 'start'
+              if (input.action === 'start' && await checkStatus()) {
+                return `Dev server already running on port ${port}`;
+              }
+
+              // Spawn dev server in background
+              const child = spawn('npm', ['run', 'dev', '--', '--host', '0.0.0.0'], {
+                cwd: appDir,
+                detached: true,
+                stdio: 'ignore',
+                env: { ...process.env, FORCE_COLOR: '0' },
+              });
+              child.unref();
+
+              // Wait for server to be ready
+              await new Promise(r => setTimeout(r, 3000));
+              const running = await checkStatus();
+
+              if (running) {
+                return `✅ Dev server ${input.action}ed successfully!\nURL: http://165.22.136.40:${port}`;
+              } else {
+                return `⚠️ Dev server may still be starting. Check status in a few seconds.`;
+              }
+            }
+            default:
+              return `Unknown action: ${input.action}. Use: start, restart, stop, status`;
+          }
+        } catch (err) {
+          return `Dev server error: ${err.message}`;
+        }
+      }
+
+      // --- Shell ---
+      if (toolName === 'run_command') {
+        // Dangerous command blocklist (same as Dev Mode)
+        const DANGEROUS_CMD = /rm\s+-rf\s+\/|mkfs|dd\s+if=|shutdown|reboot|:()\s*\{|wget.*\|\s*sh|curl.*\|\s*sh|pkill\s+(-f\s+)?node|killall\s+node|pkill\s+(-f\s+)?agent|kill\s+-9\s+\$\$|kill\s+-9\s+\$PPID/i;
+
+        if (DANGEROUS_CMD.test(input.command)) {
+          return `Error: Dangerous command blocked: ${input.command}`;
+        }
+
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+          const appDir = path.join(this.baseDir, 'app');
+          const timeout_ms = input.timeout_ms || 120000;
+
+          // Strip sensitive env vars
+          const safeEnv = { ...process.env };
+          delete safeEnv.ANTHROPIC_API_KEY;
+          delete safeEnv.XAI_API_KEY;
+          delete safeEnv.GEMINI_API_KEY;
+          delete safeEnv.GITHUB_TOKEN;
+          delete safeEnv.TELEGRAM_BOT_TOKEN;
+
+          const { stdout, stderr } = await execAsync(input.command, {
+            cwd: appDir,
+            timeout: timeout_ms,
+            maxBuffer: 2 * 1024 * 1024,
+            env: safeEnv,
+          });
+
+          let result = stdout || '';
+          if (stderr) result += `\n[stderr]: ${stderr}`;
+          if (result.length > 5000) result = result.slice(0, 5000) + '\n...(truncated)';
+
+          return result || '(command completed with no output)';
+        } catch (err) {
+          const msg = err.stderr || err.stdout || err.message || 'Unknown error';
+          return `Command error: ${msg.slice(0, 2000)}`;
+        }
+      }
+
       // --- Git Operations ---
       if (toolName === 'git_commit') {
         try {
@@ -780,13 +1077,13 @@ ${recentMemory.slice(-1500)}
       // --- Memory System ---
       if (toolName === 'read_knowledge') {
         if (!input.filename) {
-          if (!fs.existsSync(this.knowledgeDir)) return 'No knowledge base directory found.';
-          const files = fs.readdirSync(this.knowledgeDir).filter(f => f.endsWith('.md') || f.endsWith('.txt'));
-          return `Available knowledge files:\n${files.map(f => `- ${f}`).join('\n')}`;
+          if (!fs.existsSync(this.docsDir)) return 'No docs directory found.';
+          const files = fs.readdirSync(this.docsDir).filter(f => f.endsWith('.md') || f.endsWith('.txt'));
+          return `Available docs files:\n${files.map(f => `- ${f}`).join('\n')}`;
         }
-        const full = path.join(this.knowledgeDir, path.basename(input.filename));
+        const full = path.join(this.docsDir, path.basename(input.filename));
         if (!fs.existsSync(full)) {
-          return `Error: Knowledge file not found: ${input.filename}`;
+          return `Error: Docs file not found: ${input.filename}`;
         }
         return fs.readFileSync(full, 'utf-8');
       }
@@ -847,9 +1144,21 @@ ${recentMemory.slice(-1500)}
 
       // --- Communication ---
       if (toolName === 'send_telegram') {
+        // Guard: Don't send tool results or system messages
+        const msg = input.message || '';
+        const blockedPatterns = [
+          /^(send_telegram|Message sent|Tool result|Error:|✅\s*(send_|Message\s+sent))/i,
+          /^[a-z_]+:\s*(Message sent|Error|Success)/i,
+          /^\[OK\]/i,
+          /^\[Internal\]/i,
+        ];
+        if (blockedPatterns.some(p => p.test(msg.trim()))) {
+          return '[Internal] Blocked: This looks like a tool result, not a user message.';
+        }
+
         try {
-          await this.telegram.sendDevlog(input.message);
-          return 'Message sent to Telegram.';
+          await this.telegram.sendDevlog(msg);
+          return '[OK] Telegram 訊息已發送。不需要再發送確認訊息。';
         } catch (err) {
           return `Error sending Telegram: ${err.message}`;
         }
@@ -1105,6 +1414,12 @@ ${recentMemory}
       // Use search-enabled Grok for real-time news
       const news = await this.callGrokWithSearch(prompt, 400);
 
+      // Handle empty or invalid response
+      if (!news || news.trim() === '' || news === '{}' || news === '[]') {
+        await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n最近 1 小時暫無重大新聞，稍後再看看！`);
+        return null;
+      }
+
       await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n${news}`);
 
       // Save to memory
@@ -1113,146 +1428,176 @@ ${recentMemory}
       return news;
     } catch (err) {
       console.error('[ChatMode] News search error:', err.message);
+      await this.telegram.sendDevlog(`📰 <b>新聞搜尋</b>\n\n搜尋時發生錯誤，稍後再試。`);
       return null;
     }
   }
 
   /**
-   * Get next task number
+   * v4: Check if there's an active Work-in-Progress (pending or in_progress)
    */
-  getNextTaskNumber() {
-    if (!fs.existsSync(this.tasksPath)) return 1;
-
-    const content = fs.readFileSync(this.tasksPath, 'utf-8');
-    // Match pattern: - [ ] #1. or - [x] #1. (task format)
-    const matches = content.match(/#(\d+)\./g);
-    if (!matches || matches.length === 0) return 1;
-
-    const numbers = matches.map(m => parseInt(m.replace('#', '').replace('.', '')));
-    return Math.max(...numbers) + 1;
+  hasActiveWIP() {
+    if (!fs.existsSync(this.wipPath)) return false;
+    const content = fs.readFileSync(this.wipPath, 'utf-8');
+    return content.includes('## Task:') && !content.includes('Status: completed') && !content.includes('No active task');
   }
 
   /**
-   * Add a task to pending list (with numbering)
+   * v4: Check if task is currently being processed (in_progress status)
+   */
+  isTaskInProgress() {
+    if (!fs.existsSync(this.wipPath)) return false;
+    const content = fs.readFileSync(this.wipPath, 'utf-8');
+    return content.includes('Status: in_progress');
+  }
+
+  /**
+   * v4: Get current WIP content with status
+   */
+  getWIP() {
+    if (!fs.existsSync(this.wipPath)) return null;
+    const content = fs.readFileSync(this.wipPath, 'utf-8');
+    const taskMatch = content.match(/## Task:\s*\n([\s\S]*?)(?=\n##|$)/);
+    const statusMatch = content.match(/- Status:\s*(\w+)/);
+    return {
+      task: taskMatch ? taskMatch[1].trim() : null,
+      status: statusMatch ? statusMatch[1] : 'unknown',
+      raw: content,
+    };
+  }
+
+  /**
+   * v4: Set Work-in-Progress (replaces pending_tasks concept)
+   * Only one task at a time - simpler and more focused
+   * BLOCKS if a task is currently in_progress
    */
   async addTask(task) {
-    const tasksDir = path.dirname(this.tasksPath);
-    if (!fs.existsSync(tasksDir)) {
-      fs.mkdirSync(tasksDir, { recursive: true });
+    const journalDir = path.dirname(this.wipPath);
+    if (!fs.existsSync(journalDir)) {
+      fs.mkdirSync(journalDir, { recursive: true });
     }
 
-    const taskNum = this.getNextTaskNumber();
+    // Check if task is currently being processed
+    if (this.isTaskInProgress()) {
+      const wip = this.getWIP();
+      await this.telegram.sendDevlog(
+        `🚫 <b>任務正在處理中！</b>\n\n` +
+        `<pre>${wip.task?.slice(0, 100) || '(unknown task)'}</pre>\n\n` +
+        `<b>請等待 Agent 完成當前任務後再新增。</b>\n` +
+        `如需中斷，請先用 <code>#deltask</code> 清除。`
+      );
+      return false;
+    }
+
+    // Check if there's already a pending WIP (not in_progress)
+    if (this.hasActiveWIP()) {
+      const wip = this.getWIP();
+      await this.telegram.sendDevlog(
+        `⚠️ <b>已有待處理的任務！</b>\n\n` +
+        `<pre>${wip.task?.slice(0, 100) || '(unknown task)'}</pre>\n\n` +
+        `請先處理或清除現有任務：\n` +
+        `• <code>#deltask</code> - 清除當前任務\n` +
+        `• <code>#dotask</code> - 開始處理`
+      );
+      return false;
+    }
+
     const timestamp = new Date().toISOString();
-    const entry = `- [ ] #${taskNum}. ${task} _(added: ${timestamp.split('T')[0]})_\n`;
+    const wipContent = `# Work in Progress
 
-    if (fs.existsSync(this.tasksPath)) {
-      fs.appendFileSync(this.tasksPath, entry);
-    } else {
-      const header = `# Pending Tasks\n\n> Tasks to be done via #dotask\n\n`;
-      fs.writeFileSync(this.tasksPath, header + entry);
-    }
+> Single active task - tracked for resume capability
 
-    await this.telegram.sendDevlog(`✅ 任務 #${taskNum} 已加入待辦清單！\n\n使用 <code>#dotask</code> 處理任務`);
-    return taskNum;
-  }
+## Task:
+${task}
 
-  /**
-   * Delete a task by number
-   */
-  async deleteTask(taskNum) {
-    return this.deleteTasks([taskNum]);
-  }
+## Metadata:
+- Created: ${timestamp}
+- Last Updated: ${timestamp}
+- Status: pending
 
-  /**
-   * Delete multiple tasks by number (supports array of task numbers)
-   */
-  async deleteTasks(taskNums) {
-    if (!fs.existsSync(this.tasksPath)) {
-      await this.telegram.sendDevlog(`⚠️ 待辦清單是空的`);
-      return false;
-    }
+## Progress:
+- [ ] Task started
 
-    const content = fs.readFileSync(this.tasksPath, 'utf-8');
-    const lines = content.split('\n');
+## Attempts Log:
+(記錄嘗試過的方法和結果，避免重複嘗試)
 
-    const deleted = [];
-    const notFound = [];
+## Files Modified:
+(none yet)
 
-    // Find and track tasks to delete
-    for (const taskNum of taskNums) {
-      const pattern = new RegExp(`#${taskNum}\\.`);
-      const taskLine = lines.find(line => pattern.test(line));
+## Last Action:
+Waiting for #dotask to begin...
+`;
 
-      if (taskLine) {
-        const taskText = taskLine.replace(/- \[[ x]\] #\d+\. /, '').replace(/_\(added:.*\)_/, '').trim();
-        deleted.push({ num: taskNum, text: taskText });
-      } else {
-        notFound.push(taskNum);
-      }
-    }
-
-    if (deleted.length === 0) {
-      await this.telegram.sendDevlog(`⚠️ 找不到任務 #${taskNums.join(', #')}`);
-      return false;
-    }
-
-    // Remove all matched tasks
-    const patternsToRemove = deleted.map(d => new RegExp(`#${d.num}\\.`));
-    const newLines = lines.filter(line => !patternsToRemove.some(p => p.test(line)));
-    fs.writeFileSync(this.tasksPath, newLines.join('\n'));
-
-    // Build confirmation message
-    let message = `🗑️ 已刪除 ${deleted.length} 個任務:\n\n`;
-    for (const d of deleted) {
-      message += `• <s>#${d.num}. ${d.text.slice(0, 50)}${d.text.length > 50 ? '...' : ''}</s>\n`;
-    }
-
-    if (notFound.length > 0) {
-      message += `\n⚠️ 找不到: #${notFound.join(', #')}`;
-    }
-
-    await this.telegram.sendDevlog(message, null);
+    fs.writeFileSync(this.wipPath, wipContent);
+    await this.telegram.sendDevlog(
+      `✅ <b>任務已設定！</b>\n\n` +
+      `<pre>${task.slice(0, 150)}</pre>\n\n` +
+      `使用 <code>#dotask</code> 開始處理`
+    );
     return true;
   }
 
   /**
-   * List pending tasks (with numbering)
+   * v4: Clear/delete the current WIP task
+   */
+  async deleteTask() {
+    if (!fs.existsSync(this.wipPath)) {
+      await this.telegram.sendDevlog(`⚠️ 沒有進行中的任務`);
+      return false;
+    }
+
+    const wip = this.getWIP();
+    fs.unlinkSync(this.wipPath);
+
+    await this.telegram.sendDevlog(
+      `🗑️ <b>任務已清除</b>\n\n` +
+      `<s>${wip.task?.slice(0, 100) || '(unknown task)'}</s>\n\n` +
+      `使用 <code>#addtask [任務]</code> 新增任務`
+    );
+    return true;
+  }
+
+  /**
+   * v4: Delete tasks - simplified for single WIP
+   */
+  async deleteTasks(taskNums) {
+    // In v4, we only have one task at a time
+    // Ignore taskNums and just delete the current WIP
+    return this.deleteTask();
+  }
+
+  /**
+   * v4: List current task (shows WIP status)
    */
   async listTasks() {
-    if (!fs.existsSync(this.tasksPath)) {
-      await this.telegram.sendDevlog(`📋 <b>待辦清單</b>\n\n(目前沒有待辦任務)`);
+    if (!fs.existsSync(this.wipPath)) {
+      await this.telegram.sendDevlog(`📋 <b>任務狀態</b>\n\n(目前沒有待辦任務)\n\n使用 <code>#addtask [任務]</code> 新增`);
       return [];
     }
 
-    const content = fs.readFileSync(this.tasksPath, 'utf-8');
-    const lines = content.split('\n');
+    const content = fs.readFileSync(this.wipPath, 'utf-8');
 
-    // Format for display
-    const tasks = lines
-      .filter(line => line.includes('- [ ]') || line.includes('- [x]'))
-      .map(line => {
-        const isDone = line.includes('- [x]');
-        const match = line.match(/#(\d+)\.\s*(.+?)(?:_\(added:|$)/);
-        if (match) {
-          const num = match[1];
-          const text = match[2].trim();
-          return isDone ? `✅ #${num}. <s>${text}</s>` : `⬜ #${num}. ${text}`;
-        }
-        return line;
-      });
+    // Parse WIP content
+    const taskMatch = content.match(/## Task:\s*\n([\s\S]*?)(?=\n##|$)/);
+    const statusMatch = content.match(/- Status: (\w+)/);
+    const lastActionMatch = content.match(/## Last Action:\s*\n([\s\S]*?)(?=\n##|$)/);
 
-    if (tasks.length === 0) {
-      await this.telegram.sendDevlog(`📋 <b>待辦清單</b>\n\n(目前沒有待辦任務)`);
-      return [];
-    }
+    const task = taskMatch ? taskMatch[1].trim() : '(unknown)';
+    const status = statusMatch ? statusMatch[1] : 'pending';
+    const lastAction = lastActionMatch ? lastActionMatch[1].trim() : '(none)';
 
-    const formatted = tasks.join('\n');
+    const statusEmoji = status === 'completed' ? '✅' : status === 'in_progress' ? '🔄' : '⬜';
+
     await this.telegram.sendDevlog(
-      `📋 <b>待辦清單</b>\n\n${formatted}\n\n` +
-      `<i>使用 <code>#deltask [編號]</code> 刪除任務</i>`,
-      null
+      `📋 <b>任務狀態</b>\n\n` +
+      `${statusEmoji} <b>${task.slice(0, 100)}</b>\n\n` +
+      `📊 狀態: ${status}\n` +
+      `⏱️ 最後動作: ${lastAction.slice(0, 50)}\n\n` +
+      `• <code>#dotask</code> - 處理任務\n` +
+      `• <code>#deltask</code> - 清除任務`
     );
-    return content;
+
+    return [{ task, status, lastAction }];
   }
 
   /**
