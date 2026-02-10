@@ -36,6 +36,34 @@ function maskSecrets(text) {
   return masked;
 }
 
+/**
+ * Sanitize HTML for Telegram (only allow supported tags)
+ * Telegram supports: b, strong, i, em, u, s, strike, del, code, pre, a
+ */
+function sanitizeHtmlForTelegram(text) {
+  if (!text) return text;
+  let sanitized = String(text);
+
+  // List of allowed Telegram HTML tags
+  const allowedTags = ['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del', 'code', 'pre', 'a'];
+  const allowedPattern = allowedTags.join('|');
+
+  // Find all HTML-like tags
+  const tagPattern = /<\/?([a-zA-Z_][a-zA-Z0-9_-]*)[^>]*>/g;
+
+  sanitized = sanitized.replace(tagPattern, (match, tagName) => {
+    const tag = tagName.toLowerCase();
+    // Keep allowed tags, escape others
+    if (allowedTags.includes(tag)) {
+      return match;
+    }
+    // Escape the < and > to prevent parse errors
+    return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  });
+
+  return sanitized;
+}
+
 export class TelegramBridge {
   constructor(token, chatId, configPath = '/home/projects/solanahacker/docs/config.json') {
     this.bot = new TelegramBot(token, { polling: true });
@@ -45,18 +73,57 @@ export class TelegramBridge {
     this.mustQueue = [];
     this.approvalPending = false;
     this.approvalResult = null; // { approved: boolean, reason?: string }
+    this.screenshotDir = '/home/projects/solanahacker/screenshots';
 
     this.setupListeners();
   }
 
+  /**
+   * Download photo from Telegram message
+   * Returns the local file path or null if failed
+   */
+  async downloadPhoto(msg) {
+    try {
+      if (!msg.photo || msg.photo.length === 0) return null;
+
+      // Get the largest photo (last in array)
+      const photo = msg.photo[msg.photo.length - 1];
+      const fileId = photo.file_id;
+
+      // Get file link from Telegram
+      const fileLink = await this.bot.getFileLink(fileId);
+
+      // Download the file
+      const response = await fetch(fileLink);
+      if (!response.ok) throw new Error(`Failed to download: ${response.status}`);
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      // Save to screenshots folder
+      const filename = `tg-${Date.now()}.jpg`;
+      const filepath = path.join(this.screenshotDir, filename);
+
+      if (!fs.existsSync(this.screenshotDir)) {
+        fs.mkdirSync(this.screenshotDir, { recursive: true });
+      }
+
+      fs.writeFileSync(filepath, buffer);
+      console.log(`[TG] Photo downloaded: ${filepath}`);
+      return filepath;
+    } catch (err) {
+      console.error('[TG] Failed to download photo:', err.message);
+      return null;
+    }
+  }
+
   setupListeners() {
-    this.bot.on('message', (msg) => {
+    this.bot.on('message', async (msg) => {
       if (msg.chat.id.toString() !== this.chatId.toString()) {
         console.log(`[TG] Ignoring message from unknown chat: ${msg.chat.id}`);
         return;
       }
 
-      const text = msg.text || '';
+      const text = msg.text || msg.caption || '';  // Also check caption for photos
 
       // === #approve — Human approval for submission ===
       if (text.startsWith('#approve')) {
@@ -177,19 +244,22 @@ export class TelegramBridge {
         return;
       }
 
-      // === #deltask [number] — Delete a task by number ===
+      // === #deltask [numbers] — Delete tasks by number (supports: #deltask 1,2,3 or #deltask 1 2 3) ===
       if (text.startsWith('#deltask')) {
-        const taskNum = parseInt(text.replace('#deltask', '').trim());
-        if (isNaN(taskNum) || taskNum < 1) {
-          this.bot.sendMessage(this.chatId, '⚠️ 請提供任務編號，例如: <code>#deltask 2</code>', { parse_mode: 'HTML' });
+        const input = text.replace('#deltask', '').trim();
+        // Parse numbers separated by comma, space, or both
+        const taskNums = input.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1);
+
+        if (taskNums.length === 0) {
+          this.bot.sendMessage(this.chatId, '⚠️ 請提供任務編號，例如:\n<code>#deltask 2</code> 或 <code>#deltask 1,2,3</code>', { parse_mode: 'HTML' });
           return;
         }
         this.mustQueue.push({
-          type: 'delete_task',
-          command: taskNum,
+          type: 'delete_tasks',
+          command: taskNums,
           timestamp: Date.now(),
         });
-        console.log(`[TG] Delete task requested: #${taskNum}`);
+        console.log(`[TG] Delete tasks requested: #${taskNums.join(', #')}`);
         return;
       }
 
@@ -201,6 +271,19 @@ export class TelegramBridge {
         });
         this.bot.sendMessage(this.chatId, '🚀 收到！正在處理待辦任務...');
         console.log('[TG] Process tasks now requested');
+        return;
+      }
+
+      // === #release [version] — Push local commits and create tag ===
+      if (text.startsWith('#release')) {
+        const version = text.replace('#release', '').trim() || 'auto';
+        this.mustQueue.push({
+          type: 'release',
+          command: version,
+          timestamp: Date.now(),
+        });
+        this.bot.sendMessage(this.chatId, `🚀 收到！準備 release${version !== 'auto' ? ` (${version})` : ''}...`);
+        console.log(`[TG] Release requested: ${version}`);
         return;
       }
 
@@ -217,16 +300,24 @@ export class TelegramBridge {
 
       // === #chat [message] — Natural conversation with Agent ===
       // Agent will determine intent (question, instruction, feedback, etc.)
-      if (text.startsWith('#chat')) {
-        const message = text.replace('#chat', '').trim();
+      // Supports photo attachments with caption starting with #chat
+      if (text.startsWith('#chat') || (msg.photo && (msg.caption || '').startsWith('#chat'))) {
+        const message = (text || msg.caption || '').replace('#chat', '').trim();
+
+        // Check for photo attachment
+        const photoPath = msg.photo ? await this.downloadPhoto(msg) : null;
+
         this.mustQueue.push({
           type: 'chat',
           command: message,
+          imagePath: photoPath,  // Will be null if no photo
           timestamp: Date.now(),
           messageId: msg.message_id,
         });
-        this.bot.sendMessage(this.chatId, `💬 已送出，Agent 將會回應`);
-        console.log(`[TG] Chat received: ${message}`);
+
+        const photoNote = photoPath ? ' (含圖片 📷)' : '';
+        this.bot.sendMessage(this.chatId, `💬 已送出，Agent 將會回應${photoNote}`);
+        console.log(`[TG] Chat received: ${message}${photoPath ? ` [with image: ${photoPath}]` : ''}`);
         return;
       }
 
@@ -346,14 +437,15 @@ ${message}
   }
 
   /**
-   * Send a devlog update with optional screenshot (with secret masking)
+   * Send a devlog update with optional screenshot (with secret masking + HTML sanitization)
    */
   async sendDevlog(message, screenshotPath = null) {
-    const safeMessage = maskSecrets(message);
+    // Mask secrets and sanitize HTML for Telegram
+    const safeMessage = sanitizeHtmlForTelegram(maskSecrets(message));
     try {
       if (screenshotPath && fs.existsSync(screenshotPath)) {
         await this.bot.sendPhoto(this.chatId, screenshotPath, {
-          caption: safeMessage,
+          caption: safeMessage.slice(0, 1024), // Telegram caption limit
           parse_mode: 'HTML',
         });
       } else {
@@ -363,6 +455,18 @@ ${message}
       }
       console.log('[TG] Devlog sent successfully');
     } catch (error) {
+      // If HTML parsing still fails, try without parse_mode
+      if (error.message?.includes('parse entities')) {
+        console.log('[TG] HTML parse failed, retrying as plain text');
+        try {
+          const plainMessage = safeMessage.replace(/<[^>]+>/g, ''); // Strip all HTML
+          await this.bot.sendMessage(this.chatId, plainMessage);
+          console.log('[TG] Devlog sent as plain text');
+          return;
+        } catch (retryErr) {
+          console.error('[TG] Retry failed:', retryErr.message);
+        }
+      }
       console.error('[TG] Failed to send devlog:', error.message);
     }
   }

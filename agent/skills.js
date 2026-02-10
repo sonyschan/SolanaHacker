@@ -540,8 +540,12 @@ const V0_UI_TOOLS = [
           type: 'string',
           description: 'Name for the chat session (e.g., "NFT Gallery Component")',
         },
+        message: {
+          type: 'string',
+          description: 'Initial prompt describing the UI to generate. Be specific about React, Tailwind, and requirements.',
+        },
       },
-      required: ['name'],
+      required: ['name', 'message'],
     },
   },
   {
@@ -650,8 +654,8 @@ function createV0UIExecutors() {
   }
 
   return {
-    async v0_create_chat({ name }) {
-      const result = await v0Request('/v1/chats', 'POST', { name });
+    async v0_create_chat({ name, message }) {
+      const result = await v0Request('/v1/chats', 'POST', { name, message });
       if (result.error) return `Error: ${result.error}`;
       return `Chat created!\nID: ${result.id}\nName: ${result.name}\n\nUse v0_send_message with this chat_id to generate UI.`;
     },

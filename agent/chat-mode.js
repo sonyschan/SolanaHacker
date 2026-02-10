@@ -28,6 +28,8 @@ export class ChatMode {
     this.grokApiKey = deps.grokApiKey;
     this.claudeClient = deps.claudeClient;
     this.memoryDir = deps.memoryDir;
+    this.baseDir = deps.baseDir || path.join(this.memoryDir, '..');
+    console.log(`[ChatMode] Initialized with baseDir: ${this.baseDir}`);
     this.valuesPath = path.join(this.memoryDir, 'knowledge', 'values.md');
     this.tasksPath = path.join(this.memoryDir, 'journal', 'pending_tasks.md');
     this.contextPath = path.join(this.memoryDir, 'journal', 'chat_context.md');
@@ -39,6 +41,46 @@ export class ChatMode {
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
     this.maxChatHistory = 10; // Keep last 10 messages (sliding window, no caching benefit)
+
+    // v3.3: Simple tools for Chat Mode (file operations)
+    this.chatTools = [
+      {
+        name: 'write_file',
+        description: 'Write content to a file. Path is relative to /home/projects/solanahacker/.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'Path like "knowledge/product.md" or "memory/journal/2026-02-09.md". Do NOT prefix with "app/".' },
+            content: { type: 'string', description: 'Content to write' },
+          },
+          required: ['path', 'content'],
+        },
+      },
+      {
+        name: 'read_file',
+        description: 'Read a file. Path is relative to /home/projects/solanahacker/.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'Path like "knowledge/product.md", "AGENTS.md", or "app/src/App.jsx". Do NOT prefix with unnecessary "app/".' },
+          },
+          required: ['path'],
+        },
+      },
+      {
+        name: 'edit_file',
+        description: 'Replace specific text in a file. Use this for modifications instead of rewriting the whole file.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'File path like "knowledge/product.md"' },
+            old_text: { type: 'string', description: 'The exact text to find and replace' },
+            new_text: { type: 'string', description: 'The new text to replace it with' },
+          },
+          required: ['path', 'old_text', 'new_text'],
+        },
+      },
+    ];
   }
 
   /**
@@ -125,7 +167,7 @@ export class ChatMode {
         Authorization: `Bearer ${this.grokApiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-3-fast',
+        model: 'grok-4.1-fast-non-reasoning',
         input: [{ role: 'user', content: query }],
         tools: [
           {
@@ -188,6 +230,7 @@ ${recentMemory.slice(-1500)}
 
 ## 重要專案資訊
 - 專案名稱: MemeForge
+- 產品規格: knowledge/product.md（會被載入 context）
 - 圖片生成: 使用 Gemini API（不是 Grok！）
   - UX 資產: gemini-2.5-flash-image
   - NFT 藝術: gemini-3-pro-image-preview
@@ -200,11 +243,37 @@ ${recentMemory.slice(-1500)}
 - 可以用 emoji
 - 回答要基於專案實際情況，不要臆測
 
+## 工具使用原則
+
+### 修改檔案：優先用 edit_file
+- **edit_file**：精準替換，只需指定 old_text 和 new_text
+- **write_file**：只在需要創建新檔案或大幅重寫時使用
+
+範例 - 用戶說「把 90% 改成 50%」：
+- ✅ 用 edit_file：old_text="90%", new_text="50%" → 回覆確認
+- ❌ 不要：read_file → 手動重寫整個檔案
+
+### 查詢檔案
+用戶問「商業模式是什麼？」：
+- read_file → 回覆具體內容（不要只說「已讀取」）
+
+## 檔案放置規則（路徑相對於 /home/projects/solanahacker/）
+重要：所有路徑都相對於專案根目錄，不需要加 "app/" 前綴（除非真的在 app/ 下）
+
+| 類型 | 正確路徑 |
+|------|---------|
+| 產品規格 | knowledge/product.md |
+| 程式碼 | app/src/App.jsx |
+| 日誌 | memory/journal/2026-02-09.md |
+| Agent 記憶 | memory/knowledge/values.md |
+| 知識庫 | knowledge/*.md |
+
 ## 「記得」指令處理
 當 H2Crypto 說「記得...」或「Remember...」時：
+- 檔案位置：memory/knowledge/values.md（不是 memory/values.md！）
 - 只記錄 H2Crypto 這次訊息中提到的內容
 - 不要把 system prompt 中的內容當作要記住的東西
-- 例如：「記得用 Grok 讀新聞」→ 只記「用 Grok 讀新聞」`;
+- 例如：「記得用 Grok 讀新聞」→ 用 edit_file 在 memory/knowledge/values.md 添加`;
 
       // v3.2: Build message content (text or multimodal with image)
       let userContent;
@@ -243,30 +312,143 @@ ${recentMemory.slice(-1500)}
         content: userContent,
       });
 
-      // Prune to keep only last N messages
+      // v3.8: Simple pruning - history is now text-only so slice is safe
       if (this.chatHistory.length > this.maxChatHistory) {
         this.chatHistory = this.chatHistory.slice(-this.maxChatHistory);
       }
 
-      const response = await this.claudeClient.messages.create({
+      // v3.3: Chat with tool support
+      let response = await this.claudeClient.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        // v3: Cache system prompt for cost savings
+        max_tokens: 2500,
+        tools: this.chatTools,
         system: [{
           type: 'text',
           text: systemContext,
           cache_control: { type: 'ephemeral' },
         }],
-        messages: this.chatHistory,  // v3: Send chat history (no caching - slides)
+        messages: this.chatHistory,
       });
 
-      const answer = response.content[0]?.text || '抱歉，我無法回答這個問題。';
+      // v3.3: Handle tool use loop (max 3 iterations)
+      let iterations = 0;
+      let collectedText = []; // v3.6: Collect all text during loop
+      let lastToolResults = []; // v3.6: Track last tool results
+      const historyLengthBeforeTools = this.chatHistory.length; // v3.8: Track for cleanup
 
-      // v3: Add assistant response to history
-      this.chatHistory.push({
-        role: 'assistant',
-        content: answer,
-      });
+      while (response.stop_reason === 'tool_use' && iterations < 10) {
+        iterations++;
+
+        // v3.4: Send intermediate text updates to user (progress updates)
+        const textBlocks = response.content.filter(b => b.type === 'text');
+        if (textBlocks.length > 0) {
+          const progressText = textBlocks.map(b => b.text).join('\n');
+          if (progressText.trim()) {
+            collectedText.push(progressText);
+            await this.telegram.sendDevlog(`💭 ${progressText}`);
+          }
+        }
+
+        const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+        const toolResults = [];
+        lastToolResults = []; // Reset for this iteration
+
+        for (const toolUse of toolUseBlocks) {
+          const result = await this.executeChatTool(toolUse.name, toolUse.input);
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: result,
+          });
+          lastToolResults.push({ tool: toolUse.name, result: result.slice(0, 200) });
+          console.log(`[ChatMode] Tool ${toolUse.name}: ${result.slice(0, 100)}...`);
+        }
+
+        // Add assistant message with tool use
+        this.chatHistory.push({
+          role: 'assistant',
+          content: response.content,
+        });
+
+        // Add tool results
+        this.chatHistory.push({
+          role: 'user',
+          content: toolResults,
+        });
+
+        // Continue conversation
+        response = await this.claudeClient.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2500,
+          tools: this.chatTools,
+          system: [{
+            type: 'text',
+            text: systemContext,
+            cache_control: { type: 'ephemeral' },
+          }],
+          messages: this.chatHistory,
+        });
+      }
+
+      // Extract text answer
+      const textBlock = response.content.find(b => b.type === 'text');
+      let answer = textBlock?.text;
+
+      // v3.9: If no text in final response, construct meaningful answer from tool results
+      if (!answer && lastToolResults.length > 0) {
+        const successResults = lastToolResults.filter(r => !r.result.startsWith('Error'));
+        if (successResults.length > 0) {
+          answer = successResults.map(r => {
+            if (r.tool === 'write_file') return `✅ 檔案已更新: ${r.result}`;
+            if (r.tool === 'read_file') {
+              // Show preview of what was read
+              const preview = r.result.slice(0, 500);
+              return `📄 檔案內容預覽:\n${preview}${r.result.length > 500 ? '...' : ''}`;
+            }
+            return `✅ ${r.tool}: ${r.result.slice(0, 100)}`;
+          }).join('\n');
+        } else {
+          answer = `❌ 操作失敗: ${lastToolResults.map(r => r.result).join(', ')}`;
+        }
+      }
+
+      // Final fallback
+      if (!answer) {
+        answer = collectedText.length > 0
+          ? collectedText[collectedText.length - 1] // Use last progress text
+          : '抱歉，我無法完成這個操作。';
+      }
+
+      // v3.8: Clean up tool_use/tool_result from history, keep only text
+      // Restore history to state before tool loop started
+      if (iterations > 0) {
+        this.chatHistory = this.chatHistory.slice(0, historyLengthBeforeTools);
+        console.log(`[ChatMode] Cleaned tool messages from history`);
+      }
+
+      // Add only text content to history
+      const textOnlyContent = response.content
+        .filter(b => b.type === 'text')
+        .map(b => ({ type: 'text', text: b.text }));
+
+      if (textOnlyContent.length > 0) {
+        this.chatHistory.push({
+          role: 'assistant',
+          content: textOnlyContent,
+        });
+      } else if (answer) {
+        // If no text in response but we constructed an answer, add that
+        this.chatHistory.push({
+          role: 'assistant',
+          content: [{ type: 'text', text: answer }],
+        });
+      }
+
+      // Prune to keep conversation manageable
+      if (this.chatHistory.length > this.maxChatHistory) {
+        this.chatHistory = this.chatHistory.slice(-this.maxChatHistory);
+      }
+      console.log(`[ChatMode] History: ${this.chatHistory.length} messages`);
 
       await this.telegram.sendDevlog(`💬 ${answer}`);
       return answer;
@@ -283,6 +465,88 @@ ${recentMemory.slice(-1500)}
   clearChatHistory() {
     this.chatHistory = [];
     console.log('[ChatMode] Chat history cleared');
+  }
+
+  /**
+   * Normalize path - fix common mistakes like prefixing with "app/" when not needed
+   */
+  normalizePath(inputPath) {
+    let normalized = inputPath;
+
+    // Always strip "app/" prefix for directories that should be at project root
+    // knowledge/, memory/, docs/ should NEVER be under app/
+    if (normalized.startsWith('app/knowledge/') ||
+        normalized.startsWith('app/memory/') ||
+        normalized.startsWith('app/docs/')) {
+      const withoutApp = normalized.slice(4); // Remove "app/"
+      console.log(`[ChatMode] Path correction: ${normalized} -> ${withoutApp}`);
+      normalized = withoutApp;
+    }
+
+    return normalized;
+  }
+
+  /**
+   * Execute a chat tool (v3.3)
+   */
+  async executeChatTool(toolName, input) {
+    try {
+      if (toolName === 'write_file') {
+        const normalizedPath = this.normalizePath(input.path);
+        const filePath = path.join(this.baseDir, normalizedPath);
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, input.content, 'utf-8');
+        return `File written successfully: ${normalizedPath}`;
+      }
+
+      if (toolName === 'read_file') {
+        const normalizedPath = this.normalizePath(input.path);
+        const filePath = path.join(this.baseDir, normalizedPath);
+        console.log(`[ChatMode] read_file: baseDir=${this.baseDir}, path=${normalizedPath}, full=${filePath}`);
+        if (!fs.existsSync(filePath)) {
+          return `Error: File not found: ${normalizedPath} (looked in ${filePath})`;
+        }
+        // Check if it's a directory
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          const files = fs.readdirSync(filePath);
+          return `${normalizedPath} is a directory. Contents:\n${files.join('\n')}`;
+        }
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return content.slice(0, 15000); // Limit to 15000 chars
+      }
+
+      // v3.10: Targeted replacement tool
+      if (toolName === 'edit_file') {
+        const normalizedPath = this.normalizePath(input.path);
+        const filePath = path.join(this.baseDir, normalizedPath);
+        console.log(`[ChatMode] edit_file: ${normalizedPath}, replacing "${input.old_text.slice(0, 30)}..." with "${input.new_text.slice(0, 30)}..."`);
+
+        if (!fs.existsSync(filePath)) {
+          return `Error: File not found: ${normalizedPath}`;
+        }
+
+        const content = fs.readFileSync(filePath, 'utf-8');
+
+        // Check if old_text exists in file
+        if (!content.includes(input.old_text)) {
+          return `Error: Text not found in file. Could not find: "${input.old_text.slice(0, 50)}..."`;
+        }
+
+        // Replace and write
+        const newContent = content.replace(input.old_text, input.new_text);
+        fs.writeFileSync(filePath, newContent, 'utf-8');
+
+        return `Successfully replaced "${input.old_text.slice(0, 30)}..." with "${input.new_text.slice(0, 30)}..." in ${normalizedPath}`;
+      }
+
+      return `Unknown tool: ${toolName}`;
+    } catch (err) {
+      return `Error executing ${toolName}: ${err.message}`;
+    }
   }
 
   /**
@@ -467,12 +731,12 @@ ${values}
 最近的記憶:
 ${recentMemory}
 
-基於以上，選擇一個方向:
-A) 分享一個開發心得或學習
-B) 問 H2Crypto 一個問題（他喜歡反思）
-C) 分享一個有趣的觀察
+基於以上，選一個來說：
+- 分享開發心得或學習
+- 問 H2Crypto 一個問題（他喜歡反思）
+- 分享一個有趣的觀察
 
-用中文回答，2-3 句話，口語化。`;
+直接寫內容，不要有編號或前綴。用中文，2-3 句話，口語化。`;
 
       const reflection = await this.callGrok([{ role: 'user', content: prompt }], 300);
       await this.telegram.sendDevlog(`💭 ${reflection}`);

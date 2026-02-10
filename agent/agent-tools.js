@@ -480,11 +480,17 @@ export function createToolExecutors(deps) {
   let devServer = null;
 
   /**
-   * Resolve a relative path safely within workDir
+   * Resolve a relative path - most paths are in workDir, but knowledge/memory/docs are at project root
    */
   function resolveProjectPath(relativePath) {
+    // Paths at project root level (not inside app/)
+    if (relativePath.startsWith('knowledge/') || relativePath.startsWith('memory/') || relativePath.startsWith('docs/')) {
+      return path.resolve(baseDir, relativePath);
+    }
+
+    // All other paths are relative to workDir (app/)
     const resolved = path.resolve(workDir, relativePath);
-    if (!resolved.startsWith(workDir)) {
+    if (!resolved.startsWith(workDir) && !resolved.startsWith(baseDir)) {
       throw new Error(`Path escape blocked: ${relativePath}`);
     }
     return resolved;
@@ -840,16 +846,30 @@ export function createToolExecutors(deps) {
         // Check if there are unpushed commits
         const { stdout: status } = await execAsync('git status -sb', { cwd: gitDir });
 
-        // Auto-increment version if requested
+        // Auto-increment version if requested or if specified version already exists
         let tagVersion = version;
-        if (version === 'auto') {
+        const getNextVersion = async () => {
           try {
             const { stdout: lastTag } = await execAsync('git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"', { cwd: gitDir });
             const parts = lastTag.trim().replace('v', '').split('.');
             const patch = parseInt(parts[2] || 0) + 1;
-            tagVersion = `v${parts[0] || 0}.${parts[1] || 0}.${patch}`;
+            return `v${parts[0] || 0}.${parts[1] || 0}.${patch}`;
           } catch {
-            tagVersion = 'v0.1.0';
+            return 'v0.1.0';
+          }
+        };
+
+        if (version === 'auto') {
+          tagVersion = await getNextVersion();
+        } else {
+          // Check if tag already exists
+          try {
+            await execAsync(`git rev-parse ${version} 2>/dev/null`, { cwd: gitDir });
+            // Tag exists, auto-increment instead
+            tagVersion = await getNextVersion();
+          } catch {
+            // Tag doesn't exist, use specified version
+            tagVersion = version;
           }
         }
 

@@ -141,6 +141,7 @@ class SolanaHackerAgent {
       grokApiKey: process.env.XAI_API_KEY,
       claudeClient: this.client,
       memoryDir: CONFIG.memoryDir,
+      baseDir: CONFIG.baseDir,
     });
 
     // Build system prompt (with embedded knowledge base)
