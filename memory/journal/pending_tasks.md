@@ -14,4 +14,3 @@ overrideMethod @ installHook.js:1
 在投票介面中強化 'Rarity Meter'，讓用戶感受到共識的力量。
 
 保持 Solana-Native 的極簡硬核風格，使用 framer-motion 處理數據變動的動畫。 _(added: 2026-02-08)_
-- [ ] #1. 把 app/README.md 搬移到專案跟目錄， 讓 https://github.com/sonyschan/SolanaHacker 就能夠看到專案說明。然後 release _(added: 2026-02-10)_

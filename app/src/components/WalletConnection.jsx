@@ -13,9 +13,9 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
     };
 
     const buttonClasses = {
-        primary: 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25',
-        secondary: 'bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 font-semibold px-6 py-3 rounded-xl transition-all duration-300',
-        ghost: 'text-cyan-300 hover:text-cyan-100 hover:bg-cyan-500/10 px-4 py-2 rounded-lg transition-all duration-300'
+        primary: 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 text-sm md:text-base',
+        secondary: 'bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 text-sm md:text-base',
+        ghost: 'text-cyan-300 hover:text-cyan-100 hover:bg-cyan-500/10 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all duration-300 text-sm md:text-base'
     };
 
     if (connected && publicKey) {
@@ -39,7 +39,8 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                 <WalletDisconnectButton 
                     className={`${buttonClasses.secondary} wallet-adapter-button`}
                 >
-                    登出錢包
+                    <span className="hidden sm:inline">登出錢包</span>
+                    <span className="sm:hidden">登出</span>
                 </WalletDisconnectButton>
             </div>
         );
@@ -57,11 +58,14 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                     </div>
                 ) : (
                     <div className="flex items-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        <span>連接錢包</span>
+                        <span className="whitespace-nowrap">
+                            <span className="hidden sm:inline">連接錢包</span>
+                            <span className="sm:hidden">連接</span>
+                        </span>
                     </div>
                 )}
             </WalletMultiButton>

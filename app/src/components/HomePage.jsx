@@ -15,22 +15,22 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
       </div>
 
       {/* Enhanced Navigation with better wallet status */}
-      <nav className="relative z-10 flex justify-between items-center p-6 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
-            <span className="text-2xl font-bold">M</span>
+      <nav className="relative z-10 flex justify-between items-center p-4 md:p-6 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
+            <span className="text-lg md:text-2xl font-bold">M</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               MemeForge
             </h1>
-            <div className="text-xs text-gray-500">AI-Powered Meme Democracy</div>
+            <div className="text-xs text-gray-500 hidden sm:block">AI-Powered Meme Democracy</div>
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
-          {/* Live stats indicator */}
-          <div className="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+        <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+          {/* Live stats indicator - hidden on mobile */}
+          <div className="hidden lg:flex items-center space-x-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
               <span className="text-sm text-gray-400">Live</span>
@@ -41,7 +41,10 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
           </div>
           
-          <WalletConnection variant="primary" />
+          {/* Mobile-optimized wallet connection */}
+          <div className="flex-shrink-0">
+            <WalletConnection variant="primary" className="text-sm md:text-base" />
+          </div>
         </div>
       </nav>
 
