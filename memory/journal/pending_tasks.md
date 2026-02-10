@@ -14,4 +14,5 @@ overrideMethod @ installHook.js:1
 在投票介面中強化 'Rarity Meter'，讓用戶感受到共識的力量。
 
 保持 Solana-Native 的極簡硬核風格，使用 framer-motion 處理數據變動的動畫。 _(added: 2026-02-08)_
-- [ ] #1. git commit and git push. Tag as v1.0.0 _(added: 2026-02-10)_
+- [x] #1. rewrite GitHub readme by product spec _(added: 2026-02-10)_
+- [ ] #2. git release if readme was updated _(added: 2026-02-10)_
