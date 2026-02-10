@@ -12,20 +12,26 @@ MemeForge is a revolutionary Web3 platform that combines AI-generated memes, dem
 - Covers: Price movements, DeFi protocols, NFT trends, regulatory news, celebrity statements
 
 ### 🗳️ Democratic Voting System
-- **Two-Phase Voting**: Choose winner → Determine rarity
+- **Two-Step Voting**: 
+  - **第一步驟**: Choose favorite meme (票數最多的獲勝)
+  - **第二步驟**: Vote on rarity (票數最多決定稀有度)
+  - After completing both steps, users receive thank you & completion confirmation
 - **Random Ticket Rewards**: 8-15 tickets per vote (prevents manipulation)
 - **Streak Bonuses**: Increased rewards for consecutive daily voting
 - **Instant Gratification**: Dopamine-driven animations and visual feedback
 
 ### 🏆 Rarity & NFT Creation
-- 5 Rarity Levels: Common, Uncommon, Rare, Epic, Legendary
+- **3 Rarity Levels**: 
+  - **Common**: 0.01 SOL starting bid
+  - **Rare**: 0.03 SOL starting bid  
+  - **Legendary**: 0.1 SOL starting bid
 - 100% community-determined rarity (no algorithms)
 - **Daily Limit**: Only 1 NFT minted per day (scarcity-driven)
 - Solana SPL Token / Metaplex standard
 
 ### 🛒 Auction System
 - 3-day competitive bidding
-- Starting price: 0.01 SOL
+- Starting price based on rarity (0.01/0.03/0.1 SOL)
 - Minimum 5% bid increases
 - Automatic refunds for outbid users
 
@@ -40,9 +46,9 @@ MemeForge is a revolutionary Web3 platform that combines AI-generated memes, dem
 ```
 1. AI Generate Memes 🤖
    ↓
-2. Users Vote ❤️
-   ↓
-3. Determine Winner & Rarity 🏆
+2. 第一步驟: Vote for Favorite Meme ❤️ (票數最多獲勝)
+   ↓  
+3. 第二步驟: Vote for Rarity 🏆 (票數最多決定稀有度)
    ↓
 4. Mint NFT 🎨
    ↓
