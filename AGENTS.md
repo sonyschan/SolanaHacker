@@ -58,7 +58,7 @@ Load specialized tools on-demand with `load_skill()`:
 
 ---
 
-## Agent 運作模式 (v3)
+## Agent 運作模式 (v4)
 
 Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 
@@ -68,19 +68,19 @@ Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 - 08:00: 早安新聞摘要
 - 09:00: Agentic 工具搜尋
 
-### 🛠️ Task Processing (由 #dotask 觸發)
-1. 讀取 `memory/journal/pending_tasks.md`
-2. **一次只處理第一個未完成任務**
-3. 完成後使用 `complete_task` 工具
-4. 系統自動載入下一個任務
-5. 全部完成後返回 Chat Mode
+### 🛠️ Task Processing (v4: WIP System)
+1. `#addtask` 設定任務 → 寫入 `work_in_progress.md`
+2. `#dotask` 觸發開發
+3. Agent 工作時自動更新進度（支援中斷恢復）
+4. 完成後使用 `complete_task` → 歸檔並清除 WIP
+5. 返回 Chat Mode 等待下一個任務
 
 ### 指令列表
 
 **任務管理：**
-- `#addtask [任務]` — 新增待辦任務
-- `#tasklist` — 列出待辦清單
-- `#deltask [編號]` — 刪除任務
+- `#addtask [任務]` — 設定新任務（一次只能有一個任務）
+- `#tasklist` — 查看當前任務狀態
+- `#deltask` — 清除當前任務
 - `#dotask` — **立即處理任務**（唯一開發觸發方式）
 
 **發布：**
@@ -136,7 +136,7 @@ IDEA → POC → MVP → BETA → SUBMIT
 - ❌ 完成任務後繼續開發其他功能
 
 **唯一允許開發：**
-- ✅ `#dotask` 後處理 `pending_tasks.md` 中的任務
+- ✅ `#dotask` 後處理 `work_in_progress.md` 中的任務
 - ✅ 完成後呼叫 `complete_task`，然後**停止**
 
 ---
@@ -166,12 +166,12 @@ IDEA → POC → MVP → BETA → SUBMIT
 │   │   ├── components/
 │   │   └── hooks/
 │   └── public/generated/     # Gemini-generated images
+├── docs/                     # Reference docs (LOADED INTO CONTEXT)
+│   └── product.md            # Product specification (Agent can read AND write)
 ├── memory/
-│   ├── journal/              # Daily journals, current_task, pending_tasks
+│   ├── journal/              # Daily journals, current_task, work_in_progress
 │   ├── completed_tasks/      # Archived tasks
 │   └── knowledge/            # Long-term memory (values, bugs, patterns)
-├── knowledge/                # Reference knowledge base (LOADED INTO CONTEXT)
-│   └── product.md            # Product specification (Agent reads this!)
 └── screenshots/
 ```
 
@@ -179,10 +179,10 @@ IDEA → POC → MVP → BETA → SUBMIT
 
 | 檔案類型 | 正確位置 | 說明 |
 |---------|---------|------|
-| 產品規格 | `knowledge/product.md` | 會被載入 Agent context |
+| 產品規格 | `docs/product.md` | 會被載入 context（可讀可寫）|
 | 程式碼 | `app/src/` | 唯一放程式碼的地方 |
-| Agent 記憶 | `memory/` | 日誌、任務、學習記錄 |
-| 參考知識 | `knowledge/*.md` | 啟動時載入 context |
+| Agent 記憶 | `memory/knowledge/` | values, bugs, patterns |
+| 參考文件 | `docs/*.md` | 啟動時載入 context |
 
 **重要：`app/` 資料夾只放程式碼，不放文件！**
 
@@ -200,6 +200,38 @@ Use ABSOLUTE paths:
 1. **English First**: All code, comments, UI text in English. No i18n.
 2. **Ship Fast**: Focus on core functionality, avoid over-engineering.
 3. **Verify Before Claiming**: Screenshot before saying "done".
+
+---
+
+## ⚠️ 檔案操作驗證規則 (CRITICAL)
+
+**執行檔案操作前，必須先驗證狀態！**
+
+### 禁止：假設檔案狀態
+- ❌ 假設檔案已存在或已搬移
+- ❌ 沒確認就說「已完成」
+- ❌ 跳過驗證步驟
+
+### 必須：先查後做
+```
+1. list_files() 或 read_file() — 確認當前狀態
+2. 執行操作（write_file, run_command 等）
+3. 再次 list_files() 或 read_file() — 驗證結果
+4. 才能報告「完成」
+```
+
+### 範例：搬移檔案
+```javascript
+// ✅ 正確流程
+1. list_files({ path: '.' })           // 確認來源檔案存在
+2. read_file({ path: 'app/README.md' }) // 讀取內容
+3. write_file({ path: 'README.md', content: ... }) // 寫到新位置
+4. run_command({ command: 'rm app/README.md' })    // 刪除舊檔
+5. list_files({ path: '.' })           // 驗證結果
+
+// ❌ 錯誤：沒驗證就說完成
+"README.md 應該已經在根目錄了" → 直接 commit
+```
 
 ---
 
@@ -266,6 +298,57 @@ await dev_server({ action: 'status' });   // Check
 - ❌ 「任務完成！」（沒說做了什麼）
 - ❌ 「已處理」（沒說結果）
 - ❌ 只報 token 數（沒說交付物）
+
+---
+
+## 🛠️ Common Error Quick Fixes
+
+### `require is not defined` / `module is not defined`
+
+**⚠️ 重要原則：只要 MVP 功能正常運作，忽略 require error！**
+
+不要花時間在：
+- ❌ 無限循環修 require error
+- ❌ 為了解決 require error 而移除功能
+- ❌ 反覆嘗試同樣的修復方法
+
+正確做法：
+1. `npm run build` — 如果 build 成功，繼續
+2. `dev_server({ action: 'start' })` — 如果頁面能跑，繼續
+3. 只有當 **功能完全無法使用** 時才修 require error
+4. 用 `log_attempt()` 記錄嘗試過的方法，避免重複
+
+**This is an ESM project.** Use `import`, not `require`:
+```javascript
+// ❌ WRONG (CommonJS)
+const fs = require('fs');
+const { something } = require('./module');
+
+// ✅ CORRECT (ESM)
+import fs from 'fs';
+import { something } from './module.js';  // Note: .js extension required!
+```
+
+### `Cannot use import statement outside a module`
+Check `package.json` has `"type": "module"`.
+
+### `ERR_MODULE_NOT_FOUND` - missing file extension
+ESM requires `.js` extension in imports:
+```javascript
+// ❌ WRONG
+import { foo } from './utils';
+
+// ✅ CORRECT
+import { foo } from './utils.js';
+```
+
+### `__dirname is not defined` (ESM)
+```javascript
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+```
 
 ---
 

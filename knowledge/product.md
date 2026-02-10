@@ -59,12 +59,11 @@
 - **對象**：第一步驟最多票的Meme將被鑄造為NFT，賦予稀有度的屬性
 - **機制**：用戶投票決定獲勝Meme的稀有度等級；票數相同，則隨機選出
 - **稀有度等級**：
-  - Common (普通)
-  - Uncommon (少見)
-  - Rare (稀有)
-  - Epic (史詩)
-  - Legendary (傳說)
+  - **Common** (普通) - 起標價格 0.01 SOL
+  - **Rare** (稀有) - 起標價格 0.03 SOL
+  - **Legendary** (傳說) - 起標價格 0.1 SOL
 - **人類主導**：100%由用戶投票決定，非演算法計算
+- **稀有度定義**：反映該 Meme 本身給人類感知上的稀有程度，而非統計分佈上的稀有性
 
 ### 4. 鑄造 NFT 🎨
 - **鑄造條件**：完全基於人類用戶投票結果
@@ -78,7 +77,10 @@
 ### 5. 競標拍賣 🛒
 - **拍賣時長**：3天競價期
 - **同時進行**：最多3個NFT同時拍賣
-- **起標價格**：0.01 SOL 起標
+- **起標價格**：依稀有度分級
+  - **Common**: 0.01 SOL 起標
+  - **Rare**: 0.03 SOL 起標
+  - **Legendary**: 0.1 SOL 起標
 - **出價機制**：出價需預付全額 SOL 到託管帳戶
 - **出價規則**：新出價需比前一價高至少5%
 - **退款機制**：被超越的出價者自動退還SOL（僅扣除gas費）
@@ -92,37 +94,33 @@
 
 ---
 
-## 技術架構
+## 🏗️ 技術架構
 
-### 前端 (React + Vite)
-```
-├── components/
-│   ├── Dashboard.jsx          # 主控制台 (Forge/Tickets/Market)
-│   ├── ValueCycleDashboard.jsx # 價值循環可視化
-│   ├── HomePage.jsx           # 首頁
-│   └── ui/
-│       └── EnhancedWalletButton.jsx # 錢包連接
-├── hooks/
-│   ├── useSolanaWallet.js     # 錢包管理
-│   ├── useVoting.js           # 投票邏輯
-│   └── useNFTMarket.js        # NFT 市場
-└── utils/
-    ├── solana.js              # Solana RPC 通信
-    └── constants.js           # 合約地址、配置
-```
+### Frontend Stack
+- **React 18** + **Vite** for fast development
+- **Solana Wallet Adapter** for Web3 integration
+- **Jupiter Swap** for token exchanges
+- **Metaplex** for NFT standards
 
-### 後端 (Solana Programs)
+### Smart Contracts (Solana Programs)
+- **Voting Program**: Vote logic, ticket distribution, rarity calculation
+- **NFT Program**: Minting, metadata management  
+- **Auction Program**: Bidding logic, fund settlement
+
+### File Structure
 ```
-├── voting_program/            # 投票合約
-│   ├── vote.rs               # 投票邏輯
-│   ├── ticket.rs             # 彩票分發
-│   └── rarity.rs             # 稀有度計算
-├── nft_program/              # NFT 管理
-│   ├── mint.rs               # NFT 鑄造
-│   └── metadata.rs           # 元數據管理
-└── auction_program/          # 拍賣系統
-    ├── auction.rs            # 拍賣邏輯
-    └── settlement.rs         # 資金結算
+├── src/
+│   ├── components/
+│   │   ├── Dashboard.jsx          # Main control panel
+│   │   ├── ValueCycleDashboard.jsx # Value cycle visualization
+│   │   └── ui/EnhancedWalletButton.jsx # Wallet connection
+│   ├── hooks/
+│   │   ├── useSolanaWallet.js     # Wallet management
+│   │   ├── useVoting.js           # Voting logic
+│   │   └── useNFTMarket.js        # NFT marketplace
+│   └── utils/
+│       ├── solana.js              # Solana RPC communication
+│       └── constants.js           # Contract addresses, configs
 ```
 
 ### 整合服務
@@ -130,6 +128,39 @@
 - **Jupiter Swap**：SOL/Token 兌換
 - **Metaplex**：NFT 標準
 - **IPFS**：圖片存儲
+
+---
+
+## 🚀 部署與開發
+
+### 當前部署
+- **Live Demo**: http://165.22.136.40:5173
+- **GitHub Repository**: https://github.com/sonyschan/SolanaHacker
+
+### 開發環境設置
+
+#### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+#### Installation
+```bash
+git clone https://github.com/sonyschan/SolanaHacker.git
+cd SolanaHacker/app
+npm install
+```
+
+#### Development
+```bash
+npm run dev
+# App runs on http://localhost:5173
+```
+
+#### Build
+```bash
+npm run build
+npm run preview
+```
 
 ---
 
@@ -196,6 +227,13 @@
 **參與感**：每個用戶都是價值發現者
 **網絡效應**：參與者越多，獎池越大
 
+## 🛡️ 安全性與公平性
+
+- **Random Ticket System**: 防止策略性投票操作
+- **Transparent Value Cycle**: 所有資金流向公開透明可追蹤
+- **Smart Contract Audits**: 第三方安全審計
+- **Multi-sig Wallet**: 獎池由多重簽名錢包管理
+
 ---
 
 ## 競爭分析
@@ -215,22 +253,20 @@
 
 ## 發展路線圖
 
-### MVP 階段 (當前)
+### ✅ MVP (Current)
 - [x] 基礎投票界面
 - [x] 錢包連接功能
 - [x] 價值循環展示
 - [x] 稀有度系統
-- [ ] NFT 鑄造功能
-- [ ] 拍賣系統
 
-### Beta 階段 (4-6週)
+### 🔄 Beta (4-6 weeks)
 - [ ] 真實 AI Meme 生成
 - [ ] 完整拍賣流程
 - [ ] 週開獎系統
 - [ ] 移動端優化
 - [ ] 用戶分析面板
 
-### 正式發布 (8-10週)
+### 🎯 Launch (8-10 weeks)
 - [ ] 多錢包支持
 - [ ] 社群治理功能
 - [ ] 高級分析工具
@@ -298,20 +334,20 @@
 
 ## 成功指標 (KPIs)
 
-### 用戶參與
-- **日活用戶 (DAU)**：目標 500+
-- **投票參與率**：目標 60%+
-- **用戶留存率**：7天 40%+, 30天 20%+
+### 用戶參與指標
+- **Daily Active Users**: 500+
+- **Voting Participation**: 60%+
+- **User Retention**: 7-day 40%+, 30-day 20%+
 
-### 平台活躍度
-- **日投票量**：目標 2,000+
-- **NFT 成交率**：目標 80%+
-- **平均拍賣價格**：目標 0.5+ SOL
+### 平台活動指標  
+- **Daily Votes**: 2,000+
+- **NFT Sale Rate**: 80%+
+- **Average Auction Price**: 0.5+ SOL
 
 ### 商業指標
-- **獎池增長率**：目標 週增長 20%+
-- **平台手續費收入**：目標 月 2+ SOL
-- **用戶滿意度**：目標 4.5+/5.0
+- **Prize Pool Growth**: 20%+ weekly
+- **Platform Revenue**: 2+ SOL monthly
+- **User Satisfaction**: 4.5+/5.0
 
 ---
 
