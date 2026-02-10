@@ -4,6 +4,7 @@
 
 | Task ID | Completed | Task |
 |---------|-----------|------|
+| 2026-02-10-mlg15bl7 | 2026-02-10 03:17 | #1. 把 app/README.md 搬移到專案跟目錄， 讓 https://github.com... |
 | 2026-02-10-mlfy1nkm | 2026-02-10 01:50 | #1. git release to push Readme to github _(added: ... |
 | 2026-02-10-mlfxtunb | 2026-02-10 01:44 | #2. git release if readme was updated _(added: 202... |
 | 2026-02-10-mlfxszp9 | 2026-02-10 01:43 | #1. rewrite GitHub readme by product spec _(added:... |
@@ -13,4 +14,3 @@
 | 2026-02-10-mlfwndbq | 2026-02-10 01:11 | #1. bug: 更新版面之後，前端變成不可用的狀態。請修改後用瀏覽器確認畫面正常，並傳截圖跟我說明... |
 | 2026-02-09-mlfdctuj | 2026-02-09 16:11 | #1. 根據 SPEC 使用 v0 dev 規劃適合的 templates 並加以實作 _(adde... |
 | 2026-02-09-mlewjv29 | 2026-02-09 08:20 | #1. 依照我們先前的討論與規劃，還有你對產品的了解撰寫產品 spec，包含價值循環（6步驟）， 存... |
-| 2026-02-09-mlewf7e0 | 2026-02-09 08:17 | #1. 依照我們先前的討論與規劃，還有你對產品的了解撰寫產品 spec，包含價值循環（6步驟）， 存... |

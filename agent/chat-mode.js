@@ -29,6 +29,9 @@ export class ChatMode {
     this.claudeClient = deps.claudeClient;
     this.memoryDir = deps.memoryDir;
     this.baseDir = deps.baseDir || path.join(this.memoryDir, '..');
+    this.reviewer = deps.reviewer; // UXReviewer for browse_url
+    this.devServerPort = deps.devServerPort || 5173;
+    this.knowledgeDir = deps.knowledgeDir || path.join(this.baseDir, 'knowledge');
     console.log(`[ChatMode] Initialized with baseDir: ${this.baseDir}`);
     this.valuesPath = path.join(this.memoryDir, 'knowledge', 'values.md');
     this.tasksPath = path.join(this.memoryDir, 'journal', 'pending_tasks.md');
@@ -42,27 +45,16 @@ export class ChatMode {
     this.chatHistory = [];
     this.maxChatHistory = 10; // Keep last 10 messages (sliding window, no caching benefit)
 
-    // v3.3: Simple tools for Chat Mode (file operations)
+    // v4: Enhanced tools for Chat Mode
     this.chatTools = [
-      {
-        name: 'write_file',
-        description: 'Write content to a file. Path is relative to /home/projects/solanahacker/.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            path: { type: 'string', description: 'Path like "knowledge/product.md" or "memory/journal/2026-02-09.md". Do NOT prefix with "app/".' },
-            content: { type: 'string', description: 'Content to write' },
-          },
-          required: ['path', 'content'],
-        },
-      },
+      // --- File Operations ---
       {
         name: 'read_file',
         description: 'Read a file. Path is relative to /home/projects/solanahacker/.',
         input_schema: {
           type: 'object',
           properties: {
-            path: { type: 'string', description: 'Path like "knowledge/product.md", "AGENTS.md", or "app/src/App.jsx". Do NOT prefix with unnecessary "app/".' },
+            path: { type: 'string', description: 'Path like "knowledge/product.md", "AGENTS.md", or "app/src/App.jsx".' },
           },
           required: ['path'],
         },
@@ -78,6 +70,116 @@ export class ChatMode {
             new_text: { type: 'string', description: 'The new text to replace it with' },
           },
           required: ['path', 'old_text', 'new_text'],
+        },
+      },
+
+      // --- Web Browsing ---
+      {
+        name: 'browse_url',
+        description: 'Browse a URL and analyze its visual design using Claude Vision. Takes a screenshot and returns detailed analysis of layout, colors, typography, and design patterns.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            url: { type: 'string', description: 'The URL to browse (e.g., "https://example.com")' },
+            prompt: { type: 'string', description: 'What to analyze (e.g., "Describe the color scheme and layout"). Default: general design analysis.' },
+          },
+          required: ['url'],
+        },
+      },
+
+      // --- Debug ---
+      {
+        name: 'check_console_errors',
+        description: 'Check browser console for JavaScript errors on the dev server. Use to debug UI issues without taking screenshots.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            click_selector: { type: 'string', description: 'Optional CSS selector to click before checking errors' },
+          },
+        },
+      },
+
+      // --- Git Operations ---
+      {
+        name: 'git_commit',
+        description: 'Commit all changes locally. Does NOT push to remote. Use after editing files.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', description: 'Commit message in format: "type: description"' },
+          },
+          required: ['message'],
+        },
+      },
+      {
+        name: 'git_release',
+        description: 'Push commits to GitHub and create a version tag. Use after H2Crypto approves changes.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            version: { type: 'string', description: 'Version tag (e.g., "v1.2.3") or "auto" for auto-increment' },
+          },
+          required: ['version'],
+        },
+      },
+
+      // --- Memory System ---
+      {
+        name: 'read_knowledge',
+        description: 'Read from the knowledge base. Call without filename to list available files.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            filename: { type: 'string', description: 'Knowledge file to read (e.g., "product.md"). Omit to list files.' },
+          },
+        },
+      },
+      {
+        name: 'search_memory',
+        description: 'Search across memory files (bugs, patterns, decisions, values) for relevant information.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query' },
+            type: { type: 'string', description: 'File type: "bugs", "patterns", "decisions", "values", or "all" (default)' },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        name: 'remember',
+        description: 'Save important information that H2Crypto wants you to remember. Stored in memory/knowledge/values.md.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            item: { type: 'string', description: 'The thing to remember' },
+          },
+          required: ['item'],
+        },
+      },
+
+      // --- Communication ---
+      {
+        name: 'send_telegram',
+        description: 'Send an additional message to H2Crypto via Telegram. Use for progress updates, asking clarifying questions, or sharing intermediate results.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', description: 'Message text (HTML format supported: <b>, <code>, <pre>)' },
+          },
+          required: ['message'],
+        },
+      },
+      {
+        name: 'write_journal',
+        description: 'Write an entry to today\'s journal. Use to log important conversations, decisions, or learnings so Dev Mode can reference them later.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            entry: { type: 'string', description: 'Journal entry content' },
+            type: { type: 'string', enum: ['action', 'learning', 'decision', 'chat'], description: 'Entry type. Default: chat' },
+          },
+          required: ['entry'],
         },
       },
     ];
@@ -167,7 +269,7 @@ export class ChatMode {
         Authorization: `Bearer ${this.grokApiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-4.1-fast-non-reasoning',
+        model: 'grok-4-1-fast-non-reasoning',
         input: [{ role: 'user', content: query }],
         tools: [
           {
@@ -245,17 +347,32 @@ ${recentMemory.slice(-1500)}
 
 ## 工具使用原則
 
-### 修改檔案：優先用 edit_file
-- **edit_file**：精準替換，只需指定 old_text 和 new_text
-- **write_file**：只在需要創建新檔案或大幅重寫時使用
+### 檔案操作
+- **read_file**：讀取檔案內容，回覆時要說明具體內容（不要只說「已讀取」）
+- **edit_file**：精準替換文字，優先使用（比重寫整個檔案安全）
 
-範例 - 用戶說「把 90% 改成 50%」：
-- ✅ 用 edit_file：old_text="90%", new_text="50%" → 回覆確認
-- ❌ 不要：read_file → 手動重寫整個檔案
+### 網頁瀏覽
+- **browse_url**：截取網頁畫面 + Claude Vision 分析設計
+  - 用於：分析競品設計、學習 UI 風格、檢查外部網站
+  - 返回：截圖路徑 + 詳細視覺分析
 
-### 查詢檔案
-用戶問「商業模式是什麼？」：
-- read_file → 回覆具體內容（不要只說「已讀取」）
+### Debug
+- **check_console_errors**：檢查 dev server 的瀏覽器 console 錯誤
+  - 用於：快速診斷 JS 錯誤，不需要截圖
+  - 可選：click_selector 點擊元素後再檢查
+
+### Git 操作
+- **git_commit**：Commit 變更（不 push），等 H2Crypto review
+- **git_release**：Push + 建立 tag，版本可用 "auto" 自動遞增
+
+### 記憶系統
+- **read_knowledge**：讀取知識庫（knowledge/*.md）
+- **search_memory**：搜尋記憶（bugs, patterns, decisions, values）
+- **remember**：記住 H2Crypto 說的重要事項
+
+### 通訊與日誌
+- **send_telegram**：主動發送訊息給 H2Crypto（進度更新、提問）
+- **write_journal**：寫入今日日誌，讓 Dev Mode 能參考對話內容
 
 ## 檔案放置規則（路徑相對於 /home/projects/solanahacker/）
 重要：所有路徑都相對於專案根目錄，不需要加 "app/" 前綴（除非真的在 app/ 下）
@@ -270,10 +387,9 @@ ${recentMemory.slice(-1500)}
 
 ## 「記得」指令處理
 當 H2Crypto 說「記得...」或「Remember...」時：
-- 檔案位置：memory/knowledge/values.md（不是 memory/values.md！）
+- 使用 **remember** 工具，不要手動編輯檔案
 - 只記錄 H2Crypto 這次訊息中提到的內容
-- 不要把 system prompt 中的內容當作要記住的東西
-- 例如：「記得用 Grok 讀新聞」→ 用 edit_file 在 memory/knowledge/values.md 添加`;
+- 例如：「記得用 Grok 讀新聞」→ remember({ item: "用 Grok 讀新聞" })`;
 
       // v3.2: Build message content (text or multimodal with image)
       let userContent;
@@ -487,21 +603,11 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
-   * Execute a chat tool (v3.3)
+   * Execute a chat tool (v4)
    */
   async executeChatTool(toolName, input) {
     try {
-      if (toolName === 'write_file') {
-        const normalizedPath = this.normalizePath(input.path);
-        const filePath = path.join(this.baseDir, normalizedPath);
-        const dir = path.dirname(filePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.writeFileSync(filePath, input.content, 'utf-8');
-        return `File written successfully: ${normalizedPath}`;
-      }
-
+      // --- File Operations ---
       if (toolName === 'read_file') {
         const normalizedPath = this.normalizePath(input.path);
         const filePath = path.join(this.baseDir, normalizedPath);
@@ -509,38 +615,272 @@ ${recentMemory.slice(-1500)}
         if (!fs.existsSync(filePath)) {
           return `Error: File not found: ${normalizedPath} (looked in ${filePath})`;
         }
-        // Check if it's a directory
         const stat = fs.statSync(filePath);
         if (stat.isDirectory()) {
           const files = fs.readdirSync(filePath);
           return `${normalizedPath} is a directory. Contents:\n${files.join('\n')}`;
         }
         const content = fs.readFileSync(filePath, 'utf-8');
-        return content.slice(0, 15000); // Limit to 15000 chars
+        if (content.length > 50000) {
+          return content.slice(0, 50000) + `\n\n[...truncated, file is ${content.length} chars]`;
+        }
+        return content;
       }
 
-      // v3.10: Targeted replacement tool
       if (toolName === 'edit_file') {
         const normalizedPath = this.normalizePath(input.path);
         const filePath = path.join(this.baseDir, normalizedPath);
         console.log(`[ChatMode] edit_file: ${normalizedPath}, replacing "${input.old_text.slice(0, 30)}..." with "${input.new_text.slice(0, 30)}..."`);
-
         if (!fs.existsSync(filePath)) {
           return `Error: File not found: ${normalizedPath}`;
         }
-
         const content = fs.readFileSync(filePath, 'utf-8');
-
-        // Check if old_text exists in file
         if (!content.includes(input.old_text)) {
           return `Error: Text not found in file. Could not find: "${input.old_text.slice(0, 50)}..."`;
         }
-
-        // Replace and write
         const newContent = content.replace(input.old_text, input.new_text);
         fs.writeFileSync(filePath, newContent, 'utf-8');
-
         return `Successfully replaced "${input.old_text.slice(0, 30)}..." with "${input.new_text.slice(0, 30)}..." in ${normalizedPath}`;
+      }
+
+      // --- Web Browsing ---
+      if (toolName === 'browse_url') {
+        if (!this.reviewer) {
+          return 'Error: UXReviewer not available. Cannot browse URLs.';
+        }
+        try {
+          const url = input.url;
+          const prompt = input.prompt || 'Analyze this webpage design: describe the color scheme, layout, typography, key visual elements, and overall design style. What makes it effective or unique?';
+
+          // Take screenshot of the URL
+          await this.reviewer.init();
+          const screenshotPath = await this.reviewer.takeScreenshot(url, 'browse');
+
+          // Analyze with Claude Vision
+          const imageBuffer = fs.readFileSync(screenshotPath);
+          const base64Image = imageBuffer.toString('base64');
+
+          const visionResponse = await this.claudeClient.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1500,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: 'image/png', data: base64Image } },
+                { type: 'text', text: prompt }
+              ]
+            }]
+          });
+
+          const analysis = visionResponse.content.find(c => c.type === 'text')?.text || 'No analysis available';
+          return `Screenshot saved: ${screenshotPath}\n\n**Visual Analysis:**\n${analysis}`;
+        } catch (err) {
+          return `Error browsing URL: ${err.message}`;
+        }
+      }
+
+      // --- Debug ---
+      if (toolName === 'check_console_errors') {
+        try {
+          const { chromium } = await import('playwright');
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage();
+
+          const consoleErrors = [];
+          page.on('console', msg => {
+            if (msg.type() === 'error') consoleErrors.push(msg.text());
+          });
+          page.on('pageerror', err => consoleErrors.push(`[PageError] ${err.message}`));
+
+          const url = `http://localhost:${this.devServerPort}`;
+          await page.goto(url);
+          await page.waitForTimeout(2000);
+
+          if (input.click_selector) {
+            try {
+              const element = await page.locator(input.click_selector).first();
+              if (await element.isVisible()) {
+                await element.click();
+                await page.waitForTimeout(3000);
+              }
+            } catch (e) {
+              consoleErrors.push(`Click failed: ${e.message}`);
+            }
+          }
+
+          await browser.close();
+
+          if (consoleErrors.length === 0) {
+            return '✅ No console errors found.';
+          }
+          return `⚠️ Found ${consoleErrors.length} console error(s):\n${consoleErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`;
+        } catch (err) {
+          return `Error checking console: ${err.message}`;
+        }
+      }
+
+      // --- Git Operations ---
+      if (toolName === 'git_commit') {
+        try {
+          const { execSync } = await import('child_process');
+          const gitDir = this.baseDir;
+
+          execSync('git add -A', { cwd: gitDir });
+
+          // Check if there are changes
+          try {
+            execSync('git diff --cached --quiet', { cwd: gitDir });
+            return 'No changes to commit.';
+          } catch {
+            // There ARE changes - expected
+          }
+
+          // Commit (safe from injection using array args)
+          execSync(`git commit -m "${input.message.replace(/"/g, '\\"')}"`, { cwd: gitDir });
+          const hash = execSync('git rev-parse --short HEAD', { cwd: gitDir }).toString().trim();
+
+          return `✅ Committed locally (${hash}): "${input.message}"\n\n⏳ Waiting for H2Crypto review. Use git_release when ready to push.`;
+        } catch (err) {
+          return `Git error: ${err.message}`;
+        }
+      }
+
+      if (toolName === 'git_release') {
+        if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
+          return 'Error: Git not configured (missing GITHUB_TOKEN or GITHUB_REPO).';
+        }
+        try {
+          const { execSync } = await import('child_process');
+          const gitDir = this.baseDir;
+
+          // Auto-increment version if requested
+          let tagVersion = input.version;
+          if (tagVersion === 'auto') {
+            try {
+              const lastTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"', { cwd: gitDir }).toString().trim();
+              const parts = lastTag.replace('v', '').split('.');
+              const patch = parseInt(parts[2] || 0) + 1;
+              tagVersion = `v${parts[0] || 0}.${parts[1] || 0}.${patch}`;
+            } catch {
+              tagVersion = 'v0.1.0';
+            }
+          }
+
+          // Push and tag
+          execSync('git push origin HEAD', { cwd: gitDir });
+          execSync(`git tag ${tagVersion}`, { cwd: gitDir });
+          execSync(`git push origin ${tagVersion}`, { cwd: gitDir });
+
+          return `✅ Released ${tagVersion}!\n\n🔗 GitHub: https://github.com/${process.env.GITHUB_REPO}/releases/tag/${tagVersion}`;
+        } catch (err) {
+          return `Git release error: ${err.message}`;
+        }
+      }
+
+      // --- Memory System ---
+      if (toolName === 'read_knowledge') {
+        if (!input.filename) {
+          if (!fs.existsSync(this.knowledgeDir)) return 'No knowledge base directory found.';
+          const files = fs.readdirSync(this.knowledgeDir).filter(f => f.endsWith('.md') || f.endsWith('.txt'));
+          return `Available knowledge files:\n${files.map(f => `- ${f}`).join('\n')}`;
+        }
+        const full = path.join(this.knowledgeDir, path.basename(input.filename));
+        if (!fs.existsSync(full)) {
+          return `Error: Knowledge file not found: ${input.filename}`;
+        }
+        return fs.readFileSync(full, 'utf-8');
+      }
+
+      if (toolName === 'search_memory') {
+        const memoryKnowledgeDir = path.join(this.memoryDir, 'knowledge');
+        const results = [];
+        const files = input.type === 'all'
+          ? ['bugs.md', 'patterns.md', 'decisions.md', 'values.md']
+          : [`${input.type}.md`];
+        const queryLower = input.query.toLowerCase();
+
+        for (const filename of files) {
+          const filePath = path.join(memoryKnowledgeDir, filename);
+          if (!fs.existsSync(filePath)) continue;
+
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n');
+          const matches = [];
+
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].toLowerCase().includes(queryLower)) {
+              const start = Math.max(0, i - 2);
+              const end = Math.min(lines.length - 1, i + 2);
+              matches.push({ line: i + 1, context: lines.slice(start, end + 1).join('\n') });
+            }
+          }
+
+          if (matches.length > 0) {
+            results.push({ file: filename, matches });
+          }
+        }
+
+        if (results.length === 0) {
+          return `No results found for "${input.query}"`;
+        }
+
+        return results.map(r => `**${r.file}:**\n${r.matches.map(m => `Line ${m.line}:\n${m.context}`).join('\n---\n')}`).join('\n\n');
+      }
+
+      if (toolName === 'remember') {
+        const valuesDir = path.dirname(this.valuesPath);
+        if (!fs.existsSync(valuesDir)) {
+          fs.mkdirSync(valuesDir, { recursive: true });
+        }
+
+        const date = new Date().toISOString().split('T')[0];
+        const entry = `\n- **[${date}]** ${input.item}`;
+
+        if (fs.existsSync(this.valuesPath)) {
+          fs.appendFileSync(this.valuesPath, entry);
+        } else {
+          fs.writeFileSync(this.valuesPath, `# H2Crypto's Values & Preferences\n\n## Remembered Items\n${entry}`);
+        }
+
+        return `✅ Remembered: "${input.item}"`;
+      }
+
+      // --- Communication ---
+      if (toolName === 'send_telegram') {
+        try {
+          await this.telegram.sendDevlog(input.message);
+          return 'Message sent to Telegram.';
+        } catch (err) {
+          return `Error sending Telegram: ${err.message}`;
+        }
+      }
+
+      if (toolName === 'write_journal') {
+        const journalDir = path.join(this.memoryDir, 'journal');
+        if (!fs.existsSync(journalDir)) {
+          fs.mkdirSync(journalDir, { recursive: true });
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const time = new Date().toISOString().split('T')[1].slice(0, 5);
+        const journalPath = path.join(journalDir, `${today}.md`);
+
+        const typeEmoji = {
+          action: '🔧',
+          learning: '💡',
+          decision: '📌',
+          chat: '💬',
+        };
+        const emoji = typeEmoji[input.type] || '💬';
+        const entry = `\n### ${time} ${emoji} ${input.type || 'chat'}\n${input.entry}\n`;
+
+        if (fs.existsSync(journalPath)) {
+          fs.appendFileSync(journalPath, entry);
+        } else {
+          fs.writeFileSync(journalPath, `# Journal — ${today}\n${entry}`);
+        }
+
+        return `✅ Journal entry added to ${today}.md`;
       }
 
       return `Unknown tool: ${toolName}`;

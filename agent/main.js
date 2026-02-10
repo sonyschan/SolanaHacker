@@ -142,6 +142,9 @@ class SolanaHackerAgent {
       claudeClient: this.client,
       memoryDir: CONFIG.memoryDir,
       baseDir: CONFIG.baseDir,
+      reviewer: this.reviewer,
+      devServerPort: CONFIG.devServerPort,
+      knowledgeDir: CONFIG.knowledgeDir,
     });
 
     // Build system prompt (with embedded knowledge base)

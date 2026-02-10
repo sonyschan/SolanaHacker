@@ -164,6 +164,32 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    name: 'browse_url',
+    description:
+      'Browse an external URL and analyze its visual design using Claude Vision. ' +
+      'Takes a screenshot of the webpage and returns detailed analysis of layout, colors, typography, and design patterns. ' +
+      'Use for: analyzing competitor sites, learning UI patterns, checking external references.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'The URL to browse (e.g., "https://example.com")',
+        },
+        prompt: {
+          type: 'string',
+          description: 'What to analyze (e.g., "Describe the color scheme and layout"). Default: general design analysis.',
+        },
+        viewport: {
+          type: 'string',
+          enum: ['desktop', 'mobile'],
+          description: 'Viewport size. Default: desktop.',
+        },
+      },
+      required: ['url'],
+    },
+  },
 
   // --- Communication ---
   {
@@ -762,6 +788,44 @@ export function createToolExecutors(deps) {
         return JSON.stringify(result, null, 2);
       } catch (err) {
         return `Error checking console: ${err.message}`;
+      }
+    },
+
+    async browse_url({ url, prompt, viewport = 'desktop' }) {
+      try {
+        // Take screenshot of external URL
+        await reviewer.init();
+        const screenshotPath = viewport === 'mobile'
+          ? await reviewer.takeMobileScreenshot(url, 'browse')
+          : await reviewer.takeScreenshot(url, 'browse');
+
+        // Default analysis prompt
+        const analysisPrompt = prompt ||
+          'Analyze this webpage design: describe the color scheme, layout, typography, key visual elements, and overall design style. What makes it effective or unique?';
+
+        // Analyze with Claude Vision
+        const imageBuffer = fs.readFileSync(screenshotPath);
+        const base64Image = imageBuffer.toString('base64');
+
+        const Anthropic = require('@anthropic-ai/sdk').default;
+        const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+        const visionResponse = await anthropicClient.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1500,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: base64Image } },
+              { type: 'text', text: analysisPrompt }
+            ]
+          }]
+        });
+
+        const analysis = visionResponse.content.find(c => c.type === 'text')?.text || 'No analysis available';
+        return `Screenshot saved: ${screenshotPath}\n\n**Visual Analysis:**\n${analysis}`;
+      } catch (err) {
+        return `Error browsing URL: ${err.message}`;
       }
     },
 
