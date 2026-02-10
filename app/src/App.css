@@ -1,0 +1,137 @@
+/* Wallet Adapter Fixes */
+.wallet-adapter-button {
+  background: linear-gradient(45deg, #8b5cf6, #3b82f6) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.wallet-adapter-button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+}
+
+.wallet-adapter-button:disabled {
+  opacity: 0.7 !important;
+}
+
+/* Mobile wallet modal fixes */
+.wallet-adapter-modal {
+  z-index: 50 !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  padding: 16px !important;
+}
+
+@media (max-width: 640px) {
+  .wallet-adapter-modal-container {
+    max-width: 90vw !important;
+    max-height: 80vh !important;
+  }
+  
+  .wallet-adapter-modal-list {
+    gap: 12px !important;
+  }
+  
+  .wallet-adapter-modal-list-item {
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Prevent modal from being too wide on mobile */
+  .wallet-adapter-modal-title {
+    font-size: 18px !important;
+  }
+}
+
+/* Fix for overlapping elements on mobile */
+@media (max-width: 640px) {
+  .fixed {
+    position: absolute !important;
+  }
+  
+  /* Ensure wallet connection demo doesn't interfere */
+  .wallet-connection-demo {
+    display: none !important;
+  }
+  
+  /* Mobile-specific z-index management */
+  .sticky {
+    z-index: 30 !important;
+  }
+  
+  .relative .absolute {
+    z-index: 35 !important;
+  }
+}
+
+/* Ensure tooltips don't overflow on mobile */
+@media (max-width: 640px) {
+  .tooltip {
+    display: none !important;
+  }
+}
+
+/* General app styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Fix for wallet button positioning */
+.wallet-button-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  color: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.wallet-button-overlay:hover {
+  background: transparent !important;
+  color: transparent !important;
+}
+
+/* Animation utilities */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

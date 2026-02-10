@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO and Accessibility -->
+    <title>MemeForge - Vote on AI Memes, Earn Real SOL | AI Dreams. Humans Decide.</title>
+    <meta name="description" content="The world's first platform where humans vote to determine AI meme rarity. Vote on memes, earn lottery tickets, win real Solana cryptocurrency. Join 1200+ active voters earning SOL rewards today!" />
+    <meta name="keywords" content="Solana, memes, AI, NFT, voting, cryptocurrency, SOL, rewards, Web3, blockchain, lottery, prize" />
+    
+    <!-- Open Graph for Social Sharing -->
+    <meta property="og:title" content="MemeForge - Vote on AI Memes, Earn Real SOL" />
+    <meta property="og:description" content="Rate AI memes, determine rarity through votes, win SOL cryptocurrency. World's first human-consensus NFT platform." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/memeforge-preview.png" />
+    
+    <!-- Accessibility -->
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="color-scheme" content="dark" />
+    
+    <!-- Performance Optimization -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data for Better SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "MemeForge",
+      "description": "AI-powered meme voting platform with SOL cryptocurrency rewards",
+      "url": "http://165.22.136.40:5173/",
+      "applicationCategory": "Entertainment",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "category": "Free"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "1247"
+      }
+    }
+    </script>
+    
+    <style>
+      /* Critical CSS for immediate loading */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 50%, #be185d 100%);
+        color: white;
+        min-height: 100vh;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading spinner */
+      .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #374151;
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Accessibility improvements */
+      *:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+      
+      button:hover {
+        cursor: pointer;
+      }
+      
+      /* Hide loading message once React loads */
+      .app-loaded #loading-message {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading State with Clear Call to Action -->
+    <div id="root">
+      <div id="loading-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🗳️</div>
+        <h1 style="font-size: 2.5rem; font-weight: bold; margin: 0 0 1rem 0; background: linear-gradient(45deg, #fbbf24, #f472b6, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          MemeForge
+        </h1>
+        <p style="font-size: 1.25rem; margin: 0 0 2rem 0; opacity: 0.9;">
+          AI Dreams. Humans Decide.
+        </p>
+        <div class="loading-spinner" role="status" aria-label="Loading MemeForge application"></div>
+        <p style="margin: 2rem 0 1rem 0; font-size: 1rem; opacity: 0.8;">
+          Loading the world's first human-consensus NFT rarity platform...
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 800px; margin: 2rem auto;">
+          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🗳️</div>
+            <div style="font-weight: 600;">Vote on AI Memes</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Rate & earn tickets</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💰</div>
+            <div style="font-weight: 600;">Win Real SOL</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Weekly prize drawings</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏆</div>
+            <div style="font-weight: 600;">Shape NFT Rarity</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Human consensus system</div>
+          </div>
+        </div>
+        <noscript>
+          <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; padding: 1rem; border-radius: 0.5rem; margin-top: 2rem; max-width: 500px;">
+            <h2 style="color: #ef4444; margin: 0 0 1rem 0;">JavaScript Required</h2>
+            <p style="margin: 0;">MemeForge requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p>
+          </div>
+        </noscript>
+      </div>
+    </div>
+    
+    <script>
+      // Mark when app loads
+      window.addEventListener('load', () => {
+        document.documentElement.classList.add('app-loaded');
+      });
+    </script>
+    
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
