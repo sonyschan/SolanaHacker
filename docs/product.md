@@ -51,8 +51,8 @@
 - **成本**: 單次生成約 $0.1-0.3
 
 #### Step 2: 用戶投票 (核心互動) - 兩階段投票系統
-- **第一階段**: 用戶從 3 個梗圖中選擇最喜歡的 (勝者投票)
-- **第二階段**: 對勝出梗圖投票決定稀有度 ("讚" 或 "踩")
+- **第一階段**: 用戶從 3 個梗圖中選擇最喜歡的 (勝者投票) - **票數最多的梗圖獲勝，進入第二階段**
+- **第二階段**: 對勝出梗圖投票決定稀有度 (Common/Rare/Legendary) - **票數最多的稀有度選項成為該 NFT 的最終稀有度**
 - **費用**: 完全免費，無 Gas Fee
 - **獎勵**: 每次完整投票獲得 8-15 張彩票
 - **連勝獎勵**: 連續每日投票的額外獎勵機制
@@ -62,7 +62,7 @@
 #### Step 3: 決定稀有度 (價值發現)
 - **輸入**: 投票期結束後的投票匯總
 - **輸出**: 稀有度分類 (Common → Legendary)
-- **演算法**: 讚踩比例 + 參與度指標
+- **決定機制**: **票數最多的稀有度選項獲勝**
 - **透明度**: 結果公開可查
 - **客觀性**: 自動化計算，無人為干預
 
@@ -435,9 +435,9 @@
            ↓
     📱 User sees 3 new memes
            ↓
-    🥇 Phase 1: Pick your favorite (winner selection)
+    🥇 Phase 1: Pick your favorite → Most votes wins
            ↓
-    👍👎 Phase 2: Vote on winner's rarity (FREE)
+    👍👎 Phase 2: Vote on winner's rarity → Most votes determines rarity (FREE)
            ↓
     🎫 Earns 8-15 tickets + streak bonuses
            ↓
