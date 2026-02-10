@@ -26,13 +26,13 @@ export const TOOL_DEFINITIONS = [
   // --- File System ---
   {
     name: 'read_file',
-    description: 'Read the contents of a file in the project directory.',
+    description: 'Read the contents of a file. Same path rules as write_file.',
     input_schema: {
       type: 'object',
       properties: {
         path: {
           type: 'string',
-          description: 'File path relative to project root (e.g., "src/App.jsx", "package.json")',
+          description: 'File path. Examples: "README.md" (root), "app/README.md" (app dir), "src/App.jsx" (app/src)',
         },
       },
       required: ['path'],
@@ -41,13 +41,16 @@ export const TOOL_DEFINITIONS = [
   {
     name: 'write_file',
     description:
-      'Write content to a file. Creates parent directories if needed. Use this for all code creation and editing.',
+      'Write content to a file. Creates parent directories if needed. Path rules: ' +
+      '(1) Root files like README.md, AGENTS.md go to project root. ' +
+      '(2) knowledge/, memory/, docs/ go to project root. ' +
+      '(3) Code files (src/, components/) go to app/ directory.',
     input_schema: {
       type: 'object',
       properties: {
         path: {
           type: 'string',
-          description: 'File path relative to project root',
+          description: 'File path. Examples: "README.md" (root), "knowledge/product.md" (root), "src/App.jsx" (app/)',
         },
         content: {
           type: 'string',
@@ -506,12 +509,25 @@ export function createToolExecutors(deps) {
   let devServer = null;
 
   /**
-   * Resolve a relative path - most paths are in workDir, but knowledge/memory/docs are at project root
+   * Resolve a relative path - most paths are in workDir, but some are at project root
    */
   function resolveProjectPath(relativePath) {
-    // Paths at project root level (not inside app/)
-    if (relativePath.startsWith('knowledge/') || relativePath.startsWith('memory/') || relativePath.startsWith('docs/')) {
+    // Directories at project root level (not inside app/)
+    if (relativePath.startsWith('knowledge/') ||
+        relativePath.startsWith('memory/') ||
+        relativePath.startsWith('docs/') ||
+        relativePath.startsWith('agent/') ||
+        relativePath.startsWith('screenshots/')) {
       return path.resolve(baseDir, relativePath);
+    }
+
+    // Root-level files (no directory prefix, common project files)
+    const rootLevelFiles = ['README.md', 'AGENTS.md', 'CLAUDE.md', 'LICENSE', '.gitignore', '.env', 'package.json'];
+    if (rootLevelFiles.includes(relativePath) || rootLevelFiles.includes(path.basename(relativePath))) {
+      // If it's just the filename, put at project root
+      if (!relativePath.includes('/')) {
+        return path.resolve(baseDir, relativePath);
+      }
     }
 
     // All other paths are relative to workDir (app/)
