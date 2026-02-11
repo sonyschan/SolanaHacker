@@ -71,9 +71,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   }, []);
 
   const rarityOptions = [
-    { id: 'common', label: 'Common', color: 'bg-gray-600', multiplier: '1x reward', icon: '👍', desc: 'Standard quality' },
-    { id: 'rare', label: 'Rare', color: 'bg-blue-600', multiplier: '2x reward', icon: '💎', desc: 'Above average humor' },
-    { id: 'legendary', label: 'Legendary', color: 'bg-purple-600', multiplier: '5x reward', icon: '🏆', desc: 'Exceptional creativity' }
+    { id: 'common', label: 'Common', color: 'bg-gray-600', icon: '👍', desc: 'Standard quality' },
+    { id: 'rare', label: 'Rare', color: 'bg-blue-600', icon: '💎', desc: 'Above average humor' },
+    { id: 'legendary', label: 'Legendary', color: 'bg-purple-600', icon: '🏆', desc: 'Exceptional creativity' }
   ];
 
   const handleVote = (memeId) => {
@@ -274,8 +274,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
                 >
                   <div className="text-4xl mb-3">{option.icon}</div>
                   <div className="font-bold text-xl mb-2">{option.label}</div>
-                  <div className="text-sm text-gray-300 mb-2">{option.desc}</div>
-                  <div className="text-sm text-gray-300 mb-3">{option.multiplier}</div>
+                  <div className="text-sm text-gray-300 mb-3">{option.desc}</div>
                   <div className="text-xs text-gray-400">
                     {rarityVotes[option.id]} votes
                   </div>
