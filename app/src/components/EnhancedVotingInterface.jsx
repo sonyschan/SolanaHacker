@@ -400,7 +400,7 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
               </div>
               <div className="text-sm text-gray-300 mb-3">{vote.desc}</div>
               <div className="text-xs text-gray-400 mb-1">
-                Vote count: {currentMeme.currentVotes[vote.type]}
+                {currentMeme.currentVotes[vote.type]} votes
               </div>
               
               {connected && userVote === null && (

@@ -158,7 +158,6 @@ const Dashboard = ({
                     }`}
                   >
                     <div className="text-lg mb-2">{rarity.name}</div>
-                    <div className="text-xs opacity-80">{rarity.multiplier} reward</div>
                     <div className="text-xs mt-1 opacity-60">{rarity.votes} votes</div>
                   </button>
                 ))}
