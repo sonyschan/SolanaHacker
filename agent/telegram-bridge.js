@@ -589,6 +589,27 @@ ${context ? `<b>階段:</b> ${context}\n` : ''}
   }
 
   /**
+   * Send a photo to Telegram
+   */
+  async sendPhoto(imagePath, caption = '') {
+    try {
+      if (!fs.existsSync(imagePath)) {
+        console.log(`[TG] sendPhoto: File not found: ${imagePath}`);
+        return false;
+      }
+      await this.bot.sendPhoto(this.chatId, imagePath, {
+        caption: caption,
+        parse_mode: 'HTML',
+      });
+      console.log(`[TG] Photo sent: ${imagePath}`);
+      return true;
+    } catch (err) {
+      console.error(`[TG] sendPhoto error:`, err.message);
+      return false;
+    }
+  }
+
+  /**
    * Get and clear must commands
    */
   getMustCommands() {

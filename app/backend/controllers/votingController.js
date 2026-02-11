@@ -1,10 +1,5 @@
-const { Firestore } = require('@google-cloud/firestore');
 const { v4: uuidv4 } = require('uuid');
-
-// Initialize Firestore
-const firestore = new Firestore({
-  projectId: 'web3ai-469609'
-});
+const { getFirestore, collections, dbUtils } = require('../config/firebase');
 
 /**
  * Submit vote for a meme (Selection phase)
@@ -15,7 +10,8 @@ async function submitVote({ memeId, userId, voteType, choice, walletAddress }) {
     const timestamp = new Date().toISOString();
     
     // Check if user has already voted for this meme
-    const existingVote = await firestore.collection('votes')
+    const db = getFirestore();
+    const existingVote = await db.collection(collections.VOTES)
       .where('memeId', '==', memeId)
       .where('userId', '==', userId)
       .where('voteType', '==', voteType)
@@ -38,7 +34,7 @@ async function submitVote({ memeId, userId, voteType, choice, walletAddress }) {
     };
     
     // Save vote to Firestore
-    await firestore.collection('votes').doc(voteId).set(voteData);
+    await dbUtils.setDocument(collections.VOTES, voteId, voteData);
     
     // Update meme vote counts
     await updateMemeVoteCount(memeId, voteType, choice);
@@ -57,7 +53,8 @@ async function submitVote({ memeId, userId, voteType, choice, walletAddress }) {
  */
 async function getVotesForMeme(memeId) {
   try {
-    const snapshot = await firestore.collection('votes')
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.VOTES)
       .where('memeId', '==', memeId)
       .where('status', '==', 'active')
       .get();
@@ -82,7 +79,8 @@ async function getVotesForMeme(memeId) {
  */
 async function getUserVotes(userId) {
   try {
-    const snapshot = await firestore.collection('votes')
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.VOTES)
       .where('userId', '==', userId)
       .orderBy('timestamp', 'desc')
       .limit(50)
@@ -108,9 +106,10 @@ async function getUserVotes(userId) {
  */
 async function updateMemeVoteCount(memeId, voteType, choice) {
   try {
-    const memeRef = firestore.collection('memes').doc(memeId);
+    const db = getFirestore();
+    const memeRef = db.collection(collections.MEMES).doc(memeId);
     
-    await firestore.runTransaction(async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(memeRef);
       
       if (!doc.exists) {
@@ -153,7 +152,8 @@ async function getTodayVotingStats() {
     const startOfDay = new Date(today + 'T00:00:00.000Z').toISOString();
     const endOfDay = new Date(today + 'T23:59:59.999Z').toISOString();
     
-    const snapshot = await firestore.collection('votes')
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.VOTES)
       .where('timestamp', '>=', startOfDay)
       .where('timestamp', '<=', endOfDay)
       .where('status', '==', 'active')
@@ -199,7 +199,8 @@ async function getTodayVotingStats() {
 async function canUserVote(userId, memeId, voteType) {
   try {
     // Check if already voted for this meme/type
-    const existingVote = await firestore.collection('votes')
+    const db = getFirestore();
+    const existingVote = await db.collection(collections.VOTES)
       .where('memeId', '==', memeId)
       .where('userId', '==', userId)
       .where('voteType', '==', voteType)
@@ -215,7 +216,7 @@ async function canUserVote(userId, memeId, voteType) {
     const startOfDay = new Date(today + 'T00:00:00.000Z').toISOString();
     const endOfDay = new Date(today + 'T23:59:59.999Z').toISOString();
     
-    const todayVotes = await firestore.collection('votes')
+    const todayVotes = await db.collection(collections.VOTES)
       .where('userId', '==', userId)
       .where('timestamp', '>=', startOfDay)
       .where('timestamp', '<=', endOfDay)

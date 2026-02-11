@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import WalletConnection from './WalletConnection';
+import ForgeTab from './ForgeTab';
 
 const Dashboard = ({ 
   userTickets, 
@@ -444,13 +445,23 @@ const Dashboard = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'forge':
-        return <ForgeTabContent />;
+        return <ForgeTab 
+          userTickets={userTickets}
+          setUserTickets={setUserTickets}
+          votingStreak={votingStreak}
+          setVotingStreak={setVotingStreak}
+        />;
       case 'tickets':
         return <TicketsTabContent />;
       case 'market':
         return <MarketTabContent />;
       default:
-        return <ForgeTabContent />;
+        return <ForgeTab 
+          userTickets={userTickets}
+          setUserTickets={setUserTickets}
+          votingStreak={votingStreak}
+          setVotingStreak={setVotingStreak}
+        />;
     }
   };
 

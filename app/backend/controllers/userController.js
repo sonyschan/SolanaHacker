@@ -1,10 +1,5 @@
-const { Firestore } = require('@google-cloud/firestore');
 const { v4: uuidv4 } = require('uuid');
-
-// Initialize Firestore
-const firestore = new Firestore({
-  projectId: 'web3ai-469609'
-});
+const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
 
 /**
  * Get or create user profile
@@ -12,7 +7,8 @@ const firestore = new Firestore({
 async function getOrCreateUser(walletAddress) {
   try {
     // Try to find existing user
-    const snapshot = await firestore.collection('users')
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.USERS)
       .where('walletAddress', '==', walletAddress)
       .limit(1)
       .get();
@@ -45,7 +41,7 @@ async function getOrCreateUser(walletAddress) {
       status: 'active'
     };
     
-    await firestore.collection('users').doc(userId).set(userData);
+    await dbUtils.setDocument(collections.USERS, userId, userData);
     
     console.log(`✅ New user created: ${userId}`);
     return userData;
@@ -61,9 +57,10 @@ async function getOrCreateUser(walletAddress) {
  */
 async function updateUserStats(userId, updates) {
   try {
-    const userRef = firestore.collection('users').doc(userId);
+    const db = getFirestore();
+    const userRef = db.collection(collections.USERS).doc(userId);
     
-    await firestore.runTransaction(async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(userRef);
       
       if (!doc.exists) {

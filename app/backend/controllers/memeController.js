@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/firebase');
+const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const geminiService = require('../services/geminiService');
 const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
@@ -49,7 +49,7 @@ async function generateMeme(req, res) {
     };
 
     // Save to Firestore
-    await db.collection('memes').doc(memeId).set(memeData);
+    await dbUtils.setDocument(collections.MEMES, memeId, memeData);
     
     console.log(`✅ Meme generated and saved: ${memeId}`);
     
@@ -84,7 +84,7 @@ async function generateDailyMemes(req, res) {
     // Save each meme to Firestore
     const savedMemes = [];
     for (const meme of dailyMemes) {
-      await db.collection('memes').doc(meme.id).set({
+      await dbUtils.setDocument(collections.MEMES, meme.id, {
         ...meme,
         type: 'daily',
         status: 'active'
@@ -123,7 +123,8 @@ async function getMemes(req, res) {
       date 
     } = req.query;
 
-    let query = db.collection('memes');
+    const db = getFirestore();
+    let query = db.collection(collections.MEMES);
     
     // Apply filters
     if (status) {
@@ -185,7 +186,8 @@ async function getTodaysMemes(req, res) {
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
     
-    const query = db.collection('memes')
+    const db = getFirestore();
+    const query = db.collection(collections.MEMES)
       .where('type', '==', 'daily')
       .where('status', '==', 'active')
       .where('generatedAt', '>=', startOfDay.toISOString())
@@ -226,9 +228,9 @@ async function getMemeById(req, res) {
   try {
     const { id } = req.params;
     
-    const doc = await db.collection('memes').doc(id).get();
+    const meme = await dbUtils.getDocument(collections.MEMES, id);
     
-    if (!doc.exists) {
+    if (!meme) {
       return res.status(404).json({
         success: false,
         error: 'Meme not found'
@@ -237,10 +239,7 @@ async function getMemeById(req, res) {
     
     res.json({
       success: true,
-      meme: {
-        id: doc.id,
-        ...doc.data()
-      }
+      meme
     });
 
   } catch (error) {

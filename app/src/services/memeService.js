@@ -3,9 +3,7 @@
  * 前端 API 呼叫服務
  */
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://memeforge-api.example.com'  // TODO: Update with actual production URL
-  : 'http://localhost:3001';  // Local backend port
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 class MemeService {
   
@@ -150,6 +148,7 @@ class MemeService {
         title: 'AI Dreams of Electric Sheep',
         description: 'When AI tries to understand crypto volatility',
         imageUrl: '/generated/test-meme-flash.png', // Use our test image
+        image: '/generated/test-meme-flash.png', // Also set image property
         prompt: 'A confused robot looking at crypto charts',
         newsSource: 'Mock Crypto News',
         generatedAt: new Date().toISOString(),
@@ -169,6 +168,7 @@ class MemeService {
         title: 'Diamond Hands Forever',
         description: 'HODLers when market crashes but they keep buying',
         imageUrl: '/generated/meme-preview-crypto-hodl.png',
+        image: '/generated/meme-preview-crypto-hodl.png',
         prompt: 'Diamond hands meme with crypto theme',
         newsSource: 'Mock DeFi News',
         generatedAt: new Date().toISOString(),
@@ -188,6 +188,7 @@ class MemeService {
         title: 'This Is Fine DeFi',
         description: 'DeFi users when gas fees are $200+',
         imageUrl: '/generated/meme-preview-voting-democracy.png',
+        image: '/generated/meme-preview-voting-democracy.png',
         prompt: 'This is fine meme but with DeFi theme',
         newsSource: 'Mock Solana News',
         generatedAt: new Date().toISOString(),

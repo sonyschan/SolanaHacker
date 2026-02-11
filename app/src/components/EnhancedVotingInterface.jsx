@@ -363,11 +363,11 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
         </div>
       )}
 
-      {/* Voting Buttons */}
+      {/* Voting Buttons - Following MVP Spec: 3 Rarity Options */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
-          { type: 'common', label: 'Common', icon: '👍', desc: 'Standard meme quality' },
-          { type: 'rare', label: 'Rare', icon: '💎', desc: 'Above average humor' },
+          { type: 'common', label: 'Common', icon: '👍', desc: 'Standard quality meme' },
+          { type: 'rare', label: 'Rare', icon: '💎', desc: 'High quality humor' },
           { type: 'legendary', label: 'Legendary', icon: '🏆', desc: 'Exceptional creativity' }
         ].map((vote) => (
           <button

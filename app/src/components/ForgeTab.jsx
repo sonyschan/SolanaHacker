@@ -5,7 +5,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [votes, setVotes] = useState({ meme1: 23, meme2: 31, meme3: 18 });
-  const [rarityVotes, setRarityVotes] = useState({ common: 12, uncommon: 8, rare: 15, epic: 7, legendary: 3 });
+  const [rarityVotes, setRarityVotes] = useState({ common: 45, rare: 28, legendary: 12 });
   const [showReward, setShowReward] = useState(false);
   const [earnedTickets, setEarnedTickets] = useState(0);
   const [dailyMemes, setDailyMemes] = useState([]);
@@ -20,9 +20,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
         console.log('🔄 Fetching today\'s AI-generated memes...');
         
         const result = await memeService.getTodaysMemes();
+        console.log('📊 API Response:', result);
         
         if (result.success && result.memes && result.memes.length > 0) {
           console.log('✅ Loaded', result.memes.length, 'AI memes');
+          console.log('🖼️ First meme:', result.memes[0]);
           setDailyMemes(result.memes);
           
           // Initialize votes for fetched memes  
@@ -53,6 +55,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
         setError(err.message);
         // Use fallback memes
         const fallbackMemes = memeService.getFallbackMemes();
+        console.log('🔄 Using fallback memes:', fallbackMemes);
         setDailyMemes(fallbackMemes);
         const newVotes = {};
         fallbackMemes.forEach((meme, index) => {
@@ -68,11 +71,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   }, []);
 
   const rarityOptions = [
-    { id: 'common', label: 'Common', color: 'bg-gray-600', multiplier: '1x' },
-    { id: 'uncommon', label: 'Uncommon', color: 'bg-green-600', multiplier: '1.2x' },
-    { id: 'rare', label: 'Rare', color: 'bg-blue-600', multiplier: '1.5x' },
-    { id: 'epic', label: 'Epic', color: 'bg-purple-600', multiplier: '2x' },
-    { id: 'legendary', label: 'Legendary', color: 'bg-yellow-600', multiplier: '3x' }
+    { id: 'common', label: 'Common', color: 'bg-gray-600', multiplier: '1x reward', icon: '👍', desc: 'Standard quality' },
+    { id: 'rare', label: 'Rare', color: 'bg-blue-600', multiplier: '2x reward', icon: '💎', desc: 'Above average humor' },
+    { id: 'legendary', label: 'Legendary', color: 'bg-purple-600', multiplier: '5x reward', icon: '🏆', desc: 'Exceptional creativity' }
   ];
 
   const handleVote = (memeId) => {
@@ -115,7 +116,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
     setSelectedMeme(null);
     // Reset vote counts (in production, this would be handled by backend)
     setVotes({ meme1: 23, meme2: 31, meme3: 18 });
-    setRarityVotes({ common: 12, uncommon: 8, rare: 15, epic: 7, legendary: 3 });
+    setRarityVotes({ common: 45, rare: 28, legendary: 12 });
   };
 
   return (
@@ -262,18 +263,19 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
             </div>
           </div>
 
-          {/* Rarity Options */}
-          <div className="grid md:grid-cols-5 gap-4">
+          {/* Rarity Options - MVP Spec: 3 Options Only */}
+          <div className="grid md:grid-cols-3 gap-6">
             {rarityOptions.map((option) => (
               <div key={option.id} className="text-center">
                 <button
                   onClick={() => handleRarityVote(option.id)}
-                  className={`w-full ${option.color} bg-opacity-20 border-2 border-opacity-40 rounded-xl p-6 hover:scale-105 transition-transform hover:bg-opacity-30`}
+                  className={`w-full ${option.color} bg-opacity-20 border-2 border-opacity-40 rounded-xl p-8 hover:scale-105 transition-transform hover:bg-opacity-30`}
                   style={{ borderColor: option.color.replace('bg-', '').replace('-600', '') }}
                 >
-                  <div className="text-2xl mb-2">💎</div>
-                  <div className="font-bold mb-1">{option.label}</div>
-                  <div className="text-sm text-gray-300 mb-2">{option.multiplier} reward</div>
+                  <div className="text-4xl mb-3">{option.icon}</div>
+                  <div className="font-bold text-xl mb-2">{option.label}</div>
+                  <div className="text-sm text-gray-300 mb-2">{option.desc}</div>
+                  <div className="text-sm text-gray-300 mb-3">{option.multiplier}</div>
                   <div className="text-xs text-gray-400">
                     {rarityVotes[option.id]} votes
                   </div>

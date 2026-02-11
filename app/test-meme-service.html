@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MemeService</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .meme { border: 1px solid #ccc; margin: 10px; padding: 10px; }
+        img { max-width: 300px; height: 200px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <h1>MemeService Fallback Test</h1>
+    <div id="results">Loading...</div>
+    
+    <script type="module">
+        import memeService from './src/services/memeService.js';
+        
+        const resultsDiv = document.getElementById('results');
+        
+        try {
+            // Test fallback memes
+            const fallbackMemes = memeService.getFallbackMemes();
+            console.log('Fallback memes:', fallbackMemes);
+            
+            resultsDiv.innerHTML = '<h2>Fallback Memes:</h2>';
+            
+            fallbackMemes.forEach((meme, index) => {
+                const memeDiv = document.createElement('div');
+                memeDiv.className = 'meme';
+                memeDiv.innerHTML = `
+                    <h3>${meme.title}</h3>
+                    <p><strong>ID:</strong> ${meme.id}</p>
+                    <p><strong>Image URL:</strong> ${meme.imageUrl}</p>
+                    <p><strong>Description:</strong> ${meme.description}</p>
+                    <img src="${meme.imageUrl}" alt="${meme.title}" onerror="this.style.border='2px solid red'; this.alt='FAILED TO LOAD';">
+                    <p><strong>Metadata:</strong> ${JSON.stringify(meme.metadata)}</p>
+                `;
+                resultsDiv.appendChild(memeDiv);
+            });
+            
+            // Test API call (this will fail but we can see the error)
+            resultsDiv.innerHTML += '<h2>API Test:</h2><div id="api-test">Testing...</div>';
+            
+            memeService.getTodaysMemes().then(result => {
+                document.getElementById('api-test').innerHTML = `
+                    <p><strong>API Result:</strong></p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            }).catch(err => {
+                document.getElementById('api-test').innerHTML = `
+                    <p style="color: red;"><strong>API Error:</strong> ${err.message}</p>
+                    <p>This is expected - backend is not running</p>
+                `;
+            });
+            
+        } catch (error) {
+            resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            console.error('Test error:', error);
+        }
+    </script>
+</body>
+</html>
