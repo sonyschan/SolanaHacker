@@ -173,7 +173,7 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
         
         {/* Meme selector */}
         <div className="flex space-x-2">
-          {sampleMemes.map((meme, index) => (
+          {activeMemes.map((meme, index) => (
             <button
               key={meme.id}
               onClick={() => setSelectedMeme(index)}
