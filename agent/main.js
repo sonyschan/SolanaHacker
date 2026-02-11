@@ -361,18 +361,24 @@ Begin by checking your current task and memory. If there's pending work, continu
     // Note: Project checking moved to switchToDevMode()
     // Chat Mode is default, no project check needed at startup
 
-    // Send startup message (v3: no more mode switching, #dotask for dev work)
+    // Send startup message (v4: updated command list)
     await this.telegram.sendDevlog(
-      `🤖 <b>SolanaHacker v3 上線了！</b>\n\n` +
+      `🤖 <b>SolanaHacker v4 上線了！</b>\n\n` +
       `💬 Chat Mode（唯一模式）\n\n` +
-      `📋 指令:\n` +
-      `• <code>#chat [訊息]</code> - 跟我聊天\n` +
+      `📋 <b>任務管理:</b>\n` +
       `• <code>#addtask [任務]</code> - 新增待辦任務\n` +
       `• <code>#tasklist</code> - 查看待辦清單\n` +
-      `• <code>#dotask</code> - 🚀 <b>處理待辦任務</b>\n` +
-      `• <code>#sleep</code> - 今天不再主動打擾\n` +
-      `• <code>/status</code> - 查看狀態\n\n` +
-      `<i>v3: 句句有回應、事事有交代</i>`
+      `• <code>#dotask</code> - 🚀 處理待辦任務\n` +
+      `• <code>#deltask</code> - 刪除當前任務\n\n` +
+      `💬 <b>對話:</b>\n` +
+      `• 直接輸入訊息即可聊天\n` +
+      `• <code>#sleep</code> - 今天不再主動打擾\n\n` +
+      `🔧 <b>系統:</b>\n` +
+      `• <code>#clear_message</code> - 清空對話記憶\n` +
+      `• <code>#reload_prompt</code> - 重載 System Prompt\n` +
+      `• <code>/status</code> - 查看狀態\n` +
+      `• <code>/stop</code> - 停止 Agent\n\n` +
+      `<i>v4: 句句有回應、事事有交代</i>`
     );
 
     try {
@@ -490,13 +496,13 @@ Begin by checking your current task and memory. If there's pending work, continu
           return;
         }
 
-        // Reset - clear state and STAY in Chat Mode
-        if (cmd.type === 'reset') {
+        // Clear message - clear conversation history and STAY in Chat Mode
+        if (cmd.type === 'clear_message') {
           this.messages = [];
           this.turn = 0;
           this.waitingCount = 0;
-          this.currentMode = 'chat';  // v3: Explicitly ensure Chat Mode
-          this.processingTasklist = false;  // v3: Stop any task processing
+          this.currentMode = 'chat';
+          this.processingTasklist = false;
           this.chatMode.resetSleep();
           this.chatMode.clearChatHistory();
           this.loadedSkills.clear();
@@ -504,8 +510,18 @@ Begin by checking your current task and memory. If there's pending work, continu
           this.skillExecutors = {};
           try { fs.unlinkSync(STATE_FILE); } catch { /* ignore */ }
           await this.telegram.sendDevlog(
-            `🔄 <b>已重置到 Chat Mode！</b>\n\n` +
-            `記憶已清空，有什麼想聊的？`
+            `🧹 <b>對話記憶已清空！</b>\n\n` +
+            `System Prompt 保留不變，有什麼想聊的？`
+          );
+          continue;
+        }
+
+        // Reload prompt - rebuild system prompt from AGENTS.md and docs/
+        if (cmd.type === 'reload_prompt') {
+          this.systemPrompt = this.buildSystemPrompt();
+          await this.telegram.sendDevlog(
+            `🔄 <b>System Prompt 已重新載入！</b>\n\n` +
+            `已重新讀取 AGENTS.md 和 docs/ 目錄。`
           );
           continue;
         }
@@ -1011,19 +1027,19 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
   // ============================================
 
   async agentLoop(continueExisting = false) {
-    // Check for reset command BEFORE loading state
+    // Check for clear_message command BEFORE loading state
     const pendingCommands = this.telegram.peekMustCommands();
-    const hasReset = pendingCommands.some(cmd => cmd.type === 'reset');
-    if (hasReset) {
-      console.log('[Agent] Reset command pending - skipping state load, switching to Chat Mode');
-      // Consume the reset command
+    const hasClear = pendingCommands.some(cmd => cmd.type === 'clear_message');
+    if (hasClear) {
+      console.log('[Agent] Clear message command pending - skipping state load, switching to Chat Mode');
+      // Consume the clear command
       this.telegram.getMustCommands();
       // Clear state
       this.messages = [];
       this.turn = 0;
       this.waitingCount = 0;
       this.currentMode = 'chat';
-      this.processingTasklist = false;  // v3: Stop any task processing
+      this.processingTasklist = false;
       this.loadedSkills.clear();
       this.skillTools = [];
       this.skillExecutors = {};
@@ -1031,10 +1047,23 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
       this.chatMode.clearChatHistory();
       try { fs.unlinkSync(STATE_FILE); } catch { /* ignore */ }
       await this.telegram.sendDevlog(
-        `🔄 <b>已重置到 Chat Mode！</b>\n\n` +
-        `記憶已清空，有什麼想聊的？`
+        `🧹 <b>對話記憶已清空！</b>\n\n` +
+        `System Prompt 保留不變，有什麼想聊的？`
       );
       return; // Exit agentLoop, modeLoop will enter chatModeLoop
+    }
+
+    // Check for reload_prompt command
+    const hasReload = pendingCommands.some(cmd => cmd.type === 'reload_prompt');
+    if (hasReload) {
+      console.log('[Agent] Reload prompt command pending');
+      this.telegram.getMustCommands();
+      this.systemPrompt = this.buildSystemPrompt();
+      await this.telegram.sendDevlog(
+        `🔄 <b>System Prompt 已重新載入！</b>\n\n` +
+        `已重新讀取 AGENTS.md 和 docs/ 目錄。`
+      );
+      // Continue with agentLoop after reload
     }
 
     // Try to resume from saved state
@@ -1482,7 +1511,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
             `🚨 <b>Anthropic API 額度已用完！</b>\n\n` +
             `<b>錯誤碼:</b> ${status}\n\n` +
             `Agent 進入待機模式，等待額度恢復。\n` +
-            `請充值後發送 <code>#reset_agent</code> 重新啟動。\n\n` +
+            `請充值後發送 <code>#clear_message</code> 重新啟動。\n\n` +
             `<i>Server 保持運行，無需 SSH 重啟。</i>`
           );
 
@@ -1548,25 +1577,36 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         continue;
       }
 
-      if (cmd.type === 'reset') {
-        // Reset to Chat Mode (default)
+      if (cmd.type === 'clear_message') {
+        // Clear message history and switch to Chat Mode
         this.messages = [];
         this.turn = 0;
         this.waitingCount = 0;
         this.currentMode = 'chat';
-        this.processingTasklist = false;  // v3: Stop any task processing
+        this.processingTasklist = false;
         this.loadedSkills.clear();
         this.skillTools = [];
         this.skillExecutors = {};
         this.chatMode.resetSleep();
         this.chatMode.clearChatHistory();
         try { fs.unlinkSync(STATE_FILE); } catch { /* ignore */ }
-        console.log('[Agent] Reset: switching to Chat Mode');
+        console.log('[Agent] Clear message: switching to Chat Mode');
         await this.telegram.sendDevlog(
-          `🔄 <b>已重置到 Chat Mode！</b>\n\n` +
-          `記憶已清空，有什麼想聊的？`
+          `🧹 <b>對話記憶已清空！</b>\n\n` +
+          `System Prompt 保留不變，有什麼想聊的？`
         );
         return; // Exit injectCommands, agentLoop will exit, modeLoop will enter chatModeLoop
+      }
+
+      if (cmd.type === 'reload_prompt') {
+        // Reload system prompt from AGENTS.md and docs/
+        this.systemPrompt = this.buildSystemPrompt();
+        console.log('[Agent] System prompt reloaded');
+        await this.telegram.sendDevlog(
+          `🔄 <b>System Prompt 已重新載入！</b>\n\n` +
+          `已重新讀取 AGENTS.md 和 docs/ 目錄。`
+        );
+        continue;
       }
 
       if (cmd.type === 'status_request') {
@@ -2018,7 +2058,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
 
   /**
    * Enter standby mode when API credits are exhausted.
-   * Keeps server alive, polls Telegram for #reset_agent command.
+   * Keeps server alive, polls Telegram for #clear_message command.
    * @param {string} reason - Why we entered standby
    */
   async enterStandbyMode(reason) {
@@ -2036,23 +2076,34 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
       const commands = this.telegram.getMustCommands();
 
       for (const cmd of commands) {
-        if (cmd.type === 'reset') {
-          console.log('[Agent] Reset command received in standby mode');
+        if (cmd.type === 'clear_message') {
+          console.log('[Agent] Clear message command received in standby mode');
           await this.telegram.sendDevlog(
-            `🔄 <b>收到重置指令！</b>\n\n` +
+            `🧹 <b>對話記憶已清空！</b>\n\n` +
             `正在切換到 Chat Mode...`
           );
 
           // Clear state and exit standby - go to Chat Mode
           this.messages = [];
           this.turn = 0;
-          this.currentMode = 'chat';  // v3: Go to Chat Mode, not Dev Mode
+          this.currentMode = 'chat';
           this.processingTasklist = false;
           this.chatMode.clearChatHistory();
           try { fs.unlinkSync(STATE_FILE); } catch { /* ignore */ }
 
           this.inStandby = false;
           return;
+        }
+
+        if (cmd.type === 'reload_prompt') {
+          console.log('[Agent] Reload prompt command received in standby mode');
+          this.systemPrompt = this.buildSystemPrompt();
+          await this.telegram.sendDevlog(
+            `🔄 <b>System Prompt 已重新載入！</b>\n\n` +
+            `已重新讀取 AGENTS.md 和 docs/ 目錄。\n` +
+            `Agent 仍在待機模式。`
+          );
+          continue;
         }
 
         if (cmd.type === 'stop') {
@@ -2068,7 +2119,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         await this.telegram.sendDevlog(
           `⏳ <b>Agent 待機中</b>\n\n` +
           `原因: ${reason}\n` +
-          `請充值 API 後發送 <code>#reset_agent</code> 重新啟動。`
+          `請充值 API 後發送 <code>#clear_message</code> 重新啟動。`
         );
         lastNotify = Date.now();
       }
@@ -2127,7 +2178,7 @@ agent.run().catch(async (error) => {
       await agent.telegram.sendDevlog(
         `🚨 <b>發生錯誤，Agent 進入待機模式</b>\n\n` +
         `<code>${msg.slice(0, 200)}</code>\n\n` +
-        `發送 <code>#reset_agent</code> 重新啟動。`
+        `發送 <code>#clear_message</code> 重新啟動。`
       );
       await agent.enterStandbyMode('Fatal error: ' + msg.slice(0, 100));
 

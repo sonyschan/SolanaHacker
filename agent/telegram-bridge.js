@@ -1,7 +1,7 @@
 /**
  * Telegram Bridge
  * Bi-directional communication with human operator
- * Supports: #must, #idea, #set_config, #reset_agent, #approve, /status, /stop
+ * Supports: #must, #idea, #set_config, #clear_message, #reload_prompt, #approve, /status, /stop
  */
 
 import TelegramBot from 'node-telegram-bot-api';
@@ -190,14 +190,25 @@ export class TelegramBridge {
         return;
       }
 
-      // === #reset_agent — Reset to Chat Mode ===
-      if (text.startsWith('#reset_agent')) {
+      // === #clear_message — Clear conversation history ===
+      if (text.startsWith('#clear_message')) {
         this.mustQueue.push({
-          type: 'reset',
+          type: 'clear_message',
           timestamp: Date.now(),
         });
-        this.bot.sendMessage(this.chatId, '🔄 收到重置指令，重置到 Chat Mode...');
-        console.log('[TG] Reset agent command received');
+        this.bot.sendMessage(this.chatId, '🧹 收到清除指令，清空對話記憶...');
+        console.log('[TG] Clear message command received');
+        return;
+      }
+
+      // === #reload_prompt — Reload system prompt (AGENTS.md, docs/) ===
+      if (text.startsWith('#reload_prompt')) {
+        this.mustQueue.push({
+          type: 'reload_prompt',
+          timestamp: Date.now(),
+        });
+        this.bot.sendMessage(this.chatId, '🔄 收到重載指令，重新載入 System Prompt...');
+        console.log('[TG] Reload prompt command received');
         return;
       }
 

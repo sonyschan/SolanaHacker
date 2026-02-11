@@ -1668,6 +1668,8 @@ ${currentState.notes || '(none)'}
 
   /**
    * Load recent journal entries
+   * - Today: last 2000 chars
+   * - Yesterday: only decision/learning entries (精華)
    */
   loadRecentJournal() {
     const journalDir = path.join(this.memoryDir, 'journal');
@@ -1675,15 +1677,35 @@ ${currentState.notes || '(none)'}
       return '(沒有最近的日誌)';
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const journalPath = path.join(journalDir, `${today}.md`);
+    let result = '';
 
-    if (!fs.existsSync(journalPath)) {
-      return '(今天還沒有日誌)';
+    // 1. Load yesterday's decision/learning entries only
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const yesterdayPath = path.join(journalDir, `${yesterday}.md`);
+    if (fs.existsSync(yesterdayPath)) {
+      const yesterdayContent = fs.readFileSync(yesterdayPath, 'utf-8');
+      // Extract only decision (📌) and learning (💡) entries
+      const importantEntries = yesterdayContent
+        .split(/(?=### \d{2}:\d{2})/)  // Split by time headers
+        .filter(entry => entry.includes('📌 decision') || entry.includes('💡 learning'))
+        .join('\n');
+
+      if (importantEntries.trim()) {
+        result += `## 昨日重點 (${yesterday})\n${importantEntries.slice(-1000)}\n\n`;
+      }
     }
 
-    const content = fs.readFileSync(journalPath, 'utf-8');
-    return content.slice(-2000); // Last 2000 chars
+    // 2. Load today's journal (last 2000 chars)
+    const today = new Date().toISOString().split('T')[0];
+    const todayPath = path.join(journalDir, `${today}.md`);
+    if (fs.existsSync(todayPath)) {
+      const todayContent = fs.readFileSync(todayPath, 'utf-8');
+      result += todayContent.slice(-2000);
+    } else if (!result) {
+      return '(沒有最近的日誌)';
+    }
+
+    return result;
   }
 
   /**
