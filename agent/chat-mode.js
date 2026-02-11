@@ -686,10 +686,16 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
-   * Normalize path - fix common mistakes like prefixing with "app/" when not needed
+   * Normalize path - handle absolute paths and fix common mistakes
    */
   normalizePath(inputPath) {
     let normalized = inputPath;
+
+    // Handle absolute paths - strip baseDir prefix if present
+    if (normalized.startsWith('/home/projects/solanahacker/')) {
+      normalized = normalized.slice('/home/projects/solanahacker/'.length);
+      console.log(`[ChatMode] Absolute path converted: ${inputPath} -> ${normalized}`);
+    }
 
     // Always strip "app/" prefix for directories that should be at project root
     // knowledge/, memory/, docs/ should NEVER be under app/
@@ -702,6 +708,29 @@ ${recentMemory.slice(-1500)}
     }
 
     return normalized;
+  }
+
+  /**
+   * Normalize command paths - fix cd commands that use wrong relative paths
+   */
+  normalizeCommand(command) {
+    // Fix common cd mistakes when cwd is already /app
+    // "cd app/backend" -> "cd backend" (since we're already in app/)
+    // "cd /home/projects/solanahacker/app/backend" -> "cd backend"
+    let fixed = command;
+
+    // Handle absolute paths in cd
+    fixed = fixed.replace(/cd\s+\/home\/projects\/solanahacker\/app\/?/g, 'cd ');
+    fixed = fixed.replace(/cd\s+\/home\/projects\/solanahacker\/?/g, 'cd ../');
+
+    // Handle "cd app/..." when already in app/
+    fixed = fixed.replace(/cd\s+app\//g, 'cd ');
+
+    if (fixed !== command) {
+      console.log(`[ChatMode] Command path fix: "${command}" -> "${fixed}"`);
+    }
+
+    return fixed;
   }
 
   /**
@@ -990,6 +1019,9 @@ ${recentMemory.slice(-1500)}
           const appDir = path.join(this.baseDir, 'app');
           const timeout_ms = input.timeout_ms || 120000;
 
+          // Auto-fix common path mistakes in commands
+          const fixedCommand = this.normalizeCommand(input.command);
+
           // Strip sensitive env vars
           const safeEnv = { ...process.env };
           delete safeEnv.ANTHROPIC_API_KEY;
@@ -998,7 +1030,7 @@ ${recentMemory.slice(-1500)}
           delete safeEnv.GITHUB_TOKEN;
           delete safeEnv.TELEGRAM_BOT_TOKEN;
 
-          const { stdout, stderr } = await execAsync(input.command, {
+          const { stdout, stderr } = await execAsync(fixedCommand, {
             cwd: appDir,
             timeout: timeout_ms,
             maxBuffer: 2 * 1024 * 1024,

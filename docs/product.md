@@ -189,7 +189,10 @@
 - **NFT**: Metaplex Token Metadata Program
 
 ### AI 整合
-- **梗圖生成**: Gemini API (gemini-2.5-flash-image 用於 UX 資產，gemini-3-pro-image-preview 用於 NFT 藝術)
+- **梗圖生成**: 
+  - **Skill**: `gemini_image` (專門用於 Meme 生成)
+  - **Model**: `gemini-3-pro-image-preview` (NFT 藝術級品質)
+  - **備用模型**: `gemini-2.5-flash-image` (UX 資產用)
 - **聊天/新聞**: Grok API 用於趨勢分析和新聞摘要
 - **內容來源**: Twitter 趨勢、CoinDesk、Reddit r/CryptoCurrency 等
 - **內容審核**: 自動化過濾

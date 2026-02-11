@@ -15,9 +15,29 @@ function App() {
     if (connected && publicKey) {
       setCurrentView('dashboard');
     } else {
-      setCurrentView('home');
+      // For testing: Allow dashboard view without wallet connection
+      // In production, remove this and only show dashboard when connected
+      const urlHash = window.location.hash;
+      if (urlHash === '#dashboard') {
+        setCurrentView('dashboard');
+      } else {
+        setCurrentView('home');
+      }
     }
   }, [connected, publicKey]);
+
+  // Listen for hash changes to support direct dashboard navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const urlHash = window.location.hash;
+      if (urlHash === '#dashboard') {
+        setCurrentView('dashboard');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Mock wallet connection (for backward compatibility)
   const connectWallet = () => {

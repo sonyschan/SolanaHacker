@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import memeService from '../services/memeService';
 
 const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
@@ -7,28 +8,64 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   const [rarityVotes, setRarityVotes] = useState({ common: 12, uncommon: 8, rare: 15, epic: 7, legendary: 3 });
   const [showReward, setShowReward] = useState(false);
   const [earnedTickets, setEarnedTickets] = useState(0);
+  const [dailyMemes, setDailyMemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock meme data - in production would come from AI generation
-  const mockMemes = [
-    {
-      id: 'meme1',
-      image: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Bitcoin+to+100K%3F',
-      title: 'Bitcoin to 100K?',
-      description: 'When your portfolio hits different...'
-    },
-    {
-      id: 'meme2', 
-      image: 'https://via.placeholder.com/400x300/EC4899/FFFFFF?text=Solana+Season',
-      title: 'Solana Season',
-      description: 'Fast transactions, faster gains'
-    },
-    {
-      id: 'meme3',
-      image: 'https://via.placeholder.com/400x300/10B981/FFFFFF?text=NFT+Apes+Forever',
-      title: 'NFT Apes Forever', 
-      description: 'Diamond hands forever'
-    }
-  ];
+  // Fetch today's memes on component mount
+  useEffect(() => {
+    const fetchTodaysMemes = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 Fetching today\'s AI-generated memes...');
+        
+        const result = await memeService.getTodaysMemes();
+        
+        if (result.success && result.memes && result.memes.length > 0) {
+          console.log('✅ Loaded', result.memes.length, 'AI memes');
+          setDailyMemes(result.memes);
+          
+          // Initialize votes for fetched memes  
+          const newVotes = {};
+          result.memes.forEach((meme, index) => {
+            newVotes[meme.id] = meme.votes?.selection?.yes || Math.floor(Math.random() * 50) + 10;
+          });
+          setVotes(newVotes);
+        } else {
+          console.log('⚠️ No memes found, generating new ones...');
+          const generateResult = await memeService.generateDailyMemes();
+          
+          if (generateResult.success && generateResult.memes) {
+            setDailyMemes(generateResult.memes);
+            const newVotes = {};
+            generateResult.memes.forEach((meme, index) => {
+              newVotes[meme.id] = Math.floor(Math.random() * 50) + 10;
+            });
+            setVotes(newVotes);
+          } else {
+            throw new Error('Failed to generate daily memes');
+          }
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('❌ Error loading memes:', err);
+        setError(err.message);
+        // Use fallback memes
+        const fallbackMemes = memeService.getFallbackMemes();
+        setDailyMemes(fallbackMemes);
+        const newVotes = {};
+        fallbackMemes.forEach((meme, index) => {
+          newVotes[meme.id] = meme.votes?.selection?.yes || Math.floor(Math.random() * 50) + 10;
+        });
+        setVotes(newVotes);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTodaysMemes();
+  }, []);
 
   const rarityOptions = [
     { id: 'common', label: 'Common', color: 'bg-gray-600', multiplier: '1x' },
@@ -46,7 +83,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
       votes[a[0]] > votes[b[0]] ? a : b
     )[0];
     
-    setSelectedMeme(mockMemes.find(m => m.id === winner));
+    setSelectedMeme(dailyMemes.find(m => m.id === winner));
     setCurrentPhase('rarity');
   };
 
@@ -104,36 +141,80 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
             <div className="bg-blue-600 bg-opacity-20 border border-blue-600 rounded-lg p-4 mt-4 inline-block">
               <span className="text-blue-300">💡 Phase 1/2: Meme Selection - Pick the winner!</span>
             </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {mockMemes.map((meme) => (
-              <div key={meme.id} className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
-                <img
-                  src={meme.image}
-                  alt={meme.title}
-                  className="w-full h-64 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{meme.title}</h3>
-                  <p className="text-gray-300 text-sm mb-4">{meme.description}</p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="text-sm text-gray-400">
-                      Current votes: <span className="text-white font-bold">{votes[meme.id]}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleVote(meme.id)}
-                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
-                  >
-                    ❤️ Vote for This Meme
-                  </button>
-                </div>
+            
+            {/* Status indicators */}
+            {loading && (
+              <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-lg p-3 mt-4 inline-block">
+                <span className="text-yellow-300">🔄 Loading AI-generated memes...</span>
               </div>
-            ))}
+            )}
+            
+            {error && (
+              <div className="bg-red-600 bg-opacity-20 border border-red-600 rounded-lg p-3 mt-4 inline-block">
+                <span className="text-red-300">⚠️ Using fallback memes (Backend: {error})</span>
+              </div>
+            )}
           </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {dailyMemes.map((meme) => (
+                <div key={meme.id} className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
+                  <img
+                    src={meme.imageUrl || meme.image}
+                    alt={meme.title}
+                    className="w-full h-64 object-cover"
+                    onError={(e) => {
+                      // Fallback image if AI-generated image fails to load
+                      e.target.src = `https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=${encodeURIComponent(meme.title)}`;
+                    }}
+                  />
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">{meme.title}</h3>
+                    <p className="text-gray-300 text-sm mb-4">
+                      {meme.description || `AI-generated from: ${meme.newsSource}`}
+                    </p>
+                    
+                    {/* Metadata badges */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {meme.metadata?.fallback && (
+                        <span className="text-xs bg-orange-600 bg-opacity-20 text-orange-300 px-2 py-1 rounded">
+                          Fallback
+                        </span>
+                      )}
+                      {meme.metadata?.imageGenerated && (
+                        <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
+                          AI Generated
+                        </span>
+                      )}
+                      {meme.newsSource && (
+                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
+                          {meme.newsSource.substring(0, 20)}...
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="text-sm text-gray-400">
+                        Current votes: <span className="text-white font-bold">{votes[meme.id] || 0}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleVote(meme.id)}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
+                    >
+                      ❤️ Vote for This Meme
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -153,13 +234,26 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-1 rounded-2xl">
               <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-xl overflow-hidden">
                 <img
-                  src={selectedMeme.image}
+                  src={selectedMeme.imageUrl || selectedMeme.image}
                   alt={selectedMeme.title}
                   className="w-full h-64 object-cover"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=${encodeURIComponent(selectedMeme.title)}`;
+                  }}
                 />
                 <div className="p-6 text-center">
                   <h3 className="text-xl font-bold">{selectedMeme.title}</h3>
-                  <p className="text-sm text-gray-300">{selectedMeme.description}</p>
+                  <p className="text-sm text-gray-300">
+                    {selectedMeme.description || `AI-generated from: ${selectedMeme.newsSource}`}
+                  </p>
+                  
+                  {/* Show AI generation info */}
+                  {selectedMeme.metadata?.imageGenerated && (
+                    <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-lg p-2 mt-2">
+                      <span className="text-green-300 text-xs">🤖 Real AI Generated Image</span>
+                    </div>
+                  )}
+                  
                   <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg p-2 mt-3">
                     <span className="text-yellow-300 text-sm">👑 Winning Meme - Will be minted as NFT</span>
                   </div>

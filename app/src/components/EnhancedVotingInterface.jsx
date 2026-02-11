@@ -1,39 +1,104 @@
 import React, { useState, useEffect } from 'react';
+import memeService from '../services/memeService';
 
 const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, consecutiveDays = 1 }) => {
   const [selectedMeme, setSelectedMeme] = useState(0);
   const [voteAnimation, setVoteAnimation] = useState(false);
   const [previewMode, setPreviewMode] = useState(true);
+  const [todaysMemes, setTodaysMemes] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [backendConnected, setBackendConnected] = useState(false);
 
-  // Sample meme data with actual generated images
-  const sampleMemes = [
+  // Load today's memes from API
+  useEffect(() => {
+    const loadTodaysMemes = async () => {
+      setLoading(true);
+      try {
+        console.log('🔄 Loading today\'s memes...');
+        
+        // First test backend connection
+        const connectionTest = await memeService.testConnections();
+        setBackendConnected(connectionTest.success && !connectionTest.fallback);
+        
+        if (connectionTest.success && !connectionTest.fallback) {
+          console.log('✅ Backend connected, fetching real memes');
+        } else {
+          console.log('⚠️ Backend disconnected, using fallback memes');
+        }
+        
+        // Get today's memes (will fallback if needed)
+        const result = await memeService.getTodaysMemes();
+        
+        if (result.success && result.memes && result.memes.length > 0) {
+          console.log(`✅ Loaded ${result.memes.length} memes`);
+          // Transform API format to component format
+          const transformedMemes = result.memes.map(meme => ({
+            id: meme.id,
+            image: meme.imageUrl,
+            title: meme.title,
+            description: meme.description,
+            currentVotes: {
+              common: meme.votes?.rarity?.common || 0,
+              rare: meme.votes?.rarity?.rare || 0,
+              legendary: meme.votes?.rarity?.legendary || 0
+            },
+            trend: meme.metadata?.fallback ? 'fallback' : 'hot',
+            newsSource: meme.newsSource,
+            generatedAt: meme.generatedAt,
+            aiGenerated: !meme.metadata?.fallback
+          }));
+          setTodaysMemes(transformedMemes);
+        } else {
+          console.log('❌ Failed to load memes, using fallback');
+          setTodaysMemes(getSampleMemes());
+        }
+        
+      } catch (error) {
+        console.error('Error loading today\'s memes:', error);
+        setTodaysMemes(getSampleMemes());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTodaysMemes();
+  }, []);
+
+  // Fallback sample memes if API fails
+  const getSampleMemes = () => [
     {
-      id: 1,
+      id: 'sample-1',
       image: '/generated/meme-preview-ai-emotions.png',
       title: 'AI Trying to Understand Emotions',
       description: 'When AI attempts to comprehend human feelings',
       currentVotes: { common: 89, rare: 156, legendary: 203 },
-      trend: 'trending_up'
+      trend: 'trending_up',
+      aiGenerated: false
     },
     {
-      id: 2,
+      id: 'sample-2', 
       image: '/generated/meme-preview-crypto-hodl.png',
       title: 'Diamond Hands HODL',
       description: 'Crypto veterans when the market dips',
       currentVotes: { common: 134, rare: 267, legendary: 445 },
-      trend: 'hot'
+      trend: 'hot',
+      aiGenerated: false
     },
     {
-      id: 3,
+      id: 'sample-3',
       image: '/generated/meme-preview-voting-choices.png',
-      title: 'Modern Decision Making',
+      title: 'Modern Decision Making', 
       description: 'Choosing between too many options',
       currentVotes: { common: 67, rare: 123, legendary: 89 },
-      trend: 'new'
+      trend: 'new',
+      aiGenerated: false
     }
   ];
 
-  const currentMeme = sampleMemes[selectedMeme];
+  // Use real memes if loaded, otherwise fallback
+  const activeMemes = todaysMemes || getSampleMemes();
+
+  const currentMeme = activeMemes[selectedMeme];
 
   const handleVoteClick = (voteType) => {
     if (!connected) {

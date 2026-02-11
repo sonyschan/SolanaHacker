@@ -1,4 +1,40 @@
 # MemeForge MVP 技術實作計畫
+---
+
+## 📁 專案結構
+
+```
+/home/projects/solanahacker/
+├── agent/                    # Agent 程式碼 (不要動)
+│   └── .env                  # Agent 專用環境變數
+├── app/
+│   ├── src/                  # Frontend (React + Vite)
+│   │   ├── components/
+│   │   └── hooks/
+│   ├── backend/              # Backend (Express + Firebase)
+│   │   ├── server.js         # 主入口
+│   │   ├── routes/           # API 路由
+│   │   ├── services/         # 業務邏輯
+│   │   ├── .env              # ⚠️ Backend 環境變數
+│   │   └── package.json
+│   ├── public/generated/     # Gemini 生成的圖片
+│   └── .env.local            # Frontend 環境變數
+├── docs/
+│   ├── mvp.md                # 本文件
+│   └── _transient/           # 過渡性文件 (不載入 context)
+└── memory/                   # Agent 記憶 (不要動)
+```
+
+### 環境變數位置
+
+| 用途 | 檔案路徑 | 說明 |
+|-----|---------|------|
+| Agent | `agent/.env` | Claude/Grok/Telegram API keys |
+| Backend | `app/backend/.env` | Firebase Admin, Gemini, Grok |
+| Frontend | `app/.env.local` | VITE_ 開頭的變數 |
+
+**重要：修改 Backend 環境變數請編輯 `app/backend/.env`**
+
 
 ## 💡 選項 1 - 完成投票核心邏輯
 

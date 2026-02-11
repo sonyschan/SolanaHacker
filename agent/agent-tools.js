@@ -43,14 +43,14 @@ export const TOOL_DEFINITIONS = [
     description:
       'Write content to a file. Creates parent directories if needed. Path rules: ' +
       '(1) Root files like README.md, AGENTS.md go to project root. ' +
-      '(2) knowledge/, memory/, docs/ go to project root. ' +
+      '(2) docs/, memory/ go to project root. ' +
       '(3) Code files (src/, components/) go to app/ directory.',
     input_schema: {
       type: 'object',
       properties: {
         path: {
           type: 'string',
-          description: 'File path. Examples: "README.md" (root), "knowledge/product.md" (root), "src/App.jsx" (app/)',
+          description: 'File path. Examples: "README.md" (root), "docs/product.md" (root), "src/App.jsx" (app/)',
         },
         content: {
           type: 'string',
@@ -365,15 +365,30 @@ export const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: 'add_bug_solution',
+    name: 'lookup_bug',
     description:
-      'Add a bug solution to long-term memory (knowledge/bugs.md). Use when you solve a bug that might recur. This helps future debugging.',
+      'Search for a bug solution in memory/knowledge/bugs/. Use when you encounter an error. Returns the solution if found.',
     input_schema: {
       type: 'object',
       properties: {
-        category: {
+        error: {
           type: 'string',
-          description: 'Category (e.g., "Solana", "React", "Vite", "Claude API")',
+          description: 'The error message or keyword (e.g., "require is not defined", "Buffer", "__dirname")',
+        },
+      },
+      required: ['error'],
+    },
+  },
+  {
+    name: 'add_bug_solution',
+    description:
+      'Add a new bug solution to memory/knowledge/bugs/. Creates a new file for the bug. Use when you solve a bug that might recur.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        bug_id: {
+          type: 'string',
+          description: 'Short ID for the bug file (e.g., "esm-require", "buffer-polyfill"). Lowercase, use hyphens.',
         },
         error: {
           type: 'string',
@@ -389,14 +404,14 @@ export const TOOL_DEFINITIONS = [
         },
         solution: {
           type: 'string',
-          description: 'How to fix it',
+          description: 'How to fix it (include code examples)',
         },
         prevention: {
           type: 'string',
           description: 'How to avoid in future',
         },
       },
-      required: ['category', 'error', 'solution'],
+      required: ['bug_id', 'error', 'solution'],
     },
   },
   {
@@ -434,19 +449,30 @@ export const TOOL_DEFINITIONS = [
       required: ['query'],
     },
   },
-
-  // --- Tasklist Management ---
   {
-    name: 'complete_task',
+    name: 'log_attempt',
     description:
-      'Mark a task as completed. This will: 1) Mark the task as done in pending_tasks.md, 2) Save it to memory/completed_tasks/ with metadata, 3) Update index.md with last 10 completed tasks. ⚠️ BEFORE calling this for UI tasks: Verify your changes are visible in the running app by taking a screenshot! If changes are not visible, the task is NOT complete.',
+      'Log an attempt to the Work-in-Progress Attempts Log. Use this EVERY TIME you try a solution approach. This helps you remember what was tried (especially after context prune) and avoid repeating failed approaches. Format: "[approach]: [result]"',
     input_schema: {
       type: 'object',
       properties: {
-        task_text: {
+        attempt: {
           type: 'string',
-          description: 'The beginning of the task text to mark as complete (enough to uniquely identify it)',
+          description: 'What you tried and the result. E.g., "Fixed import syntax: still got require error", "Added vite polyfill: build succeeded but runtime error"',
         },
+      },
+      required: ['attempt'],
+    },
+  },
+
+  // --- Task Completion (v4: WIP System) ---
+  {
+    name: 'complete_task',
+    description:
+      'Mark the current Work-in-Progress task as completed. This will: 1) Archive the task to memory/completed_tasks/, 2) Clear work_in_progress.md, 3) Update index.md with last 10 completed tasks. ⚠️ BEFORE calling this for UI tasks: Verify your changes are visible in the running app by taking a screenshot! If changes are not visible, the task is NOT complete.',
+    input_schema: {
+      type: 'object',
+      properties: {
         summary: {
           type: 'string',
           description: 'Brief summary of what was accomplished (1-2 sentences)',
@@ -460,7 +486,7 @@ export const TOOL_DEFINITIONS = [
           },
         },
       },
-      required: ['task_text', 'summary'],
+      required: ['summary'],
     },
   },
 
@@ -482,7 +508,7 @@ const DANGEROUS_CMD =
  *
  * @param {object} deps
  * @param {string} deps.workDir - Project working directory
- * @param {string} deps.knowledgeDir - Knowledge base directory
+ * @param {string} deps.docsDir - Reference docs directory (product specs, design guides)
  * @param {string} deps.screenshotsDir - Screenshot output directory
  * @param {number} deps.devServerPort - Dev server port
  * @param {object} deps.telegram - TelegramBridge instance
@@ -494,7 +520,7 @@ export function createToolExecutors(deps) {
   const {
     baseDir,      // Project root for git commands
     workDir,
-    knowledgeDir,
+    docsDir,
     screenshotsDir,
     devServerPort,
     telegram,
@@ -522,7 +548,8 @@ export function createToolExecutors(deps) {
     }
 
     // Root-level files (no directory prefix, common project files)
-    const rootLevelFiles = ['README.md', 'AGENTS.md', 'CLAUDE.md', 'LICENSE', '.gitignore', '.env', 'package.json'];
+    // NOTE: package.json is NOT here because it's in app/ directory (workDir)
+    const rootLevelFiles = ['README.md', 'AGENTS.md', 'CLAUDE.md', 'LICENSE', '.gitignore', '.env'];
     if (rootLevelFiles.includes(relativePath) || rootLevelFiles.includes(path.basename(relativePath))) {
       // If it's just the filename, put at project root
       if (!relativePath.includes('/')) {
@@ -819,14 +846,11 @@ export function createToolExecutors(deps) {
         const analysisPrompt = prompt ||
           'Analyze this webpage design: describe the color scheme, layout, typography, key visual elements, and overall design style. What makes it effective or unique?';
 
-        // Analyze with Claude Vision
+        // Analyze with Claude Vision (use reviewer's client)
         const imageBuffer = fs.readFileSync(screenshotPath);
         const base64Image = imageBuffer.toString('base64');
 
-        const Anthropic = require('@anthropic-ai/sdk').default;
-        const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-        const visionResponse = await anthropicClient.messages.create({
+        const visionResponse = await reviewer.client.messages.create({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1500,
           messages: [{
@@ -846,9 +870,18 @@ export function createToolExecutors(deps) {
     },
 
     async send_telegram({ message, screenshot_path }) {
+      // Guard: Don't send tool results or system messages
+      const blockedPatterns = [
+        /^(send_telegram|Message sent|Tool result|Error:|✅\s*(send_|Message\s+sent))/i,
+        /^[a-z_]+:\s*(Message sent|Error|Success)/i,
+      ];
+      if (blockedPatterns.some(p => p.test(message.trim()))) {
+        return '[Internal] Blocked: This looks like a tool result, not a user message.';
+      }
+
       try {
         await telegram.sendDevlog(message, screenshot_path);
-        return 'Message sent to Telegram.';
+        return '[OK] Telegram 訊息已發送。不需要再發送確認訊息。';
       } catch (err) {
         return `Error sending Telegram: ${err.message}`;
       }
@@ -1003,15 +1036,15 @@ export function createToolExecutors(deps) {
 
     async read_knowledge({ filename } = {}) {
       if (!filename) {
-        if (!fs.existsSync(knowledgeDir)) return 'No knowledge base directory found.';
+        if (!fs.existsSync(docsDir)) return 'No docs directory found.';
         const files = fs
-          .readdirSync(knowledgeDir)
+          .readdirSync(docsDir)
           .filter((f) => f.endsWith('.md') || f.endsWith('.txt'));
-        return `Available knowledge files:\n${files.map((f) => `- ${f}`).join('\n')}`;
+        return `Available docs files:\n${files.map((f) => `- ${f}`).join('\n')}`;
       }
-      const full = path.join(knowledgeDir, path.basename(filename)); // basename prevents traversal
+      const full = path.join(docsDir, path.basename(filename)); // basename prevents traversal
       if (!fs.existsSync(full)) {
-        return `Error: Knowledge file not found: ${filename}`;
+        return `Error: Docs file not found: ${filename}`;
       }
       return fs.readFileSync(full, 'utf-8');
     },
@@ -1086,34 +1119,92 @@ export function createToolExecutors(deps) {
       return `✅ Status set to WAITING: ${status}. Now wait for H2Crypto.`;
     },
 
-    async add_bug_solution({ category, error, context = '', root_cause = '', solution, prevention = '' }) {
-      const knowledgePath = path.join(workDir, '..', 'memory', 'knowledge', 'bugs.md');
-      if (!fs.existsSync(path.dirname(knowledgePath))) {
-        fs.mkdirSync(path.dirname(knowledgePath), { recursive: true });
+    // v4: Bug Registry System - lookup from bugs/ folder
+    async lookup_bug({ error }) {
+      const bugsDir = path.join(workDir, '..', 'memory', 'knowledge', 'bugs');
+      const indexPath = path.join(bugsDir, 'index.md');
+
+      if (!fs.existsSync(indexPath)) {
+        return 'No bug index found. Try checking AGENTS.md for common error fixes.';
       }
 
-      const entry = `
-### ${category}: ${error.slice(0, 50)}
+      // Read index to find matching bug
+      const index = fs.readFileSync(indexPath, 'utf-8');
+      const errorLower = error.toLowerCase();
+
+      // Search for matching pattern in index
+      const lines = index.split('\n');
+      let matchedFile = null;
+
+      for (const line of lines) {
+        if (line.includes('|') && !line.includes('Error Pattern')) {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length >= 3) {
+            const pattern = parts[1].toLowerCase();
+            const bugFile = parts[2];
+            if (errorLower.includes(pattern.replace(/`/g, '')) ||
+                pattern.replace(/`/g, '').includes(errorLower.split(' ')[0])) {
+              matchedFile = bugFile;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!matchedFile) {
+        // Return the index as a hint
+        return `No exact match for "${error}". Here's the bug index:\n\n${index}`;
+      }
+
+      // Read the specific bug file
+      const bugFilePath = path.join(bugsDir, `${matchedFile}.md`);
+      if (fs.existsSync(bugFilePath)) {
+        const solution = fs.readFileSync(bugFilePath, 'utf-8');
+        return `## Found Solution: ${matchedFile}\n\n${solution}`;
+      }
+
+      return `Bug file "${matchedFile}.md" not found. Check bugs/index.md for available solutions.`;
+    },
+
+    // v4: Add bug to registry folder
+    async add_bug_solution({ bug_id, error, context = '', root_cause = '', solution, prevention = '' }) {
+      const bugsDir = path.join(workDir, '..', 'memory', 'knowledge', 'bugs');
+      if (!fs.existsSync(bugsDir)) {
+        fs.mkdirSync(bugsDir, { recursive: true });
+      }
+
+      // Create the bug file
+      const bugFilePath = path.join(bugsDir, `${bug_id}.md`);
+      const content = `# Bug: ${error.slice(0, 60)}
+
 **Error**: \`${error}\`
-${context ? `**Context**: ${context}\n` : ''}${root_cause ? `**Root Cause**: ${root_cause}\n` : ''}**Solution**: ${solution}
-${prevention ? `**Prevention**: ${prevention}\n` : ''}
----
+
+${context ? `**Context**: ${context}\n\n` : ''}${root_cause ? `**Root Cause**: ${root_cause}\n\n` : ''}**Solution**:
+${solution}
+
+${prevention ? `**Prevention**: ${prevention}` : ''}
 `;
 
-      if (fs.existsSync(knowledgePath)) {
-        const content = fs.readFileSync(knowledgePath, 'utf-8');
-        // Insert before the last comment line
-        const marker = '<!-- Add new bug solutions above this line -->';
-        if (content.includes(marker)) {
-          const updated = content.replace(marker, entry + '\n' + marker);
-          fs.writeFileSync(knowledgePath, updated);
+      fs.writeFileSync(bugFilePath, content);
+
+      // Update index.md
+      const indexPath = path.join(bugsDir, 'index.md');
+      const errorShort = error.slice(0, 30).replace(/`/g, '');
+      const hint = solution.split('\n')[0].slice(0, 40);
+      const newRow = `| \`${errorShort}\` | ${bug_id} | ${hint} |`;
+
+      if (fs.existsSync(indexPath)) {
+        let index = fs.readFileSync(indexPath, 'utf-8');
+        // Add before the Usage line
+        if (index.includes('**Usage:**')) {
+          index = index.replace('**Usage:**', newRow + '\n\n**Usage:**');
         } else {
-          fs.appendFileSync(knowledgePath, entry);
+          index += '\n' + newRow;
         }
-      } else {
-        fs.writeFileSync(knowledgePath, `# Bug Solutions Database\n\n---\n${entry}`);
+        fs.writeFileSync(indexPath, index);
       }
-      return `Bug solution added: ${category} — ${error.slice(0, 30)}`;
+
+      return `Bug solution added: ${bug_id}.md\nUse \`lookup_bug({ error: "${errorShort}" })\` to retrieve it.`;
     },
 
     async remember({ item }) {
@@ -1191,42 +1282,81 @@ ${prevention ? `**Prevention**: ${prevention}\n` : ''}
       return output;
     },
 
-    // --- Tasklist Management ---
-    async complete_task({ task_text, summary = '', tokens_used = {} }) {
+    async log_attempt({ attempt }) {
       const memoryBase = path.join(workDir, '..', 'memory');
-      const tasksPath = path.join(memoryBase, 'journal', 'pending_tasks.md');
+      const wipPath = path.join(memoryBase, 'journal', 'work_in_progress.md');
+
+      if (!fs.existsSync(wipPath)) {
+        return 'Error: No work_in_progress.md file found. Start a task first with #addtask.';
+      }
+
+      let content = fs.readFileSync(wipPath, 'utf-8');
+      const now = new Date();
+      const timeStr = now.toTimeString().slice(0, 5);
+
+      // Find and update Attempts Log section
+      const attemptsMatch = content.match(/(## Attempts Log:?\s*\n)([\s\S]*?)((?=\n##)|$)/);
+      if (attemptsMatch) {
+        let existingAttempts = attemptsMatch[2].trim();
+        // Remove placeholder text
+        if (existingAttempts.includes('記錄嘗試過的方法')) {
+          existingAttempts = '';
+        }
+        const newAttempts = existingAttempts + `\n- [${timeStr}] ${attempt}`;
+        content = content.replace(attemptsMatch[0], `${attemptsMatch[1]}${newAttempts.trim()}\n\n`);
+      } else {
+        // No Attempts Log section - add it before Files Modified
+        const filesMatch = content.match(/\n## Files Modified/);
+        if (filesMatch) {
+          content = content.replace(
+            '\n## Files Modified',
+            `\n## Attempts Log:\n- [${timeStr}] ${attempt}\n\n## Files Modified`
+          );
+        }
+      }
+
+      // Update Last Updated timestamp
+      content = content.replace(/- Last Updated:\s*[^\n]+/, `- Last Updated: ${now.toISOString()}`);
+
+      fs.writeFileSync(wipPath, content);
+      return `Logged attempt: ${attempt}`;
+    },
+
+    // --- Task Completion (v4: WIP System) ---
+    async complete_task({ summary = '', tokens_used = {} }) {
+      const memoryBase = path.join(workDir, '..', 'memory');
+      const wipPath = path.join(memoryBase, 'journal', 'work_in_progress.md');
       const completedDir = path.join(memoryBase, 'completed_tasks');
       const indexPath = path.join(completedDir, 'index.md');
+      const currentTaskPath = path.join(memoryBase, 'journal', 'current_task.md');
 
-      if (!fs.existsSync(tasksPath)) {
-        return 'Error: No pending_tasks.md file found.';
+      // v4: Read from WIP instead of pending_tasks
+      if (!fs.existsSync(wipPath)) {
+        return 'Error: No work_in_progress.md file found. Nothing to complete.';
+      }
+
+      // Parse WIP to get task description and status
+      const wipContent = fs.readFileSync(wipPath, 'utf-8');
+      const taskMatch = wipContent.match(/## Task:\s*\n([\s\S]*?)(?=\n##|$)/);
+      const statusMatch = wipContent.match(/- Status:\s*(\w+)/);
+      const fullTaskText = taskMatch ? taskMatch[1].trim() : '(Unknown task)';
+      const status = statusMatch ? statusMatch[1] : 'unknown';
+
+      // v4 Safety: Only allow completing in_progress tasks
+      if (status === 'pending') {
+        return 'Error: Task is still pending (not started). Use #dotask to start it first, then complete.';
+      }
+      if (status === 'completed') {
+        return 'Error: Task is already marked as completed.';
+      }
+      if (wipContent.includes('No active task')) {
+        return 'Error: No active task to complete.';
       }
 
       // Ensure completed_tasks directory exists
       if (!fs.existsSync(completedDir)) {
         fs.mkdirSync(completedDir, { recursive: true });
       }
-
-      const content = fs.readFileSync(tasksPath, 'utf-8');
-      const lines = content.split('\n');
-      let found = false;
-      let fullTaskText = '';
-
-      const updated = lines.map(line => {
-        // Find uncompleted task that matches the text
-        if (line.includes('- [ ]') && line.toLowerCase().includes(task_text.toLowerCase())) {
-          found = true;
-          fullTaskText = line.replace('- [ ]', '').trim();
-          return line.replace('- [ ]', '- [x]');
-        }
-        return line;
-      });
-
-      if (!found) {
-        return `Error: Could not find uncompleted task matching: "${task_text}"`;
-      }
-
-      fs.writeFileSync(tasksPath, updated.join('\n'));
 
       // --- Save to completed_tasks ---
       const now = new Date();
@@ -1241,6 +1371,12 @@ ${prevention ? `**Prevention**: ${prevention}\n` : ''}
         ? `\n## Token Usage\n- Input: ${tokens_used.input || 0}\n- Output: ${tokens_used.output || 0}`
         : '';
 
+      // Extract progress and files modified from WIP
+      const progressMatch = wipContent.match(/## Progress:\s*\n([\s\S]*?)(?=\n##|$)/);
+      const filesMatch = wipContent.match(/## Files Modified:\s*\n([\s\S]*?)(?=\n##|$)/);
+      const progress = progressMatch ? progressMatch[1].trim() : '(none recorded)';
+      const filesModified = filesMatch ? filesMatch[1].trim() : '(none recorded)';
+
       const taskFileContent = `# Completed Task: ${taskId}
 
 ## Metadata
@@ -1249,6 +1385,12 @@ ${prevention ? `**Prevention**: ${prevention}\n` : ''}
 
 ## Summary
 ${summary || '(No summary provided)'}
+
+## Progress Log
+${progress}
+
+## Files Modified
+${filesModified}
 ${tokenInfo}
 `;
 
@@ -1259,7 +1401,6 @@ ${tokenInfo}
 
       if (fs.existsSync(indexPath)) {
         const indexContent = fs.readFileSync(indexPath, 'utf-8');
-        // Parse existing entries (lines starting with |)
         const tableLines = indexContent.split('\n').filter(line => line.startsWith('|') && !line.includes('---') && !line.includes('Task ID'));
         indexEntries = tableLines.map(line => {
           const parts = line.split('|').map(p => p.trim()).filter(Boolean);
@@ -1267,17 +1408,14 @@ ${tokenInfo}
         });
       }
 
-      // Add new entry
       indexEntries.unshift({
         id: taskId,
         date: `${dateStr} ${timeStr}`,
         task: fullTaskText.slice(0, 50) + (fullTaskText.length > 50 ? '...' : ''),
       });
 
-      // Keep only last 10
       indexEntries = indexEntries.slice(0, 10);
 
-      // Write index
       const indexContent = `# Completed Tasks Index
 
 > Last 10 completed tasks. Full details in individual files.
@@ -1289,22 +1427,18 @@ ${indexEntries.map(e => `| ${e.id} | ${e.date} | ${e.task} |`).join('\n')}
 
       fs.writeFileSync(indexPath, indexContent);
 
-      // Check if all tasks are now complete (no more - [ ])
-      const remaining = updated.filter(line => line.includes('- [ ]'));
+      // v4: Delete WIP file (task complete, no queue)
+      fs.unlinkSync(wipPath);
 
-      // Update current_task.md to prevent Agent from continuing on its own
-      const currentTaskPath = path.join(memoryBase, 'journal', 'current_task.md');
+      // Update current_task.md to waiting state
       const now2 = new Date().toISOString();
-
-      if (remaining.length === 0) {
-        // All tasks done - set to waiting state
-        const waitingState = `# Current Task
+      const waitingState = `# Current Task
 
 > What SolanaHacker is currently working on. Updated on each significant action.
 
 ---
 
-## Status: ⏸️ WAITING - All Tasks Complete
+## Status: ⏸️ WAITING - Task Complete
 
 **DO NOT start new work.** Wait for H2Crypto's next instruction.
 
@@ -1313,48 +1447,15 @@ ${indexEntries.map(e => `| ${e.id} | ${e.date} | ${e.task} |`).join('\n')}
 
 ## Next Action
 - Wait for \`#addtask\` or \`#dotask\` from H2Crypto
-- Do NOT read old MVP/POC status and continue working
+- Do NOT start autonomous development work
 
 ---
 
 *Last updated: ${now2}*
 `;
-        fs.writeFileSync(currentTaskPath, waitingState);
+      fs.writeFileSync(currentTaskPath, waitingState);
 
-        // Auto-clear completed tasks
-        const cleaned = updated.filter(line => {
-          if (line.startsWith('#') || line.startsWith('>') || line.trim() === '') return true;
-          if (line.includes('- [x]')) return false; // Remove completed
-          return true;
-        });
-        fs.writeFileSync(tasksPath, cleaned.join('\n'));
-        return `✅ Task archived to ${taskId}.md! All tasks complete - cleared tasklist. Now WAIT for H2Crypto.`;
-      }
-
-      // More tasks remaining - update current_task to reflect this
-      const processingState = `# Current Task
-
-> What SolanaHacker is currently working on. Updated on each significant action.
-
----
-
-## Status: 📋 Processing Tasklist
-
-**System will auto-load next task.** Do NOT manually look for work.
-
-## Just Completed
-- ${fullTaskText.slice(0, 80)}
-
-## Remaining Tasks
-${remaining.length} task(s) waiting
-
----
-
-*Last updated: ${now2}*
-`;
-      fs.writeFileSync(currentTaskPath, processingState);
-
-      return `✅ Task archived to ${taskId}.md! ${remaining.length} task(s) remaining.`;
+      return `✅ Task archived to ${taskId}.md! WIP cleared. Now WAIT for H2Crypto.`;
     },
 
   };

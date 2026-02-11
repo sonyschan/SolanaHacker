@@ -38,3 +38,4 @@
 - **[2026-02-08]** H2Crypto said to forget about "MVP phase needs 90% UX score" requirement. Don't use UX score as a goal or target.
 - **[2026-02-08]** H2Crypto said "記得 我們可以一起維護這些記憶與價值觀" - We collaborate together to maintain memories and values
 - **[2026-02-10]** git tag 之前先查好當前tag 版號
+- **[2026-02-11]** 當我請你更新或 update 文件時，我預期你會 edit_file or write_file

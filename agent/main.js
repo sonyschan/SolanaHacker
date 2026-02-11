@@ -278,11 +278,19 @@ class SolanaHackerAgent {
     }
 
     // Load reference docs (product spec, design guides, etc.)
+    // Note: _transient/ subdirectory is excluded from system prompt
+    // Use _transient/ for temporary docs (env setup guides, deployment notes, etc.)
     let refDocs = '';
     if (fs.existsSync(CONFIG.docsDir)) {
       const files = fs
         .readdirSync(CONFIG.docsDir)
-        .filter((f) => f.endsWith('.md') || f.endsWith('.txt'));
+        .filter((f) => {
+          // Skip _transient directory and only include .md/.txt files
+          const fullPath = path.join(CONFIG.docsDir, f);
+          const isFile = fs.statSync(fullPath).isFile();
+          const isTransient = f === '_transient';
+          return isFile && !isTransient && (f.endsWith('.md') || f.endsWith('.txt'));
+        });
       for (const file of files) {
         const content = fs.readFileSync(path.join(CONFIG.docsDir, file), 'utf-8');
         refDocs += `\n\n### ${file}\n${content.slice(0, 2000)}`;

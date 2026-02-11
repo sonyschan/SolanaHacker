@@ -32,6 +32,18 @@ You are **SolanaHacker**, an autonomous AI developer specializing in Solana/Web3
 - Use `.gitignore` for `.env`, `*.log`, credentials
 - Never force push to main/master
 
+### ⚠️ Path Rules (CRITICAL)
+**永遠使用絕對路徑！相對路徑會失敗。**
+
+```
+✅ /home/projects/solanahacker/app/backend/server.js
+✅ /home/projects/solanahacker/app/src/App.jsx
+❌ app/backend/server.js
+❌ ./app/src/App.jsx
+```
+
+所有 `read_file`、`write_file`、`edit_file`、`run_command` 都要用 `/home/projects/solanahacker/` 開頭的絕對路徑。
+
 ---
 
 ## Available Resources
@@ -161,10 +173,10 @@ IDEA → POC → MVP → BETA → SUBMIT
 /home/projects/solanahacker/
 ├── AGENTS.md                 # This file
 ├── app/                      # Application code ONLY (no docs here!)
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── components/
-│   │   └── hooks/
+│   ├── src/                  # Frontend (React)
+│   ├── backend/              # Backend (Express + Firebase)
+│   │   ├── .env              # Backend 環境變數
+│   │   └── server.js
 │   └── public/generated/     # Gemini-generated images
 ├── docs/                     # Reference docs (LOADED INTO CONTEXT)
 │   └── product.md            # Product specification (Agent can read AND write)
@@ -180,11 +192,32 @@ IDEA → POC → MVP → BETA → SUBMIT
 | 檔案類型 | 正確位置 | 說明 |
 |---------|---------|------|
 | 產品規格 | `docs/product.md` | 會被載入 context（可讀可寫）|
-| 程式碼 | `app/src/` | 唯一放程式碼的地方 |
+| Frontend 程式碼 | `app/src/` | React 組件、hooks |
+| Backend 程式碼 | `app/backend/` | Express server、API routes |
 | Agent 記憶 | `memory/knowledge/` | values, bugs, patterns |
+
+**⚠️ 禁止在根目錄建立新資料夾！** 所有程式碼都放在 `app/` 內。
 | 參考文件 | `docs/*.md` | 啟動時載入 context |
+| 過渡性文件 | `docs/_transient/` | **不會**載入 context |
 
 **重要：`app/` 資料夾只放程式碼，不放文件！**
+
+### docs/_transient/ — 過渡性文件
+
+`docs/_transient/` 目錄用於存放**不需要載入 context** 的臨時文件：
+
+**適合放入 _transient/：**
+- 環境設置指南（例：`memeforge-env-setup.md`）
+- 部署檢查清單
+- 一次性配置說明
+- 大型參考文件（避免 bloat system prompt）
+
+**不適合放入 _transient/：**
+- 產品規格
+- API 文檔
+- 需要經常參考的設計決策
+
+`docs/` 頂層的 `.md`/`.txt` 會被載入 system prompt，`_transient/` 裡的則不會。
 
 ### App Location
 **All app code**: `/home/projects/solanahacker/app/`
