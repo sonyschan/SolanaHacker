@@ -4,6 +4,182 @@
 
 ---
 
+## 🌐 前後端通訊升級 (Beta)
+
+### Vercel Frontend ↔ GCP Microservices
+
+#### 1. 微服務 API Gateway
+```javascript
+// Cloud Run 服務分割
+const MICROSERVICES = {
+  voting: 'https://voting-service-xxx.run.app',
+  memes: 'https://meme-service-xxx.run.app',
+  lottery: 'https://lottery-service-xxx.run.app',
+  nft: 'https://nft-service-xxx.run.app',
+  notifications: 'https://notification-service-xxx.run.app'
+};
+
+// Frontend 統一 API 客戶端
+class MemeForgeAPI {
+  async vote(data) {
+    return this.post(`${MICROSERVICES.voting}/vote`, data);
+  }
+  
+  async getMemes() {
+    return this.get(`${MICROSERVICES.memes}/today`);
+  }
+  
+  async mintNFT(memeId) {
+    return this.post(`${MICROSERVICES.nft}/mint`, { memeId });
+  }
+}
+```
+
+#### 2. WebSocket 即時通訊
+```javascript
+// 即時投票更新 & 社群聊天
+import { io } from 'socket.io-client';
+
+const useRealtimeUpdates = () => {
+  useEffect(() => {
+    const socket = io(MICROSERVICES.voting);
+    
+    // 即時投票統計
+    socket.on('voteUpdate', (data) => {
+      updateVotingStats(data);
+    });
+    
+    // 社群聊天消息
+    socket.on('newMessage', (message) => {
+      addChatMessage(message);
+    });
+    
+    // NFT Mint 成功通知
+    socket.on('nftMinted', (nft) => {
+      showSuccessNotification(nft);
+    });
+    
+    return () => socket.disconnect();
+  }, []);
+};
+```
+
+#### 3. 高級快取策略
+```javascript
+// Service Worker + Redis 混合快取
+// Frontend: Service Worker
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('/api/memes')) {
+    event.respondWith(
+      caches.open('memes-cache').then(cache => {
+        return cache.match(event.request).then(response => {
+          // Cache first, 24小時過期
+          return response || fetch(event.request);
+        });
+      })
+    );
+  }
+});
+
+// Backend: Redis 快取
+const redis = new Redis(process.env.REDIS_URL);
+
+const getCachedMemes = async (date) => {
+  const cacheKey = `memes:${date}`;
+  const cached = await redis.get(cacheKey);
+  
+  if (cached) return JSON.parse(cached);
+  
+  const memes = await generateDailyMemes();
+  await redis.setex(cacheKey, 86400, JSON.stringify(memes)); // 24h
+  return memes;
+};
+```
+
+#### 4. GraphQL 數據查詢
+```graphql
+# 替代 REST API，減少網路請求
+type Query {
+  currentMemes: [Meme!]!
+  userProfile(walletAddress: String!): UserProfile
+  votingStats(memeId: String!): VotingStats
+  leaderboard(period: TimePeriod!): [LeaderboardEntry!]!
+}
+
+type Mutation {
+  vote(input: VoteInput!): VoteResult!
+  sendMessage(input: MessageInput!): Message!
+  mintNFT(memeId: String!): NFTResult!
+}
+
+type Subscription {
+  votingUpdates(memeId: String!): VotingStats!
+  chatMessages: Message!
+  lotteryResults: LotteryResult!
+}
+```
+
+#### 5. 離線支援機制
+```javascript
+// Progressive Web App 離線功能
+const OfflineManager = {
+  // 離線時暫存投票
+  queueVote: (voteData) => {
+    const pending = JSON.parse(localStorage.getItem('pendingVotes') || '[]');
+    pending.push({ ...voteData, timestamp: Date.now() });
+    localStorage.setItem('pendingVotes', JSON.stringify(pending));
+  },
+  
+  // 重新上線時同步
+  syncPendingActions: async () => {
+    const pending = JSON.parse(localStorage.getItem('pendingVotes') || '[]');
+    for (const vote of pending) {
+      try {
+        await api.vote(vote);
+      } catch (error) {
+        console.warn('Sync failed for vote:', vote);
+      }
+    }
+    localStorage.removeItem('pendingVotes');
+  }
+};
+```
+
+#### 6. 企業級監控與錯誤追蹤
+```javascript
+// Sentry 錯誤追蹤
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: process.env.VITE_SENTRY_DSN,
+  integrations: [
+    new Sentry.BrowserTracing(),
+  ],
+  tracesSampleRate: 1.0,
+});
+
+// 自定義錯誤邊界
+const APIErrorBoundary = ({ children }) => {
+  return (
+    <Sentry.ErrorBoundary fallback={ErrorFallback}>
+      {children}
+    </Sentry.ErrorBoundary>
+  );
+};
+
+// Performance 監控
+const trackUserAction = (action, metadata) => {
+  Sentry.addBreadcrumb({
+    message: action,
+    category: 'user-action',
+    data: metadata,
+    level: 'info',
+  });
+};
+```
+
+---
+
 ## 📊 現況分析
 
 ### MVP 已完成
@@ -20,35 +196,47 @@
 
 ## 🛠 技術架構升級
 
-### 1. 後端服務建置
-**目標：從 Local Storage 升級為雲端多用戶系統**
+### 1. Cloud Run 微服務架構
+**目標：從單體後端升級為微服務架構**
 
-- **Express.js API 服務器**
-  - 用戶註冊/認證 API
-  - 投票提交與查詢 API  
-  - 彩票系統 API
-  - 每日梗圖管理 API
+- **投票微服務 (Cloud Run)**
+  - 投票邏輯和驗證
+  - 彩票發放算法
+  - 連續投票獎勵計算
+  - 防止重複投票機制
 
-- **Socket.IO 即時通訊**
-  - 多用戶投票狀態同步
-  - 即時投票統計更新
-  - 在線人數顯示
-  - 投票結果廣播
+- **梗圖微服務 (Cloud Run)**
+  - Gemini API 梗圖生成
+  - Cloud Storage 圖片管理
+  - 圖片壓縮和 CDN 優化
+  - 每日生成排程管理
 
-### 2. 數據庫設計
-**目標：支援多用戶數據永久保存**
+- **用戶微服務 (Cloud Run)**
+  - Firebase Auth 身份驗證
+  - 用戶資料管理
+  - 投票歷史和統計
+  - 成就和排行榜系統
 
-- **PostgreSQL 主數據庫**
-  - 用戶投票記錄表
-  - 彩票發放記錄表  
-  - 每日梗圖資料表
-  - 投票統計快取表
+### 2. GCP 數據層設計
+**目標：高性能多用戶數據管理**
 
-- **Redis 快取層**
-  - 即時投票計數
-  - 用戶 Session 管理
-  - API 請求快取
-  - Socket 連接狀態
+- **Firestore Database**
+  - 即時投票同步 (多用戶)
+  - 用戶投票記錄
+  - 彩票和獎勵數據
+  - 成就和統計數據
+
+- **Cloud Storage + CDN**
+  - AI 生成梗圖存儲
+  - 全球 CDN 加速
+  - 自動圖片優化
+  - 備份和版本控制
+
+- **BigQuery 數據分析**
+  - 用戶行為分析
+  - 投票趨勢分析
+  - 營運決策數據
+  - 自動報表生成
 
 ### 3. AI 整合升級
 **目標：真實的 AI 梗圖生成**
@@ -80,48 +268,49 @@
   - 用戶投票歷史
   - 連續投票成就系統
 
-### 5. 部署與監控
-**目標：穩定的測試環境**
+### 5. GCP 原生部署與監控
+**目標：企業級測試環境**
 
-- **雲端部署**
-  - Frontend: Vercel/Netlify 部署
-  - Backend: Railway/Render 部署
-  - Database: Supabase/PlanetScale
-  - CDN: 圖片存儲與加速
+- **完全 Serverless 部署**
+  - Frontend: Firebase Hosting (全球 CDN)
+  - Backend: Cloud Run (自動擴展)
+  - Database: Firestore (多區域複製)
+  - Storage: Cloud Storage (高可用性)
 
-- **監控系統**
-  - API 響應時間監控
-  - 錯誤日誌收集
-  - 用戶行為分析
-  - 系統負載監控
+- **GCP 原生監控**
+  - Cloud Monitoring: 實時系統指標
+  - Cloud Logging: 結構化日誌收集
+  - Error Reporting: 自動錯誤追蹤
+  - Cloud Trace: API 性能分析
+  - Uptime Checks: 服務可用性監控
 
 ---
 
 ## ⏱ 開發時程規劃
 
-### Week 1: 後端基礎建設
-- Express.js API 服務器搭建
-- PostgreSQL 數據庫設計與建置  
-- 基礎 CRUD API 開發
-- Socket.IO 即時通訊整合
+### Week 1: GCP 微服務建設
+- 投票微服務 (Cloud Run) 開發
+- Firestore 數據模型設計
+- Firebase Auth 身份驗證整合
+- Cloud Storage 梗圖存儲設置
 
-### Week 2: AI 與數據整合
-- Gemini API 梗圖生成整合
-- 排程系統建立 (每日重置/生成)
-- Redis 快取層實作
-- 數據遷移工具開發
+### Week 2: AI 與自動化整合
+- 梗圖微服務 + Gemini API 整合
+- Cloud Scheduler 定時任務設置
+- BigQuery 數據分析管道建立
+- Cloud Monitoring 監控設置
 
-### Week 3: 前端整合優化
-- API 整合取代 Local Storage
-- Socket.IO 前端整合
-- 即時 UI 更新優化
-- 錯誤處理與用戶反饋
+### Week 3: 前端與即時同步
+- Firestore 即時數據同步
+- Firebase Hosting 前端部署
+- 用戶體驗優化 (PWA 支援)
+- 錯誤處理與離線支援
 
-### Week 4: 測試與部署
-- 雲端環境部署
-- 多用戶負載測試
-- Bug 修復與性能優化  
-- 測試用戶邀請與培訓
+### Week 4: 測試與優化
+- Cloud Load Testing 負載測試
+- 多地區部署和 CDN 優化
+- 安全性測試和性能調優
+- Beta 用戶邀請和反饋收集
 
 ---
 
