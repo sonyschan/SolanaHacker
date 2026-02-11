@@ -212,9 +212,9 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
           <div className="flex items-center space-x-3">
             <span className="text-2xl">🎯</span>
             <div>
-              <div className="text-green-200 font-medium">Fair Voting Rewards</div>
+              <div className="text-green-200 font-medium">Fair Voting System</div>
               <div className="text-green-300 text-sm">
-                Random {getTicketRange()} • No bias • Participation bonus!
+                All voters earn {getTicketRange()} • No rarity bias • Equal chances!
               </div>
             </div>
           </div>
@@ -227,7 +227,7 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
         {consecutiveDays >= 4 && (
           <div className="mt-3 pt-3 border-t border-green-700">
             <div className="text-xs text-green-300">
-              🎉 Streak bonus active! Keep voting daily to unlock higher rewards
+              🎉 Streak bonus active! Keep voting daily to unlock higher ticket ranges
             </div>
           </div>
         )}
@@ -366,8 +366,8 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
       {/* Voting Buttons - Following MVP Spec: 3 Rarity Options */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
-          { type: 'common', label: 'Common', icon: '👍', desc: 'Standard quality meme' },
-          { type: 'rare', label: 'Rare', icon: '💎', desc: 'High quality humor' },
+          { type: 'common', label: 'Common', icon: '👍', desc: 'Standard quality' },
+          { type: 'rare', label: 'Rare', icon: '💎', desc: 'Above average humor' },
           { type: 'legendary', label: 'Legendary', icon: '🏆', desc: 'Exceptional creativity' }
         ].map((vote) => (
           <button
@@ -398,12 +398,14 @@ const EnhancedVotingInterface = ({ onVote, userVote, connected, userTickets, con
               }`}>
                 {vote.label}
               </div>
-              <div className="text-white font-bold text-lg mb-1">{getTicketRange()}</div>
               <div className="text-sm text-gray-300 mb-3">{vote.desc}</div>
+              <div className="text-xs text-gray-400 mb-1">
+                Vote count: {currentMeme.currentVotes[vote.type]}
+              </div>
               
               {connected && userVote === null && (
-                <div className="text-xs text-gray-400">
-                  Click to cast vote
+                <div className="text-xs text-blue-300 font-medium">
+                  Click to vote
                 </div>
               )}
             </div>
