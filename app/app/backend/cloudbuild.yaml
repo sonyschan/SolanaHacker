@@ -1,0 +1,64 @@
+# Google Cloud Build 配置文件
+# 用於自動化部署到 Cloud Run
+
+steps:
+  # 構建 Docker 映像
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/memeforge-api:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/memeforge-api:latest'
+      - '.'
+    dir: 'app/backend'
+
+  # 推送映像到 Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/memeforge-api:$BUILD_ID'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/memeforge-api:latest'
+
+  # 部署到 Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'memeforge-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/memeforge-api:$BUILD_ID'
+      - '--region'
+      - 'asia-southeast1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--concurrency'
+      - '100'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID'
+
+# 建構選項
+options:
+  machineType: 'E2_HIGHCPU_8'
+  
+# 超時設定 (10 分鐘)
+timeout: '600s'
+
+# 替代變數
+substitutions:
+  _SERVICE_NAME: 'memeforge-api'
+  _REGION: 'asia-southeast1'

@@ -741,6 +741,7 @@ ${recentMemory.slice(-1500)}
 
   /**
    * Normalize command paths - fix cd commands that use wrong relative paths
+   * Also rewrite dangerous process-killing commands to be safer
    */
   normalizeCommand(command) {
     // Fix common cd mistakes when cwd is already /app
@@ -755,8 +756,24 @@ ${recentMemory.slice(-1500)}
     // Handle "cd app/..." when already in app/
     fixed = fixed.replace(/cd\s+app\//g, 'cd ');
 
+    // v4.3: Rewrite pkill commands to exclude main.js (Agent's own process)
+    // Agent often tries to kill node processes for backend restart, which kills itself
+    // Rewrite: pkill -f "node.*server" -> pkill -f "node.*server" --ignore-args "main.js"
+    // Better: Use pgrep + grep + xargs to exclude main.js
+    if (/pkill\s+(-f\s+)?["']?node/i.test(fixed)) {
+      console.log(`[ChatMode] WARNING: Blocking pkill node command: "${fixed}"`);
+      // Instead of running pkill, provide instructions
+      fixed = 'echo "ERROR: pkill node commands are blocked. Use: lsof -i :3001 | grep node | awk \'{print $2}\' | xargs kill -9 to kill backend only"';
+    }
+
+    // Also block killall node
+    if (/killall\s+node/i.test(fixed)) {
+      console.log(`[ChatMode] WARNING: Blocking killall node command: "${fixed}"`);
+      fixed = 'echo "ERROR: killall node is blocked. Use: lsof -i :3001 | grep node | awk \'{print $2}\' | xargs kill -9 to kill backend only"';
+    }
+
     if (fixed !== command) {
-      console.log(`[ChatMode] Command path fix: "${command}" -> "${fixed}"`);
+      console.log(`[ChatMode] Command fix: "${command}" -> "${fixed}"`);
     }
 
     return fixed;
@@ -1035,7 +1052,9 @@ ${recentMemory.slice(-1500)}
       // --- Shell ---
       if (toolName === 'run_command') {
         // Dangerous command blocklist (same as Dev Mode)
-        const DANGEROUS_CMD = /rm\s+-rf\s+\/|mkfs|dd\s+if=|shutdown|reboot|:()\s*\{|wget.*\|\s*sh|curl.*\|\s*sh|pkill\s+(-f\s+)?node|killall\s+node|pkill\s+(-f\s+)?agent|kill\s+-9\s+\$\$|kill\s+-9\s+\$PPID/i;
+        // v4.3: Updated to catch more pkill patterns that could kill the agent
+        // pkill.*node matches: pkill node, pkill -f node, pkill -f "node.*server", etc.
+        const DANGEROUS_CMD = /rm\s+-rf\s+\/|mkfs|dd\s+if=|shutdown|reboot|:()\s*\{|wget.*\|\s*sh|curl.*\|\s*sh|pkill.*node|killall\s+node|pkill\s+(-f\s+)?agent|kill\s+-9\s+\$\$|kill\s+-9\s+\$PPID/i;
 
         if (DANGEROUS_CMD.test(input.command)) {
           return `Error: Dangerous command blocked: ${input.command}`;

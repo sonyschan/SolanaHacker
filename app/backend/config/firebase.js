@@ -72,7 +72,13 @@ const collections = {
   USERS: 'users',
   LOTTERY_DRAWS: 'lottery_draws',
   USER_TICKETS: 'user_tickets',
-  DAILY_STATS: 'daily_stats'
+  DAILY_STATS: 'daily_stats',
+  // New collections for automation
+  VOTING_PERIODS: 'voting_periods',
+  NFTS: 'nfts',
+  SCHEDULER_LOGS: 'scheduler_logs',
+  VOTING_PROGRESS: 'voting_progress',
+  SCHEDULER_STATUS: 'scheduler_status'
 };
 
 /**
@@ -97,11 +103,28 @@ const dbUtils = {
   },
 
   /**
+   * Update specific fields in document
+   */
+  async updateDocument(collection, docId, data) {
+    const docRef = getFirestore().collection(collection).doc(docId);
+    await docRef.update(data);
+    return docId;
+  },
+
+  /**
    * Add document with auto-generated ID
    */
   async addDocument(collection, data) {
     const docRef = await getFirestore().collection(collection).add(data);
     return docRef.id;
+  },
+
+  /**
+   * Delete document
+   */
+  async deleteDocument(collection, docId) {
+    await getFirestore().collection(collection).doc(docId).delete();
+    return true;
   },
 
   /**
@@ -150,6 +173,37 @@ const dbUtils = {
    */
   getBatch() {
     return getFirestore().batch();
+  },
+
+  /**
+   * Get subcollection
+   */
+  async getSubcollection(parentCollection, parentDocId, subcollection) {
+    const snapshot = await getFirestore()
+      .collection(parentCollection)
+      .doc(parentDocId)
+      .collection(subcollection)
+      .get();
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  },
+
+  /**
+   * Query with orderBy and limit
+   */
+  async queryWithOrderAndLimit(collection, orderField, direction = 'desc', limit = 10, filters = []) {
+    let query = getFirestore().collection(collection);
+    
+    // Apply filters first
+    filters.forEach(filter => {
+      query = query.where(filter.field, filter.operator, filter.value);
+    });
+
+    // Apply ordering and limit
+    query = query.orderBy(orderField, direction).limit(limit);
+
+    const snapshot = await query.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 };
 

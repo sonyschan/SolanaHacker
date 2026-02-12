@@ -1,7 +1,7 @@
 /**
  * Telegram Bridge
  * Bi-directional communication with human operator
- * Supports: #must, #idea, #set_config, #clear_message, #reload_prompt, #approve, /status, /stop
+ * Supports: #must, #idea, #set_config, #clear_message, #reload_prompt, #approve, /status, /restart
  */
 
 import TelegramBot from 'node-telegram-bot-api';
@@ -379,10 +379,10 @@ export class TelegramBridge {
         return;
       }
 
-      // === /stop ===
-      if (text === '/stop') {
-        this.mustQueue.push({ type: 'stop', timestamp: Date.now() });
-        this.bot.sendMessage(this.chatId, '⏹️ 收到停止指令...');
+      // === /restart ===
+      if (text === '/restart') {
+        this.mustQueue.push({ type: 'restart', timestamp: Date.now() });
+        this.bot.sendMessage(this.chatId, '🔄 收到重啟指令，Agent 將在 3 秒後重啟...');
         return;
       }
 

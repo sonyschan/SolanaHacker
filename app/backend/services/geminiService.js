@@ -7,9 +7,9 @@ class GeminiService {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     // Text model for meme prompt generation (use the same model as image)
     this.textModel = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    // Image model using agent skill
+    // Image model using agent skill - NFT quality for premium memes
     this.imageModel = this.genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-image",
+      model: "gemini-3-pro-image-preview",
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
@@ -151,7 +151,7 @@ Technical specs:
           },
           metadata: {
             originalNews: newsItem.title || newsItem,
-            aiModel: 'gemini-2.5-flash-image',
+            aiModel: 'gemini-3-pro-image-preview',
             imageGenerated: imageData.success,
             fileSize: imageData.fileSize || 0
           },

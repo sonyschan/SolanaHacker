@@ -498,8 +498,11 @@ Begin by checking your current task and memory. If there's pending work, continu
           continue;
         }
 
-        // Stop
-        if (cmd.type === 'stop') {
+        // Restart (systemd will auto-restart the service)
+        if (cmd.type === 'restart') {
+          console.log('[Agent] Restart command received, exiting for systemd restart...');
+          await this.telegram.sendDevlog('🔄 Agent 正在重啟...');
+          setTimeout(() => process.exit(0), 2000);
           this.isRunning = false;
           return;
         }
@@ -1013,7 +1016,9 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
               return false;
             }
           }
-          if (cmd.type === 'stop') {
+          if (cmd.type === 'restart') {
+            console.log('[Agent] Restart command received');
+            setTimeout(() => process.exit(0), 2000);
             this.isRunning = false;
             return false;
           }
@@ -1348,9 +1353,17 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
             console.error(`[Agent] Tool error (${toolName}):`, err.message);
           }
 
-          // v3.1: Track complete_task calls
+          // v3.1: Track complete_task calls and send summary to Telegram
           if (toolName === 'complete_task' && !result.startsWith('Error')) {
             taskCompleted = true;
+            // v4.2: Send summary to Telegram
+            const summary = block.input?.summary;
+            if (summary) {
+              await this.telegram.sendDevlog(
+                `✅ <b>任務完成！</b>\n\n` +
+                `<b>摘要:</b>\n${summary.slice(0, 500)}${summary.length > 500 ? '...' : ''}`
+              );
+            }
           }
 
           // Mask any secrets in tool results
@@ -1557,9 +1570,11 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
     const parts = [];
 
     for (const cmd of commands) {
-      if (cmd.type === 'stop') {
+      if (cmd.type === 'restart') {
+        console.log('[Agent] Restart command received');
+        await this.telegram.sendDevlog('🔄 Agent 正在重啟...');
+        setTimeout(() => process.exit(0), 2000);
         this.isRunning = false;
-        console.log('[Agent] Stop command received');
         return;
       }
 
@@ -2114,8 +2129,10 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
           continue;
         }
 
-        if (cmd.type === 'stop') {
-          console.log('[Agent] Stop command received in standby mode');
+        if (cmd.type === 'restart') {
+          console.log('[Agent] Restart command received in standby mode');
+          await this.telegram.sendDevlog('🔄 Agent 正在重啟...');
+          setTimeout(() => process.exit(0), 2000);
           this.isRunning = false;
           this.inStandby = false;
           return;
