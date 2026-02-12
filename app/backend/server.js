@@ -19,18 +19,21 @@ const schedulerService = require('./services/schedulerService');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(helmet());
-app.use(compression());
+// Middleware - CORS must be first for preflight
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://165.22.136.40:5173',  // 添加公網 IP
+    'http://165.22.136.40:5173',
     'https://solana-hacker.vercel.app',
     'https://solanahacker.vercel.app'
   ],
   credentials: true
 }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'unsafe-none' }
+}));
+app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
