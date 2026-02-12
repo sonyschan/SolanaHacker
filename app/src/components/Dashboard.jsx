@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
+import MemeModal from './MemeModal';
 
 const Dashboard = ({ 
   userTickets, 
@@ -14,6 +15,8 @@ const Dashboard = ({
   const [votingPhase, setVotingPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [hasVotedToday, setHasVotedToday] = useState(false);
+  const [modalMeme, setModalMeme] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
@@ -193,10 +196,24 @@ const Dashboard = ({
                     <img 
                       src={meme.imageUrl} 
                       alt={meme.title}
-                      className="w-full h-64 object-cover rounded-lg mb-4 group-hover:scale-105 transition-transform"
+                      className="w-full h-64 object-cover rounded-lg mb-4 group-hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => {
+                        setModalMeme(meme);
+                        setIsModalOpen(true);
+                      }}
+                      title="Click to enlarge"
                     />
                   ) : (
-                    <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">{meme.image}</div>
+                    <div 
+                      className="text-6xl mb-4 group-hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => {
+                        setModalMeme(meme);
+                        setIsModalOpen(true);
+                      }}
+                      title="Click to enlarge"
+                    >
+                      {meme.image}
+                    </div>
                   )}
                   <h4 className="font-bold mb-2">{meme.title}</h4>
                   <div className="space-y-2 mb-4">
@@ -558,6 +575,16 @@ const Dashboard = ({
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
         {renderTabContent()}
       </main>
+
+      {/* Meme Modal */}
+      <MemeModal 
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setModalMeme(null);
+        }}
+        meme={modalMeme}
+      />
     </div>
   );
 };

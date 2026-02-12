@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import memeService from '../services/memeService';
+import MemeModal from './MemeModal';
 
 const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
@@ -11,6 +12,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   const [dailyMemes, setDailyMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalMeme, setModalMeme] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch today's memes on component mount
   useEffect(() => {
@@ -168,7 +171,12 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
                   <img
                     src={meme.imageUrl || meme.image}
                     alt={meme.title}
-                    className="w-full h-64 object-cover"
+                    className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => {
+                      setModalMeme(meme);
+                      setIsModalOpen(true);
+                    }}
+                    title="Click to enlarge"
                     onError={(e) => {
                       // Fallback image if AI-generated image fails to load
                       e.target.src = `https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=${encodeURIComponent(meme.title)}`;
@@ -237,7 +245,12 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
                 <img
                   src={selectedMeme.imageUrl || selectedMeme.image}
                   alt={selectedMeme.title}
-                  className="w-full h-64 object-cover"
+                  className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => {
+                    setModalMeme(selectedMeme);
+                    setIsModalOpen(true);
+                  }}
+                  title="Click to enlarge"
                   onError={(e) => {
                     e.target.src = `https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=${encodeURIComponent(selectedMeme.title)}`;
                   }}
@@ -328,6 +341,16 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
           </div>
         </div>
       )}
+
+      {/* Meme Modal */}
+      <MemeModal 
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setModalMeme(null);
+        }}
+        meme={modalMeme}
+      />
     </div>
   );
 };
