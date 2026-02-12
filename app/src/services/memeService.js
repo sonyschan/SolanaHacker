@@ -148,7 +148,7 @@ class MemeService {
         title: 'AI Dreams of Electric Sheep',
         description: 'When AI tries to understand crypto volatility',
         imageUrl: '/generated/test-meme-flash.png', // Use our test image
-        image: '/generated/test-meme-flash.png', // Also set image property
+        image: '🤖💭', // Emoji fallback
         prompt: 'A confused robot looking at crypto charts',
         newsSource: 'Mock Crypto News',
         generatedAt: new Date().toISOString(),

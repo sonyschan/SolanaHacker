@@ -79,22 +79,16 @@ gcloud run deploy memeforge-api \
 
 ### 3. 前端環境變數
 
-✅ **已完成** - `app/.env.local` 已包含完整配置:
+建立 `app/.env.local`:
 ```
 VITE_API_BASE_URL=https://memeforge-api-836651762884.asia-southeast1.run.app
 VITE_FIREBASE_PROJECT_ID=web3ai-469609
-VITE_FIREBASE_API_KEY=已配置 ✅
-VITE_FIREBASE_AUTH_DOMAIN=已配置 ✅
-VITE_FIREBASE_STORAGE_BUCKET=已配置 ✅
-VITE_FIREBASE_MESSAGING_SENDER_ID=已配置 ✅
-VITE_FIREBASE_APP_ID=已配置 ✅
+VITE_FIREBASE_API_KEY=需要從 Firebase Console 取得
 ```
 
 ### 4. Vercel 部署
 
-✅ **已完成** - H2Crypto 已手動 import GitHub repo，部署於 `solana-hacker.vercel.app`
-
-Agent 需建立 `vercel.json` (API 代理配置):
+在專案根目錄建立 `vercel.json`:
 ```json
 {
   "rewrites": [
@@ -170,21 +164,9 @@ gcloud scheduler jobs create http weekly-lottery \
 
 ---
 
-## ✅ 環境配置狀態總結
+## ⚠️ 注意事項
 
-### H2Crypto 已手動完成
-1. **✅ Firebase Console 設置** - 已建立 Web App，前端 API Key 已配置到 `app/.env.local`
-2. **✅ Vercel 部署** - 已手動 import GitHub repo，`solana-hacker.vercel.app` 運行中
-3. **✅ 前端環境變數** - `app/.env.local` 已包含完整 Firebase 配置和 API Base URL
-
-### Agent 待完成任務
-1. **⏳ Cloud Run 後端服務** - 建立完整的 Express API (`app/backend/`)
-2. **⏳ Cloud Scheduler 定時任務** - 每日生成梗圖 + 週日開獎
-3. **⏳ Firestore 數據層整合** - 投票、用戶、梗圖存取邏輯
-4. **⏳ vercel.json 配置** - API 代理設定
-
-## ⚠️ 重要提醒
-
-- **Secret 管理**: 後端環境變數通過 Cloud Run 設置，不要 commit 到 git
-- **MVP 就緒**: 所有必要的基礎設施已完成，可立即開始後端開發
+1. **Firebase Console 設置**: 需要 H2Crypto 手動在 Firebase Console 建立 Web App 來取得 API Key
+2. **Vercel 部署**: 需要 H2Crypto 手動 import GitHub repo 到 Vercel
+3. **Secret 管理**: 後端環境變數通過 Cloud Run 設置，不要 commit 到 git
 
