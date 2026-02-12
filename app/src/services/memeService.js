@@ -184,6 +184,7 @@ class MemeService {
 
   /**
    * 後備梗圖 (所有連線都失敗時使用)
+   * 不再使用外部 placeholder，由前端 CSS placeholder 處理
    */
   getFallbackMemes() {
     return [
@@ -191,37 +192,40 @@ class MemeService {
         id: 'fallback-1',
         title: 'AI Dreams of Electric Sheep',
         description: 'When AI tries to understand crypto volatility',
-        imageUrl: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=AI+Dreams', 
+        imageUrl: null, // 讓前端處理 placeholder
         prompt: 'A confused robot looking at crypto charts',
         newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active',
-        votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } }
+        votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } },
+        metadata: { fallback: true, useCSSpplaceholder: true, icon: '🤖' }
       },
       {
         id: 'fallback-2', 
         title: 'Diamond Hands Forever',
         description: 'HODLers when market crashes',
-        imageUrl: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Diamond+Hands',
+        imageUrl: null, // 讓前端處理 placeholder
         prompt: 'Diamond hands meme with crypto theme',
         newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active', 
-        votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } }
+        votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } },
+        metadata: { fallback: true, useCSSpplaceholder: true, icon: '💎' }
       },
       {
         id: 'fallback-3',
         title: 'This Is Fine DeFi',
         description: 'DeFi users when gas fees are $200+',
-        imageUrl: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=This+Is+Fine',
+        imageUrl: null, // 讓前端處理 placeholder
         prompt: 'This is fine meme but with DeFi theme',
         newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active',
-        votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } }
+        votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } },
+        metadata: { fallback: true, useCSSpplaceholder: true, icon: '🔥' }
       }
     ];
   }
