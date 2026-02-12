@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 const fs = require('fs');
+const storageService = require('./storageService');
 
 class GeminiService {
   constructor() {
@@ -85,25 +86,66 @@ Technical specs:
         throw new Error('No image in Gemini response');
       }
 
-      // Save the image to public/generated folder
-      const outputDir = path.join(__dirname, '../public/generated');
-      fs.mkdirSync(outputDir, { recursive: true });
+      // Environment-based storage strategy
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isVercel = process.env.VERCEL === '1';
+      const useGCS = process.env.USE_GCS === 'true';
+      const shouldUseCloudStorage = isProduction || isVercel || useGCS;
 
-      const filename = `meme-${Date.now()}.png`;
-      const outputPath = path.join(outputDir, filename);
       const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      fs.writeFileSync(outputPath, imageBuffer);
+      const filename = storageService.generateFilename('meme', 'png');
 
-      console.log(`✅ Image generated and saved: ${filename}`);
+      let imageUrl, localPath, storageLocation;
+
+      if (shouldUseCloudStorage) {
+        // Production/Vercel: Store in Google Cloud Storage
+        try {
+          const uploadResult = await storageService.uploadImage(imageBuffer, filename, {
+            contentType: 'image/png',
+            aiModel: 'gemini-3-pro-image-preview',
+            generatedAt: new Date().toISOString()
+          });
+          
+          imageUrl = uploadResult.url;
+          storageLocation = 'gcs';
+          console.log(`✅ Image uploaded to GCS: ${filename}`);
+          
+        } catch (gcsError) {
+          console.error('GCS upload failed, falling back to local storage:', gcsError);
+          // Fallback to local storage if GCS fails
+          const outputDir = path.join(__dirname, '../public/generated');
+          fs.mkdirSync(outputDir, { recursive: true });
+          localPath = path.join(outputDir, filename);
+          fs.writeFileSync(localPath, imageBuffer);
+          imageUrl = `/generated/${filename}`;
+          storageLocation = 'local-fallback';
+        }
+        
+      } else {
+        // Development: Store locally for fast iteration
+        const outputDir = path.join(__dirname, '../public/generated');
+        fs.mkdirSync(outputDir, { recursive: true });
+        localPath = path.join(outputDir, filename);
+        fs.writeFileSync(localPath, imageBuffer);
+        imageUrl = `/generated/${filename}`;
+        storageLocation = 'local';
+        console.log(`✅ Image saved locally: ${filename}`);
+      }
       
       return {
         success: true,
         imagePrompt,
         imageData: imagePart.inlineData.data,
-        fallbackUrl: `/generated/${filename}`,
-        localPath: outputPath,
+        imageUrl,
+        localPath,
         fileSize: imageBuffer.length,
-        developmentMode: false
+        storageLocation,
+        environment: {
+          isProduction,
+          isVercel,
+          useGCS,
+          shouldUseCloudStorage
+        }
       };
       
     } catch (error) {
@@ -140,7 +182,7 @@ Technical specs:
           title: title || `AI Meme #${i + 1}`,
           description: memePrompt.substring(0, 100) + '...',
           prompt: memePrompt,
-          imageUrl: imageData.fallbackUrl,
+          imageUrl: imageData.imageUrl || imageData.fallbackUrl,
           newsSource: newsItem.title || 'Crypto News',
           generatedAt: new Date().toISOString(),
           type: 'daily',
@@ -153,7 +195,9 @@ Technical specs:
             originalNews: newsItem.title || newsItem,
             aiModel: 'gemini-3-pro-image-preview',
             imageGenerated: imageData.success,
-            fileSize: imageData.fileSize || 0
+            fileSize: imageData.fileSize || 0,
+            storageLocation: imageData.storageLocation || 'unknown',
+            environment: imageData.environment || {}
           },
           rarity: 'unknown'
         });
