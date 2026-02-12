@@ -30,12 +30,13 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           console.log('🖼️ First meme:', result.memes[0]);
           setDailyMemes(result.memes);
           
-          // Initialize votes from Firebase data (handle 0 properly)
+          // Initialize votes from Firebase data (handle 0 properly) - v2 fix
           const newVotes = {};
           const newRarityVotes = { common: 0, rare: 0, legendary: 0 };
           result.memes.forEach((meme) => {
             const selectionYes = meme.votes?.selection?.yes;
             newVotes[meme.id] = typeof selectionYes === 'number' ? selectionYes : 0;
+            console.log(`🗳️ Vote init: ${meme.id} = ${newVotes[meme.id]} (from API: ${selectionYes})`);
             // Aggregate rarity votes from all memes for display
             if (meme.votes?.rarity) {
               newRarityVotes.common += meme.votes.rarity.common || 0;

@@ -14,10 +14,15 @@ function App() {
   const [votingStreak, setVotingStreak] = useState(0);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
-  // Fetch user data from API when wallet connects
+  // Fetch user data from API when wallet connects - v2 fix
   useEffect(() => {
+    console.log('🔍 App useEffect: connected=', connected, 'publicKey=', publicKey?.toBase58());
+
     const fetchUserData = async () => {
-      if (!connected || !publicKey) return;
+      if (!connected || !publicKey) {
+        console.log('⏭️ Skipping user fetch: not connected');
+        return;
+      }
 
       const walletAddress = publicKey.toBase58();
       setUserDataLoading(true);
