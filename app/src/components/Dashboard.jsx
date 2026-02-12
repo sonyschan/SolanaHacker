@@ -135,7 +135,7 @@ const Dashboard = ({
       case 'tickets':
         return <TicketsTabContent />;
       case 'market':
-        return <MarketTabContent />;
+        return (<div className="text-center py-20"><div className="text-6xl mb-4">🛒</div><h2 className="text-2xl font-bold mb-2">NFT Market Coming Soon</h2><p className="text-gray-400">NFT minting and auctions will be available in Beta</p></div>);
       default:
         return <ForgeTab walletAddress={walletAddress} 
           userTickets={userTickets}
@@ -160,7 +160,7 @@ const Dashboard = ({
       <header className="relative z-10 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2 md:space-x-4">
+            <button onClick={() => setActiveTab('forge')} className="flex items-center space-x-2 md:space-x-4 cursor-pointer hover:opacity-80 transition-opacity">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
                 <span className="text-xl md:text-2xl font-bold">M</span>
               </div>
@@ -175,7 +175,7 @@ const Dashboard = ({
                 </div>
                 <div className="hidden md:block text-xs text-gray-500">AI Meme Democracy Platform</div>
               </div>
-            </div>
+            </button>
 
             {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
             <div className="flex items-center space-x-2 md:space-x-6">
