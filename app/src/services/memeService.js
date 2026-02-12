@@ -1,46 +1,54 @@
 /**
- * MemeForge Frontend API Service
- * 前端 API 呼叫服務 - 連接到 GCP Gemini 3 Pro Image 後端
+ * MemeForge Meme Service
+ * 
+ * 架構：
+ * - READ (即時)：Firebase 直連 (即時同步)
+ * - WRITE：Cloud Run API (驗證 + 防刷)
+ * - AI 生成：Cloud Run API (Gemini)
  */
+import { getTodayMemes as getMemesFromFirebase } from './firebase';
 
-// 優先使用 GCP 後端，回退到本地
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://165.22.136.40:3001';
+// Cloud Run API for write operations
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
 class MemeService {
   
   /**
-   * Test backend connections
+   * 獲取今日梗圖
+   * 優先使用 Firebase 直連，失敗時 fallback 到 Cloud Run API
    */
-  async testConnections() {
+  async getTodaysMemes() {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('🔥 嘗試 Firebase 直連讀取梗圖...');
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const memes = await getMemesFromFirebase();
+      
+      if (memes && memes.length > 0) {
+        console.log('✅ Firebase 直連成功，獲取', memes.length, '個梗圖');
+        return {
+          success: true,
+          memes,
+          source: 'firebase_direct'
+        };
       }
       
-      return await response.json();
+      // Firebase 沒有數據，嘗試 Cloud Run API
+      console.log('⚠️ Firebase 無數據，嘗試 Cloud Run API...');
+      return await this.getMemesFromAPI();
+      
     } catch (error) {
-      console.error('Backend connection test failed:', error);
-      return {
-        success: false,
-        error: error.message,
-        fallback: true
-      };
+      console.error('❌ Firebase 讀取失敗:', error.message);
+      console.log('🔄 Fallback 到 Cloud Run API...');
+      return await this.getMemesFromAPI();
     }
   }
 
   /**
-   * Get today's memes - 直接從 GCP Gemini 3 Pro Image 後端獲取
+   * 從 Cloud Run API 獲取梗圖 (fallback)
    */
-  async getTodaysMemes() {
+  async getMemesFromAPI() {
     try {
-      console.log('🌐 連接到 GCP Gemini 3 Pro Image 後端:', API_BASE_URL);
+      console.log('🌐 連接到 Cloud Run API:', API_BASE_URL);
       
       const response = await fetch(`${API_BASE_URL}/api/memes/today`, {
         method: 'GET',
@@ -54,27 +62,69 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ 成功獲取 Gemini 3 Pro 生成的梗圖:', result);
+      console.log('✅ Cloud Run API 成功');
       
-      return result;
+      return {
+        ...result,
+        source: 'cloud_run_api'
+      };
     } catch (error) {
-      console.error('❌ 獲取 Gemini 3 梗圖失敗:', error);
-      console.log('🔄 使用後備梗圖...');
+      console.error('❌ Cloud Run API 失敗:', error);
+      console.log('🔄 使用本地後備梗圖...');
       return {
         success: false,
         error: error.message,
         memes: this.getFallbackMemes(),
+        source: 'fallback',
         fallback: true
       };
     }
   }
 
   /**
-   * Generate daily memes - 調用 GCP Gemini 3 Pro Image 生成
+   * 提交投票 (必須走 Cloud Run API 進行驗證)
+   */
+  async submitVote(memeId, voteType, choice, walletAddress) {
+    try {
+      console.log('🗳️ 提交投票到 Cloud Run API...');
+      
+      const response = await fetch(`${API_BASE_URL}/api/voting/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          memeId,
+          voteType,
+          choice,
+          walletAddress
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ 投票成功:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ 投票失敗:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 生成每日梗圖 (Cloud Run API + Gemini)
    */
   async generateDailyMemes() {
     try {
-      console.log('📅 呼叫 GCP 生成每日梗圖...');
+      console.log('🎨 呼叫 Cloud Run 生成每日梗圖...');
       
       const response = await fetch(`${API_BASE_URL}/api/memes/generate-daily`, {
         method: 'POST',
@@ -82,7 +132,7 @@ class MemeService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          count: 3  // Generate 3 memes per day
+          count: 3
         })
       });
       
@@ -91,53 +141,49 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ Gemini 3 Pro 每日梗圖已生成:', result);
+      console.log('✅ 梗圖生成成功:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ Gemini 3 Pro 梗圖生成失敗:', error);
+      console.error('❌ 梗圖生成失敗:', error);
       return {
         success: false,
-        error: error.message,
-        memes: this.getFallbackMemes()
+        error: error.message
       };
     }
   }
 
   /**
-   * Generate a single custom meme
+   * 測試連線
    */
-  async generateMeme(prompt, theme = 'crypto') {
+  async testConnections() {
+    const results = {
+      firebase: false,
+      cloudRun: false
+    };
+
+    // Test Firebase
     try {
-      const response = await fetch(`${API_BASE_URL}/api/memes/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          theme,
-          style: 'funny'
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Meme generation failed:', error);
-      return {
-        success: false,
-        error: error.message,
-        meme: null
-      };
+      const memes = await getMemesFromFirebase();
+      results.firebase = true;
+      results.firebaseMemeCount = memes.length;
+    } catch (e) {
+      results.firebaseError = e.message;
     }
+
+    // Test Cloud Run
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      results.cloudRun = response.ok;
+    } catch (e) {
+      results.cloudRunError = e.message;
+    }
+
+    return results;
   }
 
   /**
-   * Get fallback memes when backend is not available
+   * 後備梗圖 (所有連線都失敗時使用)
    */
   getFallbackMemes() {
     return [
@@ -146,66 +192,40 @@ class MemeService {
         title: 'AI Dreams of Electric Sheep',
         description: 'When AI tries to understand crypto volatility',
         imageUrl: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=AI+Dreams', 
-        image: '🤖💭', // Emoji fallback
         prompt: 'A confused robot looking at crypto charts',
-        newsSource: 'Mock Crypto News',
+        newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active',
-        votes: {
-          selection: { yes: 89, no: 23 },
-          rarity: { common: 45, rare: 67, legendary: 123 }
-        },
-        metadata: {
-          fallback: true,
-          note: 'Backend connection failed - using fallback data'
-        }
+        votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } }
       },
       {
         id: 'fallback-2', 
         title: 'Diamond Hands Forever',
-        description: 'HODLers when market crashes but they keep buying',
+        description: 'HODLers when market crashes',
         imageUrl: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Diamond+Hands',
-        image: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Diamond+Hands',
         prompt: 'Diamond hands meme with crypto theme',
-        newsSource: 'Mock DeFi News',
+        newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active', 
-        votes: {
-          selection: { yes: 134, no: 45 },
-          rarity: { common: 67, rare: 89, legendary: 178 }
-        },
-        metadata: {
-          fallback: true,
-          note: 'Backend connection failed - using fallback data'
-        }
+        votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } }
       },
       {
         id: 'fallback-3',
         title: 'This Is Fine DeFi',
         description: 'DeFi users when gas fees are $200+',
         imageUrl: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=This+Is+Fine',
-        image: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=This+Is+Fine',
         prompt: 'This is fine meme but with DeFi theme',
-        newsSource: 'Mock Solana News',
+        newsSource: 'Fallback Data',
         generatedAt: new Date().toISOString(),
         type: 'fallback',
         status: 'active',
-        votes: {
-          selection: { yes: 98, no: 67 },
-          rarity: { common: 56, rare: 78, legendary: 134 }
-        },
-        metadata: {
-          fallback: true,
-          note: 'Backend connection failed - using fallback data'
-        }
+        votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } }
       }
     ];
   }
 }
 
-// Create singleton instance
 const memeService = new MemeService();
-
 export default memeService;

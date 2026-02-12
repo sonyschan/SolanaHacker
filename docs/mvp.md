@@ -102,9 +102,11 @@ interface MemesResponse {
 }
 ```
 
-#### 3. Firestore 即時同步
+#### 3. Firestore 即時同步 📋 **Beta 階段功能**
 ```javascript
-// Frontend 即時監聽投票統計
+// ⚠️ 此功能已移至 Beta 階段 - 超出 MVP 範圍
+
+// 【Beta 實作】Frontend 即時監聽投票統計
 import { onSnapshot, doc } from 'firebase/firestore';
 
 const useVotingStats = (memeId) => {
@@ -121,12 +123,15 @@ const useVotingStats = (memeId) => {
   return stats;
 };
 
-// 多用戶即時更新
+// 【Beta 實作】多用戶即時更新體驗
 const VotingInterface = () => {
   const stats = useVotingStats(currentMeme.id);
-  // UI 自動同步其他用戶的投票
+  // UI 自動同步其他用戶的投票變化
+  // 創造「和很多人一起玩遊戲」的社群體驗
 };
 ```
+
+**MVP 替代方案**: 用戶投票後手動刷新或定期 API 輪詢更新統計
 
 #### 4. 錯誤處理與重試機制
 ```javascript
@@ -727,3 +732,104 @@ const EnhancedVotingInterface = () => {
 - [ ] 時區處理 (UTC)
 - [ ] 組件測試覆蓋
 - [ ] 性能優化
+
+---
+
+## 🏗️ 前後端架構 (2026-02-12 實作)
+
+### 讀寫分離架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      前端 (React)                       │
+├─────────────────────────────────────────────────────────┤
+│  READ 操作                    │   WRITE 操作            │
+│  ────────────                 │   ────────────          │
+│  Firebase SDK 直連 [Beta]     │   Cloud Run API [MVP]   │
+│  ↓                            │   ↓                     │
+│  • subscribeTodayMemes()      │   • submitVote() ✅     │
+│  • subscribeVoteStats() [Beta]│   • generateDailyMemes()✅│
+│  • subscribeUserData()        │                         │
+│  ↓                            │   ↓                     │
+│  即時同步 (onSnapshot) [Beta] │   驗證 + 防刷 ✅        │
+└─────────────────────────────────────────────────────────┘
+          │                              │
+          ▼                              ▼
+┌─────────────────────┐      ┌─────────────────────────────┐
+│     Firestore       │◀────▶│        Cloud Run            │
+│  (即時資料庫)       │      │  (API Gateway + 驗證邏輯)   │
+│                     │      │                             │
+│  Collections:       │      │  防刷機制:                  │
+│  • memes            │      │  • 錢包簽名驗證             │
+│  • votes            │      │  • 重複投票檢查             │
+│  • voteStats        │      │  • 頻率限制 (Rate Limit)    │
+│  • users            │      │  • IP 限制                  │
+│  • tickets          │      │                             │
+└─────────────────────┘      └─────────────────────────────┘
+                                        │
+                                        ▼
+                             ┌─────────────────────────┐
+                             │    Cloud Storage        │
+                             │  (梗圖圖片儲存)         │
+                             │  memes/{date}/{id}.png  │
+                             └─────────────────────────┘
+```
+
+### 為什麼這樣設計？
+
+| 操作類型 | 通道 | 原因 |
+|---------|------|------|
+| **讀取梗圖** | Firebase 直連 | 即時同步、低延遲、自動更新 |
+| **讀取投票統計** | Firebase 直連 | 多用戶即時看到投票變化 |
+| **提交投票** | Cloud Run API | 需要驗證錢包簽名、防止重複投票 |
+| **生成梗圖** | Cloud Run API | 需要 Gemini API Key，不能暴露給前端 |
+
+### 防刷機制詳解
+
+```javascript
+// Cloud Run - 投票驗證邏輯
+app.post('/api/vote', async (req, res) => {
+  const { memeId, vote, walletAddress, signature, timestamp } = req.body;
+
+  // 1. 驗證錢包簽名 - 證明投票者真的擁有這個錢包
+  const isValidSignature = await verifyWalletSignature(walletAddress, signature, timestamp);
+  if (!isValidSignature) return res.status(401).json({ error: 'Invalid signature' });
+
+  // 2. 防重複投票 - 檢查這個錢包是否已經投過這個 meme
+  const existingVote = await db.collection('votes')
+    .where('memeId', '==', memeId)
+    .where('walletAddress', '==', walletAddress)
+    .get();
+  if (!existingVote.empty) return res.status(400).json({ error: 'Already voted' });
+
+  // 3. 頻率限制 - 每個錢包每分鐘最多 5 票
+  const recentVotes = await getRecentVotesCount(walletAddress, 60);
+  if (recentVotes >= 5) return res.status(429).json({ error: 'Rate limited' });
+
+  // 4. 所有驗證通過，寫入 Firebase
+  await db.collection('votes').add({ memeId, vote, walletAddress, timestamp: new Date() });
+  res.json({ success: true });
+});
+```
+
+### 新增檔案
+
+| 檔案 | 用途 |
+|-----|------|
+| `app/src/services/firebase.js` | Firebase Client SDK 設定 + 即時監聽函數 |
+| `app/src/services/memeService.js` | 服務層 (Firebase 優先 + Cloud Run fallback) |
+| `app/src/hooks/useFirebase.js` | React Hooks (useTodayMemes, useVoteStats, etc.) |
+
+### 環境變數
+
+```bash
+# Frontend (.env.local)
+VITE_FIREBASE_API_KEY=xxx
+VITE_FIREBASE_PROJECT_ID=web3ai-469609
+VITE_API_BASE_URL=https://memeforge-api-xxx.run.app  # Cloud Run URL
+
+# Backend (Cloud Run)
+FIREBASE_PROJECT_ID=web3ai-469609
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+GEMINI_API_KEY=xxx
+```
