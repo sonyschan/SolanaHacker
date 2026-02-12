@@ -159,30 +159,30 @@ const Dashboard = ({
         <div className="absolute top-1/2 left-1/4 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-      {/* Enhanced Header with MVP indicator */}
+      {/* Enhanced Header with MVP indicator - Mobile Responsive */}
       <header className="relative z-10 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
-                <span className="text-2xl font-bold">M</span>
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                <span className="text-xl md:text-2xl font-bold">M</span>
               </div>
               <div>
                 <div className="flex items-center space-x-2">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                     MemeForge
                   </h1>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-medium">
+                  <span className="text-xs bg-green-500/20 text-green-400 px-1.5 md:px-2 py-0.5 md:py-1 rounded font-medium">
                     MVP
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">AI Meme Democracy Platform</div>
+                <div className="hidden md:block text-xs text-gray-500">AI Meme Democracy Platform</div>
               </div>
             </div>
-            
-            {/* Enhanced User Info */}
-            <div className="flex items-center space-x-6">
-              <div className="hidden md:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
+
+            {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
+            <div className="flex items-center space-x-2 md:space-x-6">
+              <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Tickets</div>
                   {userTickets !== null ? (
@@ -206,39 +206,39 @@ const Dashboard = ({
                   <div className="font-bold text-orange-400 text-lg">Coming Soon</div>
                 </div>
               </div>
-              
+
               <WalletConnection variant="secondary" showAddress={true} />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Enhanced Tab Navigation */}
+      {/* Enhanced Tab Navigation - Mobile Responsive */}
       <nav className="relative z-10 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex space-x-0">
+        <div className="max-w-7xl mx-auto px-2 md:px-6">
+          <div className="flex overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-8 py-4 font-medium transition-all duration-300 border-b-2 relative overflow-hidden group ${
+                className={`flex-shrink-0 px-3 md:px-8 py-3 md:py-4 font-medium transition-all duration-300 border-b-2 relative overflow-hidden group ${
                   activeTab === tab.id
                     ? 'text-cyan-400 border-cyan-400 bg-cyan-500/10'
                     : 'text-gray-400 border-transparent hover:text-white hover:bg-white/5'
                 } ${tab.comingSoon ? 'opacity-60' : ''}`}
               >
-                <span className="flex items-center space-x-3 relative z-10">
-                  <span className="text-xl">{tab.icon}</span>
+                <span className="flex items-center space-x-2 md:space-x-3 relative z-10">
+                  <span className="text-lg md:text-xl">{tab.icon}</span>
                   <div className="text-left">
-                    <div className="flex items-center space-x-2">
-                      <span>{tab.label}</span>
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      <span className="text-sm md:text-base whitespace-nowrap">{tab.label}</span>
                       {tab.comingSoon && (
-                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">
+                        <span className="text-xs bg-orange-500/20 text-orange-400 px-1 md:px-2 py-0.5 rounded">
                           Soon
                         </span>
                       )}
                     </div>
-                    <div className="text-xs opacity-60">{tab.desc}</div>
+                    <div className="hidden md:block text-xs opacity-60">{tab.desc}</div>
                   </div>
                 </span>
                 {activeTab === tab.id && (
@@ -251,7 +251,7 @@ const Dashboard = ({
       </nav>
 
       {/* Tab Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+      <main className="relative z-10 max-w-7xl mx-auto px-3 md:px-6 py-6 md:py-12">
         {renderTabContent()}
       </main>
 
