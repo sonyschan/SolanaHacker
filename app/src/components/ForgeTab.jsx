@@ -213,7 +213,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           {loading ? (
             <div className="grid md:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="placeholder-card card-shimmer bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                <div key={i} className="placeholder-card card-shimmer bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
                   <div className="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
                   <div className="p-6">
                     <div className="placeholder-text placeholder-line w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
@@ -232,7 +232,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
               {dailyMemes.map((meme) => (
-                <div key={meme.id} className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
+                <div key={meme.id} className="bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
                   <img
                     src={meme.imageUrl || meme.image}
                     alt={meme.title}
@@ -322,7 +322,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           {/* Winning Meme Display */}
           <div className="max-w-md mx-auto mb-8">
             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-1 rounded-2xl">
-              <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-xl overflow-hidden">
+              <div className="bg-gray-900/95 backdrop-blur-md rounded-xl overflow-hidden">
                 <img
                   src={selectedMeme.imageUrl || selectedMeme.image}
                   alt={selectedMeme.title}
@@ -337,7 +337,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   }}
                 />
                 <div className="p-6 text-center">
-                  <h3 className="text-xl font-bold">{selectedMeme.title}</h3>
+                  <h3 className="text-xl font-bold text-white">{selectedMeme.title}</h3>
                   <p className="text-sm text-gray-300">
                     {selectedMeme.description || `AI-generated from: ${selectedMeme.newsSource}`}
                   </p>
