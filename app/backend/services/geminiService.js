@@ -38,6 +38,47 @@ Keep it appropriate and avoid controversial content.`;
     }
   }
 
+  async generateMemeTitle(memePrompt) {
+    try {
+      const prompt = `Generate a short, catchy meme title in 2-5 words only. 
+
+Meme concept: "${memePrompt.substring(0, 150)}"
+
+Requirements:
+- Maximum 5 words
+- No quotation marks
+- No punctuation at the end
+- Make it punchy and memorable
+- Sound like a real meme title
+- Examples: "Diamond Hands Forever", "This Is Fine", "Number Go Up", "Crypto Winter Mood"
+
+Title:`;
+
+      const result = await this.textModel.generateContent(prompt);
+      const response = await result.response;
+      let title = response.text().trim();
+      
+      // Clean up the title
+      title = title.replace(/^Title:\s*/i, ''); // Remove "Title:" prefix
+      title = title.replace(/["""'']/g, ''); // Remove all types of quotes
+      title = title.replace(/[.!?]+$/, ''); // Remove ending punctuation
+      title = title.trim();
+      
+      // Fallback if title is too long or empty
+      if (!title || title.length > 50) {
+        const words = memePrompt.split(' ').slice(0, 3);
+        title = words.join(' ').replace(/[^a-zA-Z0-9 ]/g, '');
+      }
+      
+      return title || 'AI Meme';
+    } catch (error) {
+      console.error('Error generating meme title:', error);
+      // Fallback title generation
+      const words = memePrompt.split(' ').slice(0, 3);
+      return words.join(' ').replace(/[^a-zA-Z0-9 ]/g, '') || 'AI Meme';
+    }
+  }
+
   async generateMemeImage(prompt) {
     try {
       // Enhanced prompt for high-quality NFT meme generation
@@ -173,16 +214,12 @@ Technical specs:
         const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem);
         const imageData = await this.generateMemeImage(memePrompt);
         
-        // Generate a catchy title based on the news
-        const titleResult = await this.textModel.generateContent(
-          `Create a short, catchy title (max 6 words) for this meme concept: ${memePrompt.substring(0, 200)}`
-        );
-        const titleResponse = await titleResult.response;
-        const title = titleResponse.text().trim().replace(/"/g, '');
+        // Generate a catchy title using the new improved method
+        const title = await this.generateMemeTitle(memePrompt);
         
         memes.push({
           id: `meme_${Date.now()}_${i}`,
-          title: title || `AI Meme #${i + 1}`,
+          title: title,
           description: memePrompt.substring(0, 100) + '...',
           prompt: memePrompt,
           imageUrl: imageData.imageUrl || imageData.fallbackUrl,
@@ -209,7 +246,7 @@ Technical specs:
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
-      console.log(`✅ Generated ${memes.length} daily memes with real AI images`);
+      console.log(`✅ Generated ${memes.length} daily memes with real AI images and improved titles`);
       return memes;
     } catch (error) {
       console.error('Error generating daily memes:', error);

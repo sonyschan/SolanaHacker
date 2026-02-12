@@ -194,52 +194,60 @@ async function getMemes(req, res) {
  */
 async function getTodaysMemes(req, res) {
   try {
-    // DEV_MODE: Return mock memes with local images
+    // DEV_MODE: Return mock memes with improved short titles
     if (process.env.DEV_MODE === 'true') {
-      console.log('⏭️ DEV_MODE: Using local mock memes');
+      console.log('⏭️ DEV_MODE: Using mock memes with improved titles');
       const mockMemes = [
         {
           id: 'dev-meme-1',
-          title: 'AI Dreams of Electric Sheep',
-          description: 'When AI tries to understand crypto volatility',
-          imageUrl: 'http://165.22.136.40:5173/generated/meme-preview-ai-confusion.png',
-          prompt: 'A confused robot looking at crypto charts',
-          newsSource: 'Dev Mode Mock',
+          title: 'AI Dreams Electric',  // ✅ 更簡潔的標題 (3 words)
+          description: 'When AI tries to understand crypto volatility and charts confuse the algorithms',
+          imageUrl: 'http://165.22.136.40:3001/generated/meme_gemini3_1770878205173.png',
+          prompt: 'A confused robot looking at complex crypto charts with spinning eyes, text overlay saying "Does not compute"',
+          newsSource: 'CoinDesk Tech Analysis',
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
           votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } },
-          metadata: { devMode: true }
+          metadata: { devMode: true, titleImproved: true }
         },
         {
           id: 'dev-meme-2',
-          title: 'Diamond Hands Forever',
-          description: 'HODLers when market crashes',
-          imageUrl: 'http://165.22.136.40:5173/generated/meme-preview-crypto-hodl.png',
-          prompt: 'Diamond hands meme',
-          newsSource: 'Dev Mode Mock',
+          title: 'Diamond Hands Forever',  // ✅ 經典梗圖標題 (3 words)
+          description: 'HODLers maintaining their positions even when the market crashes hard',
+          imageUrl: 'http://165.22.136.40:3001/generated/meme_gemini3_1770878216765.png',
+          prompt: 'Diamond hands meme with crypto portfolio down 90%, still holding strong with determination',
+          newsSource: 'Crypto Market Update',
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
           votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } },
-          metadata: { devMode: true }
+          metadata: { devMode: true, titleImproved: true }
         },
         {
           id: 'dev-meme-3',
-          title: 'Crypto Celebration',
-          description: 'When your portfolio pumps 100x',
-          imageUrl: 'http://165.22.136.40:5173/generated/meme-preview-crypto-celebration.png',
-          prompt: 'Celebration meme',
-          newsSource: 'Dev Mode Mock',
+          title: 'Number Go Up',  // ✅ 經典加密貨幣 meme (3 words)
+          description: 'The eternal cryptocurrency optimist mindset when portfolio pumps',
+          imageUrl: 'http://165.22.136.40:3001/generated/meme_gemini3_1770878243373.png',
+          prompt: 'Celebration meme showing rockets and green candles, classic crypto bull market vibes',
+          newsSource: 'Bitcoin Price Analysis',
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
           votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } },
-          metadata: { devMode: true }
+          metadata: { devMode: true, titleImproved: true }
         }
       ];
-      return res.json({ success: true, memes: mockMemes, date: new Date().toISOString().split('T')[0], count: mockMemes.length, devMode: true });
+      return res.json({ 
+        success: true, 
+        memes: mockMemes, 
+        date: new Date().toISOString().split('T')[0], 
+        count: mockMemes.length, 
+        devMode: true,
+        note: 'Using improved short titles (2-4 words max)'
+      });
     }
+
     const today = new Date().toISOString().split('T')[0];
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
