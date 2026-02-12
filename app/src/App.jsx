@@ -92,7 +92,7 @@ function App() {
   };
 
   return (
-    <div className=app>
+    <div className="app">
       {currentView === 'home' ? (
         <HomePage 
           onConnectWallet={connectWallet}
