@@ -39,8 +39,8 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                 <WalletDisconnectButton 
                     className={`${buttonClasses.secondary} wallet-adapter-button`}
                 >
-                    <span className="hidden sm:inline">登出錢包</span>
-                    <span className="sm:hidden">登出</span>
+                    <span className="hidden sm:inline">Disconnect</span>
+                    <span className="sm:hidden">Logout</span>
                 </WalletDisconnectButton>
             </div>
         );
@@ -54,7 +54,7 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                 {connecting ? (
                     <div className="flex items-center space-x-2">
                         <div className="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
-                        <span>連接中...</span>
+                        <span>Connecting...</span>
                     </div>
                 ) : (
                     <div className="flex items-center space-x-2">
@@ -63,8 +63,8 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         <span className="whitespace-nowrap">
-                            <span className="hidden sm:inline">連接錢包</span>
-                            <span className="sm:hidden">連接</span>
+                            <span className="hidden sm:inline">Connect Wallet</span>
+                            <span className="sm:hidden">Connect</span>
                         </span>
                     </div>
                 )}

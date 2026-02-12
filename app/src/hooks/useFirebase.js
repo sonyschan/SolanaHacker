@@ -1,6 +1,6 @@
 /**
  * Firebase React Hooks
- * 提供即時同步的 React hooks
+ * Provides real-time synced React hooks
  */
 import { useState, useEffect } from 'react';
 import { 
@@ -11,7 +11,7 @@ import {
 } from '../services/firebase';
 
 /**
- * Hook: 即時監聽今日梗圖
+ * Hook: Real-time listener for today's memes
  */
 export const useTodayMemes = () => {
   const [memes, setMemes] = useState([]);
@@ -39,7 +39,7 @@ export const useTodayMemes = () => {
 };
 
 /**
- * Hook: 即時監聽投票統計
+ * Hook: Real-time listener for vote statistics
  */
 export const useVoteStats = (memeId) => {
   const [stats, setStats] = useState({ common: 0, rare: 0, legendary: 0 });
@@ -67,7 +67,7 @@ export const useVoteStats = (memeId) => {
 };
 
 /**
- * Hook: 即時監聽用戶資料
+ * Hook: Real-time listener for user data
  */
 export const useUserData = (walletAddress) => {
   const [userData, setUserData] = useState(null);
@@ -96,7 +96,7 @@ export const useUserData = (walletAddress) => {
 };
 
 /**
- * Hook: 多個梗圖的投票統計
+ * Hook: Vote statistics for multiple memes
  */
 export const useAllVoteStats = (memeIds) => {
   const [allStats, setAllStats] = useState({});

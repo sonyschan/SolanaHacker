@@ -1,6 +1,6 @@
 /**
  * Firebase Client SDK Configuration
- * 前端直接連接 Firestore 進行即時讀取
+ * Frontend directly connects to Firestore for real-time reads
  */
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -32,7 +32,7 @@ export const collections = {
 };
 
 /**
- * 即時監聽今日梗圖
+ * Real-time listener for today's memes
  */
 export const subscribeTodayMemes = (callback) => {
   const today = new Date().toISOString().split('T')[0];
@@ -61,7 +61,7 @@ export const subscribeTodayMemes = (callback) => {
 };
 
 /**
- * 即時監聽投票統計
+ * Real-time listener for vote statistics
  */
 export const subscribeVoteStats = (memeId, callback) => {
   const docRef = doc(db, collections.VOTE_STATS, memeId);
@@ -79,7 +79,7 @@ export const subscribeVoteStats = (memeId, callback) => {
 };
 
 /**
- * 即時監聽用戶資料
+ * Real-time listener for user data
  */
 export const subscribeUserData = (walletAddress, callback) => {
   if (!walletAddress) {
@@ -107,7 +107,7 @@ export const subscribeUserData = (walletAddress, callback) => {
 };
 
 /**
- * 一次性讀取今日梗圖 (不需要即時更新時使用)
+ * One-time read for today's memes (when real-time updates not needed)
  */
 export const getTodayMemes = async () => {
   const today = new Date().toISOString().split('T')[0];
@@ -133,7 +133,7 @@ export const getTodayMemes = async () => {
 };
 
 /**
- * 獲取 GCS 圖片 URL
+ * Get GCS image URL
  */
 export const getMemeImageUrl = async (imagePath) => {
   try {

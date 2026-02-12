@@ -1,10 +1,10 @@
 /**
  * MemeForge Meme Service
  * 
- * 架構：
- * - READ：Cloud Run API (每日梗圖不需要即時同步)
- * - WRITE：Cloud Run API (驗證 + 防刷)
- * - AI 生成：Cloud Run API (Gemini)
+ * Architecture:
+ * - READ: Cloud Run API (daily memes don't need real-time sync)
+ * - WRITE: Cloud Run API (validation + anti-spam)
+ * - AI Generation: Cloud Run API (Gemini)
  */
 
 // Cloud Run API for all meme operations
@@ -13,11 +13,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api
 class MemeService {
   
   /**
-   * 獲取今日梗圖 (直接從 API，已有日期過濾 + limit 3)
+   * Get today's memes (directly from API, with date filtering + limit 3)
    */
   async getTodaysMemes() {
     try {
-      console.log('🌐 從 Cloud Run API 獲取今日梗圖...');
+      console.log('🌐 Fetching today\'s memes from Cloud Run API...');
       
       const response = await fetch(`${API_BASE_URL}/api/memes/today`, {
         method: 'GET',
@@ -31,7 +31,7 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ 獲取成功，', result.memes?.length || 0, '個梗圖');
+      console.log('✅ Fetch successful,', result.memes?.length || 0, 'memes loaded');
       
       return {
         success: true,
@@ -40,7 +40,7 @@ class MemeService {
       };
       
     } catch (error) {
-      console.error('❌ API 讀取失敗:', error);
+      console.error('❌ API fetch failed:', error);
       return {
         success: false,
         error: error.message,
@@ -52,11 +52,11 @@ class MemeService {
   }
 
   /**
-   * 提交投票 (Cloud Run API 進行驗證)
+   * Submit vote (Cloud Run API for validation)
    */
   async submitVote(memeId, voteType, choice, walletAddress) {
     try {
-      console.log('🗳️ 提交投票到 Cloud Run API...');
+      console.log('🗳️ Submitting vote to Cloud Run API...');
       
       const response = await fetch(`${API_BASE_URL}/api/voting/vote`, {
         method: 'POST',
@@ -77,18 +77,18 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ 投票成功:', result);
+      console.log('✅ Vote successful:', result);
       
-      // 投票成功後增加週投票者計數
+      // Increment weekly voter count after successful vote
       if (result.success) {
         this.incrementVoters().catch(err => 
-          console.warn('⚠️ 更新投票者計數失敗:', err)
+          console.warn('⚠️ Failed to update voter count:', err)
         );
       }
       
       return result;
     } catch (error) {
-      console.error('❌ 投票失敗:', error);
+      console.error('❌ Vote failed:', error);
       return {
         success: false,
         error: error.message
@@ -97,7 +97,7 @@ class MemeService {
   }
 
   /**
-   * 增加週投票者計數
+   * Increment weekly voter count
    */
   async incrementVoters() {
     try {
@@ -113,16 +113,16 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('📊 投票者計數已更新:', result.stats?.weeklyVoters);
+      console.log('📊 Voter count updated:', result.stats?.weeklyVoters);
       return result;
     } catch (error) {
-      console.error('❌ 更新投票者計數失敗:', error);
+      console.error('❌ Failed to update voter count:', error);
       throw error;
     }
   }
 
   /**
-   * 獲取平台統計
+   * Get platform statistics
    */
   async getPlatformStats() {
     try {
@@ -132,17 +132,17 @@ class MemeService {
       }
       return await response.json();
     } catch (error) {
-      console.error('❌ 獲取統計失敗:', error);
+      console.error('❌ Failed to fetch stats:', error);
       return { success: false, error: error.message };
     }
   }
 
   /**
-   * 生成每日梗圖 (Cloud Run API + Gemini)
+   * Generate daily memes (Cloud Run API + Gemini)
    */
   async generateDailyMemes() {
     try {
-      console.log('🎨 呼叫 Cloud Run 生成每日梗圖...');
+      console.log('🎨 Calling Cloud Run to generate daily memes...');
       
       const response = await fetch(`${API_BASE_URL}/api/memes/generate-daily`, {
         method: 'POST',
@@ -159,11 +159,11 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ 梗圖生成成功:', result);
+      console.log('✅ Meme generation successful:', result);
       
       return result;
     } catch (error) {
-      console.error('❌ 梗圖生成失敗:', error);
+      console.error('❌ Meme generation failed:', error);
       return {
         success: false,
         error: error.message
@@ -172,7 +172,7 @@ class MemeService {
   }
 
   /**
-   * 測試連線
+   * Test connection
    */
   async testConnections() {
     const results = {
@@ -190,7 +190,7 @@ class MemeService {
   }
 
   /**
-   * 後備梗圖 (API 失敗時使用)
+   * Fallback memes (used when API fails)
    */
   getFallbackMemes() {
     return [

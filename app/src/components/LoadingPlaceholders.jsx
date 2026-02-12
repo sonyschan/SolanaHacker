@@ -1,23 +1,23 @@
 import React from 'react';
 
-// 卡片載入 placeholder
+// Card loading placeholder
 export const MemeCardPlaceholder = ({ width = 300, height = 400 }) => (
   <div 
     className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-xl animate-pulse border border-gray-700/50"
     style={{ width, height }}
   >
     <div className="p-4 h-full flex flex-col">
-      {/* 圖片區域 */}
+      {/* Image area */}
       <div className="bg-gray-700/50 rounded-lg flex-1 mb-4 flex items-center justify-center">
         <div className="text-gray-500 text-4xl animate-bounce">🎨</div>
       </div>
       
-      {/* 標題區域 */}
+      {/* Title area */}
       <div className="space-y-3">
         <div className="h-4 bg-gray-700/60 rounded animate-pulse"></div>
         <div className="h-3 bg-gray-700/40 rounded w-3/4 animate-pulse"></div>
         
-        {/* 投票按鈕區域 */}
+        {/* Vote button area */}
         <div className="flex justify-between items-center pt-2">
           <div className="flex space-x-2">
             <div className="w-8 h-8 bg-gray-700/50 rounded-full animate-pulse"></div>
@@ -30,7 +30,7 @@ export const MemeCardPlaceholder = ({ width = 300, height = 400 }) => (
   </div>
 );
 
-// 網格載入 placeholder
+// Grid loading placeholder
 export const MemeGridPlaceholder = ({ count = 6, columns = 3 }) => (
   <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-6`}>
     {Array.from({ length: count }).map((_, index) => (
@@ -39,7 +39,7 @@ export const MemeGridPlaceholder = ({ count = 6, columns = 3 }) => (
   </div>
 );
 
-// 生成中 placeholder (大尺寸)
+// Generating placeholder (large size)
 export const GeneratingPlaceholder = ({ 
   width = 500, 
   height = 600,
@@ -49,16 +49,16 @@ export const GeneratingPlaceholder = ({
     className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl shadow-2xl border border-purple-500/30 overflow-hidden relative"
     style={{ width, height }}
   >
-    {/* 背景動畫 */}
+    {/* Background animation */}
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 transform translate-x-[-100%] animate-[slide_3s_ease-in-out_infinite]"></div>
     
     <div className="relative z-10 p-8 h-full flex flex-col justify-center items-center text-center">
-      {/* 主要圖示 */}
+      {/* Main icon */}
       <div className="text-8xl mb-6 animate-pulse">
         🧙‍♂️
       </div>
       
-      {/* 標題 */}
+      {/* Title */}
       <h2 className="text-3xl font-bold text-white mb-4 text-gradient-hologram">
         MemeForge AI
       </h2>
@@ -67,7 +67,7 @@ export const GeneratingPlaceholder = ({
         Crafting your perfect meme...
       </p>
       
-      {/* 進度條 */}
+      {/* Progress bar */}
       <div className="w-full max-w-sm mb-6">
         <div className="bg-gray-800/50 rounded-full h-3 overflow-hidden">
           <div 
@@ -80,7 +80,7 @@ export const GeneratingPlaceholder = ({
         </p>
       </div>
       
-      {/* 狀態指示器 */}
+      {/* Status indicator */}
       <div className="flex items-center space-x-4">
         <div className="flex space-x-2">
           {[0, 1, 2].map(i => (
@@ -96,7 +96,7 @@ export const GeneratingPlaceholder = ({
         </span>
       </div>
       
-      {/* AI 徽章 */}
+      {/* AI badge */}
       <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-600 to-cyan-600 px-4 py-2 rounded-full">
         <span className="text-white text-sm font-bold">⚡ GEMINI AI</span>
       </div>
@@ -104,7 +104,7 @@ export const GeneratingPlaceholder = ({
   </div>
 );
 
-// 錯誤 placeholder
+// Error placeholder
 export const ErrorPlaceholder = ({ 
   width = 400, 
   height = 300,
@@ -144,7 +144,7 @@ export const ErrorPlaceholder = ({
   </div>
 );
 
-// 空狀態 placeholder
+// Empty state placeholder
 export const EmptyStatePlaceholder = ({ 
   width = 400, 
   height = 300,
@@ -177,7 +177,7 @@ export const EmptyStatePlaceholder = ({
   </div>
 );
 
-// 簡潔的圖片 placeholder
+// Simple image placeholder
 export const ImagePlaceholder = ({ 
   width = 200, 
   height = 200,

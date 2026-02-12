@@ -114,22 +114,22 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
               <div className="text-center group">
                 <div className="text-2xl font-bold text-cyan-400 mb-2 group-hover:scale-110 transition-transform">Coming Soon</div>
                 <div className="text-sm text-gray-400">Weekly Prize Pool</div>
-                <div className="text-xs text-cyan-500 mt-1">NFT 拍賣收益</div>
+                <div className="text-xs text-cyan-500 mt-1">NFT Auction Revenue</div>
               </div>
               <div className="text-center group">
                 <div className="text-4xl font-bold text-blue-400 mb-2 group-hover:scale-110 transition-transform">0</div>
                 <div className="text-sm text-gray-400">Active Voters</div>
-                <div className="text-xs text-blue-500 mt-1">即時更新</div>
+                <div className="text-xs text-blue-500 mt-1">Real-time update</div>
               </div>
               <div className="text-center group">
                 <div className="text-2xl font-bold text-purple-400 mb-2 group-hover:scale-110 transition-transform">Coming Soon</div>
                 <div className="text-sm text-gray-400">NFTs Minted</div>
-                <div className="text-xs text-purple-500 mt-1">每日 1 個</div>
+                <div className="text-xs text-purple-500 mt-1">1 per day</div>
               </div>
               <div className="text-center group">
                 <div className="text-2xl font-bold text-green-400 mb-2 group-hover:scale-110 transition-transform">Coming Soon</div>
                 <div className="text-sm text-gray-400">Avg NFT Price</div>
-                <div className="text-xs text-green-500 mt-1">24h 均價</div>
+                <div className="text-xs text-green-500 mt-1">24h average</div>
               </div>
             </div>
           </div>
