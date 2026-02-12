@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placeholder Demo - MemeForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Placeholder CSS from our created file */
+        .placeholder-text {
+            background: linear-gradient(90deg, #374151 25%, #4B5563 50%, #374151 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .placeholder-card {
+            background: linear-gradient(90deg, #1F2937 25%, #374151 50%, #1F2937 75%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+            border-radius: 12px;
+        }
+
+        .placeholder-button {
+            background: linear-gradient(90deg, #6366F1 25%, #8B5CF6 50%, #6366F1 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.8s infinite;
+            border-radius: 8px;
+        }
+
+        .placeholder-image {
+            background: linear-gradient(90deg, #374151 25%, #4B5563 50%, #374151 75%);
+            background-size: 200% 100%;
+            animation: shimmer 2.2s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .card-shimmer {
+            animation: shimmer 2s infinite;
+        }
+
+        .text-shimmer {
+            animation: shimmer 1.5s infinite;
+        }
+
+        .button-pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">🎨 Placeholder Components Demo</h1>
+        
+        <!-- Card Placeholders -->
+        <h2 class="text-xl font-semibold mb-4">Card Shimmer Effect (ForgeTab Loading)</h2>
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+            <div class="placeholder-card card-shimmer bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                <div class="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
+                <div class="p-6">
+                    <div class="placeholder-text w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
+                    <div class="space-y-2 mb-4">
+                        <div class="placeholder-text w-full h-4 bg-gray-600/20 rounded"></div>
+                        <div class="placeholder-text w-2/3 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="placeholder-text w-24 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="placeholder-button w-full h-12 bg-purple-600/30 rounded-lg"></div>
+                </div>
+            </div>
+            
+            <div class="placeholder-card card-shimmer bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                <div class="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
+                <div class="p-6">
+                    <div class="placeholder-text w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
+                    <div class="space-y-2 mb-4">
+                        <div class="placeholder-text w-full h-4 bg-gray-600/20 rounded"></div>
+                        <div class="placeholder-text w-2/3 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="placeholder-text w-24 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="placeholder-button w-full h-12 bg-purple-600/30 rounded-lg"></div>
+                </div>
+            </div>
+            
+            <div class="placeholder-card card-shimmer bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                <div class="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
+                <div class="p-6">
+                    <div class="placeholder-text w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
+                    <div class="space-y-2 mb-4">
+                        <div class="placeholder-text w-full h-4 bg-gray-600/20 rounded"></div>
+                        <div class="placeholder-text w-2/3 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="placeholder-text w-24 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div class="placeholder-button w-full h-12 bg-purple-600/30 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text Placeholders -->
+        <h2 class="text-xl font-semibold mb-4">Text Shimmer Effect (Dashboard Stats)</h2>
+        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-6 mb-12">
+            <div class="flex items-center space-x-6">
+                <div class="text-center">
+                    <div class="text-sm text-gray-400 mb-2">Tickets</div>
+                    <div class="placeholder-text text-shimmer w-12 h-6 bg-cyan-400/30 rounded mx-auto"></div>
+                </div>
+                <div class="w-px h-8 bg-white/10" />
+                <div class="text-center">
+                    <div class="text-sm text-gray-400 mb-2">Streak</div>
+                    <div class="placeholder-text text-shimmer w-16 h-6 bg-green-400/30 rounded mx-auto"></div>
+                </div>
+                <div class="w-px h-8 bg-white/10" />
+                <div class="text-center">
+                    <div class="text-sm text-gray-400 mb-2">Prize Pool</div>
+                    <div class="font-bold text-orange-400 text-lg">Coming Soon</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Button Pulse Effect -->
+        <h2 class="text-xl font-semibold mb-4">Button Pulse Effect (Wallet Connecting)</h2>
+        <div class="flex items-center space-x-4 mb-12">
+            <div class="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-xl">
+                <div class="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
+                <span>連接中...</span>
+            </div>
+            
+            <div class="flex items-center space-x-2 bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 font-semibold px-6 py-3 rounded-xl">
+                <div class="placeholder-button button-pulse w-4 h-4 bg-cyan-400/80 rounded-full"></div>
+                <span>載入中...</span>
+            </div>
+        </div>
+
+        <!-- Demo Controls -->
+        <div class="text-center">
+            <button onclick="location.reload()" class="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3 rounded-xl hover:scale-105 transition-transform">
+                🔄 重新載入動畫
+            </button>
+        </div>
+    </div>
+</body>
+</html>

@@ -53,7 +53,7 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
             >
                 {connecting ? (
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
                         <span>連接中...</span>
                     </div>
                 ) : (

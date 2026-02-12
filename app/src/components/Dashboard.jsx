@@ -309,12 +309,20 @@ const Dashboard = ({
               <div className="hidden md:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Tickets</div>
-                  <div className="font-bold text-cyan-400 text-lg">{userTickets}</div>
+                  {userTickets !== null ? (
+                    <div className="font-bold text-cyan-400 text-lg">{userTickets}</div>
+                  ) : (
+                    <div className="placeholder-text text-shimmer w-12 h-6 bg-cyan-400/30 rounded mx-auto"></div>
+                  )}
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Streak</div>
-                  <div className="font-bold text-green-400 text-lg">{votingStreak} days</div>
+                  {votingStreak !== null ? (
+                    <div className="font-bold text-green-400 text-lg">{votingStreak} days</div>
+                  ) : (
+                    <div className="placeholder-text text-shimmer w-16 h-6 bg-green-400/30 rounded mx-auto"></div>
+                  )}
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">

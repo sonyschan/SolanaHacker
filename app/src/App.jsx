@@ -3,6 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import HomePage from './components/HomePage';
 import Dashboard from './components/Dashboard';
 import './index.css';
+import './styles/placeholders.css';
 
 function App() {
   const { connected, connecting, publicKey } = useWallet();

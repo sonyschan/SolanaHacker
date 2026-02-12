@@ -163,8 +163,23 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="placeholder-card card-shimmer bg-white bg-opacity-10 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                  <div className="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
+                  <div className="p-6">
+                    <div className="placeholder-text placeholder-line w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
+                    <div className="space-y-2 mb-4">
+                      <div className="placeholder-text placeholder-line w-full h-4 bg-gray-600/20 rounded"></div>
+                      <div className="placeholder-text placeholder-line w-2/3 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="placeholder-text placeholder-line w-24 h-4 bg-gray-600/20 rounded"></div>
+                    </div>
+                    <div className="placeholder-button w-full h-12 bg-purple-600/30 rounded-lg"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
