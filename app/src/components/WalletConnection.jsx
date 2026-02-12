@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
+import { MobileWalletSelector, isMobileBrowser } from './MobileWalletSelector';
 
 const WalletConnection = ({ variant = 'primary', className = '', showAddress = true }) => {
     const { connected, connecting, publicKey, wallet } = useWallet();
+    const [showMobileSelector, setShowMobileSelector] = useState(false);
 
     // Helper function to format wallet address
     const formatAddress = (pubKey) => {
@@ -28,15 +30,15 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                             {formatAddress(publicKey)}
                         </span>
                         {wallet && (
-                            <img 
-                                src={wallet.adapter.icon} 
+                            <img
+                                src={wallet.adapter.icon}
                                 alt={wallet.adapter.name}
                                 className="w-5 h-5 rounded"
                             />
                         )}
                     </div>
                 )}
-                <WalletDisconnectButton 
+                <WalletDisconnectButton
                     className={`${buttonClasses.secondary} wallet-adapter-button`}
                 >
                     <span className="hidden sm:inline">Disconnect</span>
@@ -46,9 +48,45 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
         );
     }
 
+    // On mobile, show custom button that triggers MobileWalletSelector
+    if (isMobileBrowser()) {
+        return (
+            <div className={className}>
+                <button
+                    onClick={() => setShowMobileSelector(true)}
+                    className={`${buttonClasses[variant]} wallet-adapter-button`}
+                >
+                    {connecting ? (
+                        <div className="flex items-center space-x-2">
+                            <div className="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
+                            <span>Connecting...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center space-x-2">
+                            <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span className="whitespace-nowrap">
+                                <span className="hidden sm:inline">Connect Wallet</span>
+                                <span className="sm:hidden">Connect</span>
+                            </span>
+                        </div>
+                    )}
+                </button>
+
+                <MobileWalletSelector
+                    isOpen={showMobileSelector}
+                    onClose={() => setShowMobileSelector(false)}
+                />
+            </div>
+        );
+    }
+
+    // Desktop: use standard WalletMultiButton
     return (
         <div className={className}>
-            <WalletMultiButton 
+            <WalletMultiButton
                 className={`${buttonClasses[variant]} wallet-adapter-button`}
             >
                 {connecting ? (
@@ -59,7 +97,7 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
                 ) : (
                     <div className="flex items-center space-x-2">
                         <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         <span className="whitespace-nowrap">
@@ -76,12 +114,12 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
 // Custom hook for wallet utilities
 export const useWalletConnection = () => {
     const wallet = useWallet();
-    
+
     return {
         ...wallet,
         address: wallet.publicKey?.toBase58() || '',
-        shortAddress: wallet.publicKey ? 
-            `${wallet.publicKey.toBase58().slice(0, 6)}...${wallet.publicKey.toBase58().slice(-4)}` : 
+        shortAddress: wallet.publicKey ?
+            `${wallet.publicKey.toBase58().slice(0, 6)}...${wallet.publicKey.toBase58().slice(-4)}` :
             '',
         isConnected: wallet.connected,
         walletName: wallet.wallet?.adapter.name || '',
