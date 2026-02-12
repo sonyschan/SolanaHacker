@@ -5,11 +5,46 @@ import Dashboard from './components/Dashboard';
 import './index.css';
 import './styles/placeholders.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
+
 function App() {
   const { connected, connecting, publicKey } = useWallet();
   const [currentView, setCurrentView] = useState('home');
-  const [userTickets, setUserTickets] = useState(87); // Mock data
-  const [votingStreak, setVotingStreak] = useState(3);
+  const [userTickets, setUserTickets] = useState(0);
+  const [votingStreak, setVotingStreak] = useState(0);
+  const [userDataLoading, setUserDataLoading] = useState(false);
+
+  // Fetch user data from API when wallet connects
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!connected || !publicKey) return;
+
+      const walletAddress = publicKey.toBase58();
+      setUserDataLoading(true);
+
+      try {
+        console.log('📊 獲取用戶數據:', walletAddress);
+        const response = await fetch(`${API_BASE_URL}/api/users/${walletAddress}`);
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          setUserTickets(data.user.weeklyTickets || 0);
+          setVotingStreak(data.user.streakDays || 0);
+          console.log('✅ 用戶數據:', {
+            tickets: data.user.weeklyTickets,
+            streak: data.user.streakDays
+          });
+        }
+      } catch (error) {
+        console.error('❌ 獲取用戶數據失敗:', error);
+        // Keep default values (0) on error
+      } finally {
+        setUserDataLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [connected, publicKey]);
 
   // Auto-switch to dashboard when wallet connects
   useEffect(() => {
@@ -52,7 +87,7 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className=app>
       {currentView === 'home' ? (
         <HomePage 
           onConnectWallet={connectWallet}
@@ -67,6 +102,7 @@ function App() {
           setUserTickets={setUserTickets}
           setVotingStreak={setVotingStreak}
           walletAddress={publicKey?.toBase58()}
+          userDataLoading={userDataLoading}
         />
       )}
     </div>
