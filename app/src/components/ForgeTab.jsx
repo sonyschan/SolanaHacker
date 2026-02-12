@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import memeService from '../services/memeService';
 import MemeModal from './MemeModal';
 
-const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }) => {
+const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
-  const [votes, setVotes] = useState({ meme1: 23, meme2: 31, meme3: 18 });
-  const [rarityVotes, setRarityVotes] = useState({ common: 45, rare: 28, legendary: 12 });
+  const [votes, setVotes] = useState({});
+  const [rarityVotes, setRarityVotes] = useState({ common: 0, rare: 0, legendary: 0 });
   const [showReward, setShowReward] = useState(false);
   const [earnedTickets, setEarnedTickets] = useState(0);
   const [dailyMemes, setDailyMemes] = useState([]);
@@ -30,12 +30,21 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
           console.log('🖼️ First meme:', result.memes[0]);
           setDailyMemes(result.memes);
           
-          // Initialize votes for fetched memes  
+          // Initialize votes from Firebase data (handle 0 properly)
           const newVotes = {};
-          result.memes.forEach((meme, index) => {
-            newVotes[meme.id] = meme.votes?.selection?.yes || Math.floor(Math.random() * 50) + 10;
+          const newRarityVotes = { common: 0, rare: 0, legendary: 0 };
+          result.memes.forEach((meme) => {
+            const selectionYes = meme.votes?.selection?.yes;
+            newVotes[meme.id] = typeof selectionYes === 'number' ? selectionYes : 0;
+            // Aggregate rarity votes from all memes for display
+            if (meme.votes?.rarity) {
+              newRarityVotes.common += meme.votes.rarity.common || 0;
+              newRarityVotes.rare += meme.votes.rarity.rare || 0;
+              newRarityVotes.legendary += meme.votes.rarity.legendary || 0;
+            }
           });
           setVotes(newVotes);
+          setRarityVotes(newRarityVotes);
         } else {
           console.log('⚠️ No memes found, generating new ones...');
           const generateResult = await memeService.generateDailyMemes();
@@ -43,8 +52,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
           if (generateResult.success && generateResult.memes) {
             setDailyMemes(generateResult.memes);
             const newVotes = {};
-            generateResult.memes.forEach((meme, index) => {
-              newVotes[meme.id] = Math.floor(Math.random() * 50) + 10;
+            generateResult.memes.forEach((meme) => {
+              const selectionYes = meme.votes?.selection?.yes;
+              newVotes[meme.id] = typeof selectionYes === 'number' ? selectionYes : 0;
             });
             setVotes(newVotes);
           } else {
@@ -61,8 +71,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
         console.log('🔄 Using fallback memes:', fallbackMemes);
         setDailyMemes(fallbackMemes);
         const newVotes = {};
-        fallbackMemes.forEach((meme, index) => {
-          newVotes[meme.id] = meme.votes?.selection?.yes || Math.floor(Math.random() * 50) + 10;
+        fallbackMemes.forEach((meme) => {
+          const selectionYes = meme.votes?.selection?.yes;
+          newVotes[meme.id] = typeof selectionYes === 'number' ? selectionYes : 0;
         });
         setVotes(newVotes);
       } finally {
@@ -79,35 +90,70 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
     { id: 'legendary', label: 'Legendary', color: 'bg-purple-600', icon: '🏆', desc: 'Exceptional creativity' }
   ];
 
-  const handleVote = (memeId) => {
-    setVotes(prev => ({ ...prev, [memeId]: prev[memeId] + 1 }));
-    
-    // Determine winner and move to rarity phase
-    const winner = Object.entries(votes).reduce((a, b) => 
-      votes[a[0]] > votes[b[0]] ? a : b
-    )[0];
-    
-    setSelectedMeme(dailyMemes.find(m => m.id === winner));
-    setCurrentPhase('rarity');
+  const handleVote = async (memeId) => {
+    try {
+      // Call backend API to record vote
+      const result = await memeService.submitVote(memeId, 'selection', 'yes', walletAddress);
+
+      if (result.success) {
+        // Update local vote count
+        setVotes(prev => ({ ...prev, [memeId]: (prev[memeId] || 0) + 1 }));
+
+        // Update user tickets if returned from API
+        if (result.ticketsEarned) {
+          setEarnedTickets(result.ticketsEarned);
+        }
+        if (result.user) {
+          setUserTickets(result.user.weeklyTickets || 0);
+          setVotingStreak(result.user.streakDays || 0);
+        }
+      }
+
+      // Find the meme with most votes and move to rarity phase
+      const updatedVotes = { ...votes, [memeId]: (votes[memeId] || 0) + 1 };
+      const winner = Object.entries(updatedVotes).reduce((a, b) =>
+        (a[1] || 0) > (b[1] || 0) ? a : b
+      )[0];
+
+      setSelectedMeme(dailyMemes.find(m => m.id === winner));
+      setCurrentPhase('rarity');
+    } catch (error) {
+      console.error('Vote error:', error);
+      // Still proceed to rarity phase for demo
+      setSelectedMeme(dailyMemes.find(m => m.id === memeId));
+      setCurrentPhase('rarity');
+    }
   };
 
-  const handleRarityVote = (rarity) => {
-    setRarityVotes(prev => ({ ...prev, [rarity]: prev[rarity] + 1 }));
-    
-    // Calculate reward based on streak
-    let baseTickets = 8;
-    if (votingStreak >= 5) baseTickets = 10;
-    else if (votingStreak >= 2) baseTickets = 9;
-    
-    const randomBonus = Math.floor(Math.random() * 6); // 0-5 bonus
-    const totalTickets = baseTickets + randomBonus;
-    
-    setEarnedTickets(totalTickets);
-    setUserTickets(prev => prev + totalTickets);
-    setVotingStreak(prev => prev + 1);
+  const handleRarityVote = async (rarity) => {
+    try {
+      // Call backend API to record rarity vote
+      if (selectedMeme) {
+        const result = await memeService.submitVote(selectedMeme.id, 'rarity', rarity, walletAddress);
+
+        if (result.success) {
+          setRarityVotes(prev => ({ ...prev, [rarity]: (prev[rarity] || 0) + 1 }));
+
+          // Update user stats from API response
+          if (result.ticketsEarned) {
+            setEarnedTickets(result.ticketsEarned);
+          }
+          if (result.user) {
+            setUserTickets(result.user.weeklyTickets || 0);
+            setVotingStreak(result.user.streakDays || 0);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Rarity vote error:', error);
+      // Fallback: use random tickets for demo
+      const fallbackTickets = Math.floor(Math.random() * 8) + 8;
+      setEarnedTickets(fallbackTickets);
+    }
+
     setCurrentPhase('completed');
     setShowReward(true);
-    
+
     // Auto-hide reward after 3 seconds
     setTimeout(() => {
       setShowReward(false);
@@ -117,9 +163,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
   const resetVoting = () => {
     setCurrentPhase('selection');
     setSelectedMeme(null);
-    // Reset vote counts (in production, this would be handled by backend)
-    setVotes({ meme1: 23, meme2: 31, meme3: 18 });
-    setRarityVotes({ common: 45, rare: 28, legendary: 12 });
+    // Re-fetch memes to get fresh vote counts from backend
+    // For now, just reset to current state
   };
 
   return (

@@ -253,7 +253,7 @@ const Dashboard = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'forge':
-        return <ForgeTab 
+        return <ForgeTab walletAddress={walletAddress} 
           userTickets={userTickets}
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
@@ -264,7 +264,7 @@ const Dashboard = ({
       case 'market':
         return <MarketTabContent />;
       default:
-        return <ForgeTab 
+        return <ForgeTab walletAddress={walletAddress} 
           userTickets={userTickets}
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
