@@ -179,6 +179,40 @@ export class ChatMode {
         },
       },
 
+      // --- Cron Jobs ---
+      {
+        name: 'cron_list',
+        description: 'List all cron jobs for the current user. Shows scheduled tasks with their timing and commands.',
+        input_schema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'cron_add',
+        description: 'Add a new cron job. Schedule format: "minute hour day month weekday" (e.g., "0 8 * * *" for daily 8am, "*/30 * * * *" for every 30min).',
+        input_schema: {
+          type: 'object',
+          properties: {
+            schedule: { type: 'string', description: 'Cron schedule (e.g., "0 8 * * *" for daily 8am UTC)' },
+            command: { type: 'string', description: 'Command to run (e.g., "curl http://localhost:3001/api/scheduler/daily-memes")' },
+            comment: { type: 'string', description: 'Optional comment to identify this job (e.g., "Daily meme generation")' },
+          },
+          required: ['schedule', 'command'],
+        },
+      },
+      {
+        name: 'cron_remove',
+        description: 'Remove a cron job by its comment or line number.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            identifier: { type: 'string', description: 'Comment text or line number to identify the job to remove' },
+          },
+          required: ['identifier'],
+        },
+      },
+
       // --- Shell ---
       {
         name: 'run_command',
@@ -476,6 +510,14 @@ ${recentMemory.slice(-1500)}
 - **run_command**：執行 shell 指令（在 app/ 目錄）
   - 用於：npm install, npm run build 等
   - 危險指令會被阻擋
+
+### 排程任務 (Cron)
+- **cron_list**：列出所有 cron jobs
+- **cron_add**：新增排程任務
+  - schedule: "minute hour day month weekday" (e.g., "0 8 * * *" = 每天 8:00 UTC)
+  - command: 要執行的指令
+  - comment: 任務說明
+- **cron_remove**：移除排程任務（用 comment 或行號識別）
 
 ### Git 操作
 - **git_commit**：Commit 變更（不 push），等 H2Crypto review
@@ -847,6 +889,13 @@ ${recentMemory.slice(-1500)}
       console.log(`[ChatMode] Absolute path converted: ${inputPath} -> ${normalized}`);
     }
 
+    // v4.5: Fix duplicate "app/app/" path issue
+    // Agent sometimes mistakenly uses app/app/ instead of just app/
+    if (normalized.startsWith('app/app/')) {
+      normalized = normalized.slice(4); // Remove first "app/"
+      console.log(`[ChatMode] Fixed duplicate app/: ${inputPath} -> ${normalized}`);
+    }
+
     // Always strip "app/" prefix for directories that should be at project root
     // knowledge/, memory/, docs/ should NEVER be under app/
     if (normalized.startsWith('app/knowledge/') ||
@@ -855,6 +904,13 @@ ${recentMemory.slice(-1500)}
       const withoutApp = normalized.slice(4); // Remove "app/"
       console.log(`[ChatMode] Path correction: ${normalized} -> ${withoutApp}`);
       normalized = withoutApp;
+    }
+
+    // Transient docs should go to docs/_transient/
+    // Cleanup plans, env setup guides, etc.
+    if (normalized === 'cleanup-plan.md' || normalized.endsWith('/cleanup-plan.md')) {
+      normalized = 'docs/_transient/cleanup-plan.md';
+      console.log(`[ChatMode] Moved to _transient: ${inputPath} -> ${normalized}`);
     }
 
     return normalized;
@@ -1169,6 +1225,181 @@ ${recentMemory.slice(-1500)}
           }
         } catch (err) {
           return `Dev server error: ${err.message}`;
+        }
+      }
+
+      // --- Cron Jobs ---
+      if (toolName === 'cron_list') {
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+
+          const { stdout, stderr } = await execAsync('crontab -l 2>/dev/null || echo "No crontab for current user"');
+
+          if (stdout.includes('No crontab') || stdout.trim() === '') {
+            return '📅 No cron jobs configured.\n\nUse cron_add to create scheduled tasks.';
+          }
+
+          // Parse and format cron jobs
+          const lines = stdout.trim().split('\n');
+          let result = '📅 **Current Cron Jobs:**\n\n';
+          let jobNum = 1;
+
+          for (const line of lines) {
+            if (line.startsWith('#')) {
+              // Comment line
+              result += `${line}\n`;
+            } else if (line.trim()) {
+              // Cron job line
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 6) {
+                const schedule = parts.slice(0, 5).join(' ');
+                const command = parts.slice(5).join(' ');
+                result += `**${jobNum}.** \`${schedule}\` → \`${command.slice(0, 60)}${command.length > 60 ? '...' : ''}\`\n`;
+                jobNum++;
+              }
+            }
+          }
+
+          result += '\n**Schedule format:** `minute hour day month weekday`\n';
+          result += '- `*` = any value\n';
+          result += '- `*/N` = every N units\n';
+          result += '- Example: `0 8 * * *` = daily at 8:00 UTC';
+
+          return result;
+        } catch (err) {
+          return `Error listing cron jobs: ${err.message}`;
+        }
+      }
+
+      if (toolName === 'cron_add') {
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+
+          const { schedule, command, comment } = input;
+
+          // Validate schedule format (basic check)
+          const scheduleParts = schedule.trim().split(/\s+/);
+          if (scheduleParts.length !== 5) {
+            return `Error: Invalid schedule format. Expected 5 fields (minute hour day month weekday), got ${scheduleParts.length}.\nExample: "0 8 * * *" for daily at 8:00 UTC`;
+          }
+
+          // Get current crontab
+          let currentCrontab = '';
+          try {
+            const { stdout } = await execAsync('crontab -l 2>/dev/null');
+            currentCrontab = stdout;
+          } catch {
+            // No existing crontab
+          }
+
+          // Build new crontab entry
+          let newEntry = '';
+          if (comment) {
+            newEntry += `# ${comment}\n`;
+          }
+          newEntry += `${schedule} ${command}`;
+
+          // Append to crontab
+          const newCrontab = currentCrontab.trim() + '\n' + newEntry + '\n';
+
+          // Write new crontab
+          await execAsync(`echo "${newCrontab.replace(/"/g, '\\"')}" | crontab -`);
+
+          return `✅ Cron job added successfully!\n\n**Schedule:** \`${schedule}\`\n**Command:** \`${command}\`${comment ? `\n**Comment:** ${comment}` : ''}\n\nUse cron_list to verify.`;
+        } catch (err) {
+          return `Error adding cron job: ${err.message}`;
+        }
+      }
+
+      if (toolName === 'cron_remove') {
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+
+          const { identifier } = input;
+
+          // Get current crontab
+          let currentCrontab = '';
+          try {
+            const { stdout } = await execAsync('crontab -l 2>/dev/null');
+            currentCrontab = stdout;
+          } catch {
+            return 'No crontab exists for current user.';
+          }
+
+          const lines = currentCrontab.split('\n');
+          let newLines = [];
+          let removed = false;
+          let removedLine = '';
+
+          // Check if identifier is a line number
+          const lineNum = parseInt(identifier);
+          if (!isNaN(lineNum)) {
+            // Remove by line number (1-indexed, counting only non-comment job lines)
+            let jobCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (line.trim() && !line.startsWith('#')) {
+                jobCount++;
+                if (jobCount === lineNum) {
+                  removed = true;
+                  removedLine = line;
+                  // Also remove preceding comment if exists
+                  if (i > 0 && lines[i - 1].startsWith('#')) {
+                    newLines.pop();
+                  }
+                  continue;
+                }
+              }
+              newLines.push(line);
+            }
+          } else {
+            // Remove by comment match
+            let skipNext = false;
+            for (const line of lines) {
+              if (skipNext) {
+                removedLine = line;
+                skipNext = false;
+                removed = true;
+                continue;
+              }
+              if (line.includes(identifier)) {
+                if (line.startsWith('#')) {
+                  // This is a comment, skip the next line too (the actual job)
+                  skipNext = true;
+                  removed = true;
+                  continue;
+                } else {
+                  // This is the job line itself
+                  removedLine = line;
+                  removed = true;
+                  continue;
+                }
+              }
+              newLines.push(line);
+            }
+          }
+
+          if (!removed) {
+            return `No cron job found matching: ${identifier}\n\nUse cron_list to see current jobs.`;
+          }
+
+          // Write updated crontab
+          const newCrontab = newLines.join('\n');
+          if (newCrontab.trim()) {
+            await execAsync(`echo "${newCrontab.replace(/"/g, '\\"')}" | crontab -`);
+          } else {
+            await execAsync('crontab -r 2>/dev/null || true');
+          }
+
+          return `✅ Cron job removed:\n\`${removedLine}\`\n\nUse cron_list to verify.`;
+        } catch (err) {
+          return `Error removing cron job: ${err.message}`;
         }
       }
 
