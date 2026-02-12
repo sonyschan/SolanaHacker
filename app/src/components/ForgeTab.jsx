@@ -5,6 +5,7 @@ import MemeModal from './MemeModal';
 const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
+  const [votedMemeId, setVotedMemeId] = useState(null);  // Track which meme user voted for
   const [votes, setVotes] = useState({});
   const [rarityVotes, setRarityVotes] = useState({ common: 0, rare: 0, legendary: 0 });
   const [showReward, setShowReward] = useState(false);
@@ -98,6 +99,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       // The meme the user clicked becomes the selected meme for rarity voting
       const selected = dailyMemes.find(m => m.id === memeId);
       setSelectedMeme(selected);
+      setVotedMemeId(memeId);  // Track which meme was voted for
 
       // Set rarity votes from THIS meme's data (not aggregated)
       if (selected?.votes?.rarity) {
@@ -116,6 +118,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       // Still proceed to rarity phase for demo
       const selected = dailyMemes.find(m => m.id === memeId);
       setSelectedMeme(selected);
+      setVotedMemeId(memeId);
       setRarityVotes({
         common: selected?.votes?.rarity?.common || 0,
         rare: selected?.votes?.rarity?.rare || 0,
@@ -275,12 +278,28 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleVote(meme.id)}
-                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
-                    >
-                      ❤️ Vote for This Meme
-                    </button>
+                    {votedMemeId === null ? (
+                      <button
+                        onClick={() => handleVote(meme.id)}
+                        className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
+                      >
+                        ❤️ Vote for This Meme
+                      </button>
+                    ) : votedMemeId === meme.id ? (
+                      <button
+                        disabled
+                        className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90"
+                      >
+                        ✅ You Voted This Meme
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50"
+                      >
+                        Not Voted
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
