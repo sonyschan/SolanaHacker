@@ -80,14 +80,9 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             AI creates, you decide, everyone wins.
           </p>
           
-          {/* Enhanced CTA with value props */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+          {/* Enhanced CTA */}
+          <div className="flex justify-center mb-16">
             <WalletConnection variant="primary" className="px-8 py-4 text-lg" />
-            <button className="px-8 py-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-lg font-medium hover:bg-white/10 transition-all duration-300 group">
-              <span className="flex items-center space-x-2">
-                <span>📺 Watch Demo</span>
-              </span>
-            </button>
           </div>
 
           {/* Enhanced Stats Bar with better hierarchy */}
