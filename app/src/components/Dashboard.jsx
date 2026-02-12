@@ -59,9 +59,6 @@ const Dashboard = ({
           </p>
         </div>
 
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Market Stats - Preview Mode */}
