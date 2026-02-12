@@ -2,53 +2,22 @@
  * MemeForge Meme Service
  * 
  * 架構：
- * - READ (即時)：Firebase 直連 (即時同步)
+ * - READ：Cloud Run API (每日梗圖不需要即時同步)
  * - WRITE：Cloud Run API (驗證 + 防刷)
  * - AI 生成：Cloud Run API (Gemini)
  */
-import { getTodayMemes as getMemesFromFirebase } from './firebase';
 
-// Cloud Run API for write operations
+// Cloud Run API for all meme operations
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
 class MemeService {
   
   /**
-   * 獲取今日梗圖
-   * 優先使用 Firebase 直連，失敗時 fallback 到 Cloud Run API
+   * 獲取今日梗圖 (直接從 API，已有日期過濾 + limit 3)
    */
   async getTodaysMemes() {
     try {
-      console.log('🔥 嘗試 Firebase 直連讀取梗圖...');
-      
-      const memes = await getMemesFromFirebase();
-      
-      if (memes && memes.length > 0) {
-        console.log('✅ Firebase 直連成功，獲取', memes.length, '個梗圖');
-        return {
-          success: true,
-          memes,
-          source: 'firebase_direct'
-        };
-      }
-      
-      // Firebase 沒有數據，嘗試 Cloud Run API
-      console.log('⚠️ Firebase 無數據，嘗試 Cloud Run API...');
-      return await this.getMemesFromAPI();
-      
-    } catch (error) {
-      console.error('❌ Firebase 讀取失敗:', error.message);
-      console.log('🔄 Fallback 到 Cloud Run API...');
-      return await this.getMemesFromAPI();
-    }
-  }
-
-  /**
-   * 從 Cloud Run API 獲取梗圖 (fallback)
-   */
-  async getMemesFromAPI() {
-    try {
-      console.log('🌐 連接到 Cloud Run API:', API_BASE_URL);
+      console.log('🌐 從 Cloud Run API 獲取今日梗圖...');
       
       const response = await fetch(`${API_BASE_URL}/api/memes/today`, {
         method: 'GET',
@@ -62,15 +31,16 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ Cloud Run API 成功');
+      console.log('✅ 獲取成功，', result.memes?.length || 0, '個梗圖');
       
       return {
-        ...result,
+        success: true,
+        memes: result.memes || [],
         source: 'cloud_run_api'
       };
+      
     } catch (error) {
-      console.error('❌ Cloud Run API 失敗:', error);
-      console.log('🔄 使用本地後備梗圖...');
+      console.error('❌ API 讀取失敗:', error);
       return {
         success: false,
         error: error.message,
@@ -82,7 +52,7 @@ class MemeService {
   }
 
   /**
-   * 提交投票 (必須走 Cloud Run API 進行驗證)
+   * 提交投票 (Cloud Run API 進行驗證)
    */
   async submitVote(memeId, voteType, choice, walletAddress) {
     try {
@@ -158,20 +128,9 @@ class MemeService {
    */
   async testConnections() {
     const results = {
-      firebase: false,
       cloudRun: false
     };
 
-    // Test Firebase
-    try {
-      const memes = await getMemesFromFirebase();
-      results.firebase = true;
-      results.firebaseMemeCount = memes.length;
-    } catch (e) {
-      results.firebaseError = e.message;
-    }
-
-    // Test Cloud Run
     try {
       const response = await fetch(`${API_BASE_URL}/health`);
       results.cloudRun = response.ok;
@@ -183,7 +142,7 @@ class MemeService {
   }
 
   /**
-   * 後備梗圖 (所有連線都失敗時使用)
+   * 後備梗圖 (API 失敗時使用)
    */
   getFallbackMemes() {
     return [
