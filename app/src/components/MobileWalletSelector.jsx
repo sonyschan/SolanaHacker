@@ -3,7 +3,7 @@
  * Opens current site in wallet's in-app browser for proper connection
  */
 
-import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Wallet configurations with deep link formats
 const WALLETS = [
@@ -52,17 +52,22 @@ export function MobileWalletSelector({ isOpen, onClose }) {
     }
   };
 
-  return (
-    <div 
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  // Use portal to render modal at document body level, bypassing parent container constraints
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      style={{ zIndex: 99999 }}
       onClick={handleBackdropClick}
     >
-      <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+      <div
+        className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Connect Wallet</h2>
-          <button 
+          <h2 className="text-xl font-bold text-white">Connect Wallet</h2>
+          <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl leading-none"
+            className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center"
           >
             ×
           </button>
@@ -77,12 +82,12 @@ export function MobileWalletSelector({ isOpen, onClose }) {
             <button
               key={wallet.id}
               onClick={() => handleWalletClick(wallet)}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all"
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all bg-gray-800/50"
               style={{ borderLeftColor: wallet.color, borderLeftWidth: '3px' }}
             >
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{wallet.icon}</span>
-                <span className="font-medium">{wallet.name}</span>
+                <span className="font-medium text-white">{wallet.name}</span>
               </div>
               <span className="text-gray-400">→</span>
             </button>
@@ -93,7 +98,8 @@ export function MobileWalletSelector({ isOpen, onClose }) {
           Wallet not installed? The link will take you to the app store.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
