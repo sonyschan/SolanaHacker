@@ -510,16 +510,33 @@ ${recentMemory.slice(-1500)}
         userContent = message;
       }
 
-      // v3: Add current message to chat history
-      this.chatHistory.push({
-        role: 'user',
-        content: userContent,
-      });
+      // v3: Add current message to chat history (v4.2: validate non-empty)
+      if (userContent && (typeof userContent === 'string' ? userContent.trim() : userContent.length > 0)) {
+        this.chatHistory.push({
+          role: 'user',
+          content: userContent,
+        });
+      } else {
+        console.log('[ChatMode] Skipping empty user message');
+        // Add placeholder to prevent empty content error
+        this.chatHistory.push({
+          role: 'user',
+          content: '(繼續)',
+        });
+      }
 
       // v3.8: Simple pruning - history is now text-only so slice is safe
       if (this.chatHistory.length > this.maxChatHistory) {
         this.chatHistory = this.chatHistory.slice(-this.maxChatHistory);
       }
+
+      // v4.2: Filter out any messages with empty content before sending
+      const validMessages = this.chatHistory.filter(msg => {
+        if (!msg.content) return false;
+        if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+        if (Array.isArray(msg.content)) return msg.content.length > 0;
+        return true;
+      });
 
       // v3.3: Chat with tool support
       let response = await this.claudeClient.messages.create({
@@ -531,7 +548,7 @@ ${recentMemory.slice(-1500)}
           text: systemContext,
           cache_control: { type: 'ephemeral' },
         }],
-        messages: this.chatHistory,
+        messages: validMessages,
       });
 
       // v3.3: Handle tool use loop (max 3 iterations)
@@ -578,15 +595,27 @@ ${recentMemory.slice(-1500)}
         }
 
         // Add assistant message with tool use
-        this.chatHistory.push({
-          role: 'assistant',
-          content: response.content,
-        });
+        if (response.content && response.content.length > 0) {
+          this.chatHistory.push({
+            role: 'assistant',
+            content: response.content,
+          });
+        }
 
-        // Add tool results
-        this.chatHistory.push({
-          role: 'user',
-          content: toolResults,
+        // Add tool results (v4.2: validate non-empty)
+        if (toolResults && toolResults.length > 0) {
+          this.chatHistory.push({
+            role: 'user',
+            content: toolResults,
+          });
+        }
+
+        // v4.2: Filter out any messages with empty content before sending
+        const validMessagesLoop = this.chatHistory.filter(msg => {
+          if (!msg.content) return false;
+          if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+          if (Array.isArray(msg.content)) return msg.content.length > 0;
+          return true;
         });
 
         // Continue conversation
@@ -599,7 +628,7 @@ ${recentMemory.slice(-1500)}
             text: systemContext,
             cache_control: { type: 'ephemeral' },
           }],
-          messages: this.chatHistory,
+          messages: validMessagesLoop,
         });
       }
 
