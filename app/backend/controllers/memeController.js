@@ -182,42 +182,64 @@ async function getMemes(req, res) {
  */
 async function getTodaysMemes(req, res) {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    // DEV_MODE: Return mock memes with local images
+    if (process.env.DEV_MODE === 'true') {
+      console.log('⏭️ DEV_MODE: Using local mock memes');
+      const mockMemes = [
+        {
+          id: 'dev-meme-1',
+          title: 'AI Dreams of Electric Sheep',
+          description: 'When AI tries to understand crypto volatility',
+          imageUrl: '/generated/meme-preview-ai-confusion.png',
+          prompt: 'A confused robot looking at crypto charts',
+          newsSource: 'Dev Mode Mock',
+          generatedAt: new Date().toISOString(),
+          type: 'daily',
+          status: 'active',
+          votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } },
+          metadata: { devMode: true }
+        },
+        {
+          id: 'dev-meme-2',
+          title: 'Diamond Hands Forever',
+          description: 'HODLers when market crashes',
+          imageUrl: '/generated/meme-preview-crypto-hodl.png',
+          prompt: 'Diamond hands meme',
+          newsSource: 'Dev Mode Mock',
+          generatedAt: new Date().toISOString(),
+          type: 'daily',
+          status: 'active',
+          votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } },
+          metadata: { devMode: true }
+        },
+        {
+          id: 'dev-meme-3',
+          title: 'Crypto Celebration',
+          description: 'When your portfolio pumps 100x',
+          imageUrl: '/generated/meme-preview-crypto-celebration.png',
+          prompt: 'Celebration meme',
+          newsSource: 'Dev Mode Mock',
+          generatedAt: new Date().toISOString(),
+          type: 'daily',
+          status: 'active',
+          votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } },
+          metadata: { devMode: true }
+        }
+      ];
+      return res.json({ success: true, memes: mockMemes, date: new Date().toISOString().split('T')[0], count: mockMemes.length, devMode: true });
+    }
+    const today = new Date().toISOString().split('T')[0];
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
-    
     const db = getFirestore();
-    const query = db.collection(collections.MEMES)
-      .where('type', '==', 'daily')
-      .where('status', '==', 'active')
-      .where('generatedAt', '>=', startOfDay.toISOString())
-      .where('generatedAt', '<=', endOfDay.toISOString())
-      .orderBy('generatedAt', 'desc');
-    
+    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', '==', 'active').where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc');
     const snapshot = await query.get();
     const memes = [];
-    
-    snapshot.forEach(doc => {
-      memes.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
-    res.json({
-      success: true,
-      memes,
-      date: today,
-      count: memes.length
-    });
-
+    snapshot.forEach(doc => { memes.push({ id: doc.id, ...doc.data() }); });
+    res.json({ success: true, memes, date: today, count: memes.length });
   } catch (error) {
     console.error('❌ Error fetching today\'s memes:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch today\'s memes',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch today\'s memes', message: error.message });
   }
 }
 
