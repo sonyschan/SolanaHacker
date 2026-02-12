@@ -2,18 +2,15 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { SolanaWalletProvider } from './components/SolanaWalletProvider'
 
-// Add require polyfill for browser compatibility
-if (typeof window !== 'undefined' && !window.require) {
-  window.require = function(id) {
-    if (id === 'buffer') return { Buffer: Buffer };
-    if (id === 'process') return process;
-    throw new Error(`Module not found: ${id}`);
-  };
-}
+// Import wallet adapter styles
+import '@solana/wallet-adapter-react-ui/styles.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <SolanaWalletProvider>
+      <App />
+    </SolanaWalletProvider>
   </StrictMode>,
 )
