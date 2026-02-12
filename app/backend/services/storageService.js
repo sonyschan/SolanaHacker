@@ -36,7 +36,7 @@ class StorageService {
         stream.on('finish', async () => {
           try {
             // Make the file publicly accessible
-            await file.makePublic();
+            
             
             const publicUrl = `https://storage.googleapis.com/${this.bucketName}/memes/${filename}`;
             
