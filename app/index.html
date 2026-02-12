@@ -42,8 +42,8 @@
       
       // Set global variables for Node.js compatibility
       window.global = window.global || window;
-      window.Buffer = window.Buffer || {};
-      window.process = window.process || { env: {}, nextTick: fn => setTimeout(fn, 0) };
+      // Buffer provided by vite-plugin-node-polyfills
+      // process provided by vite-plugin-node-polyfills
     </script>
     
     <!-- Structured Data for Better SEO -->
