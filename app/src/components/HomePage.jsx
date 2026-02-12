@@ -1,7 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import WalletConnection from './WalletConnection';
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
+  const [weeklyVoters, setWeeklyVoters] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("https://memeforge-api-836651762884.asia-southeast1.run.app/api/stats");
+        const data = await response.json();
+        if (data.success) {
+          setWeeklyVoters(data.stats.weeklyVoters || 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
       {/* Enhanced Animated background */}
@@ -36,7 +53,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
               <span className="text-sm text-gray-400">Live</span>
             </div>
             <div className="text-sm">
-              <span className="text-cyan-400 font-bold">1,247</span>
+              <span className="text-cyan-400 font-bold">{weeklyVoters}</span>
               <span className="text-gray-500 ml-1">voters</span>
             </div>
           </div>
@@ -283,7 +300,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
             <h3 className="text-4xl font-bold mb-4">Join the Democracy</h3>
             <p className="text-gray-400 mb-8 max-w-2xl mx-auto text-lg">
-              <strong className="text-white">1,247 voters</strong> are already earning SOL by deciding the next viral crypto memes. 
+              <strong className="text-white">{weeklyVoters} voters</strong> is ready to earn SOL by deciding the next viral crypto memes. 
               Don't miss today's vote!
             </p>
             <div className="space-y-4">
