@@ -56,37 +56,46 @@ class MemeService {
    */
   async submitVote(memeId, voteType, choice, walletAddress) {
     try {
-      console.log('🗳️ Submitting vote to Cloud Run API...');
-      
-      const response = await fetch(`${API_BASE_URL}/api/voting/vote`, {
+      console.log('🗳️ Submitting vote to Cloud Run API...', { memeId, voteType, choice, walletAddress });
+
+      const response = await fetch(`${API_BASE_URL}/api/voting/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           memeId,
-          voteType,
+          phase: voteType,      // Backend expects 'phase' not 'voteType'
           choice,
-          walletAddress
+          userWallet: walletAddress  // Backend expects 'userWallet' not 'walletAddress'
         })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || `HTTP ${response.status}`);
+        throw new Error(error.message || error.error || `HTTP ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log('✅ Vote successful:', result);
-      
+
+      // Extract data from nested response
+      const voteData = result.data || result;
+
       // Increment weekly voter count after successful vote
       if (result.success) {
-        this.incrementVoters().catch(err => 
+        this.incrementVoters().catch(err =>
           console.warn('⚠️ Failed to update voter count:', err)
         );
       }
-      
-      return result;
+
+      // Return with consistent structure for ForgeTab
+      return {
+        success: result.success,
+        ticketsEarned: voteData.ticketsEarned,
+        user: voteData.user,
+        vote: voteData
+      };
     } catch (error) {
       console.error('❌ Vote failed:', error);
       return {
