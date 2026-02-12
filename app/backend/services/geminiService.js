@@ -53,10 +53,13 @@ Style requirements:
 - Clean composition with balanced visual elements
 
 Technical specs:
-- High resolution (minimum 512x512, prefer 1024x1024)
+- EXACTLY 1024x1024 pixels resolution (required for NFT standard)
 - Bold text that stands out against background
 - Engaging visual composition that captures attention
-- Professional finish suitable for digital collectibles`;
+- Professional finish suitable for digital collectibles
+- PNG format with transparency support
+- File size optimized for web (under 2MB)
+- Perfect square ratio for consistent display across all platforms`;
 
       console.log('🎨 Generating real image with Gemini...');
       

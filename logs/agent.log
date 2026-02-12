@@ -80841,3 +80841,63 @@ import memeService from '../services/memeService...
 [ChatMode] History: 18 messages
 [TG] Devlog sent successfully (1 part)
 [TG] Default chat: release...
+[ChatMode] Tool git_commit: ✅ Committed locally (02fc32d13): "feat: implement environment-aware storage for meme generation
+
+- A...
+To https://github.com/sonyschan/SolanaHacker.git
+   eab63d75c..02fc32d13  HEAD -> main
+To https://github.com/sonyschan/SolanaHacker.git
+ * [new tag]             v1.1.13 -> v1.1.13
+[ChatMode] Tool git_release: ✅ Released v1.1.13!
+
+🔗 GitHub: https://github.com/sonyschan/SolanaHacker/releases/tag/v1.1.13...
+[ChatMode] Cleaned tool messages from history
+[ChatMode] History: 20 messages
+[TG] Devlog sent successfully (1 part)
+[TG] Photo downloaded: /home/projects/solanahacker/screenshots/tg-1770865513483.jpg
+[TG] Default chat: MVP spec 是否有規範 Meme 生成的尺寸？我發現前端 component 截斷了 Meme...
+[ChatMode] Including image in message: /home/projects/solanahacker/screenshots/tg-1770865513483.jpg
+[ChatMode] Tool read_knowledge: # MemeForge Product Specification
+
+> AI-powered meme NFT voting platform with democratic rarity syst...
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=app/src/components/MemeCard.jsx, full=/home/projects/solanahacker/app/src/components/MemeCard.jsx
+[ChatMode] Tool read_file: Error: File not found: app/src/components/MemeCard.jsx (looked in /home/projects/solanahacker/app/sr...
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=app/src/components/Dashboard.jsx, full=/home/projects/solanahacker/app/src/components/Dashboard.jsx
+[ChatMode] Tool read_file: import React, { useState } from 'react';
+import WalletConnection from './WalletConnection';
+import F...
+[ChatMode] Cleaned tool messages from history
+[ChatMode] History: 22 messages
+[TG] Devlog sent successfully (1 part)
+[TG] Default chat: 好。 Gemini 的梗圖生成 Prompt 也需要做好生成的說明...
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=docs/product.md, full=/home/projects/solanahacker/docs/product.md
+[ChatMode] Tool read_file: # MemeForge Product Specification
+
+> AI-powered meme NFT voting platform with democratic rarity syst...
+[ChatMode] edit_file: docs/product.md, replacing "### AI 整合
+- **梗圖生成**: 
+  - **S..." with "### AI 整合
+- **梗圖生成**: 
+  - **S..."
+[ChatMode] Tool edit_file: Successfully replaced "### AI 整合
+- **梗圖生成**: 
+  - **S..." with "### AI 整合
+- **梗圖生成**: 
+  - **S..." i...
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=app/backend/services/geminiService.js, full=/home/projects/solanahacker/app/backend/services/geminiService.js
+[ChatMode] Tool read_file: const { GoogleGenerativeAI } = require('@google/generative-ai');
+const path = require('path');
+const...
+[ChatMode] edit_file: app/backend/services/geminiService.js, replacing "      // Enhanced prompt for h..." with "      // Enhanced prompt for h..."
+[ChatMode] Tool edit_file: Successfully replaced "      // Enhanced prompt for h..." with "      // Enhanced prompt for h..." i...
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=app/src/components/Dashboard.jsx, full=/home/projects/solanahacker/app/src/components/Dashboard.jsx
+[ChatMode] Tool read_file: import React, { useState } from 'react';
+import WalletConnection from './WalletConnection';
+import F...
+[ChatMode] edit_file: app/src/components/Dashboard.jsx, replacing "                <div className..." with "                <div className..."
+[ChatMode] Tool edit_file: Successfully replaced "                <div className..." with "                <div className..." i...
+[ChatMode] edit_file: app/src/components/Dashboard.jsx, replacing "            <div className="bg..." with "            <div className="bg..."
+[ChatMode] Tool edit_file: Error: Text not found in file. Could not find: "            <div className="bg-gradient-to-r from-.....
+[ChatMode] read_file: baseDir=/home/projects/solanahacker, path=app/src/components/ForgeTab.jsx, full=/home/projects/solanahacker/app/src/components/ForgeTab.jsx
+[ChatMode] Tool read_file: import React, { useState, useEffect } from 'react';
+import memeService from '../services/memeService...

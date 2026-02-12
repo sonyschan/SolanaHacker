@@ -188,7 +188,16 @@ const Dashboard = ({
             {memes.map((meme) => (
               <div key={meme.id} className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
                 <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">{meme.image}</div>
+                  {/* Replace emoji with actual image */}
+                  {meme.imageUrl ? (
+                    <img 
+                      src={meme.imageUrl} 
+                      alt={meme.title}
+                      className="w-full h-64 object-cover rounded-lg mb-4 group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">{meme.image}</div>
+                  )}
                   <h4 className="font-bold mb-2">{meme.title}</h4>
                   <div className="space-y-2 mb-4">
                     <p className="text-sm text-gray-400">{meme.votes} votes</p>

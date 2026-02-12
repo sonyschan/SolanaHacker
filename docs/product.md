@@ -193,6 +193,9 @@
   - **Skill**: `gemini_image` (專門用於 Meme 生成)
   - **Model**: `gemini-3-pro-image-preview` (NFT 藝術級品質)
   - **備用模型**: `gemini-2.5-flash-image` (UX 資產用)
+  - **圖片規格**: 1024x1024 px 正方形，PNG/JPEG 格式，最大 2MB
+  - **顯示尺寸**: 卡片預覽 300x300 px，詳細檢視 600x600 px，NFT 市場 512x512 px
+  - **比例**: 1:1 正方形確保各平台相容性
 - **聊天/新聞**: Grok API 用於趨勢分析和新聞摘要
 - **內容來源**: Twitter 趨勢、CoinDesk、Reddit r/CryptoCurrency 等
 - **內容審核**: 自動化過濾
