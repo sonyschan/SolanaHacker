@@ -79,6 +79,13 @@ class MemeService {
       const result = await response.json();
       console.log('✅ 投票成功:', result);
       
+      // 投票成功後增加週投票者計數
+      if (result.success) {
+        this.incrementVoters().catch(err => 
+          console.warn('⚠️ 更新投票者計數失敗:', err)
+        );
+      }
+      
       return result;
     } catch (error) {
       console.error('❌ 投票失敗:', error);
@@ -86,6 +93,47 @@ class MemeService {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  /**
+   * 增加週投票者計數
+   */
+  async incrementVoters() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stats/increment-voters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('📊 投票者計數已更新:', result.stats?.weeklyVoters);
+      return result;
+    } catch (error) {
+      console.error('❌ 更新投票者計數失敗:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 獲取平台統計
+   */
+  async getPlatformStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stats`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('❌ 獲取統計失敗:', error);
+      return { success: false, error: error.message };
     }
   }
 
