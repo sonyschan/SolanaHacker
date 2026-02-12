@@ -123,6 +123,12 @@ app.use((err, req, res, next) => {
 
 // Initialize scheduler service
 async function initializeScheduler() {
+  // DEV_MODE: Skip scheduler in development
+  if (process.env.DEV_MODE === 'true') {
+    console.log('⏭️ DEV_MODE: Skipping scheduler initialization');
+    return;
+  }
+
   try {
     console.log('🔄 Initializing MemeForge Automation System...');
     await schedulerService.initialize();

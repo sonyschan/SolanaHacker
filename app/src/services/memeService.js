@@ -1,9 +1,10 @@
 /**
  * MemeForge Frontend API Service
- * 前端 API 呼叫服務
+ * 前端 API 呼叫服務 - 連接到 GCP Gemini 3 Pro Image 後端
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// 優先使用 GCP 後端，回退到本地
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://165.22.136.40:3001';
 
 class MemeService {
   
@@ -12,7 +13,7 @@ class MemeService {
    */
   async testConnections() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/memes/test`, {
+      const response = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -35,11 +36,45 @@ class MemeService {
   }
 
   /**
-   * Generate daily memes
+   * Get today's memes - 直接從 GCP Gemini 3 Pro Image 後端獲取
+   */
+  async getTodaysMemes() {
+    try {
+      console.log('🌐 連接到 GCP Gemini 3 Pro Image 後端:', API_BASE_URL);
+      
+      const response = await fetch(`${API_BASE_URL}/api/memes/today`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ 成功獲取 Gemini 3 Pro 生成的梗圖:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ 獲取 Gemini 3 梗圖失敗:', error);
+      console.log('🔄 使用後備梗圖...');
+      return {
+        success: false,
+        error: error.message,
+        memes: this.getFallbackMemes(),
+        fallback: true
+      };
+    }
+  }
+
+  /**
+   * Generate daily memes - 調用 GCP Gemini 3 Pro Image 生成
    */
   async generateDailyMemes() {
     try {
-      console.log('📅 Calling backend to generate daily memes...');
+      console.log('📅 呼叫 GCP 生成每日梗圖...');
       
       const response = await fetch(`${API_BASE_URL}/api/memes/generate-daily`, {
         method: 'POST',
@@ -56,52 +91,15 @@ class MemeService {
       }
       
       const result = await response.json();
-      console.log('✅ Daily memes generated:', result);
+      console.log('✅ Gemini 3 Pro 每日梗圖已生成:', result);
       
       return result;
     } catch (error) {
-      console.error('Daily memes generation failed:', error);
+      console.error('❌ Gemini 3 Pro 梗圖生成失敗:', error);
       return {
         success: false,
         error: error.message,
         memes: this.getFallbackMemes()
-      };
-    }
-  }
-
-  /**
-   * Get today's memes
-   */
-  async getTodaysMemes() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/memes/today`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      // If no memes found, try to generate them
-      if (result.memes && result.memes.length === 0) {
-        console.log('📅 No memes for today, generating new ones...');
-        const generateResult = await this.generateDailyMemes();
-        return generateResult;
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Failed to get today\'s memes:', error);
-      return {
-        success: false,
-        error: error.message,
-        memes: this.getFallbackMemes(),
-        fallback: true
       };
     }
   }
@@ -147,7 +145,7 @@ class MemeService {
         id: 'fallback-1',
         title: 'AI Dreams of Electric Sheep',
         description: 'When AI tries to understand crypto volatility',
-        imageUrl: '/generated/test-meme-flash.png', // Use our test image
+        imageUrl: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=AI+Dreams', 
         image: '🤖💭', // Emoji fallback
         prompt: 'A confused robot looking at crypto charts',
         newsSource: 'Mock Crypto News',
@@ -167,8 +165,8 @@ class MemeService {
         id: 'fallback-2', 
         title: 'Diamond Hands Forever',
         description: 'HODLers when market crashes but they keep buying',
-        imageUrl: '/generated/meme-preview-crypto-hodl.png',
-        image: '/generated/meme-preview-crypto-hodl.png',
+        imageUrl: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Diamond+Hands',
+        image: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Diamond+Hands',
         prompt: 'Diamond hands meme with crypto theme',
         newsSource: 'Mock DeFi News',
         generatedAt: new Date().toISOString(),
@@ -187,8 +185,8 @@ class MemeService {
         id: 'fallback-3',
         title: 'This Is Fine DeFi',
         description: 'DeFi users when gas fees are $200+',
-        imageUrl: '/generated/meme-preview-voting-democracy.png',
-        image: '/generated/meme-preview-voting-democracy.png',
+        imageUrl: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=This+Is+Fine',
+        image: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=This+Is+Fine',
         prompt: 'This is fine meme but with DeFi theme',
         newsSource: 'Mock Solana News',
         generatedAt: new Date().toISOString(),

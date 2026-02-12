@@ -25,6 +25,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- Node.js Polyfills for Browser Compatibility -->
+    <script>
+      // Add require polyfill for Solana wallet compatibility
+      if (typeof require === 'undefined') {
+        window.require = function(id) {
+          if (id === 'buffer') return { Buffer: window.Buffer };
+          if (id === 'process') return window.process;
+          if (id === 'util') return {};
+          if (id === 'events') return {};
+          if (id === 'stream') return {};
+          if (id === 'crypto') return window.crypto;
+          throw new Error(`Module not found: ${id}. This may indicate a compatibility issue with Node.js modules in the browser.`);
+        };
+      }
+      
+      // Set global variables for Node.js compatibility
+      window.global = window.global || window;
+      window.Buffer = window.Buffer || {};
+      window.process = window.process || { env: {}, nextTick: fn => setTimeout(fn, 0) };
+    </script>
+    
     <!-- Structured Data for Better SEO -->
     <script type="application/ld+json">
     {
