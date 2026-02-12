@@ -45,6 +45,36 @@ export class ChatMode {
     this.chatHistory = [];
     this.maxChatHistory = 50; // Keep last 50 messages (sliding window)
 
+    // v4.5: Helper to sanitize strings - ALWAYS remove invalid Unicode surrogates
+    // JavaScript JSON.stringify may succeed but API may still reject invalid surrogates
+    this.sanitizeString = (str) => {
+      if (typeof str !== 'string') return str;
+      // ALWAYS sanitize - don't rely on JSON.stringify to detect issues
+      let result = '';
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        // Handle surrogates
+        if (code >= 0xD800 && code <= 0xDBFF) {
+          // High surrogate - check if followed by valid low surrogate
+          const next = str.charCodeAt(i + 1);
+          if (next >= 0xDC00 && next <= 0xDFFF) {
+            // Valid surrogate pair, keep both
+            result += str[i] + str[i + 1];
+            i++;
+          } else {
+            // Unpaired high surrogate, skip it
+            console.log(`[Sanitize] Removed unpaired high surrogate at position ${i}`);
+          }
+        } else if (code >= 0xDC00 && code <= 0xDFFF) {
+          // Lone low surrogate, skip it
+          console.log(`[Sanitize] Removed unpaired low surrogate at position ${i}`);
+        } else {
+          result += str[i];
+        }
+      }
+      return result;
+    };
+
     // v4: Enhanced tools for Chat Mode
     this.chatTools = [
       // --- File Operations ---
@@ -479,6 +509,9 @@ ${recentMemory.slice(-1500)}
 - 只記錄 H2Crypto 這次訊息中提到的內容
 - 例如：「記得用 Grok 讀新聞」→ remember({ item: "用 Grok 讀新聞" })`;
 
+      // v4.4: Sanitize the entire system context to prevent JSON encoding errors
+      const sanitizedSystemContext = this.sanitizeString(systemContext);
+
       // v3.2: Build message content (text or multimodal with image)
       let userContent;
       if (imagePath && fs.existsSync(imagePath)) {
@@ -510,11 +543,25 @@ ${recentMemory.slice(-1500)}
         userContent = message;
       }
 
-      // v3: Add current message to chat history (v4.2: validate non-empty)
-      if (userContent && (typeof userContent === 'string' ? userContent.trim() : userContent.length > 0)) {
+      // v3: Add current message to chat history (v4.2: validate non-empty, v4.4: sanitize)
+      let sanitizedUserContent;
+      if (typeof userContent === 'string') {
+        sanitizedUserContent = this.sanitizeString(userContent);
+      } else if (Array.isArray(userContent)) {
+        // Sanitize text parts of multimodal content (images + text)
+        sanitizedUserContent = userContent.map(block => {
+          if (block.type === 'text' && block.text) {
+            return { ...block, text: this.sanitizeString(block.text) };
+          }
+          return block;
+        });
+      } else {
+        sanitizedUserContent = userContent;
+      }
+      if (sanitizedUserContent && (typeof sanitizedUserContent === 'string' ? sanitizedUserContent.trim() : sanitizedUserContent.length > 0)) {
         this.chatHistory.push({
           role: 'user',
-          content: userContent,
+          content: sanitizedUserContent,
         });
       } else {
         console.log('[ChatMode] Skipping empty user message');
@@ -531,25 +578,76 @@ ${recentMemory.slice(-1500)}
       }
 
       // v4.2: Filter out any messages with empty content before sending
-      const validMessages = this.chatHistory.filter(msg => {
-        if (!msg.content) return false;
-        if (typeof msg.content === 'string') return msg.content.trim().length > 0;
-        if (Array.isArray(msg.content)) return msg.content.length > 0;
-        return true;
-      });
+      // v4.4: Also sanitize all message content to prevent JSON encoding errors
+      const validMessages = this.chatHistory
+        .filter(msg => {
+          if (!msg.content) return false;
+          if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+          if (Array.isArray(msg.content)) return msg.content.length > 0;
+          return true;
+        })
+        .map(msg => {
+          // Sanitize content before sending
+          if (typeof msg.content === 'string') {
+            return { ...msg, content: this.sanitizeString(msg.content) };
+          } else if (Array.isArray(msg.content)) {
+            return {
+              ...msg,
+              content: msg.content.map(block => {
+                if (block.type === 'text' && block.text) {
+                  return { ...block, text: this.sanitizeString(block.text) };
+                }
+                if (block.type === 'tool_result' && typeof block.content === 'string') {
+                  return { ...block, content: this.sanitizeString(block.content) };
+                }
+                return block;
+              }),
+            };
+          }
+          return msg;
+        });
 
       // v3.3: Chat with tool support
-      let response = await this.claudeClient.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2500,
-        tools: this.chatTools,
-        system: [{
-          type: 'text',
-          text: systemContext,
-          cache_control: { type: 'ephemeral' },
-        }],
-        messages: validMessages,
-      });
+      // v4.5: Add debug logging for 400 errors
+      let response;
+      try {
+        response = await this.claudeClient.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2500,
+          tools: this.chatTools,
+          system: [{
+            type: 'text',
+            text: sanitizedSystemContext,
+            cache_control: { type: 'ephemeral' },
+          }],
+          messages: validMessages,
+        });
+      } catch (apiError) {
+        // v4.5: Debug all API errors
+        console.error('[ChatMode] API Error caught:', apiError.status, apiError.message);
+        console.error(`[ChatMode] System context length: ${sanitizedSystemContext.length}`);
+        console.error(`[ChatMode] Messages count: ${validMessages.length}`);
+
+        // Always try to find surrogates
+        try {
+          const fullPayload = JSON.stringify({ system: sanitizedSystemContext, messages: validMessages });
+          console.error(`[ChatMode] Full payload length: ${fullPayload.length}`);
+          let surrogateCount = 0;
+          for (let i = 0; i < fullPayload.length; i++) {
+            const code = fullPayload.charCodeAt(i);
+            if (code >= 0xD800 && code <= 0xDFFF) {
+              surrogateCount++;
+              if (surrogateCount <= 5) {
+                console.error(`[ChatMode] Found surrogate at ${i}: \\u${code.toString(16)}, context: "${fullPayload.slice(Math.max(0,i-10), i+10)}"`);
+              }
+            }
+          }
+          console.error(`[ChatMode] Total surrogates found: ${surrogateCount}`);
+        } catch (e) {
+          console.error(`[ChatMode] Error while scanning payload: ${e.message}`);
+        }
+        throw apiError;
+      }
 
       // v3.3: Handle tool use loop (max 3 iterations)
       let iterations = 0;
@@ -580,7 +678,9 @@ ${recentMemory.slice(-1500)}
         lastToolResults = []; // Reset for this iteration
 
         for (const toolUse of toolUseBlocks) {
-          const result = await this.executeChatTool(toolUse.name, toolUse.input);
+          const rawResult = await this.executeChatTool(toolUse.name, toolUse.input);
+          // v4.4: Sanitize tool results to prevent JSON encoding errors
+          const result = this.sanitizeString(rawResult);
           // v4.1: Track if send_telegram was successfully used
           if (toolUse.name === 'send_telegram' && result.includes('[OK]')) {
             sentViaTelegram = true;
@@ -611,12 +711,33 @@ ${recentMemory.slice(-1500)}
         }
 
         // v4.2: Filter out any messages with empty content before sending
-        const validMessagesLoop = this.chatHistory.filter(msg => {
-          if (!msg.content) return false;
-          if (typeof msg.content === 'string') return msg.content.trim().length > 0;
-          if (Array.isArray(msg.content)) return msg.content.length > 0;
-          return true;
-        });
+        // v4.4: Filter and sanitize all messages before API call
+        const validMessagesLoop = this.chatHistory
+          .filter(msg => {
+            if (!msg.content) return false;
+            if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+            if (Array.isArray(msg.content)) return msg.content.length > 0;
+            return true;
+          })
+          .map(msg => {
+            if (typeof msg.content === 'string') {
+              return { ...msg, content: this.sanitizeString(msg.content) };
+            } else if (Array.isArray(msg.content)) {
+              return {
+                ...msg,
+                content: msg.content.map(block => {
+                  if (block.type === 'text' && block.text) {
+                    return { ...block, text: this.sanitizeString(block.text) };
+                  }
+                  if (block.type === 'tool_result' && typeof block.content === 'string') {
+                    return { ...block, content: this.sanitizeString(block.content) };
+                  }
+                  return block;
+                }),
+              };
+            }
+            return msg;
+          });
 
         // Continue conversation
         response = await this.claudeClient.messages.create({
@@ -625,7 +746,7 @@ ${recentMemory.slice(-1500)}
           tools: this.chatTools,
           system: [{
             type: 'text',
-            text: systemContext,
+            text: sanitizedSystemContext,
             cache_control: { type: 'ephemeral' },
           }],
           messages: validMessagesLoop,
@@ -797,7 +918,9 @@ ${recentMemory.slice(-1500)}
           const files = fs.readdirSync(filePath);
           return `${normalizedPath} is a directory. Contents:\n${files.join('\n')}`;
         }
-        const content = fs.readFileSync(filePath, 'utf-8');
+        const rawContent = fs.readFileSync(filePath, 'utf-8');
+        // v4.4: Sanitize to remove invalid Unicode surrogates
+        const content = this.sanitizeString(rawContent);
         if (content.length > 50000) {
           return content.slice(0, 50000) + `\n\n[...truncated, file is ${content.length} chars]`;
         }
@@ -1732,7 +1855,7 @@ ${currentState.notes || '(none)'}
       return '(尚未建立價值觀記錄)';
     }
     const content = fs.readFileSync(this.valuesPath, 'utf-8');
-    return content.slice(0, 2000); // Limit size
+    return this.sanitizeString(content.slice(0, 2000)); // v4.4: sanitize
   }
 
   /**
@@ -1743,7 +1866,7 @@ ${currentState.notes || '(none)'}
     if (!fs.existsSync(taskPath)) {
       return '(沒有進行中的任務)';
     }
-    return fs.readFileSync(taskPath, 'utf-8');
+    return this.sanitizeString(fs.readFileSync(taskPath, 'utf-8')); // v4.4: sanitize
   }
 
   /**
@@ -1785,7 +1908,7 @@ ${currentState.notes || '(none)'}
       return '(沒有最近的日誌)';
     }
 
-    return result;
+    return this.sanitizeString(result); // v4.4: sanitize
   }
 
   /**

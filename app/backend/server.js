@@ -25,6 +25,7 @@ app.use(compression());
 app.use(cors({
   origin: [
     'http://localhost:5173',
+    'http://165.22.136.40:5173',  // 添加公網 IP
     'https://solana-hacker.vercel.app',
     'https://solanahacker.vercel.app'
   ],
