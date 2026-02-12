@@ -38,6 +38,10 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve generated images
+const path = require('path');
+app.use('/generated', express.static(path.join(__dirname, 'public/generated')));
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
   // DEV_MODE: Skip scheduler status check

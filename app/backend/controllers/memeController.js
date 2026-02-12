@@ -4,6 +4,18 @@ const geminiService = require('../services/geminiService');
 const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
 
+// Helper to convert relative imageUrl to absolute
+const BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://memeforge-api-836651762884.asia-southeast1.run.app'
+  : 'http://localhost:3001';
+
+function fixImageUrl(meme) {
+  if (meme.imageUrl && meme.imageUrl.startsWith('/generated/')) {
+    return { ...meme, imageUrl: BASE_URL + meme.imageUrl };
+  }
+  return meme;
+}
+
 /**
  * Generate meme using Gemini API
  */
@@ -136,7 +148,7 @@ async function getMemes(req, res) {
     }
     
     // Order by creation date
-    query = query.orderBy('generatedAt', 'desc');
+    query = query.orderBy('generatedAt', 'desc').limit(3);
     
     // Apply pagination
     const pageSize = parseInt(limit);
@@ -232,10 +244,10 @@ async function getTodaysMemes(req, res) {
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
     const db = getFirestore();
-    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', '==', 'active').where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc');
+    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', '==', 'active').where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc').limit(3);
     const snapshot = await query.get();
     const memes = [];
-    snapshot.forEach(doc => { memes.push({ id: doc.id, ...doc.data() }); });
+    snapshot.forEach(doc => { memes.push(fixImageUrl({ id: doc.id, ...doc.data() })); });
     res.json({ success: true, memes, date: today, count: memes.length });
   } catch (error) {
     console.error('❌ Error fetching today\'s memes:', error);

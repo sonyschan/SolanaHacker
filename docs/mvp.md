@@ -833,3 +833,53 @@ FIREBASE_PROJECT_ID=web3ai-469609
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 GEMINI_API_KEY=xxx
 ```
+
+---
+
+## 🚀 部署檢查清單 (2026-02-12)
+
+### Cloud Run 部署
+
+**Service**: `memeforge-api`  
+**Region**: `asia-southeast1`  
+**URL**: `https://memeforge-api-836651762884.asia-southeast1.run.app`
+
+**必要環境變數**:
+- [x] `NODE_ENV=production`
+- [x] `GEMINI_API_KEY`
+- [x] `FIREBASE_PROJECT_ID=web3ai-469609`
+- [x] `FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@web3ai-469609.iam.gserviceaccount.com`
+- [x] `FIREBASE_PRIVATE_KEY` (含 `\n` 換行符)
+
+**部署指令**:
+```bash
+cd /home/projects/solanahacker/app/backend
+gcloud run deploy memeforge-api --source . --region asia-southeast1 --allow-unauthenticated
+```
+
+### Vercel 部署
+
+**必要環境變數**:
+- [x] `VITE_API_BASE_URL=https://memeforge-api-836651762884.asia-southeast1.run.app`
+- [x] `VITE_FIREBASE_API_KEY`
+- [x] `VITE_FIREBASE_PROJECT_ID=web3ai-469609`
+
+### Firestore 索引
+
+**需要 Composite Index**:
+```
+Collection: memes
+Fields: status ↑, type ↑, generatedAt ↓, __name__ ↓
+```
+
+建立連結: Firebase Console → Firestore → Indexes → Add Index
+
+### 健康檢查
+
+```bash
+# Backend Health
+curl https://memeforge-api-836651762884.asia-southeast1.run.app/health
+
+# Memes API
+curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
+```

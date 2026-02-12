@@ -4,6 +4,34 @@
 
 ---
 
+---
+
+## 📍 當前部署狀態 (2026-02-12)
+
+### Production 環境
+
+| 服務 | URL | 狀態 |
+|-----|-----|------|
+| Frontend | https://solana-hacker.vercel.app | ✅ 運行中 |
+| Backend API | https://memeforge-api-836651762884.asia-southeast1.run.app | ✅ 運行中 |
+| Firestore | web3ai-469609 | ✅ 已建立索引 |
+
+### 已完成的基礎設施
+
+- [x] Cloud Run 部署 (asia-southeast1)
+- [x] Firebase Admin SDK 認證
+- [x] Firestore Composite Index (memes collection)
+- [x] CORS 設定 (Vercel + Droplet origins)
+- [x] 讀寫分離架構 (Firebase direct + Cloud Run API)
+
+### 下一步 Beta 準備
+
+- [ ] WebSocket 即時通訊
+- [ ] Redis 快取層
+- [ ] 微服務拆分
+- [ ] NFT 鑄造智能合約
+
+
 ## 🌐 前後端通訊升級 (Beta)
 
 ### Vercel Frontend ↔ GCP Microservices

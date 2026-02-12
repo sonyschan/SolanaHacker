@@ -259,6 +259,142 @@ AI 負責內容生成和 traits 決定，人類負責價值判斷和稀有度投
 - 🚧 用戶流失: 社群激勵和留存策略
 
 ### 合規風險 (持續關注)
+
+---
+
+## 🔧 部署環境設定 (2026-02-12 更新)
+
+### 環境分離架構
+
+| 環境 | 用途 | Frontend | Backend | Database |
+|-----|------|----------|---------|----------|
+| **Development** | Droplet 開發測試 | http://165.22.136.40:5173 | http://localhost:3001 (DEV_MODE) | Mock Data |
+| **Production** | Vercel + Cloud Run | https://solana-hacker.vercel.app | https://memeforge-api-836651762884.asia-southeast1.run.app | Firestore |
+
+### Cloud Run 部署
+
+**Service URL**: `https://memeforge-api-836651762884.asia-southeast1.run.app`
+
+**必要環境變數**:
+```bash
+NODE_ENV=production
+GEMINI_API_KEY=<your-gemini-api-key>
+FIREBASE_PROJECT_ID=web3ai-469609
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@web3ai-469609.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+**部署指令**:
+```bash
+cd /home/projects/solanahacker/app/backend
+gcloud run deploy memeforge-api \
+  --source . \
+  --region asia-southeast1 \
+  --allow-unauthenticated \
+  --update-env-vars="NODE_ENV=production,FIREBASE_PROJECT_ID=web3ai-469609,..."
+```
+
+### Vercel 環境變數
+
+```bash
+VITE_API_BASE_URL=https://memeforge-api-836651762884.asia-southeast1.run.app
+VITE_FIREBASE_API_KEY=<firebase-web-api-key>
+VITE_FIREBASE_PROJECT_ID=web3ai-469609
+VITE_FIREBASE_AUTH_DOMAIN=web3ai-469609.firebaseapp.com
+VITE_FIREBASE_STORAGE_BUCKET=web3ai-469609.firebasestorage.app
+```
+
+### Firestore 索引設定
+
+需要建立 Composite Index 才能執行多欄位查詢：
+
+| Collection | Fields Indexed | 用途 |
+|-----------|----------------|------|
+| `memes` | status ↑, type ↑, generatedAt ↓ | 查詢今日活躍梗圖 |
+
+建立連結: https://console.firebase.google.com/project/web3ai-469609/firestore/indexes
+
+### 讀寫分離架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      前端 (React)                       │
+├─────────────────────────────────────────────────────────┤
+│  READ 操作                    │   WRITE 操作            │
+│  ────────────                 │   ────────────          │
+│  Firebase SDK 直連            │   Cloud Run API         │
+│  ↓                            │   ↓                     │
+│  • subscribeTodayMemes()      │   • submitVote()        │
+│  • subscribeVoteStats()       │   • generateDailyMemes()│
+│  • subscribeUserData()        │                         │
+│  ↓                            │   ↓                     │
+│  即時同步 (onSnapshot)        │   驗證 + 防刷           │
+└─────────────────────────────────────────────────────────┘
+          │                              │
+          ▼                              ▼
+┌─────────────────────┐      ┌─────────────────────────────┐
+│     Firestore       │◀────▶│        Cloud Run            │
+│  (即時資料庫)       │      │  (API Gateway + 驗證邏輯)   │
+└─────────────────────┘      └─────────────────────────────┘
+```
+
+**為什麼這樣設計？**
+
+| 操作類型 | 通道 | 原因 |
+|---------|------|------|
+| 讀取梗圖 | Firebase 直連 | 即時同步、低延遲、自動更新 |
+| 讀取投票統計 | Firebase 直連 | 多用戶即時看到投票變化 |
+| 提交投票 | Cloud Run API | 需要驗證錢包簽名、防止重複/刷票 |
+| 生成梗圖 | Cloud Run API | Gemini API Key 不能暴露給前端 |
+
+### 新增檔案 (Frontend)
+
+| 檔案 | 用途 |
+|-----|------|
+| `app/src/services/firebase.js` | Firebase Client SDK 設定 + 即時監聽函數 |
+| `app/src/services/memeService.js` | 服務層 (Firebase 優先 + Cloud Run fallback) |
+| `app/src/hooks/useFirebase.js` | React Hooks (useTodayMemes, useVoteStats, etc.) |
+
+### 防刷機制 (Cloud Run)
+
+```javascript
+app.post('/api/vote', async (req, res) => {
+  const { memeId, vote, walletAddress, signature } = req.body;
+
+  // 1. 驗證錢包簽名
+  if (!verifyWalletSignature(walletAddress, signature))
+    return res.status(401).json({ error: 'Invalid signature' });
+
+  // 2. 防重複投票
+  const existing = await db.collection('votes')
+    .where('memeId', '==', memeId)
+    .where('walletAddress', '==', walletAddress).get();
+  if (!existing.empty)
+    return res.status(400).json({ error: 'Already voted' });
+
+  // 3. 頻率限制
+  const recentVotes = await getRecentVotesCount(walletAddress, 60);
+  if (recentVotes >= 5)
+    return res.status(429).json({ error: 'Rate limited' });
+
+  // 4. 寫入 Firestore
+  await db.collection('votes').add({ memeId, vote, walletAddress, timestamp: new Date() });
+  res.json({ success: true });
+});
+```
+
+### 健康檢查
+
+```bash
+# Cloud Run Health
+curl https://memeforge-api-836651762884.asia-southeast1.run.app/health
+# 預期: {"status":"healthy","scheduler":{"initialized":true}}
+
+# Memes API
+curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
+# 預期: {"success":true,"memes":[...],"count":3}
+```
+
 - 📋 法律合規: 不同司法管轄區規定
 - 📋 稅務處理: 獎勵所得稅務指導
 - 📋 數據隱私: GDPR 和數據保護
