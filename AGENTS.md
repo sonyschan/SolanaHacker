@@ -100,27 +100,39 @@ Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 ```
 /home/projects/solanahacker/
 ├── AGENTS.md                 # This file (READ-ONLY)
+├── agent/                    # Agent 程式碼 (H2Crypto 控制)
+│   └── skills/               # 可載入的技能模組
 ├── app/                      # Application code ONLY
 │   ├── src/                  # Frontend (React)
+│   │   ├── components/       # React 組件
+│   │   └── services/         # API 服務
 │   ├── backend/              # Backend (Express)
+│   │   ├── routes/           # API 路由
+│   │   ├── services/         # 業務邏輯
+│   │   └── .env              # Backend 環境變數
 │   └── public/generated/     # Gemini-generated images
-├── docs/                     # Docs (loaded into context)
-│   ├── product.md            # Product spec (read/write)
-│   └── _transient/           # NOT loaded into context
-├── memory/
-│   ├── journal/              # Daily journals, WIP
-│   ├── completed_tasks/      # Archived tasks
-│   └── knowledge/            # Long-term memory
-└── screenshots/
+├── docs/                     # 文件 (頂層 .md 載入 context)
+│   ├── product.md            # 產品規格 (可讀寫)
+│   ├── mvp.md                # MVP 規格
+│   └── _transient/           # 臨時文件 (不載入 context)
+├── knowledge/                # 參考資料 (H2Crypto 提供)
+├── memory/                   # Agent 記憶
+│   ├── journal/              # 每日日誌、WIP
+│   ├── completed_tasks/      # 已完成任務歸檔
+│   └── knowledge/            # 長期記憶 (values, patterns)
+├── logs/                     # Agent 運行日誌
+└── screenshots/              # 截圖存放
 ```
 
 | 檔案類型 | 正確位置 |
 |---------|---------|
-| Frontend | `app/src/` |
-| Backend | `app/backend/` |
+| Frontend 組件 | `app/src/components/` |
+| Frontend 服務 | `app/src/services/` |
+| Backend 路由 | `app/backend/routes/` |
+| Backend 服務 | `app/backend/services/` |
 | 產品規格 | `docs/product.md` |
 | 臨時文件 | `docs/_transient/` |
-| Agent 記憶 | `memory/knowledge/` |
+| Agent 價值觀 | `memory/knowledge/values.md` |
 
 ---
 
