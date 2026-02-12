@@ -25,6 +25,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- Node.js Polyfills for Browser Compatibility -->
+    <script>
+      // Add require polyfill for Solana wallet compatibility
+      if (typeof require === 'undefined') {
+        window.require = function(id) {
+          if (id === 'buffer') return { Buffer: window.Buffer };
+          if (id === 'process') return window.process;
+          if (id === 'util') return {};
+          if (id === 'events') return {};
+          if (id === 'stream') return {};
+          if (id === 'crypto') return window.crypto;
+          throw new Error(`Module not found: ${id}. This may indicate a compatibility issue with Node.js modules in the browser.`);
+        };
+      }
+      
+      // Set global variables for Node.js compatibility
+      window.global = window.global || window;
+      // Buffer provided by vite-plugin-node-polyfills
+      // process provided by vite-plugin-node-polyfills
+    </script>
+    
     <!-- Structured Data for Better SEO -->
     <script type="application/ld+json">
     {
@@ -96,8 +117,8 @@
         display: none;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-B6IccgYm.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-0N8X_cIM.css">
+    <script type="module" crossorigin src="/assets/index-DPeL9qej.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BcKmBl5q.css">
   </head>
   <body>
     <!-- Loading State with Clear Call to Action -->

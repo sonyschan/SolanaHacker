@@ -142,8 +142,10 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
             <p className="text-gray-300">Vote for your favorite meme to advance to rarity voting</p>
-            <div className="bg-blue-600 bg-opacity-20 border border-blue-600 rounded-lg p-4 mt-4 inline-block">
-              <span className="text-blue-300">💡 Phase 1/2: Meme Selection - Pick the winner!</span>
+            
+            {/* MVP Notice */}
+            <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4 mt-4 inline-block">
+              <span className="text-green-300">🚀 Phase 1/2: Meme Selection - Pick the winner!</span>
             </div>
             
             {/* Status indicators */}
@@ -232,9 +234,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
         <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🏆 Winner Selected!</h2>
-            <p className="text-gray-300">Now vote to decide this meme's NFT rarity level</p>
-            <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-lg p-4 mt-4 inline-block">
-              <span className="text-green-300">💎 Phase 2/2: Rarity Decision - This NFT will be minted!</span>
+            <p className="text-gray-300">Now vote to decide this meme's rarity level</p>
+            <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mt-4 inline-block">
+              <span className="text-blue-300">💎 Phase 2/2: Rarity Decision - Community choice!</span>
             </div>
           </div>
 
@@ -269,7 +271,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
                   )}
                   
                   <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg p-2 mt-3">
-                    <span className="text-yellow-300 text-sm">👑 Winning Meme - Will be minted as NFT</span>
+                    <span className="text-yellow-300 text-sm">👑 Winning Meme - Community Selected!</span>
                   </div>
                 </div>
               </div>
@@ -321,14 +323,17 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak }
               </div>
             </div>
 
-            <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-6 mb-8">
-              <h3 className="text-xl font-bold mb-3">📅 Next Steps</h3>
+            {/* MVP-specific completion message */}
+            <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-6 mb-8">
+              <h3 className="text-xl font-bold mb-3">📅 MVP Phase Complete</h3>
               <ul className="text-left space-y-2 text-sm text-gray-300">
-                <li>• Your winning meme will be minted as an NFT</li>
-                <li>• NFT auction starts in 24 hours, lasting 3 days</li>
-                <li>• 80% of auction proceeds go to weekly lottery</li>
-                <li>• Weekly drawing: Sunday 8PM UTC</li>
-                <li>• Come back tomorrow for new memes to vote on!</li>
+                <li>✅ Your vote helped decide the winning meme</li>
+                <li>✅ Community determined its rarity level</li>
+                <li>✅ AI will generate traits based on image content</li>
+                <li>✅ You earned lottery tickets for participation</li>
+                <li>📅 Weekly lottery simulation: Sunday draws</li>
+                <li>🚀 NFT minting & SOL rewards coming in Beta!</li>
+                <li>⏰ Come back tomorrow for new AI memes!</li>
               </ul>
             </div>
 

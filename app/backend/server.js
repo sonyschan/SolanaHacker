@@ -37,6 +37,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
+  // DEV_MODE: Skip scheduler status check
+  if (process.env.DEV_MODE === 'true') {
+    return res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      environment: 'development',
+      devMode: true
+    });
+  }
   try {
     const schedulerStatus = await schedulerService.getStatus();
     
