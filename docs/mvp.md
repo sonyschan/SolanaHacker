@@ -883,3 +883,123 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/health
 # Memes API
 curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 ```
+
+---
+
+## 🔄 MVP Ready 更新 (2026-02-12)
+
+### 1. GCS 圖片儲存修復
+
+**問題**: 圖片上傳到 GCS 失敗，fallback 到 Cloud Run 本地儲存 (ephemeral)
+
+**原因**: `storageService.js` 設定 `public: true` 與 GCS Uniform Bucket-Level Access 衝突
+
+**修復**:
+```javascript
+// 修改前
+const stream = file.createWriteStream({
+  metadata: {...},
+  public: true  // ❌ 與 uniform access 衝突
+});
+
+// 修改後
+const stream = file.createWriteStream({
+  metadata: {...},
+  resumable: false  // ✅ 移除 public，使用 bucket-level IAM
+});
+```
+
+**結果**: 圖片現在正確儲存在 GCS
+- URL 格式: `https://storage.googleapis.com/memeforge-images-web3ai/memes/xxx.png`
+- 測試端點: `GET /api/memes/test/upload`
+
+### 2. Frontend 改用 API 獲取 Memes
+
+**修改前**: Firebase SDK 直連 Firestore (real-time sync)
+**修改後**: Cloud Run API `/api/memes/today`
+
+**原因**: 每日 3 個 meme，24hr 投票，不需要 real-time sync
+
+**memeService.js 變更**:
+```javascript
+// 簡化為純 API 調用
+async getTodaysMemes() {
+  const response = await fetch(`${API_BASE_URL}/api/memes/today`);
+  const result = await response.json();
+  return { success: true, memes: result.memes || [] };
+}
+```
+
+### 3. 用戶資料結構
+
+**Firestore Collection**: `users/{walletAddress}`
+
+```json
+{
+  walletAddress: ABC123...,
+  weeklyTickets: 0,          // 每週日抽獎後歸零
+  totalTicketsAllTime: 0,    // 歷史累計
+  streakDays: 0,             // 連續投票天數
+  lastVoteDate: null,        // 最後投票日期 (YYYY-MM-DD)
+  createdAt: ...,
+  updatedAt: ...
+}
+```
+
+**API Endpoints**:
+| Endpoint | 方法 | 說明 |
+|----------|------|------|
+| `/api/users/{wallet}` | GET | 獲取/創建用戶 |
+| `/api/users/list/leaderboard` | GET | 排行榜 |
+| `/api/users/reset-weekly-tickets` | POST | 重置所有用戶週 tickets |
+
+### 4. 平台統計 API
+
+**Firestore Collection**: `platform_stats/current`
+
+```json
+{
+  weeklyVoters: 0,           // 本週投票者數
+  weekStartDate: 2026-02-09,
+  totalVotersAllTime: 0,
+  lastUpdated: ...
+}
+```
+
+**API Endpoints**:
+| Endpoint | 方法 | 說明 |
+|----------|------|------|
+| `/api/stats` | GET | 獲取平台統計 |
+| `/api/stats/increment-voters` | POST | 增加投票者計數 |
+| `/api/stats/reset-weekly` | POST | 抽獎後重置 |
+
+### 5. 投票流程更新
+
+投票時自動更新用戶資料:
+1. 隨機獲得 8-15 tickets
+2. 更新 `weeklyTickets` 和 `totalTicketsAllTime`
+3. 計算 `streakDays` (連續+1 或重置為1)
+4. 記錄 `lastVoteDate`
+5. 調用 `/api/stats/increment-voters`
+
+### 6. 首頁統計初始化
+
+**Live Platform Stats**:
+| 指標 | 初始值 | 說明 |
+|------|--------|------|
+| Weekly Prize Pool | Coming Soon | NFT 拍賣收益 |
+| Active Voters | 0 (動態) | 從 API 獲取 |
+| NFTs Minted | Coming Soon | 每日 1 個 |
+| Avg NFT Price | Coming Soon | 24h 均價 |
+
+### 7. 週日抽獎後重置流程
+
+```bash
+# 1. 重置平台統計
+curl -X POST /api/stats/reset-weekly
+
+# 2. 重置所有用戶週 tickets
+curl -X POST /api/users/reset-weekly-tickets
+```
+
+---
