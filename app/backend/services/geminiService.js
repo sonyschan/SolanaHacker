@@ -79,6 +79,86 @@ Title:`;
     }
   }
 
+  // Weighted random helper for tag count distribution
+  weightedRandomTagCount() {
+    const distribution = [
+      { count: 2, weight: 35 },  // 35% - most common
+      { count: 3, weight: 25 },  // 25%
+      { count: 4, weight: 18 },  // 18%
+      { count: 5, weight: 12 },  // 12%
+      { count: 6, weight: 6 },   // 6%
+      { count: 7, weight: 3 },   // 3%
+      { count: 8, weight: 1 },   // 1% - most rare
+    ];
+
+    const total = distribution.reduce((sum, d) => sum + d.weight, 0);
+    let random = Math.random() * total;
+
+    for (const d of distribution) {
+      random -= d.weight;
+      if (random <= 0) return d.count;
+    }
+    return 2; // fallback
+  }
+
+  async generateMemeTags(memePrompt, newsSource) {
+    try {
+      const tagCount = this.weightedRandomTagCount();
+      console.log(`🏷️ Generating ${tagCount} tags for meme...`);
+
+      const prompt = `Analyze this meme and extract exactly ${tagCount} descriptive tags.
+
+Meme concept: "${memePrompt.substring(0, 300)}"
+News context: "${newsSource}"
+
+Requirements:
+- Output EXACTLY ${tagCount} tags, no more, no less
+- Be specific and creative, avoid generic tags
+- Include: emotions, topics, visual elements, characters, cultural references
+- Capture any trending topics, crypto terms, or meme references
+- Format: lowercase, hyphenated for multi-word (e.g., "diamond-hands")
+
+BAD tags (too generic): "funny", "meme", "crypto", "image", "cool"
+GOOD tags (specific): "bear-market-cope", "degen-energy", "this-is-fine-moment", "hopium-overdose", "ngmi-vibes"
+
+Output as JSON array only, no explanation:
+["tag1", "tag2", ...]`;
+
+      const result = await this.textModel.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text().trim();
+
+      // Clean up response to extract JSON array
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const tags = JSON.parse(jsonMatch[0]);
+        // Ensure tags are properly formatted
+        const cleanTags = tags
+          .slice(0, tagCount)
+          .map(tag => tag.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+
+        console.log(`✅ Generated tags: ${cleanTags.join(', ')}`);
+        return {
+          tags: cleanTags,
+          count: cleanTags.length,
+          targetCount: tagCount
+        };
+      }
+
+      throw new Error('Could not parse tags from response');
+    } catch (error) {
+      console.error('Error generating meme tags:', error);
+      // Fallback: generate basic tags from news source
+      const fallbackTags = ['ai-generated', 'crypto-meme'];
+      return {
+        tags: fallbackTags,
+        count: fallbackTags.length,
+        targetCount: 2,
+        error: error.message
+      };
+    }
+  }
+
   async generateMemeDescription(memePrompt, newsSource) {
     try {
       const prompt = `Write a brief, engaging meme description in 1-2 sentences (max 100 characters).
@@ -257,6 +337,9 @@ Technical specs:
         // Generate a clean, short description
         const description = await this.generateMemeDescription(memePrompt, newsItem.title || 'Crypto News');
 
+        // Generate tags with weighted random count (2-8 tags)
+        const tagsResult = await this.generateMemeTags(memePrompt, newsItem.title || 'Crypto News');
+
         memes.push({
           id: `meme_${Date.now()}_${i}`,
           title: title,
@@ -267,6 +350,7 @@ Technical specs:
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
+          tags: tagsResult.tags,
           votes: {
             selection: { yes: 0, no: 0 },
             rarity: { common: 0, rare: 0, legendary: 0 }
@@ -277,7 +361,9 @@ Technical specs:
             imageGenerated: imageData.success,
             fileSize: imageData.fileSize || 0,
             storageLocation: imageData.storageLocation || 'unknown',
-            environment: imageData.environment || {}
+            environment: imageData.environment || {},
+            tagsGenerated: tagsResult.count,
+            tagsTargetCount: tagsResult.targetCount
           },
           rarity: 'unknown'
         });
