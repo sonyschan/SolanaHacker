@@ -212,7 +212,7 @@ const GalleryTab = () => {
           onClick={() => setSelectedMeme(null)}
         >
           <div
-            className="bg-gray-900/95 border border-white/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+            className="bg-gray-900/95 border border-white/20 rounded-2xl w-full max-w-lg max-h-[80vh] md:max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header - Fixed */}
@@ -242,7 +242,7 @@ const GalleryTab = () => {
                 <img
                   src={selectedMeme.imageUrl || selectedMeme.image}
                   alt={selectedMeme.title}
-                  className="w-full h-auto max-h-[50vh] object-contain mx-auto"
+                  className="w-full h-auto max-h-[40vh] md:max-h-[50vh] object-contain mx-auto"
                   onError={(e) => {
                     e.target.src = `https://via.placeholder.com/600x600/1F2937/9CA3AF?text=${encodeURIComponent(selectedMeme.title || 'Meme')}`;
                   }}
