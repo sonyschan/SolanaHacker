@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
+import GalleryTab from './GalleryTab';
 
 const Dashboard = ({ 
   userTickets, 
@@ -132,6 +133,8 @@ const Dashboard = ({
           votingStreak={votingStreak}
           setVotingStreak={setVotingStreak}
         />;
+      case 'gallery':
+        return <GalleryTab />;
       case 'tickets':
         return <TicketsTabContent />;
       case 'market':
