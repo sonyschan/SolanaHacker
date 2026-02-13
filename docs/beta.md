@@ -432,3 +432,102 @@ Beta 階段需新增:
 ```
 
 ---
+
+---
+
+## 🪙 Token-Gating Implementation (Beta Priority)
+
+### Why Token-Gating?
+
+**Problem**: Free wallet creation enables Sybil attacks
+- One person can create unlimited wallets
+- Vote manipulation affects rarity outcomes
+- Undermines democratic pricing model
+
+**Solution**: Native $FORGE token for weighted voting
+
+### Technical Implementation
+
+#### Token Contract (Solana SPL)
+```rust
+// $FORGE Token Program
+pub struct ForgeToken {
+    pub mint: Pubkey,
+    pub authority: Pubkey,
+    pub total_supply: u64,
+    pub decimals: u8,
+}
+
+// Voting weight calculation
+pub fn calculate_vote_weight(token_balance: u64) -> u8 {
+    match token_balance {
+        0 => 1,           // Free user: 1x
+        1..=100 => 3,     // Basic holder: 3x
+        101..=1000 => 4,  // Active holder: 4x
+        _ => 5,           // Whale: 5x (capped)
+    }
+}
+```
+
+#### Voting Integration
+```javascript
+// Backend voting service
+const calculateVoteWeight = async (walletAddress) => {
+  const tokenBalance = await getForgeTokenBalance(walletAddress);
+  
+  if (tokenBalance === 0) return 1;  // Free user
+  if (tokenBalance <= 100) return 3;
+  if (tokenBalance <= 1000) return 4;
+  return 5; // Capped at 5x
+};
+
+// Apply weight to rarity voting
+const submitRarityVote = async (memeId, rarity, walletAddress) => {
+  const weight = await calculateVoteWeight(walletAddress);
+  
+  await db.collection(rarity_votes).add({
+    memeId,
+    rarity,
+    walletAddress,
+    weight,
+    timestamp: new Date()
+  });
+};
+```
+
+### Token Distribution Plan
+
+| Allocation | Percentage | Purpose |
+|------------|------------|---------|
+| Community Airdrop | TBD | Early voter rewards |
+| Development Fund | TBD | Team & operations |
+| Liquidity Pool | TBD | DEX trading |
+| Treasury | TBD | Future initiatives |
+
+> **Note**: Distribution will depend on launch mechanism. Considering fair launch platforms (e.g., PumpFun) where team cannot pre-allocate 100% of supply.
+
+### Airdrop Criteria
+- Wallet connected before token launch
+- Minimum 5 votes cast
+- Bonus for voting streaks
+- Snapshot at announcement date
+
+### Revenue Streams
+
+| Source | Description |
+|--------|-------------|
+| Token Sale | Initial distribution event |
+| DEX Fees | LP rewards from trading |
+| Premium Features | Token-gated advanced features |
+| NFT Royalties | Secondary market sales |
+
+### Implementation Priority
+
+| Task | Priority | Status |
+|------|----------|--------|
+| SPL Token Contract | 🔴 High | Planned |
+| Voting Weight Logic | 🔴 High | Planned |
+| Airdrop Snapshot | 🟡 Medium | Planned |
+| Token Launch | 🟡 Medium | Post-hackathon |
+| Governance DAO | 🟢 Low | Future |
+

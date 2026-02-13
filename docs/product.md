@@ -490,3 +490,53 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 ```
 
 ---
+
+---
+
+## 🪙 Token-Gating Roadmap (Beta Phase)
+
+### The Challenge: Sybil Attacks
+While zero-friction participation maximizes engagement, free wallet creation makes vote manipulation trivial. One bad actor could create hundreds of wallets to influence rarity outcomes.
+
+### The Solution: $FORGE Token
+
+| Feature | Free Users | Token Holders |
+|---------|------------|---------------|
+| Browse memes | ✅ | ✅ |
+| Phase 1 voting (selection) | ✅ (1x weight) | ✅ (3-5x weight) |
+| Phase 2 voting (rarity) | ❌ | ✅ |
+| Lottery tickets | ✅ (base rate) | ✅ (bonus rate) |
+| Governance voting | ❌ | ✅ |
+
+### Token Utility
+
+1. **Voting Power**: Weighted votes for rarity determination
+2. **Governance**: Future DAO decisions on platform direction
+3. **Staking**: Bonus lottery tickets for staked tokens
+4. **Premium Features**: Early meme previews, custom generation
+
+### Revenue Model Evolution
+
+```
+MVP (Current):
+  Free voting → engagement
+  NFT auctions → 80% prize pool, 20% treasury
+
+Beta (Planned):
+  Free voting → discovery & engagement
+  Token sales → development funding + Sybil resistance
+  NFT auctions → 80% prize pool, 20% treasury
+  Token + NFT revenue → sustainable development
+```
+
+### Philosophy
+- **Entry remains free**: Anyone can browse and participate lightly
+- **Token adds POWER, not ACCESS**: Stakeholders get influence, not gatekeeping
+- **Early adopter rewards**: Airdrop to loyal voters before token launch
+
+### Implementation Timeline
+- [ ] Token contract design (Solana SPL)
+- [ ] Voting weight integration
+- [ ] Airdrop snapshot mechanism
+- [ ] Token launch (post-hackathon)
+
