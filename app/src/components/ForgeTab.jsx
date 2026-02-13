@@ -253,24 +253,39 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       {meme.description || `AI-generated from: ${meme.newsSource}`}
                     </p>
                     
-                    {/* Metadata badges */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {meme.metadata?.fallback && (
-                        <span className="text-xs bg-orange-600 bg-opacity-20 text-orange-300 px-2 py-1 rounded">
-                          Fallback
-                        </span>
-                      )}
+                    {/* NFT Traits - Row 1: AI Generated + Style */}
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {meme.metadata?.imageGenerated && (
                         <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
                           AI Generated
                         </span>
                       )}
+                      {meme.style && (
+                        <span className="text-xs bg-purple-600 bg-opacity-20 text-purple-300 px-2 py-1 rounded">
+                          {meme.style}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* NFT Traits - Row 2: News Source */}
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {meme.newsSource && (
-                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded max-w-[200px] md:max-w-none truncate md:whitespace-normal">
+                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
                           {meme.newsSource}
                         </span>
                       )}
                     </div>
+
+                    {/* NFT Traits - Row 3: Tags */}
+                    {meme.tags && meme.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {meme.tags.map((tag, idx) => (
+                          <span key={idx} className="text-xs bg-cyan-600 bg-opacity-20 text-cyan-300 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     
                     <div className="flex justify-between items-center mb-4">
                       <div className="text-sm text-gray-400">
