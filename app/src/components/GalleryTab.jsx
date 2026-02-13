@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -87,11 +88,11 @@ const GalleryTab = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <div key={i} className="bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden border border-white/10 animate-pulse">
-              <div className="w-full h-48 bg-gray-700/50"></div>
-              <div className="p-4">
+              <div className="aspect-square bg-gray-700/50"></div>
+              <div className="p-3 md:p-4">
                 <div className="h-4 bg-gray-700/50 rounded w-3/4 mb-2"></div>
                 <div className="h-3 bg-gray-700/50 rounded w-1/2"></div>
               </div>
@@ -141,13 +142,13 @@ const GalleryTab = () => {
                   <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent"></div>
                 </div>
 
-                {/* Day's Memes Grid */}
-                <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {/* Day's Memes Grid - 2 columns on mobile, 3-4 on desktop */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                   {dayMemes.map((meme) => (
                     <div
                       key={meme.id}
                       onClick={() => setSelectedMeme(meme)}
-                      className={`group cursor-pointer bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
+                      className={`group relative cursor-pointer bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
                         meme.isWinner
                           ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20'
                           : 'border-white/10 hover:border-cyan-500/50 hover:shadow-cyan-500/20'
@@ -155,32 +156,31 @@ const GalleryTab = () => {
                     >
                       {/* Winner Badge */}
                       {meme.isWinner && (
-                        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                           🏆 WINNER
                         </div>
                       )}
 
-                      {/* Image */}
-                      <div className="relative overflow-hidden">
+                      {/* Image - Square aspect ratio with contain to show full image */}
+                      <div className="relative aspect-square bg-gray-800 overflow-hidden">
                         <img
                           src={meme.imageUrl || meme.image}
                           alt={meme.title}
-                          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
-                            e.target.src = `https://via.placeholder.com/400x300/1F2937/9CA3AF?text=${encodeURIComponent(meme.title || 'Meme')}`;
+                            e.target.src = `https://via.placeholder.com/400x400/1F2937/9CA3AF?text=${encodeURIComponent(meme.title || 'Meme')}`;
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       </div>
 
                       {/* Content */}
-                      <div className="p-4">
-                        <h3 className="font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                      <div className="p-3 md:p-4">
+                        <h3 className="font-bold text-white text-sm md:text-base truncate group-hover:text-cyan-300 transition-colors">
                           {meme.title}
                         </h3>
 
                         {/* Stats */}
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                        <div className="flex items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-gray-400">
                           <span className="flex items-center gap-1">
                             <span>❤️</span>
                             <span>{meme.votes?.selection?.yes || 0}</span>
@@ -204,21 +204,22 @@ const GalleryTab = () => {
         </div>
       )}
 
-      {/* Meme Detail Modal */}
-      {selectedMeme && (
+      {/* Meme Detail Modal - Using Portal for proper z-index */}
+      {selectedMeme && createPortal(
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 md:p-4"
+          style={{ zIndex: 99999 }}
           onClick={() => setSelectedMeme(null)}
         >
           <div
-            className="bg-gray-900/95 border border-white/20 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-gray-900/95 border border-white/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
+            {/* Modal Header - Fixed */}
+            <div className="flex-shrink-0 flex justify-between items-center p-3 md:p-4 border-b border-white/10">
+              <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                 {selectedMeme.isWinner && (
-                  <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 md:px-3 py-1 rounded-full">
                     🏆 DAILY WINNER
                   </span>
                 )}
@@ -228,54 +229,58 @@ const GalleryTab = () => {
               </div>
               <button
                 onClick={() => setSelectedMeme(null)}
-                className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center"
+                className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center flex-shrink-0"
               >
                 ×
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6">
-              <img
-                src={selectedMeme.imageUrl || selectedMeme.image}
-                alt={selectedMeme.title}
-                className="w-full rounded-xl mb-4"
-                onError={(e) => {
-                  e.target.src = `https://via.placeholder.com/600x400/1F2937/9CA3AF?text=${encodeURIComponent(selectedMeme.title || 'Meme')}`;
-                }}
-              />
+            {/* Modal Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-3 md:p-4">
+              {/* Image - Full width, maintain aspect ratio */}
+              <div className="bg-gray-800 rounded-xl overflow-hidden mb-4">
+                <img
+                  src={selectedMeme.imageUrl || selectedMeme.image}
+                  alt={selectedMeme.title}
+                  className="w-full h-auto max-h-[50vh] object-contain mx-auto"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/600x600/1F2937/9CA3AF?text=${encodeURIComponent(selectedMeme.title || 'Meme')}`;
+                  }}
+                />
+              </div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">{selectedMeme.title}</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-2">{selectedMeme.title}</h2>
 
               {selectedMeme.description && (
-                <p className="text-gray-300 mb-4">{selectedMeme.description}</p>
+                <p className="text-gray-300 text-sm md:text-base mb-4 line-clamp-3">{selectedMeme.description}</p>
               )}
 
               {/* Vote Stats */}
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-white/5 rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-green-400">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-white/5 rounded-xl p-3 md:p-4 text-center">
+                  <div className="text-xl md:text-2xl font-bold text-green-400">
                     {selectedMeme.votes?.selection?.yes || 0}
                   </div>
-                  <div className="text-sm text-gray-400">Selection Votes</div>
+                  <div className="text-xs md:text-sm text-gray-400">Selection Votes</div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-400">
+                <div className="bg-white/5 rounded-xl p-3 md:p-4 text-center">
+                  <div className="text-xl md:text-2xl font-bold text-purple-400">
                     {selectedMeme.finalRarity || 'Pending'}
                   </div>
-                  <div className="text-sm text-gray-400">Rarity Level</div>
+                  <div className="text-xs md:text-sm text-gray-400">Rarity Level</div>
                 </div>
               </div>
 
               {/* News Source */}
               {selectedMeme.newsSource && (
-                <div className="mt-4 text-sm text-gray-500">
+                <div className="mt-4 text-xs md:text-sm text-gray-500">
                   📰 Inspired by: {selectedMeme.newsSource}
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
