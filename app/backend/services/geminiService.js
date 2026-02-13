@@ -3,6 +3,20 @@ const path = require('path');
 const fs = require('fs');
 const storageService = require('./storageService');
 
+// 10 distinct art styles for meme generation
+const MEME_STYLES = [
+  'Classic 2D Illustration',
+  'Retro Pixel Art',
+  'Cyberpunk Neon',
+  'Hyper-Realism',
+  'Abstract Glitch Art',
+  'Classic Oil Painting',
+  '3D Clay Toy',
+  'Ink Wash Zen',
+  'Street Graffiti',
+  'Modern Flat Design'
+];
+
 class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -77,6 +91,12 @@ Title:`;
       const words = memePrompt.split(' ').slice(0, 3);
       return words.join(' ').replace(/[^a-zA-Z0-9 ]/g, '') || 'AI Meme';
     }
+  }
+
+  // Pick N unique random styles from MEME_STYLES
+  pickRandomStyles(count = 3) {
+    const shuffled = [...MEME_STYLES].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
   }
 
   // Weighted random helper for tag count distribution
@@ -196,30 +216,24 @@ Description:`;
     }
   }
 
-  async generateMemeImage(prompt) {
+  async generateMemeImage(prompt, style = 'Classic 2D Illustration') {
     try {
-      // Enhanced prompt for high-quality NFT meme generation
+      // Enhanced prompt for high-quality NFT meme generation with specific art style
       const imagePrompt = `Create a high-quality meme image: ${prompt}
 
-Style requirements:
-- Internet meme format with bold, readable text overlay
-- High contrast colors for maximum visual impact
-- Professional typography with clear font hierarchy
-- Viral meme aesthetic that's instantly shareable
+**ART STYLE: ${style}**
+- Render this meme in the "${style}" art style
+- The style should be clearly recognizable and distinct
+
+Technical requirements:
+- Square aspect ratio (1:1)
+- Bold, readable text overlay if text is needed
+- High contrast colors for visual impact
 - NFT-quality artwork suitable for collection
-- Square aspect ratio (1:1) optimized for social media
-- Clean composition with balanced visual elements
+- 1024x1024 pixels resolution
+- Clean composition with balanced visual elements`;
 
-Technical specs:
-- EXACTLY 1024x1024 pixels resolution (required for NFT standard)
-- Bold text that stands out against background
-- Engaging visual composition that captures attention
-- Professional finish suitable for digital collectibles
-- PNG format with transparency support
-- File size optimized for web (under 2MB)
-- Perfect square ratio for consistent display across all platforms`;
-
-      console.log('🎨 Generating real image with Gemini...');
+      console.log(\`🎨 Generating meme in "${style}" style...\`);
       
       // Use actual Gemini API for image generation
       const result = await this.imageModel.generateContent(imagePrompt);
@@ -325,12 +339,18 @@ Technical specs:
   async generateDailyMemes(newsData, count = 3) {
     try {
       const memes = [];
-      
+
+      // Pick 3 unique random styles for today's memes
+      const todaysStyles = this.pickRandomStyles(count);
+      console.log(`🎨 Today's art styles: ${todaysStyles.join(', ')}`);
+
       for (let i = 0; i < count; i++) {
         const newsItem = newsData[i] || newsData[0]; // Use available news or fallback
+        const style = todaysStyles[i]; // Each meme gets a unique style
+
         const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem);
-        const imageData = await this.generateMemeImage(memePrompt);
-        
+        const imageData = await this.generateMemeImage(memePrompt, style);
+
         // Generate a catchy title using the new improved method
         const title = await this.generateMemeTitle(memePrompt);
 
@@ -350,6 +370,7 @@ Technical specs:
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
+          style: style,  // Art style trait
           tags: tagsResult.tags,
           votes: {
             selection: { yes: 0, no: 0 },
@@ -358,6 +379,7 @@ Technical specs:
           metadata: {
             originalNews: newsItem.title || newsItem,
             aiModel: 'gemini-3-pro-image-preview',
+            artStyle: style,
             imageGenerated: imageData.success,
             fileSize: imageData.fileSize || 0,
             storageLocation: imageData.storageLocation || 'unknown',
