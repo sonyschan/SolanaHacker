@@ -317,6 +317,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mt-4 inline-block">
               <span className="text-blue-300">💎 Phase 2/2: Rarity Decision - Community choice!</span>
             </div>
+            <button onClick={() => { setCurrentPhase('selection'); setSelectedMeme(null); setVotedMemeId(null); }} className="mt-4 text-gray-400 hover:text-white flex items-center space-x-2 mx-auto transition-colors">
+              <span>←</span>
+              <span>Back to meme selection</span>
+            </button>
+            
           </div>
 
           {/* Winning Meme Display */}
