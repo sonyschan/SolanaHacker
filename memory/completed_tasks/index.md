@@ -4,6 +4,7 @@
 
 | Task ID | Completed | Task |
 |---------|-----------|------|
+| 2026-02-13-mlk7szj8 | 2026-02-13 01:34 | 實作 三分類 tool 管理策略，整理好目前 18個 tools。未來增加tools時，也得判斷要放... |
 | 2026-02-12-mljhlo5b | 2026-02-12 13:21 | review all FE components, should be all English bu... |
 | 2026-02-12-mljgsfvf | 2026-02-12 12:58 | 文字 prompt 生成，我們需要Gemini 提供創作後的 ‘Meme Title’ ，不然會像目... |
 | 2026-02-12-mlj4m01j | 2026-02-12 07:17 | 重新定位 MVP 與 Beta. |
@@ -13,4 +14,3 @@
 | 2026-02-10-mlg1ert0 | 2026-02-10 03:24 | #1. 把 app/README.md 搬移到專案跟目錄， 讓 https://github.com... |
 | 2026-02-10-mlg15bl7 | 2026-02-10 03:17 | #1. 把 app/README.md 搬移到專案跟目錄， 讓 https://github.com... |
 | 2026-02-10-mlfy1nkm | 2026-02-10 01:50 | #1. git release to push Readme to github _(added: ... |
-| 2026-02-10-mlfxtunb | 2026-02-10 01:44 | #2. git release if readme was updated _(added: 202... |
