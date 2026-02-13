@@ -18,6 +18,7 @@ const Dashboard = ({
 
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
+    { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
     { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' },
     { id: 'market', label: 'Market', icon: '🛒', desc: 'NFT auctions (Coming Soon)', comingSoon: true }
   ];
