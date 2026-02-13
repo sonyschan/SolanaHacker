@@ -266,8 +266,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                         </span>
                       )}
                       {meme.newsSource && (
-                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
-                          {meme.newsSource.substring(0, 20)}...
+                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded max-w-[200px] md:max-w-none truncate md:whitespace-normal">
+                          {meme.newsSource}
                         </span>
                       )}
                     </div>

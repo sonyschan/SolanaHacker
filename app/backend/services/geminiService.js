@@ -79,6 +79,43 @@ Title:`;
     }
   }
 
+  async generateMemeDescription(memePrompt, newsSource) {
+    try {
+      const prompt = `Write a brief, engaging meme description in 1-2 sentences (max 100 characters).
+
+Meme concept: "${memePrompt.substring(0, 200)}"
+News topic: "${newsSource}"
+
+Requirements:
+- Maximum 100 characters total
+- No "Here is" or "This is" prefix
+- Describe what the meme shows, not how it was made
+- Fun and punchy tone
+- Example: "When your portfolio is down 80% but you keep buying the dip"
+
+Description:`;
+
+      const result = await this.textModel.generateContent(prompt);
+      const response = await result.response;
+      let desc = response.text().trim();
+
+      // Clean up
+      desc = desc.replace(/^Description:\s*/i, '');
+      desc = desc.replace(/^["']/g, '');
+      desc = desc.replace(/["']$/g, '');
+
+      // Ensure max length
+      if (desc.length > 120) {
+        desc = desc.substring(0, 117) + '...';
+      }
+
+      return desc || `Meme inspired by: ${newsSource}`;
+    } catch (error) {
+      console.error('Error generating meme description:', error);
+      return `Meme inspired by: ${newsSource}`;
+    }
+  }
+
   async generateMemeImage(prompt) {
     try {
       // Enhanced prompt for high-quality NFT meme generation
@@ -216,11 +253,14 @@ Technical specs:
         
         // Generate a catchy title using the new improved method
         const title = await this.generateMemeTitle(memePrompt);
-        
+
+        // Generate a clean, short description
+        const description = await this.generateMemeDescription(memePrompt, newsItem.title || 'Crypto News');
+
         memes.push({
           id: `meme_${Date.now()}_${i}`,
           title: title,
-          description: memePrompt.substring(0, 100) + '...',
+          description: description,
           prompt: memePrompt,
           imageUrl: imageData.imageUrl || imageData.fallbackUrl,
           newsSource: newsItem.title || 'Crypto News',
