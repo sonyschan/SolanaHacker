@@ -1,48 +1,87 @@
 /**
  * MobileWalletSelector - Deep link to wallet apps for mobile browser users
- * Opens current site in wallet's in-app browser for proper connection
+ * Opens current site in wallet in-app browser for proper connection
+ * 
+ * IMPORTANT: If already inside a wallet in-app browser, we should NOT use deep links
  */
 
-import { createPortal } from 'react-dom';
+import { createPortal } from "react-dom";
 
 // Wallet configurations with deep link formats
 const WALLETS = [
   {
-    id: 'phantom',
-    name: 'Phantom',
-    icon: '👻',
-    color: '#AB9FF2',
-    getDeepLink: (url, ref) =>
-      `https://phantom.app/ul/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(ref)}`,
+    id: "phantom",
+    name: "Phantom",
+    icon: "👻",
+    color: "#AB9FF2",
+    getDeepLink: (url) =>
+      `https://phantom.app/ul/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(window.location.origin)}`,
+    // Detect if we are inside Phantom in-app browser
+    isInApp: () => typeof window !== "undefined" && window.phantom?.solana?.isPhantom,
   },
   {
-    id: 'solflare',
-    name: 'Solflare',
-    icon: '🔥',
-    color: '#FC822B',
-    getDeepLink: (url, ref) =>
-      `https://solflare.com/ul/v1/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(ref)}`,
+    id: "solflare",
+    name: "Solflare",
+    icon: "🔥",
+    color: "#FC822B",
+    getDeepLink: (url) =>
+      `https://solflare.com/ul/v1/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(window.location.origin)}`,
+    isInApp: () => typeof window !== "undefined" && window.solflare?.isSolflare,
   },
   {
-    id: 'okx',
-    name: 'OKX Wallet',
-    icon: '⬡',
-    color: '#000000',
+    id: "okx",
+    name: "OKX Wallet",
+    icon: "⬡",
+    color: "#000000",
     getDeepLink: (url) => {
-      const deepLink = `okx://wallet/dapp/url?dappUrl=${encodeURIComponent(url)}`;
-      return `https://web3.okx.com/download?deeplink=${encodeURIComponent(deepLink)}`;
+      // Use direct okx:// protocol
+      return `okx://wallet/dapp/url?dappUrl=${encodeURIComponent(url)}`;
     },
+    isInApp: () => typeof window !== "undefined" && (window.okxwallet?.solana || window.okexchain),
   },
 ];
+
+// Detect if we are inside ANY wallet in-app browser
+export function isInsideWalletBrowser() {
+  if (typeof window === "undefined") return false;
+  
+  // Check for common wallet providers
+  const hasPhantom = window.phantom?.solana?.isPhantom;
+  const hasSolflare = window.solflare?.isSolflare;
+  const hasOKX = window.okxwallet?.solana || window.okexchain;
+  const hasBackpack = window.backpack;
+  const hasTrust = window.trustwallet;
+  
+  return !!(hasPhantom || hasSolflare || hasOKX || hasBackpack || hasTrust);
+}
+
+// Helper to detect mobile browser (but NOT wallet in-app browser)
+export function isMobileBrowser() {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  return isMobile;
+}
+
+// Should we show mobile wallet selector?
+// YES if: mobile browser AND NOT inside wallet app
+export function shouldShowMobileWalletSelector() {
+  return isMobileBrowser() && !isInsideWalletBrowser();
+}
 
 export function MobileWalletSelector({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const currentUrl = window.location.href;
-  const refUrl = window.location.origin;
 
   const handleWalletClick = (wallet) => {
-    const deepLink = wallet.getDeepLink(currentUrl, refUrl);
+    // If already inside this wallet app, just close and let adapter handle it
+    if (wallet.isInApp && wallet.isInApp()) {
+      console.log(`Already inside ${wallet.name}, closing selector`);
+      onClose();
+      return;
+    }
+    
+    const deepLink = wallet.getDeepLink(currentUrl);
+    console.log(`Opening ${wallet.name} deep link:`, deepLink);
     window.location.href = deepLink;
   };
 
@@ -52,7 +91,7 @@ export function MobileWalletSelector({ isOpen, onClose }) {
     }
   };
 
-  // Use portal to render modal at document body level, bypassing parent container constraints
+  // Use portal to render modal at document body level
   return createPortal(
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
@@ -83,7 +122,7 @@ export function MobileWalletSelector({ isOpen, onClose }) {
               key={wallet.id}
               onClick={() => handleWalletClick(wallet)}
               className="w-full flex items-center justify-between p-4 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all bg-gray-800/50"
-              style={{ borderLeftColor: wallet.color, borderLeftWidth: '3px' }}
+              style={{ borderLeftColor: wallet.color, borderLeftWidth: "3px" }}
             >
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{wallet.icon}</span>
@@ -101,11 +140,6 @@ export function MobileWalletSelector({ isOpen, onClose }) {
     </div>,
     document.body
   );
-}
-
-// Helper to detect mobile browser
-export function isMobileBrowser() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
 export default MobileWalletSelector;

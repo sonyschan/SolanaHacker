@@ -1,23 +1,51 @@
-import React, { useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton, WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
-import { MobileWalletSelector, isMobileBrowser } from './MobileWalletSelector';
+import React, { useState, useEffect } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton, WalletDisconnectButton } from "@solana/wallet-adapter-react-ui";
+import { MobileWalletSelector, shouldShowMobileWalletSelector, isInsideWalletBrowser } from "./MobileWalletSelector";
 
-const WalletConnection = ({ variant = 'primary', className = '', showAddress = true }) => {
-    const { connected, connecting, publicKey, wallet } = useWallet();
+const WalletConnection = ({ variant = "primary", className = "", showAddress = true }) => {
+    const { connected, connecting, publicKey, wallet, select, wallets } = useWallet();
     const [showMobileSelector, setShowMobileSelector] = useState(false);
+    const [isWalletBrowser, setIsWalletBrowser] = useState(false);
+
+    // Check if we are inside a wallet browser on mount
+    useEffect(() => {
+        setIsWalletBrowser(isInsideWalletBrowser());
+        
+        // Log detection for debugging
+        if (typeof window !== "undefined") {
+            console.log("🔍 Wallet detection:", {
+                phantom: !!window.phantom?.solana?.isPhantom,
+                solflare: !!window.solflare?.isSolflare,
+                okx: !!(window.okxwallet?.solana || window.okexchain),
+                isInsideWallet: isInsideWalletBrowser(),
+                availableWallets: wallets?.map(w => w.adapter.name) || []
+            });
+        }
+    }, [wallets]);
+
+    // Auto-select wallet if inside wallet browser and only one wallet available
+    useEffect(() => {
+        if (isWalletBrowser && !connected && !connecting && wallets?.length > 0) {
+            // Find the detected wallet
+            const detectedWallet = wallets.find(w => w.readyState === "Installed");
+            if (detectedWallet) {
+                console.log("🎯 Auto-selecting wallet:", detectedWallet.adapter.name);
+            }
+        }
+    }, [isWalletBrowser, connected, connecting, wallets, select]);
 
     // Helper function to format wallet address
     const formatAddress = (pubKey) => {
-        if (!pubKey) return '';
+        if (!pubKey) return "";
         const address = pubKey.toBase58();
         return `${address.slice(0, 6)}...${address.slice(-4)}`;
     };
 
     const buttonClasses = {
-        primary: 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 text-sm md:text-base',
-        secondary: 'bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 text-sm md:text-base',
-        ghost: 'text-cyan-300 hover:text-cyan-100 hover:bg-cyan-500/10 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all duration-300 text-sm md:text-base'
+        primary: "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 text-sm md:text-base",
+        secondary: "bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 text-sm md:text-base",
+        ghost: "text-cyan-300 hover:text-cyan-100 hover:bg-cyan-500/10 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all duration-300 text-sm md:text-base"
     };
 
     if (connected && publicKey) {
@@ -48,8 +76,8 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
         );
     }
 
-    // On mobile, show custom button that triggers MobileWalletSelector
-    if (isMobileBrowser()) {
+    // On mobile but NOT inside wallet browser: show deep link selector
+    if (shouldShowMobileWalletSelector()) {
         return (
             <div className={className}>
                 <button
@@ -83,7 +111,7 @@ const WalletConnection = ({ variant = 'primary', className = '', showAddress = t
         );
     }
 
-    // Desktop: use standard WalletMultiButton
+    // Desktop OR inside wallet in-app browser: use standard WalletMultiButton
     return (
         <div className={className}>
             <WalletMultiButton
@@ -117,13 +145,13 @@ export const useWalletConnection = () => {
 
     return {
         ...wallet,
-        address: wallet.publicKey?.toBase58() || '',
+        address: wallet.publicKey?.toBase58() || "",
         shortAddress: wallet.publicKey ?
             `${wallet.publicKey.toBase58().slice(0, 6)}...${wallet.publicKey.toBase58().slice(-4)}` :
-            '',
+            "",
         isConnected: wallet.connected,
-        walletName: wallet.wallet?.adapter.name || '',
-        walletIcon: wallet.wallet?.adapter.icon || ''
+        walletName: wallet.wallet?.adapter.name || "",
+        walletIcon: wallet.wallet?.adapter.icon || ""
     };
 };
 
