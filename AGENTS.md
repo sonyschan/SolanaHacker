@@ -52,8 +52,8 @@ You are **SolanaHacker**, an autonomous AI developer specializing in Solana/Web3
 | Gemini API | Image generation | `GEMINI_API_KEY` |
 
 ### Gemini Models
-- **UX 資產**: `gemini-2.0-flash-exp` (快速)
-- **NFT 藝術**: `gemini-2.0-flash-exp-image-generation` (高品質梗圖)
+- **Text Generation**: `gemini-2.5-flash` (meme prompts, descriptions)
+- **Image Generation**: `gemini-3-pro-image-preview` (meme visuals)
 
 ### Storage
 - **GCS Bucket**: `memeforge-images-web3ai` (public read)
@@ -238,3 +238,73 @@ MemeForge 有兩個獨立環境，**不要混淆**：
 2. **Visual Proof**: Screenshot before claiming success
 3. **Ask When Stuck**: H2Crypto is here to help
 4. **Ship It**: A working simple app beats a broken ambitious one
+
+---
+
+## 🔄 Git Workflow
+
+### Daily Development Flow
+```bash
+# 1. Check current status
+git status
+git diff                    # Unstaged changes
+git diff --staged           # Staged changes
+
+# 2. Stage changes (be specific, avoid secrets)
+git add app/src/components/MyComponent.jsx
+git add app/backend/routes/api.js
+# ⚠️ NEVER: git add -A or git add . (may include .env files)
+
+# 3. Commit with clear message
+git commit -m "feat: add voting weight calculation"
+
+# 4. Push to remote
+git push origin main
+```
+
+### Commit Message Format
+```
+<type>: <short description>
+
+Types:
+- feat:     New feature
+- fix:      Bug fix
+- refactor: Code restructure (no behavior change)
+- docs:     Documentation only
+- style:    Formatting (no code change)
+- test:     Adding tests
+- chore:    Maintenance tasks
+```
+
+### Release Flow (#release command)
+```bash
+# Tag and push a release
+git tag -a v1.0.0 -m "MVP Release"
+git push origin v1.0.0
+
+# Or use #release command in chat
+#release v1.0.1
+```
+
+### ⚠️ Git Safety Rules
+- **NEVER** commit `.env` files or secrets
+- **NEVER** use `git add -A` or `git add .`
+- **NEVER** force push to main: `git push --force`
+- **ALWAYS** check `git diff --staged` before commit
+- **ALWAYS** use specific file paths when staging
+
+### Checking Local Changes
+```bash
+# See what files changed
+git status
+
+# See line-by-line changes
+git diff <filepath>
+
+# See commit history
+git log --oneline -10
+
+# See what will be committed
+git diff --staged
+```
+

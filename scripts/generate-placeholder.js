@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Initialize Gemini API
-const genAI = new GoogleGenerativeAI('AIzaSyBsKIIBRaSfjgdtpBS8cyAKjZ7XzToF8Jc');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateMemeForgeePlaceholder() {
   try {
