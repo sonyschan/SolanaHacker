@@ -108,9 +108,10 @@ Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 ```
 /home/projects/solanahacker/
 ├── AGENTS.md                 # This file (READ-ONLY)
-├── agent/                    # Agent 程式碼 (H2Crypto 控制)
-│   └── skills/               # 可載入的技能模組
-├── app/                      # Application code ONLY
+├── agent/                    # Agent 程式碼 (ASK before edit)
+│   ├── skills/               # 可載入的技能模組
+│   └── .env                  # KEYS & SECRETS (Never edit/disclosure/send)
+├── app/                      # MemeForge Application code ONLY
 │   ├── src/                  # Frontend (React)
 │   │   ├── components/       # React 組件
 │   │   └── services/         # API 服務
@@ -134,24 +135,7 @@ Agent 預設為 **Chat Mode**。開發工作只在 `#dotask` 觸發時執行。
 
 | 檔案類型 | 正確位置 |
 |---------|---------|
-| Frontend 組件 | `app/src/components/` |
-| Frontend 服務 | `app/src/services/` |
-| Backend 路由 | `app/backend/routes/` |
-| Backend 服務 | `app/backend/services/` |
-| 產品規格 | `docs/product.md` |
-| 臨時文件 | `docs/_transient/` |
 | Agent 價值觀 | `memory/knowledge/values.md` |
-
-### Production 組件 (7個)
-1. `App.jsx` - 應用入口
-2. `HomePage.jsx` - 首頁
-3. `Dashboard.jsx` - 控制台
-4. `WalletConnection.jsx` - 錢包連接
-5. `ForgeTab.jsx` - 梗圖鑄造
-6. `MemeModal.jsx` - 梗圖詳情
-7. `memeService.js` - API 服務
-
-⚠️ 其他 70+ 組件已歸檔到 `docs/_transient/backup/`
 
 ---
 
