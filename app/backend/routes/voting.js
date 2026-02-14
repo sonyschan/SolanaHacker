@@ -246,4 +246,46 @@ router.get('/analytics/today', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/voting/user/:wallet/rarity/today - Delete user's today rarity vote (for testing)
+ */
+router.delete('/user/:wallet/rarity/today', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const { getFirestore, collections } = require('../config/firebase');
+    const db = getFirestore();
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Find today's rarity votes for this wallet
+    const snapshot = await db.collection(collections.VOTES)
+      .where('walletAddress', '==', wallet)
+      .where('voteType', '==', 'rarity')
+      .get();
+
+    let deletedCount = 0;
+    for (const doc of snapshot.docs) {
+      const vote = doc.data();
+      if (vote.timestamp && vote.timestamp.startsWith(today)) {
+        await db.collection(collections.VOTES).doc(doc.id).delete();
+        deletedCount++;
+        console.log(`Deleted rarity vote: ${doc.id}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Deleted ${deletedCount} rarity vote(s) for today`,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('Delete rarity vote error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete rarity vote',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
