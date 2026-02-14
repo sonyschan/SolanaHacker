@@ -38,39 +38,7 @@ router.get("/today", getTodaysMemes);
 
 /**
  * GET /api/memes/hall-of-memes - Get historical memes for gallery
-
-/**
- * GET /api/memes/status - Get meme generation status
- * Returns whether today's memes are ready for voting
  */
-router.get("/status", async (req, res) => {
-  try {
-    const schedulerService = require("../services/schedulerService");
-    const status = await schedulerService.getMemeReadyStatus();
-
-    res.json({
-      success: true,
-      data: {
-        memeReady: status.memeReady,
-        date: status.date,
-        message: status.message || (status.memeReady ? "Memes are ready!" : "Generating memes..."),
-        updatedAt: status.updatedAt
-      }
-    });
-  } catch (error) {
-    console.error("Get meme status error:", error);
-    res.json({
-      success: true,
-      data: {
-        memeReady: true, // Default to ready on error
-        date: new Date().toISOString().split("T")[0],
-        message: "Status check error, assuming ready",
-        error: true
-      }
-    });
-  }
-});
-
 router.get("/hall-of-memes", async (req, res) => {
   try {
     const { days = 30, limit = 50 } = req.query;
@@ -174,57 +142,3 @@ router.post("/upload", upload.single("meme"), async (req, res) => {
 });
 
 module.exports = router;
-
-/**
- * DELETE /api/memes/today - Delete all of today memes (admin only for reset)
- */
-router.delete("/today", async (req, res) => {
-  try {
-    const { getFirestore, collections } = require("../config/firebase");
-    const db = getFirestore();
-    
-    const today = new Date().toISOString().split("T")[0];
-    const startOfDay = new Date(today + "T00:00:00.000Z");
-    const endOfDay = new Date(today + "T23:59:59.999Z");
-    
-    // Find today memes
-    const memesSnapshot = await db.collection(collections.MEMES)
-      .where("type", "==", "daily")
-      .where("generatedAt", ">=", startOfDay.toISOString())
-      .where("generatedAt", "<=", endOfDay.toISOString())
-      .get();
-    
-    const deletedMemes = [];
-    const deletedVotes = [];
-    
-    for (const memeDoc of memesSnapshot.docs) {
-      const memeId = memeDoc.id;
-      
-      // Delete associated votes
-      const votesSnapshot = await db.collection(collections.VOTES)
-        .where("memeId", "==", memeId)
-        .get();
-      
-      for (const voteDoc of votesSnapshot.docs) {
-        await voteDoc.ref.delete();
-        deletedVotes.push(voteDoc.id);
-      }
-      
-      // Delete meme
-      await memeDoc.ref.delete();
-      deletedMemes.push(memeId);
-    }
-    
-    res.json({
-      success: true,
-      message: "Today memes deleted",
-      deletedMemes,
-      deletedVotes,
-      count: { memes: deletedMemes.length, votes: deletedVotes.length }
-    });
-    
-  } catch (error) {
-    console.error("Delete today memes error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
