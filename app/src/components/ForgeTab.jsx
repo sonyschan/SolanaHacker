@@ -105,6 +105,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       setVotedMemeId(memeId);  // Track which meme was voted for
       setRarityScore(5); // Reset score slider to middle
       setCurrentPhase('rarity');
+      // Scroll to top so user sees Phase 2 explanation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Vote error:', error);
       // Still proceed to rarity phase for demo
@@ -113,6 +115,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       setVotedMemeId(memeId);
       setRarityScore(5); // Reset score slider to middle
       setCurrentPhase('rarity');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
