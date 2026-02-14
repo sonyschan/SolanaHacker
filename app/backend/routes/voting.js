@@ -4,17 +4,24 @@ const { submitVote, getVotingResults, getUserVotes, checkVotingEligibility } = r
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const Joi = require('joi');
 
-// Validation schemas
+// Validation schemas - accepts both frontend formats
 const voteSchema = Joi.object({
   memeId: Joi.string().required(),
-  phase: Joi.string().valid('selection', 'rarity').required(),
+  // Accept both 'phase' and 'voteType'
+  phase: Joi.string().valid('selection', 'rarity'),
+  voteType: Joi.string().valid('selection', 'rarity'),
+  // Phase 1: 'yes'/'no' for selection
+  // Phase 2: numeric score (1-10) for rarity rating
   choice: Joi.alternatives().try(
-    Joi.string().valid('yes', 'no'), // Phase 1: yes/no for selection
-    Joi.string().valid('common', 'uncommon', 'rare', 'legendary') // Phase 2: rarity
-  ).required(),
-  userWallet: Joi.string().required(),
+    Joi.boolean(),
+    Joi.string().valid('yes', 'no', 'common', 'uncommon', 'rare', 'legendary') // Legacy support
+  ),
+  score: Joi.number().min(1).max(10), // NEW: Score-based rarity voting (1-10)
+  // Accept both 'userWallet' and 'walletAddress'
+  userWallet: Joi.string(),
+  walletAddress: Joi.string(),
   timestamp: Joi.date().default(Date.now)
-});
+}).or('phase', 'voteType').or('userWallet', 'walletAddress').or('choice', 'score');
 
 /**
  * GET /api/voting/status - Get current voting status
@@ -61,11 +68,23 @@ router.post('/submit', rateLimiter, async (req, res) => {
       });
     }
 
-    const { memeId, phase, choice, userWallet } = value;
+    // Normalize field names (frontend may send voteType/walletAddress)
+    const memeId = value.memeId;
+    const voteType = value.phase || value.voteType;
+    const walletAddress = value.userWallet || value.walletAddress;
+    // For rarity votes: use score (1-10), fallback to legacy choice
+    // For selection votes: use choice ('yes'/'no')
+    let choice = value.choice;
+    let score = value.score; // NEW: numeric score for rarity
+
+    // Get or create user to get userId
+    const { getOrCreateUser } = require('../controllers/userController');
+    const user = await getOrCreateUser(walletAddress);
+    const userId = user.id;
 
     // Check voting eligibility
-    const eligibility = await checkVotingEligibility(userWallet, memeId, phase);
-    if (!eligibility.eligible) {
+    const eligibility = await checkVotingEligibility(userId, memeId, voteType);
+    if (!eligibility.canVote) {
       return res.status(403).json({
         success: false,
         error: 'Not eligible to vote',
@@ -76,16 +95,18 @@ router.post('/submit', rateLimiter, async (req, res) => {
     // Submit vote
     const voteResult = await submitVote({
       memeId,
-      phase,
+      userId,
+      voteType,
       choice,
-      userWallet,
+      score, // NEW: numeric score for rarity votes
+      walletAddress,
       timestamp: new Date().toISOString()
     });
 
     res.json({
       success: true,
       data: voteResult,
-      message: `${phase} vote submitted successfully! 🗳️`
+      message: `${voteType} vote submitted successfully! 🗳️`
     });
   } catch (error) {
     console.error('Submit vote error:', error);
@@ -226,35 +247,3 @@ router.get('/analytics/today', async (req, res) => {
 });
 
 module.exports = router;
-/**
- * DELETE /api/voting/today - Clear all votes from today (admin reset)
- */
-router.delete("/today", async (req, res) => {
-  try {
-    const { getFirestore, collections } = require("../config/firebase");
-    const db = getFirestore();
-    const today = new Date().toISOString().split("T")[0];
-    
-    const snapshot = await db.collection(collections.VOTES).get();
-    
-    const deleted = [];
-    for (const doc of snapshot.docs) {
-      const vote = doc.data();
-      if (vote.timestamp && vote.timestamp.startsWith(today)) {
-        await doc.ref.delete();
-        deleted.push({ id: doc.id, memeId: vote.memeId, voteType: vote.voteType });
-      }
-    }
-    
-    res.json({
-      success: true,
-      message: "Today votes cleared",
-      date: today,
-      deletedCount: deleted.length,
-      deleted
-    });
-  } catch (error) {
-    console.error("Clear today votes error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});

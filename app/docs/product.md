@@ -1,8 +1,8 @@
-# MemeForge Product Documentation
+# AI MemeForge Product Documentation
 
 ## Overview
 
-MemeForge 是一個 AI 驅動的迷因 NFT 民主投票平台，用戶透過投票決定迷因的稀有度，並有機會獲得 SOL 獎勵。
+AI MemeForge (aimemeforge.io) 是一個 AI 驅動的迷因 NFT 民主投票平台，用戶透過投票決定迷因的稀有度，並有機會獲得 SOL 獎勵。
 
 ## Architecture
 
@@ -47,8 +47,18 @@ MemeForge 是一個 AI 驅動的迷因 NFT 民主投票平台，用戶透過投�
 - 使用 Gemini 3 Pro Image Preview 模型
 - 圖片儲存在 GCS，URL 永久有效
 
-### 2. Community Voting
-- 用戶投票決定梗圖的稀有度 (Common/Rare/Legendary)
+### 2. Community Voting (Score-Based Rarity System v2)
+
+**投票流程:**
+1. **Phase 1 - Selection**: 從每日 3 張梗圖中選擇最喜歡的一張
+2. **Phase 2 - Rating**: 使用滑桿 (1-10) 為選中的梗圖評分
+
+**Rarity 計算:**
+- 使用歷史 percentile 分佈決定稀有度
+- 5 個等級: Common (40%) → Uncommon (25%) → Rare (20%) → Epic (10%) → Legendary (5%)
+- 詳見 `docs/beta.md` 的完整設計
+
+**獎勵機制:**
 - 每次投票獲得 8-15 隨機 tickets
 - 連續投票增加 streak days
 
@@ -101,4 +111,4 @@ VITE_API_BASE_URL=https://memeforge-api-836651762884.asia-southeast1.run.app
 6. 回傳投票結果和獲得的 tickets
 
 ## Last Updated
-2026-02-12
+2026-02-14

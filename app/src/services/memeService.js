@@ -1,5 +1,5 @@
 /**
- * AI MemeForge Meme Service
+ * MemeForge Meme Service
  * 
  * Architecture:
  * - READ: Cloud Run API (daily memes don't need real-time sync)
@@ -106,6 +106,59 @@ class MemeService {
   }
 
   /**
+   * Submit score-based rarity vote (1-10)
+   * Used in Phase 2 of the new voting system
+   */
+  async submitScoreVote(memeId, score, walletAddress) {
+    try {
+      console.log('🗳️ Submitting score vote to Cloud Run API...', { memeId, score, walletAddress });
+
+      const response = await fetch(`${API_BASE_URL}/api/voting/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          memeId,
+          phase: 'rarity',
+          score,  // NEW: numeric score (1-10)
+          userWallet: walletAddress
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Score vote successful:', result);
+
+      const voteData = result.data || result;
+
+      // Increment weekly voter count after successful vote
+      if (result.success) {
+        this.incrementVoters().catch(err =>
+          console.warn('⚠️ Failed to update voter count:', err)
+        );
+      }
+
+      return {
+        success: result.success,
+        ticketsEarned: voteData.ticketsEarned,
+        user: voteData.user,
+        vote: voteData
+      };
+    } catch (error) {
+      console.error('❌ Score vote failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Increment weekly voter count
    */
   async incrementVoters() {
@@ -201,47 +254,6 @@ class MemeService {
   /**
    * Fallback memes (used when API fails)
    */
-
-  /**
-   * Get meme generation status
-   * Used to show "Preparing..." state to users
-   */
-  async getMemeStatus() {
-    try {
-      console.log('📊 Checking meme generation status...');
-
-      const response = await fetch(`${API_BASE_URL}/api/memes/status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('📊 Meme status:', result.data);
-
-      return {
-        success: true,
-        ...result.data
-      };
-
-    } catch (error) {
-      console.error('❌ Status check failed:', error);
-      // Default to ready on error
-      return {
-        success: true,
-        memeReady: true,
-        date: new Date().toISOString().split('T')[0],
-        message: 'Status check failed, assuming ready',
-        error: true
-      };
-    }
-  }
-
   getFallbackMemes() {
     return [
       {
