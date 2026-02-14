@@ -1,5 +1,5 @@
 {
-  "name": "ai-memeforge-api",
+  "name": "memeforge-api",
   "version": "1.0.0",
   "description": "MemeForge Backend API - AI Meme Generation & Voting System",
   "main": "server.js",
@@ -29,7 +29,9 @@
     "rate-limiter-flexible": "^4.0.1",
     "tweetnacl": "^1.0.3",
     "uuid": "^9.0.1",
-    "web3": "^4.3.0"
+    "web3": "^4.3.0",
+    "satori": "^0.10.14",
+    "@resvg/resvg-js": "^2.6.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",

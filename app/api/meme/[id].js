@@ -2,12 +2,11 @@
  * Vercel Serverless Function for Meme OpenGraph
  * Route: /api/meme/[id]
  * Returns HTML with OG meta tags for social media previews
- * Uses /api/og/[id] for branded 1200x630 OG image
+ * Uses Cloud Run /api/og/:id for branded 1200x630 OG image
  */
 
 const API_BASE = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const SITE_URL = 'https://aimemeforge.io';
-const VERCEL_URL = 'https://solana-hacker.vercel.app';
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -35,8 +34,8 @@ export default async function handler(req, res) {
 
     const title = escapeHtml(meme.title || 'AI MemeForge Meme');
     const description = escapeHtml(meme.description || 'AI-generated meme from MemeForge - Vote for meme democracy!');
-    // Use branded OG image instead of raw meme image
-    const ogImageUrl = `${VERCEL_URL}/api/og/${id}`;
+    // Use Cloud Run OG image endpoint for branded 1200x630 image
+    const ogImageUrl = `${API_BASE}/api/og/${id}`;
     const pageUrl = `${SITE_URL}?meme=${id}`;
 
     const html = `<!DOCTYPE html>

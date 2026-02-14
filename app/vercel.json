@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/og/:path*",
+      "destination": "https://memeforge-api-836651762884.asia-southeast1.run.app/api/og/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

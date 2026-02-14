@@ -11,6 +11,7 @@ const votingRoutes = require('./routes/voting');
 const userRoutes = require('./routes/users');
 const lotteryRoutes = require('./routes/lottery');
 const schedulerRoutes = require('./routes/scheduler');
+const ogRoutes = require('./routes/og');
 
 // Import scheduler service
 const schedulerService = require('./services/schedulerService');
@@ -85,6 +86,7 @@ app.use('/api/voting', votingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lottery', lotteryRoutes);
 app.use('/api/scheduler', schedulerRoutes);
+app.use('/api/og', ogRoutes);
 
 // Global stats endpoint
 app.get('/api/stats', async (req, res) => {
