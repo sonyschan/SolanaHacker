@@ -5,7 +5,7 @@
  */
 
 const API_BASE = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
-const SITE_URL = 'https://solana-hacker.vercel.app';
+const SITE_URL = 'https://aimemeforge.io';
 
 function escapeHtml(text) {
   if (!text) return '';

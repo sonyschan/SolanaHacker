@@ -171,7 +171,7 @@ const Dashboard = ({
               <div>
                 <div className="flex items-center space-x-2">
                   <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    MemeForge
+                    AI MemeForge
                   </h1>
                   <span className="text-xs bg-green-500/20 text-green-400 px-1.5 md:px-2 py-0.5 md:py-1 rounded font-medium">
                     MVP

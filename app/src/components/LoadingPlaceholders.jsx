@@ -60,7 +60,7 @@ export const GeneratingPlaceholder = ({
       
       {/* Title */}
       <h2 className="text-3xl font-bold text-white mb-4 text-gradient-hologram">
-        MemeForge AI
+        AI MemeForge AI
       </h2>
       
       <p className="text-xl text-purple-200 mb-8 animate-pulse">

@@ -13,7 +13,7 @@ const MemeForgeePlaceholder = ({
       case "generating":
         return {
           icon: "🎨",
-          mainTitle: "MemeForge AI",
+          mainTitle: "AI MemeForge",
           subtitle: "Generating magic...",
           description: "Creating your meme with Gemini AI",
           gradient: "from-purple-600 via-pink-600 to-blue-600",
@@ -40,7 +40,7 @@ const MemeForgeePlaceholder = ({
       default: // loading
         return {
           icon: "🤖",
-          mainTitle: "MemeForge",
+          mainTitle: "AI MemeForge",
           subtitle: title,
           description: "AI-powered meme creation",
           gradient: "from-purple-600 via-blue-700 to-cyan-600",

@@ -535,7 +535,7 @@ Technical requirements:
   async testConnection() {
     try {
       // Test text model
-      const textResult = await this.textModel.generateContent("Say hello from MemeForge!");
+      const textResult = await this.textModel.generateContent("Say hello from AI MemeForge!");
       const textResponse = await textResult.response;
       
       return {

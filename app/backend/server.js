@@ -11,6 +11,7 @@ const votingRoutes = require('./routes/voting');
 const userRoutes = require('./routes/users');
 const lotteryRoutes = require('./routes/lottery');
 const schedulerRoutes = require('./routes/scheduler');
+const statsRoutes = require('./routes/stats');
 
 // Import scheduler service
 const schedulerService = require('./services/schedulerService');
@@ -25,7 +26,9 @@ app.use(cors({
     'http://localhost:5173',
     'http://165.22.136.40:5173',
     'https://solana-hacker.vercel.app',
-    'https://solanahacker.vercel.app'
+    'https://solanahacker.vercel.app',
+    'https://aimemeforge.io',
+    'https://www.aimemeforge.io'
   ],
   credentials: true
 }));
@@ -56,8 +59,8 @@ app.get('/health', async (req, res) => {
   }
   try {
     const schedulerStatus = await schedulerService.getStatus();
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
@@ -83,11 +86,12 @@ app.use('/api/voting', votingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lottery', lotteryRoutes);
 app.use('/api/scheduler', schedulerRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'MemeForge API is running! 🎨🚀',
+    message: 'AI MemeForge API is running!',
     version: '1.0.0',
     endpoints: {
       health: '/health',
@@ -95,10 +99,11 @@ app.get('/', (req, res) => {
       voting: '/api/voting',
       users: '/api/users',
       lottery: '/api/lottery',
-      scheduler: '/api/scheduler'
+      scheduler: '/api/scheduler',
+      stats: '/api/stats'
     },
     automation: {
-      description: '🔄 Fully automated meme generation, voting, and lottery system',
+      description: 'Fully automated meme generation, voting, and lottery system',
       features: [
         'Daily meme generation at 8:00 AM UTC',
         'Voting periods: 8:30 AM - 8:00 PM UTC (12 hours)',
@@ -123,14 +128,14 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
     message: `The requested endpoint ${req.originalUrl} does not exist`,
-    availableEndpoints: ['/health', '/api/memes', '/api/voting', '/api/users', '/api/lottery', '/api/scheduler']
+    availableEndpoints: ['/health', '/api/memes', '/api/voting', '/api/users', '/api/lottery', '/api/scheduler', '/api/stats']
   });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
-  
+
   res.status(err.status || 500).json({
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
@@ -142,28 +147,28 @@ app.use((err, req, res, next) => {
 async function initializeScheduler() {
   // DEV_MODE: Skip scheduler in development
   if (process.env.DEV_MODE === 'true') {
-    console.log('⏭️ DEV_MODE: Skipping scheduler initialization');
+    console.log('DEV_MODE: Skipping scheduler initialization');
     return;
   }
 
   try {
-    console.log('🔄 Initializing MemeForge Automation System...');
+    console.log('Initializing AI MemeForge Automation System...');
     await schedulerService.initialize();
-    console.log('✅ MemeForge Automation System initialized successfully');
+    console.log('AI MemeForge Automation System initialized successfully');
   } catch (error) {
-    console.error('❌ Failed to initialize scheduler:', error);
+    console.error('Failed to initialize scheduler:', error);
     // Don't exit process, allow manual operation
   }
 }
 
 // Start server
 const server = app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`🚀 MemeForge API server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🎨 Ready for AI meme generation and voting! 🗳️`);
-  console.log(`📊 Scheduler management: http://localhost:${PORT}/api/scheduler/status`);
-  
+  console.log(`AI MemeForge API server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`Ready for AI meme generation and voting!`);
+  console.log(`Scheduler management: http://localhost:${PORT}/api/scheduler/status`);
+
   // Initialize automation after server starts
   await initializeScheduler();
 });
@@ -171,10 +176,10 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully...');
-  
+
   // Stop all scheduled tasks
   schedulerService.stopAll();
-  
+
   server.close(() => {
     console.log('Process terminated');
     process.exit(0);
@@ -183,10 +188,10 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('\nSIGINT received, shutting down gracefully...');
-  
+
   // Stop all scheduled tasks
   schedulerService.stopAll();
-  
+
   server.close(() => {
     console.log('Process terminated');
     process.exit(0);

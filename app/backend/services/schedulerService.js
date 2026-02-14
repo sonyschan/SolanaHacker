@@ -5,7 +5,7 @@ const memeController = require("../controllers/memeController");
 const geminiService = require("./geminiService");
 
 /**
- * MemeForge Scheduler Service
+ * AI MemeForge Scheduler Service
  * 
  * Schedule (UTC times, display as UTC+8 for users):
  * - 0:00 UTC (8:00 AM UTC+8): Daily cycle starts
@@ -27,7 +27,7 @@ class SchedulerService {
       return;
     }
 
-    console.log("🔄 Initializing MemeForge Scheduler Service...");
+    console.log("🔄 Initializing AI MemeForge Scheduler Service...");
     
     try {
       this.scheduleDaily();
@@ -48,7 +48,7 @@ class SchedulerService {
   scheduleDaily() {
     // Main daily cycle at 0:00 UTC = 8:00 AM UTC+8
     const dailyCycleTask = cron.schedule("0 0 * * *", async () => {
-      console.log("🌅 Starting daily MemeForge cycle (0:00 UTC / 8:00 AM UTC+8)...");
+      console.log("🌅 Starting daily AI MemeForge cycle (0:00 UTC / 8:00 AM UTC+8)...");
       await this.runDailyCycle();
     }, {
       scheduled: true,

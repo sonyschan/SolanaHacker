@@ -39,7 +39,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           </div>
           <div className="min-w-0">
             <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              MemeForge
+              AI MemeForge
             </h1>
             <div className="text-xs text-gray-500 hidden sm:block">AI-Powered Meme Democracy</div>
           </div>

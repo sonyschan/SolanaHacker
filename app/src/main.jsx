@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { SolanaWalletProvider } from './components/SolanaWalletProvider'
 import ErrorBoundary from './ErrorBoundary'
 
-console.log('MemeForge: main.jsx loaded');
+console.log('AI MemeForge: main.jsx loaded');
 
 // Mark app as loaded to hide loading screen
 document.documentElement.classList.add('app-loaded');

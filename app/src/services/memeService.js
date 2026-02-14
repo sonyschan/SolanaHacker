@@ -1,5 +1,5 @@
 /**
- * MemeForge Meme Service
+ * AI MemeForge Meme Service
  * 
  * Architecture:
  * - READ: Cloud Run API (daily memes don't need real-time sync)

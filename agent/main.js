@@ -42,7 +42,7 @@ const CONFIG = {
   devServerPort: 5173,
   heartbeatInterval: parseInt(process.env.HEARTBEAT_INTERVAL) || 1800000,
   uxThreshold: parseInt(process.env.UX_CONFIDENCE_THRESHOLD) || 90,
-  model: 'claude-sonnet-4-20250514',
+  model: process.env.AI_MODEL || 'claude-sonnet-4-20250514',
   maxTokens: 8192, // Tier 1 output limit: 8K/min for Sonnet
   maxTurns: 200,
   maxMessages: 50, // prune after this many messages — lower = less rate limiting
@@ -59,7 +59,10 @@ const STATE_FILE = path.join(CONFIG.logsDir, 'agent-state.json');
 class SolanaHackerAgent {
   constructor() {
     // Claude API client
-    this.client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    this.client = new Anthropic({
+      apiKey: process.env.MINIMAX_API_KEY || process.env.ANTHROPIC_API_KEY,
+      baseURL: process.env.MINIMAX_BASE_URL || undefined  // Set MINIMAX_BASE_URL=https://api.minimax.io/anthropic to use MiniMax
+    });
 
     // Modules
     this.telegram = new TelegramBridge(

@@ -20,7 +20,7 @@ const Footer = () => {
                 <span className="text-xl">🎨</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white tracking-tight">MemeForge</h3>
+                <h3 className="text-lg font-bold text-white tracking-tight">AI MemeForge</h3>
                 <p className="text-xs text-gray-500 font-mono">AI Dreams. Humans Decide.</p>
               </div>
             </div>
@@ -126,7 +126,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-8 pt-6 border-t border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-600 font-mono">
-            © {currentYear} MemeForge. Built with 💜 by AI & Human collaboration.
+            © {currentYear} AI MemeForge. Built with 💜 by AI & Human collaboration.
           </p>
           
           {/* Tech Stack */}

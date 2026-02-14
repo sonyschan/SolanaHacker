@@ -1,5 +1,5 @@
 /**
- * Google Cloud Storage Service for MemeForge
+ * Google Cloud Storage Service for AI MemeForge
  * 
  * ⚠️ IMPORTANT: GCS Bucket Configuration
  * =====================================

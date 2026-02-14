@@ -1,5 +1,5 @@
 {
-  "name": "memeforge-api",
+  "name": "ai-memeforge-api",
   "version": "1.0.0",
   "description": "MemeForge Backend API - AI Meme Generation & Voting System",
   "main": "server.js",
