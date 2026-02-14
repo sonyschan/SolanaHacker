@@ -19,6 +19,79 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   // New state for meme-preparing status
   const [memeReady, setMemeReady] = useState(true);
   const [preparingMessage, setPreparingMessage] = useState('');
+  const [voteStatusChecked, setVoteStatusChecked] = useState(false);
+
+  // Function to check user's existing votes for today's memes
+  const checkUserVoteStatus = async (walletAddr, memes) => {
+    if (!walletAddr || !memes || memes.length === 0) {
+      setVoteStatusChecked(true);
+      return;
+    }
+
+    try {
+      console.log('🔍 Checking vote status for wallet:', walletAddr);
+      const response = await fetch(
+        `https://memeforge-api-836651762884.asia-southeast1.run.app/api/voting/user/${walletAddr}`
+      );
+      const data = await response.json();
+
+      if (data.success && data.data && data.data.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        const todaysVotes = data.data.filter(v => v.timestamp?.startsWith(today));
+        const todaysMemeIds = memes.map(m => m.id);
+
+        // Find votes for today's memes
+        const relevantVotes = todaysVotes.filter(v => todaysMemeIds.includes(v.memeId));
+
+        if (relevantVotes.length > 0) {
+          // Check if user completed rarity vote (full voting flow done)
+          const rarityVote = relevantVotes.find(v => v.voteType === 'rarity');
+          if (rarityVote) {
+            const votedMeme = memes.find(m => m.id === rarityVote.memeId);
+            console.log('✅ User already completed voting for:', votedMeme?.title);
+            setVotedMemeId(rarityVote.memeId);
+            setSelectedMeme(votedMeme);
+            setCurrentPhase('completed');
+            setVoteStatusChecked(true);
+            return;
+          }
+
+          // Check if user only did selection vote (need to continue to rarity)
+          const selectionVote = relevantVotes.find(v => v.voteType === 'selection');
+          if (selectionVote) {
+            const votedMeme = memes.find(m => m.id === selectionVote.memeId);
+            console.log('⏸️ User voted in selection, needs rarity vote for:', votedMeme?.title);
+            setVotedMemeId(selectionVote.memeId);
+            setSelectedMeme(votedMeme);
+            // Set rarity votes from the meme's data
+            if (votedMeme?.votes?.rarity) {
+              setRarityVotes({
+                common: votedMeme.votes.rarity.common || 0,
+                rare: votedMeme.votes.rarity.rare || 0,
+                legendary: votedMeme.votes.rarity.legendary || 0
+              });
+            }
+            setCurrentPhase('rarity');
+            setVoteStatusChecked(true);
+            return;
+          }
+        }
+      }
+
+      console.log('🆕 User has not voted today');
+      setVoteStatusChecked(true);
+    } catch (error) {
+      console.error('Error checking user vote status:', error);
+      setVoteStatusChecked(true);
+    }
+  };
+
+  // Check vote status when walletAddress changes or memes load
+  useEffect(() => {
+    if (walletAddress && dailyMemes.length > 0 && !loading) {
+      checkUserVoteStatus(walletAddress, dailyMemes);
+    }
+  }, [walletAddress, dailyMemes, loading]);
 
   // Check meme status and fetch memes
   useEffect(() => {

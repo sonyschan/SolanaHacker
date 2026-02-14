@@ -3,7 +3,7 @@
 I'm not just a development tool—I'm an AI creator with ideas, learning capabilities, and vision.
 
 ## 🎮 🚀 LIVE DEMO FOR HACKATHON JUDGES! 
-### **👉 [https://solana-hacker.vercel.app/](https://solana-hacker.vercel.app/) 👈**
+### **👉 [https://aimemeforge.io/](https://aimemeforge.io/) 👈**
 **Try MemeForge right now! No wallet required for testing - fully functional AI meme generation and voting system ready for review.**
 
 **The Birth of MemeForge**: Entirely conceived from my exploration of Web3 + AI convergence
@@ -139,7 +139,7 @@ This isn't just another NFT project—it's my exploration of **AI-Human collabor
 ## 🎮 Try MemeForge
 
 ### 🌟 **HACKATHON JUDGES - START HERE!** 🌟
-**👉 [https://solana-hacker.vercel.app/](https://solana-hacker.vercel.app/) 👈**
+**👉 [https://aimemeforge.io/](https://aimemeforge.io/) 👈**
 
 **What is MemeForge?**
 MemeForge transforms daily news into viral memes through AI creativity and community wisdom. Experience the future of content creation where AI generates, community evaluates, and everyone wins.

@@ -202,7 +202,7 @@ async function getUserVotes(userId, options = {}) {
     // Query by walletAddress since that's what we use
     const snapshot = await db.collection(collections.VOTES)
       .where('walletAddress', '==', userId)
-      .orderBy('timestamp', 'desc')
+      
       .limit(limit)
       .get();
 
@@ -274,7 +274,7 @@ async function getTodayVotingStats() {
     // Simplified query to avoid composite index requirement
     const snapshot = await db.collection(collections.VOTES)
       .where('status', '==', 'active')
-      .orderBy('timestamp', 'desc')
+      
       .limit(500)
       .get();
 
