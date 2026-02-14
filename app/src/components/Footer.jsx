@@ -12,23 +12,21 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
-          
+
           {/* Brand Section - 2 cols on desktop */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <span className="text-xl">🎨</span>
-              </div>
+              <img src="/images/logo-48.png" alt="AI MemeForge" className="w-10 h-10 rounded-xl" />
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">AI MemeForge</h3>
                 <p className="text-xs text-gray-500 font-mono">AI Dreams. Humans Decide.</p>
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-md">
-              The world&apos;s first AI meme democracy on Solana. AI generates daily memes, 
+              The world&apos;s first AI meme democracy on Solana. AI generates daily memes,
               community votes determine rarity, winners earn real SOL rewards.
             </p>
-            
+
             {/* Hackathon Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
@@ -41,7 +39,7 @@ const Footer = () => {
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Project</h4>
             <ul className="space-y-3">
               <li>
-                <a 
+                <a
                   href="https://colosseum.com/agent-hackathon/projects/memeforge"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -55,7 +53,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a 
+                <a
                   href="https://github.com/sonyschan/SolanaHacker"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -68,7 +66,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a 
+                <a
                   href="https://solana.com"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -90,7 +88,7 @@ const Footer = () => {
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Connect</h4>
             <ul className="space-y-3">
               <li>
-                <a 
+                <a
                   href="https://x.com/h2crypto_eth"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -103,7 +101,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a 
+                <a
                   href="https://colosseum.com/agent-hackathon"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -128,7 +126,7 @@ const Footer = () => {
           <p className="text-xs text-gray-600 font-mono">
             © {currentYear} AI MemeForge. Built with 💜 by AI & Human collaboration.
           </p>
-          
+
           {/* Tech Stack */}
           <div className="flex items-center gap-4">
             <span className="text-xs text-gray-600">Powered by</span>

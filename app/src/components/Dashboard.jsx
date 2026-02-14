@@ -267,35 +267,6 @@ const Dashboard = ({
         }}
         meme={modalMeme}
       />
-
-      {/* Footer */}
-      <footer className="relative z-10 mt-auto border-t border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <img
-                src="/images/logo-48.png"
-                alt="AI MemeForge Logo"
-                className="w-8 h-8 rounded-lg"
-              />
-              <div>
-                <div className="font-semibold text-white">AI MemeForge</div>
-                <div className="text-xs text-gray-400">AI Dreams. Humans Decide.</div>
-              </div>
-            </div>
-            <div className="text-center text-sm text-gray-400">
-              Built for Colosseum Hackathon 2026
-            </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <a href="https://github.com/sonyschan/SolanaHacker" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                GitHub
-              </a>
-              <span>•</span>
-              <span>© 2026 AI MemeForge</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
