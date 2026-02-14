@@ -15,6 +15,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [error, setError] = useState(null);
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true); // Prevents UI flash during vote status check
 
   // Fetch today's memes on component mount
   useEffect(() => {
@@ -127,6 +128,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       } catch (err) {
         console.error('❌ Error checking vote status:', err);
         // Don't block UI on error, just proceed with default state
+      } finally {
+        // Done checking - allow UI to render
+        setIsInitializing(false);
       }
     };
 
@@ -227,8 +231,17 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         </div>
       )}
 
+      {/* Initialization Loading - prevents UI flash while checking vote status */}
+      {isInitializing && (
+        <div className="text-center py-20">
+          <div className="inline-block animate-spin text-5xl mb-4">🎰</div>
+          <h2 className="text-2xl font-bold mb-2">Loading your status...</h2>
+          <p className="text-gray-400">Checking today's voting progress</p>
+        </div>
+      )}
+
       {/* Phase 1: Meme Selection */}
-      {currentPhase === 'selection' && (
+      {!isInitializing && currentPhase === 'selection' && (
         <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
@@ -367,7 +380,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       )}
 
       {/* Phase 2: Rarity Voting */}
-      {currentPhase === 'rarity' && selectedMeme && (
+      {!isInitializing && currentPhase === 'rarity' && selectedMeme && (
         <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🏆 Winner Selected!</h2>
@@ -495,7 +508,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       )}
 
       {/* Phase 3: Completed */}
-      {currentPhase === 'completed' && (
+      {!isInitializing && currentPhase === 'completed' && (
         <div className="text-center">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl font-bold mb-4">🎉 Voting Complete!</h2>
