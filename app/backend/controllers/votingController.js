@@ -175,17 +175,17 @@ async function getVotesForMeme(memeId) {
 }
 
 /**
- * Get user's vote history
+ * Get user's vote history by wallet address
  */
-async function getUserVotes(userId) {
+async function getUserVotes(walletAddress) {
   try {
     const db = getFirestore();
+    // Query by walletAddress, no orderBy to avoid needing composite index
     const snapshot = await db.collection(collections.VOTES)
-      .where('userId', '==', userId)
-      .orderBy('timestamp', 'desc')
-      .limit(50)
+      .where('walletAddress', '==', walletAddress)
+      .limit(100)
       .get();
-    
+
     const votes = [];
     snapshot.forEach(doc => {
       votes.push({
@@ -193,7 +193,10 @@ async function getUserVotes(userId) {
         ...doc.data()
       });
     });
-    
+
+    // Sort by timestamp in code (descending)
+    votes.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
     return votes;
   } catch (error) {
     console.error('❌ Error fetching user votes:', error);

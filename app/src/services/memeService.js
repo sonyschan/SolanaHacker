@@ -200,6 +200,35 @@ class MemeService {
   }
 
   /**
+   * Get user's vote history by wallet address
+   * Used to check if user already voted for today's memes
+   */
+  async getUserVotes(walletAddress) {
+    try {
+      console.log('🔍 Fetching user votes for:', walletAddress);
+
+      const response = await fetch(`${API_BASE_URL}/api/voting/user/${walletAddress}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📋 User votes fetched:', result.data?.length || 0, 'votes');
+
+      return result.data || [];
+    } catch (error) {
+      console.error('❌ Failed to fetch user votes:', error);
+      return [];
+    }
+  }
+
+  /**
    * Generate daily memes (Cloud Run API + Gemini)
    */
   async generateDailyMemes() {

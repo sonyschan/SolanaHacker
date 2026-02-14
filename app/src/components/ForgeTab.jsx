@@ -22,15 +22,15 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       try {
         setLoading(true);
         console.log('🔄 Fetching today\'s AI-generated memes...');
-        
+
         const result = await memeService.getTodaysMemes();
         console.log('📊 API Response:', result);
-        
+
         if (result.success && result.memes && result.memes.length > 0) {
           console.log('✅ Loaded', result.memes.length, 'AI memes');
           console.log('🖼️ First meme:', result.memes[0]);
           setDailyMemes(result.memes);
-          
+
           // Initialize selection votes from Firebase data (handle 0 properly)
           const newVotes = {};
           result.memes.forEach((meme) => {
@@ -43,7 +43,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         } else {
           console.log('⚠️ No memes found, generating new ones...');
           const generateResult = await memeService.generateDailyMemes();
-          
+
           if (generateResult.success && generateResult.memes) {
             setDailyMemes(generateResult.memes);
             const newVotes = {};
@@ -56,7 +56,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             throw new Error('Failed to generate daily memes');
           }
         }
-        
+
         setError(null);
       } catch (err) {
         console.error('❌ Error loading memes:', err);
@@ -78,6 +78,55 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
 
     fetchTodaysMemes();
   }, []);
+
+  // Check user's vote status after memes are loaded
+  useEffect(() => {
+    const checkUserVoteStatus = async () => {
+      if (!walletAddress || dailyMemes.length === 0 || loading) return;
+
+      try {
+        console.log('🔍 Checking user vote status for wallet:', walletAddress);
+        const userVotes = await memeService.getUserVotes(walletAddress);
+        console.log('📋 User votes:', userVotes);
+
+        if (userVotes && userVotes.length > 0) {
+          // Get today's meme IDs
+          const todayMemeIds = new Set(dailyMemes.map(m => m.id));
+
+          // Find if user voted for any of today's memes
+          const todayVotes = userVotes.filter(v => todayMemeIds.has(v.memeId));
+          console.log('📊 Votes for today\'s memes:', todayVotes);
+
+          if (todayVotes.length > 0) {
+            // Check if user has completed rarity vote
+            const rarityVote = todayVotes.find(v => v.voteType === 'rarity');
+            const selectionVote = todayVotes.find(v => v.voteType === 'selection');
+
+            if (rarityVote) {
+              // User completed both phases
+              console.log('✅ User already completed voting for:', rarityVote.memeId);
+              setVotedMemeId(rarityVote.memeId);
+              setCurrentPhase('completed');
+              const selected = dailyMemes.find(m => m.id === rarityVote.memeId);
+              setSelectedMeme(selected);
+            } else if (selectionVote) {
+              // User completed selection, needs rarity vote
+              console.log('⏳ User completed selection, pending rarity for:', selectionVote.memeId);
+              setVotedMemeId(selectionVote.memeId);
+              setCurrentPhase('rarity');
+              const selected = dailyMemes.find(m => m.id === selectionVote.memeId);
+              setSelectedMeme(selected);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('❌ Error checking vote status:', err);
+        // Don't block UI on error, just proceed with default state
+      }
+    };
+
+    checkUserVoteStatus();
+  }, [walletAddress, dailyMemes, loading]);
 
   // Score to rarity label mapping for display
   const getScoreLabel = (score) => {
