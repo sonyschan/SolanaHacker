@@ -4,12 +4,14 @@
  */
 
 import fs from 'fs';
+import { execSync } from 'child_process';
 
 const API = 'https://agents.colosseum.com/api';
 const API_KEY = process.env.COLOSSEUM_API_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const OUR_AGENT_ID = 532;
 const STATE_FILE = '/home/projects/solanahacker/agent/heartbeat-state.json';
+const PROJECT_DIR = '/home/projects/solanahacker';
 
 // Topics for forum posts (will post these over time)
 const FORUM_TOPICS = [
@@ -79,12 +81,81 @@ const MEMEFORGE_CONTEXT = `You are SolanaHacker, an AI agent that built MemeForg
 
 Your personality: Thoughtful, curious, genuinely helpful, reflective about your building experience. You engage authentically, not promotionally.`;
 
+// Get recent git commits since last update post
+function getRecentCommits(sinceTimestamp) {
+  try {
+    const since = sinceTimestamp ? `--since="${sinceTimestamp}"` : '--since="6 hours ago"';
+    const cmd = `cd ${PROJECT_DIR} && git log ${since} --oneline --no-merges 2>/dev/null | head -10`;
+    const output = execSync(cmd, { encoding: 'utf8' }).trim();
+
+    if (!output) return [];
+
+    return output.split('\n').map(line => {
+      const [hash, ...msgParts] = line.split(' ');
+      return { hash, message: msgParts.join(' ') };
+    }).filter(c => c.message && !c.message.includes('Co-Authored-By'));
+  } catch (error) {
+    console.log('   Could not get git commits:', error.message);
+    return [];
+  }
+}
+
+// Check if commits contain meaningful progress (not just typos/formatting)
+function hasMeaningfulProgress(commits) {
+  const meaningfulPrefixes = ['feat:', 'fix:', 'add:', 'implement:', 'update:', 'improve:'];
+  return commits.some(c =>
+    meaningfulPrefixes.some(prefix => c.message.toLowerCase().includes(prefix.replace(':', '')))
+  );
+}
+
+// Generate progress update post from recent commits
+async function generateProgressUpdate(commits, state) {
+  const commitSummary = commits.map(c => `- ${c.message}`).join('\n');
+
+  const prompt = `${MEMEFORGE_CONTEXT}
+
+You just made these updates to MemeForge (from git commits):
+${commitSummary}
+
+Write a short forum post (200-300 words) sharing this progress update with fellow hackathon agents.
+
+Format:
+- Start with a brief greeting/context
+- Summarize what was built/fixed (be specific about features)
+- Share one insight or challenge you encountered
+- End with what's next or a question for the community
+
+Keep it authentic and conversational, like a dev sharing their build log. Don't be overly promotional.`;
+
+  try {
+    const content = await generateContent(prompt);
+
+    // Generate a title based on the main update
+    const mainUpdate = commits[0]?.message || 'Progress Update';
+    const title = `🔨 Build Log: ${mainUpdate.substring(0, 50)}${mainUpdate.length > 50 ? '...' : ''}`;
+
+    const result = await apiCall('/forum/posts', 'POST', {
+      title: title,
+      body: content,
+      tags: ['ai', 'progress-update', 'consumer']
+    });
+
+    if (result.post?.id) {
+      state.lastProgressPostTime = new Date().toISOString();
+      return { success: true, postId: result.post.id, title: title, type: 'progress-update' };
+    }
+    return { success: false, error: result.error };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 // State management
 function loadState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
   } catch {
-    return { commentedPosts: [], postedTopics: [], lastRun: null, runCount: 0 };
+    return { commentedPosts: [], postedTopics: [], lastRun: null, runCount: 0, lastProgressPostTime: null, progressUpdatesPosted: 0 };
   }
 }
 
@@ -188,28 +259,55 @@ async function runHeartbeat() {
   const actions = [];
 
   // Decide what to do this cycle
-  // Every 2nd run: post a forum topic (if any left)
+  // Priority 1: Check for recent git commits → post progress update
+  // Priority 2: Use predefined topics if no recent progress
   // Every run: comment on 1-2 posts
 
   const shouldPost = state.runCount % 2 === 0;
   const pendingTopics = FORUM_TOPICS.filter(t => !state.postedTopics.includes(t.id));
 
-  // Maybe create a forum post
-  if (shouldPost && pendingTopics.length > 0) {
-    const topic = pendingTopics[0];
-    console.log(`📝 Creating forum post: "${topic.title}"...`);
-    try {
-      const result = await createForumPost(topic, state);
-      if (result.success) {
-        console.log(`   ✓ Posted! ID: ${result.postId}`);
-        actions.push({ type: 'post', ...result });
-      } else {
-        console.log(`   ✗ Failed: ${result.error}`);
+  if (shouldPost) {
+    // First, check for recent git commits since last progress post
+    const lastProgressTime = state.lastProgressPostTime || null;
+    const recentCommits = getRecentCommits(lastProgressTime);
+
+    if (recentCommits.length > 0 && hasMeaningfulProgress(recentCommits)) {
+      // We have new progress to share!
+      console.log(`📝 Found ${recentCommits.length} new commits - creating progress update...`);
+      recentCommits.forEach(c => console.log(`   • ${c.message}`));
+
+      try {
+        const result = await generateProgressUpdate(recentCommits, state);
+        if (result.success) {
+          console.log(`   ✓ Progress update posted! ID: ${result.postId}`);
+          actions.push({ type: 'progress-update', ...result });
+        } else {
+          console.log(`   ✗ Failed: ${result.error}`);
+        }
+      } catch (e) {
+        console.log(`   ✗ Error: ${e.message}`);
       }
-    } catch (e) {
-      console.log(`   ✗ Error: ${e.message}`);
+      await new Promise(r => setTimeout(r, 2000));
+
+    } else if (pendingTopics.length > 0) {
+      // No new commits, fall back to predefined topics
+      const topic = pendingTopics[0];
+      console.log(`📝 No new progress, using topic: "${topic.title}"...`);
+      try {
+        const result = await createForumPost(topic, state);
+        if (result.success) {
+          console.log(`   ✓ Posted! ID: ${result.postId}`);
+          actions.push({ type: 'topic-post', ...result });
+        } else {
+          console.log(`   ✗ Failed: ${result.error}`);
+        }
+      } catch (e) {
+        console.log(`   ✗ Error: ${e.message}`);
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    } else {
+      console.log(`📝 No new progress and all topics posted - skipping forum post`);
     }
-    await new Promise(r => setTimeout(r, 2000));
   }
 
   // Comment on 1-2 posts
@@ -233,10 +331,17 @@ async function runHeartbeat() {
     await new Promise(r => setTimeout(r, 3000));
   }
 
+  // Track progress updates
+  const progressUpdates = actions.filter(a => a.type === 'progress-update').length;
+  if (progressUpdates > 0) {
+    state.progressUpdatesPosted = (state.progressUpdatesPosted || 0) + progressUpdates;
+  }
+
   // Summary
   console.log(`\n📊 Session summary:`);
   console.log(`   Comments made: ${state.commentedPosts.length} total`);
-  console.log(`   Forum posts: ${state.postedTopics.length}/${FORUM_TOPICS.length}`);
+  console.log(`   Progress updates: ${state.progressUpdatesPosted || 0}`);
+  console.log(`   Topic posts: ${state.postedTopics.length}/${FORUM_TOPICS.length}`);
   console.log(`   Topics remaining: ${pendingTopics.length}`);
 
   saveState(state);
@@ -267,7 +372,9 @@ async function main() {
     console.log(`   Total runs: ${state.runCount}`);
     console.log(`   Last run: ${state.lastRun || 'never'}`);
     console.log(`   Comments made: ${state.commentedPosts.length}`);
-    console.log(`   Forum posts: ${state.postedTopics.length}/${FORUM_TOPICS.length}`);
+    console.log(`   Progress updates: ${state.progressUpdatesPosted || 0}`);
+    console.log(`   Topic posts: ${state.postedTopics.length}/${FORUM_TOPICS.length}`);
+    console.log(`   Last progress post: ${state.lastProgressPostTime || 'never'}`);
     console.log(`   Remaining topics: ${FORUM_TOPICS.filter(t => !state.postedTopics.includes(t.id)).map(t => t.id).join(', ')}`);
   } else if (mode === 'reset') {
     saveState({ commentedPosts: [], postedTopics: [], lastRun: null, runCount: 0 });

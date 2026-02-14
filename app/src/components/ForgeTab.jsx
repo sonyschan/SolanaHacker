@@ -14,6 +14,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalMeme, setModalMeme] = useState(null);
+  const [modalMemeIndex, setModalMemeIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // New state for meme-preparing status
   const [memeReady, setMemeReady] = useState(true);
@@ -301,7 +302,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
-              {dailyMemes.map((meme) => (
+              {dailyMemes.map((meme, index) => (
                 <div key={meme.id} className="bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
                   <img
                     src={meme.imageUrl || meme.image}
@@ -309,6 +310,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
                     onClick={() => {
                       setModalMeme(meme);
+                      setModalMemeIndex(index);
                       setIsModalOpen(true);
                     }}
                     title="Click to enlarge"
@@ -418,7 +420,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   alt={selectedMeme.title}
                   className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
                   onClick={() => {
+                    const idx = dailyMemes.findIndex(m => m.id === selectedMeme.id);
                     setModalMeme(selectedMeme);
+                    setModalMemeIndex(idx >= 0 ? idx : 0);
                     setIsModalOpen(true);
                   }}
                   title="Click to enlarge"
@@ -516,7 +520,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         </div>
       )}
 
-      {/* Meme Modal */}
+      {/* Meme Modal with Previous/Next Navigation */}
       <MemeModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -524,6 +528,12 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           setModalMeme(null);
         }}
         meme={modalMeme}
+        memes={dailyMemes}
+        currentIndex={modalMemeIndex}
+        onNavigate={(newIndex) => {
+          setModalMemeIndex(newIndex);
+          setModalMeme(dailyMemes[newIndex]);
+        }}
       />
     </div>
   );
