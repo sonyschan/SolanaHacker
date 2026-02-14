@@ -9,7 +9,7 @@ const voteSchema = Joi.object({
   memeId: Joi.string().required(),
   phase: Joi.string().valid('selection', 'rarity').required(),
   choice: Joi.alternatives().try(
-    Joi.boolean(), // Phase 1: true/false for selection
+    Joi.string().valid('yes', 'no'), // Phase 1: yes/no for selection
     Joi.string().valid('common', 'uncommon', 'rare', 'legendary') // Phase 2: rarity
   ).required(),
   userWallet: Joi.string().required(),
