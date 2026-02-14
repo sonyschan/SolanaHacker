@@ -226,3 +226,35 @@ router.get('/analytics/today', async (req, res) => {
 });
 
 module.exports = router;
+/**
+ * DELETE /api/voting/today - Clear all votes from today (admin reset)
+ */
+router.delete("/today", async (req, res) => {
+  try {
+    const { getFirestore, collections } = require("../config/firebase");
+    const db = getFirestore();
+    const today = new Date().toISOString().split("T")[0];
+    
+    const snapshot = await db.collection(collections.VOTES).get();
+    
+    const deleted = [];
+    for (const doc of snapshot.docs) {
+      const vote = doc.data();
+      if (vote.timestamp && vote.timestamp.startsWith(today)) {
+        await doc.ref.delete();
+        deleted.push({ id: doc.id, memeId: vote.memeId, voteType: vote.voteType });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: "Today votes cleared",
+      date: today,
+      deletedCount: deleted.length,
+      deleted
+    });
+  } catch (error) {
+    console.error("Clear today votes error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
