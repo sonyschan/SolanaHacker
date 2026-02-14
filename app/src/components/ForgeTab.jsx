@@ -507,7 +507,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-6">
                 <div className="text-3xl mb-2">🎫</div>
                 <h3 className="font-bold text-lg mb-1">Tickets Earned</h3>
-                <div className="text-2xl text-green-300">{earnedTickets} tickets</div>
+                <div className="text-2xl text-green-300">
+                  {earnedTickets > 0 ? `${earnedTickets} tickets` : '✓ Credited'}
+                </div>
               </div>
               
               <div className="bg-purple-600 bg-opacity-20 border border-purple-600 rounded-xl p-6">
