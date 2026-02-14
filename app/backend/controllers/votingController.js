@@ -113,7 +113,18 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
       voteData.choice = choice; // Selection vote: 'yes'/'no'
     }
 
-    // Save vote to Firestore
+    // Award tickets after RARITY vote (not selection) - do this BEFORE saving
+    let ticketsEarned = 0;
+    let updatedUser = null;
+    if (voteType === 'rarity') {
+      const reward = await awardVotingTickets(walletAddress);
+      ticketsEarned = reward.ticketsEarned;
+      updatedUser = reward.user;
+      voteData.ticketsEarned = ticketsEarned; // Store in vote document for later retrieval
+      console.log(`🎫 Awarded ${ticketsEarned} tickets to ${walletAddress}`);
+    }
+
+    // Save vote to Firestore (now includes ticketsEarned for rarity votes)
     await dbUtils.setDocument(collections.VOTES, voteId, voteData);
 
     // Update meme vote counts (for selection) or average score (for rarity)
@@ -123,16 +134,6 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
     } else {
       // Legacy: update vote counts
       await updateMemeVoteCount(memeId, voteType, choice);
-    }
-
-    // Award tickets after RARITY vote (not selection)
-    let ticketsEarned = 0;
-    let updatedUser = null;
-    if (voteType === 'rarity') {
-      const reward = await awardVotingTickets(walletAddress);
-      ticketsEarned = reward.ticketsEarned;
-      updatedUser = reward.user;
-      console.log(`🎫 Awarded ${ticketsEarned} tickets to ${walletAddress}`);
     }
 
     console.log(`✅ Vote submitted: ${voteId} (${voteType}${score ? `, score=${score}` : ''})`);

@@ -109,6 +109,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               setCurrentPhase('completed');
               const selected = dailyMemes.find(m => m.id === rarityVote.memeId);
               setSelectedMeme(selected);
+              // Restore ticketsEarned from vote record
+              if (rarityVote.ticketsEarned) {
+                setEarnedTickets(rarityVote.ticketsEarned);
+                console.log('🎫 Restored ticketsEarned:', rarityVote.ticketsEarned);
+              }
             } else if (selectionVote) {
               // User completed selection, needs rarity vote
               console.log('⏳ User completed selection, pending rarity for:', selectionVote.memeId);
