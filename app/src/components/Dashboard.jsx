@@ -165,9 +165,11 @@ const Dashboard = ({
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
           <div className="flex justify-between items-center">
             <button onClick={() => setActiveTab('forge')} className="flex items-center space-x-2 md:space-x-4 cursor-pointer hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
-                <span className="text-xl md:text-2xl font-bold">M</span>
-              </div>
+              <img
+                src="/images/logo-48.png"
+                alt="AI MemeForge Logo"
+                className="w-10 h-10 md:w-12 md:h-12 rounded-xl shadow-lg shadow-cyan-500/25"
+              />
               <div>
                 <div className="flex items-center space-x-2">
                   <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
