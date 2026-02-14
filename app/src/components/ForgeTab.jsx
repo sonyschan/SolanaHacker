@@ -519,20 +519,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               </div>
             </div>
 
-            {/* MVP-specific completion message */}
-            <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-6 mb-8">
-              <h3 className="text-xl font-bold mb-3">📅 MVP Phase Complete</h3>
-              <ul className="text-left space-y-2 text-sm text-gray-300">
-                <li>✅ Your vote helped decide the winning meme</li>
-                <li>✅ Community determined its rarity level</li>
-                <li>✅ AI will generate traits based on image content</li>
-                <li>✅ You earned lottery tickets for participation</li>
-                <li>📅 Weekly lottery simulation: Sunday draws</li>
-                <li>🚀 NFT minting & SOL rewards coming in Beta!</li>
-                <li>⏰ Come back tomorrow for new AI memes!</li>
-              </ul>
-            </div>
-
             <button
               onClick={resetVoting}
               className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform"
