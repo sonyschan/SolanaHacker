@@ -47,6 +47,7 @@ router.post('/trigger/:taskName', async (req, res) => {
     
     // Validate task name
     const validTasks = [
+      'daily_cycle',
       'daily_memes',
       'start_voting', 
       'end_voting',
