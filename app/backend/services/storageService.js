@@ -1,13 +1,11 @@
-const { Storage } = require('@google-cloud/storage');
-const path = require('path');
+const { Storage } = require("@google-cloud/storage");
 
 class StorageService {
   constructor() {
     this.storage = new Storage({
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      // Using service account key from environment in production
     });
-    this.bucketName = process.env.GCS_BUCKET_NAME || 'web3ai-469609.appspot.com';
+    this.bucketName = process.env.GCS_BUCKET_NAME || "memeforge-images-web3ai";
     this.bucket = this.storage.bucket(this.bucketName);
   }
 
@@ -17,44 +15,41 @@ class StorageService {
       
       const stream = file.createWriteStream({
         metadata: {
-          contentType: metadata.contentType || 'image/png',
+          contentType: metadata.contentType || "image/png",
           metadata: {
             ...metadata,
             uploadedAt: new Date().toISOString(),
-            source: 'memeforge-ai'
+            source: "memeforge-ai"
           }
         },
-        public: true
+        resumable: false
+        // NOTE: Do NOT set public: true - bucket uses uniform access via IAM
       });
 
       return new Promise((resolve, reject) => {
-        stream.on('error', (error) => {
-          console.error('Upload error:', error);
+        stream.on("error", (error) => {
+          console.error("Upload error:", error);
           reject(new Error(`Failed to upload image: ${error.message}`));
         });
 
-        stream.on('finish', async () => {
-          try {
-            // Make the file publicly accessible
-            
-            
-            const publicUrl = `https://storage.googleapis.com/${this.bucketName}/memes/${filename}`;
-            
-            resolve({
-              success: true,
-              url: publicUrl,
-              filename,
-              bucketName: this.bucketName
-            });
-          } catch (error) {
-            reject(new Error(`Failed to make file public: ${error.message}`));
-          }
+        stream.on("finish", () => {
+          // Bucket is publicly readable via IAM policy
+          const publicUrl = `https://storage.googleapis.com/${this.bucketName}/memes/${filename}`;
+          
+          console.log(`✅ Image uploaded to GCS: ${filename}`);
+          
+          resolve({
+            success: true,
+            url: publicUrl,
+            filename,
+            bucketName: this.bucketName
+          });
         });
 
         stream.end(imageBuffer);
       });
     } catch (error) {
-      console.error('Error uploading to GCS:', error);
+      console.error("Error uploading to GCS:", error);
       throw new Error(`Storage upload failed: ${error.message}`);
     }
   }
@@ -69,7 +64,7 @@ class StorageService {
       const imageBuffer = Buffer.from(await response.arrayBuffer());
       return await this.uploadImage(imageBuffer, filename, metadata);
     } catch (error) {
-      console.error('Error uploading image from URL:', error);
+      console.error("Error uploading image from URL:", error);
       throw new Error(`Failed to upload from URL: ${error.message}`);
     }
   }
@@ -84,12 +79,12 @@ class StorageService {
         message: `Image ${filename} deleted successfully`
       };
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
       throw new Error(`Failed to delete image: ${error.message}`);
     }
   }
 
-  async listImages(prefix = 'memes/') {
+  async listImages(prefix = "memes/") {
     try {
       const [files] = await this.bucket.getFiles({ prefix });
       
@@ -106,24 +101,23 @@ class StorageService {
         count: images.length
       };
     } catch (error) {
-      console.error('Error listing images:', error);
+      console.error("Error listing images:", error);
       throw new Error(`Failed to list images: ${error.message}`);
     }
   }
 
-  generateFilename(prefix = 'meme', extension = 'png') {
+  generateFilename(prefix = "meme", extension = "png") {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `${prefix}_${timestamp}_${random}.${extension}`;
   }
 
-  // Test connectivity
   async testConnection() {
     try {
       await this.bucket.getMetadata();
       return {
         success: true,
-        message: 'Google Cloud Storage connection successful',
+        message: "Google Cloud Storage connection successful",
         bucketName: this.bucketName
       };
     } catch (error) {
