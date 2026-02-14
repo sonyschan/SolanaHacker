@@ -1,9 +1,19 @@
-const cron = require('node-cron');
-const { v4: uuidv4 } = require('uuid');
-const { getFirestore, collections, dbUtils } = require('../config/firebase');
-const memeController = require('../controllers/memeController');
-const votingController = require('../controllers/votingController');
-const lotteryController = require('../controllers/lotteryController');
+const cron = require("node-cron");
+const { v4: uuidv4 } = require("uuid");
+const { getFirestore, collections, dbUtils } = require("../config/firebase");
+const memeController = require("../controllers/memeController");
+const geminiService = require("./geminiService");
+
+/**
+ * MemeForge Scheduler Service
+ * 
+ * Schedule (UTC times, display as UTC+8 for users):
+ * - 0:00 UTC (8:00 AM UTC+8): Daily cycle starts
+ *   1. Set meme-ready=false (users see "Preparing...")
+ *   2. Determine previous day winner
+ *   3. Generate new memes with Gemini
+ *   4. Set meme-ready=true when all 3 memes ready
+ */
 
 class SchedulerService {
   constructor() {
@@ -11,643 +21,386 @@ class SchedulerService {
     this.isInitialized = false;
   }
 
-  /**
-   * Initialize all scheduled tasks
-   */
   async initialize() {
     if (this.isInitialized) {
-      console.log('⏰ Scheduler already initialized');
+      console.log("⏰ Scheduler already initialized");
       return;
     }
 
-    console.log('🔄 Initializing MemeForge Scheduler Service...');
+    console.log("🔄 Initializing MemeForge Scheduler Service...");
     
     try {
-      // Daily tasks
       this.scheduleDaily();
-      
-      // Hourly tasks
       this.scheduleHourly();
       
-      // Weekly tasks
-      this.scheduleWeekly();
-      
       this.isInitialized = true;
-      console.log('✅ All scheduled tasks initialized successfully');
-      
-      // Log current status
-      await this.logSchedulerStatus();
+      console.log("✅ Scheduler initialized - Daily cycle at 0:00 UTC (8:00 AM UTC+8)");
       
     } catch (error) {
-      console.error('❌ Failed to initialize scheduler:', error);
+      console.error("❌ Failed to initialize scheduler:", error);
       throw error;
     }
   }
 
   /**
-   * Schedule daily tasks
+   * Schedule daily tasks - Main cycle at 0:00 UTC (8:00 AM UTC+8)
    */
   scheduleDaily() {
-    // Daily meme generation at 8:00 AM UTC
-    const dailyMemeTask = cron.schedule('0 8 * * *', async () => {
-      console.log('📅 Running daily meme generation...');
-      try {
-        await this.generateDailyMemes();
-        await this.logTaskExecution('daily_memes', 'success');
-      } catch (error) {
-        console.error('❌ Daily meme generation failed:', error);
-        await this.logTaskExecution('daily_memes', 'failed', error.message);
-      }
+    // Main daily cycle at 0:00 UTC = 8:00 AM UTC+8
+    const dailyCycleTask = cron.schedule("0 0 * * *", async () => {
+      console.log("🌅 Starting daily MemeForge cycle (0:00 UTC / 8:00 AM UTC+8)...");
+      await this.runDailyCycle();
     }, {
-      scheduled: false,
-      timezone: 'UTC'
+      scheduled: true,
+      timezone: "UTC"
     });
 
-    // Start voting period for generated memes at 8:30 AM UTC
-    const startVotingTask = cron.schedule('30 8 * * *', async () => {
-      console.log('🗳️ Starting daily voting period...');
-      try {
-        await this.startDailyVotingPeriod();
-        await this.logTaskExecution('start_voting', 'success');
-      } catch (error) {
-        console.error('❌ Failed to start voting period:', error);
-        await this.logTaskExecution('start_voting', 'failed', error.message);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'UTC'
-    });
-
-    // End voting period and calculate rarity at 8:00 PM UTC (12 hours later)
-    const endVotingTask = cron.schedule('0 20 * * *', async () => {
-      console.log('📊 Ending daily voting period and calculating rarity...');
-      try {
-        await this.endDailyVotingPeriod();
-        await this.logTaskExecution('end_voting', 'success');
-      } catch (error) {
-        console.error('❌ Failed to end voting period:', error);
-        await this.logTaskExecution('end_voting', 'failed', error.message);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'UTC'
-    });
-
-    this.tasks.set('daily_memes', dailyMemeTask);
-    this.tasks.set('start_voting', startVotingTask);
-    this.tasks.set('end_voting', endVotingTask);
-
-    // Start all daily tasks
-    dailyMemeTask.start();
-    startVotingTask.start();
-    endVotingTask.start();
-
-    console.log('✅ Daily tasks scheduled: Meme generation, Voting start/end');
+    this.tasks.set("daily_cycle", dailyCycleTask);
+    console.log("📅 Daily cycle scheduled: 0:00 UTC (8:00 AM UTC+8)");
   }
 
   /**
-   * Schedule hourly tasks
+   * Main daily cycle - runs at 0:00 UTC (8:00 AM UTC+8)
    */
-  scheduleHourly() {
-    // Check voting progress every hour during voting period (9 AM - 7 PM UTC)
-    const votingProgressTask = cron.schedule('0 9-19 * * *', async () => {
-      console.log('📈 Checking voting progress...');
-      try {
-        await this.checkVotingProgress();
-        await this.logTaskExecution('voting_progress', 'success');
-      } catch (error) {
-        console.error('❌ Voting progress check failed:', error);
-        await this.logTaskExecution('voting_progress', 'failed', error.message);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'UTC'
-    });
-
-    this.tasks.set('voting_progress', votingProgressTask);
-    votingProgressTask.start();
-
-    console.log('✅ Hourly tasks scheduled: Voting progress monitoring');
-  }
-
-  /**
-   * Schedule weekly tasks
-   */
-  scheduleWeekly() {
-    // Weekly lottery draw every Sunday at 8:00 PM UTC
-    const lotteryDrawTask = cron.schedule('0 20 * * 0', async () => {
-      console.log('🎰 Running weekly lottery draw...');
-      try {
-        await this.runWeeklyLottery();
-        await this.logTaskExecution('lottery_draw', 'success');
-      } catch (error) {
-        console.error('❌ Weekly lottery draw failed:', error);
-        await this.logTaskExecution('lottery_draw', 'failed', error.message);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'UTC'
-    });
-
-    // Weekly cleanup - archive old data every Sunday at 2:00 AM UTC
-    const cleanupTask = cron.schedule('0 2 * * 0', async () => {
-      console.log('🧹 Running weekly data cleanup...');
-      try {
-        await this.weeklyCleanup();
-        await this.logTaskExecution('weekly_cleanup', 'success');
-      } catch (error) {
-        console.error('❌ Weekly cleanup failed:', error);
-        await this.logTaskExecution('weekly_cleanup', 'failed', error.message);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'UTC'
-    });
-
-    this.tasks.set('lottery_draw', lotteryDrawTask);
-    this.tasks.set('weekly_cleanup', cleanupTask);
-
-    lotteryDrawTask.start();
-    cleanupTask.start();
-
-    console.log('✅ Weekly tasks scheduled: Lottery draw, Data cleanup');
-  }
-
-  /**
-   * Generate daily memes
-   */
-  async generateDailyMemes() {
-    console.log('🎨 Starting daily meme generation process...');
+  async runDailyCycle() {
+    const db = getFirestore();
+    const cycleId = `cycle_${Date.now()}`;
     
+    console.log(`🔄 [${cycleId}] Daily cycle starting...`);
+
     try {
-      // Get today's date
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Check if memes already generated for today
-      const existingMemes = await this.getTodaysMemes();
-      if (existingMemes.length >= 3) {
-        console.log('ℹ️ Daily memes already generated for today');
-        return;
+      // Step 1: Set meme-ready=false (users see loading state)
+      await this.setMemeReadyStatus(false);
+      console.log(`⏳ [${cycleId}] Set meme-ready=false - users will see preparing state`);
+
+      // Step 2: Determine previous day winner
+      const winner = await this.determinePreviousDayWinner();
+      if (winner) {
+        console.log(`🏆 [${cycleId}] Previous day winner: ${winner.id} - ${winner.title}`);
+      } else {
+        console.log(`ℹ️ [${cycleId}] No previous day memes to judge`);
       }
 
-      // Generate memes using the existing controller
-      const req = { body: {} };
-      const res = {
-        json: (data) => data,
-        status: (code) => ({ json: (data) => ({ ...data, statusCode: code }) })
-      };
+      // Step 3: Generate new memes (with retry logic)
+      console.log(`🎨 [${cycleId}] Starting meme generation...`);
+      const memes = await this.generateDailyMemesWithRetry();
+      console.log(`✅ [${cycleId}] Generated ${memes.length} memes`);
 
-      const result = await memeController.generateDailyMemes(req, res);
-      console.log('✅ Daily memes generated successfully:', result);
+      // Step 4: Set meme-ready=true (users can now vote)
+      await this.setMemeReadyStatus(true);
+      console.log(`🚀 [${cycleId}] Set meme-ready=true - new voting round begins!`);
 
-      // Update scheduler status
-      await this.updateSchedulerStatus('daily_memes', {
-        lastRun: new Date().toISOString(),
-        status: 'completed',
-        memesGenerated: result.memes?.length || 0
+      await this.logTaskExecution("daily_cycle", "success", {
+        cycleId,
+        winner: winner?.id,
+        memesGenerated: memes.length
       });
 
     } catch (error) {
-      console.error('❌ Error in daily meme generation:', error);
-      throw error;
+      console.error(`❌ [${cycleId}] Daily cycle failed:`, error);
+      
+      // Even on failure, set meme-ready=true to avoid permanent loading state
+      // Frontend will handle showing old memes or error state
+      await this.setMemeReadyStatus(true);
+      
+      await this.logTaskExecution("daily_cycle", "failed", {
+        cycleId,
+        error: error.message
+      });
     }
   }
 
   /**
-   * Start daily voting period
+   * Set meme-ready status in Firestore
    */
-  async startDailyVotingPeriod() {
-    console.log('🗳️ Starting daily voting period...');
+  async setMemeReadyStatus(ready) {
+    const db = getFirestore();
+    const today = new Date().toISOString().split("T")[0];
+    
+    await db.collection(collections.SYSTEM_STATUS || "system_status").doc("meme_generation").set({
+      memeReady: ready,
+      date: today,
+      updatedAt: new Date().toISOString(),
+      message: ready ? "Today memes are ready for voting!" : "Generating today memes, please wait..."
+    }, { merge: true });
+  }
+
+  /**
+   * Get meme-ready status
+   */
+  async getMemeReadyStatus() {
+    const db = getFirestore();
+    const today = new Date().toISOString().split("T")[0];
     
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const memes = await this.getTodaysMemes();
+      const doc = await db.collection(collections.SYSTEM_STATUS || "system_status").doc("meme_generation").get();
       
-      if (memes.length === 0) {
-        console.log('⚠️ No memes found for today, skipping voting period');
-        return;
+      if (!doc.exists) {
+        return { memeReady: true, date: today }; // Default to ready if no status
       }
-
-      // Update memes status to voting_active
-      for (const meme of memes) {
-        await dbUtils.updateDocument(collections.MEMES, meme.id, {
-          status: 'voting_active',
-          votingStarted: new Date().toISOString(),
-          votingEnds: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() // 12 hours later
-        });
+      
+      const data = doc.data();
+      
+      // If status is from a different day, consider ready (stale status)
+      if (data.date !== today) {
+        return { memeReady: true, date: today, stale: true };
       }
-
-      // Create voting period record
-      const votingPeriod = {
-        id: uuidv4(),
-        date: today,
-        startTime: new Date().toISOString(),
-        endTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-        status: 'active',
-        memeIds: memes.map(m => m.id),
-        phase: 'selection' // First phase: select winning meme
-      };
-
-      await dbUtils.setDocument(collections.VOTING_PERIODS, votingPeriod.id, votingPeriod);
-      console.log('✅ Voting period started for', memes.length, 'memes');
-
+      
+      return data;
     } catch (error) {
-      console.error('❌ Error starting voting period:', error);
-      throw error;
+      console.error("Error getting meme ready status:", error);
+      return { memeReady: true, date: today, error: true }; // Default to ready on error
     }
   }
 
   /**
-   * End daily voting period and calculate rarity
+   * Determine the winner from previous day memes
    */
-  async endDailyVotingPeriod() {
-    console.log('📊 Ending daily voting period and calculating rarity...');
+  async determinePreviousDayWinner() {
+    const db = getFirestore();
+    
+    // Get yesterday date
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
     
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Find memes from yesterday
+      const snapshot = await db.collection(collections.MEMES)
+        .orderBy("generatedAt", "desc")
+        .limit(20)
+        .get();
       
-      // Get active voting period
-      const activePeriod = await this.getActiveDailyVotingPeriod(today);
-      if (!activePeriod) {
-        console.log('⚠️ No active voting period found for today');
-        return;
+      const yesterdayMemes = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const memeDate = data.generatedAt?.split?.("T")?.[0] || "";
+        if (memeDate === yesterdayStr && data.type === "daily") {
+          yesterdayMemes.push({ id: doc.id, ...data });
+        }
+      });
+
+      if (yesterdayMemes.length === 0) {
+        return null;
       }
 
-      // Calculate results for all memes in voting period
-      const results = await this.calculateVotingResults(activePeriod.memeIds);
-      
-      // Determine winning meme (most votes in selection phase)
-      const winningMeme = this.selectWinningMeme(results);
-      
-      if (winningMeme) {
-        // Calculate rarity based on rarity votes
-        const rarity = this.calculateRarity(winningMeme.votes.rarity);
-        
-        // Update winning meme with final rarity
-        await dbUtils.updateDocument(collections.MEMES, winningMeme.id, {
-          status: 'voting_completed',
-          finalRarity: rarity,
+      // Find the meme with most YES votes
+      let winner = null;
+      let maxYesVotes = -1;
+
+      for (const meme of yesterdayMemes) {
+        const yesVotes = meme.votes?.selection?.yes || 0;
+        if (yesVotes > maxYesVotes) {
+          maxYesVotes = yesVotes;
+          winner = meme;
+        }
+      }
+
+      if (winner && maxYesVotes > 0) {
+        // Calculate rarity based on votes
+        const totalVotes = (winner.votes?.selection?.yes || 0) + (winner.votes?.selection?.no || 0);
+        const rarity = this.calculateRarity(winner.votes?.rarity || {});
+
+        // Update winner in Firestore
+        await db.collection(collections.MEMES).doc(winner.id).update({
           isWinner: true,
-          votingCompleted: new Date().toISOString()
+          finalRarity: rarity,
+          winnerDeterminedAt: new Date().toISOString()
         });
 
         // Mark other memes as not winners
-        for (const memeId of activePeriod.memeIds) {
-          if (memeId !== winningMeme.id) {
-            await dbUtils.updateDocument(collections.MEMES, memeId, {
-              status: 'voting_completed',
+        for (const meme of yesterdayMemes) {
+          if (meme.id !== winner.id) {
+            await db.collection(collections.MEMES).doc(meme.id).update({
               isWinner: false,
               votingCompleted: new Date().toISOString()
             });
           }
         }
 
-        console.log(`✅ Voting completed. Winner: ${winningMeme.id} with rarity: ${rarity}`);
-        
-        // If rarity is rare or legendary, trigger NFT minting process
-        if (rarity === 'rare' || rarity === 'legendary') {
-          await this.triggerNFTMinting(winningMeme.id, rarity);
+        return winner;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error determining winner:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Calculate rarity based on rarity votes
+   */
+  calculateRarity(rarityVotes) {
+    const common = rarityVotes.common || 0;
+    const rare = rarityVotes.rare || 0;
+    const legendary = rarityVotes.legendary || 0;
+    
+    const total = common + rare + legendary;
+    if (total === 0) return "common";
+    
+    // Winner is the most voted rarity
+    if (legendary >= rare && legendary >= common) return "legendary";
+    if (rare >= common) return "rare";
+    return "common";
+  }
+
+  /**
+   * Generate daily memes with Gemini retry logic
+   * - 3 retries with Gemini 3 Pro Preview
+   * - Fallback to Gemini 2.5 if all retries fail
+   */
+  async generateDailyMemesWithRetry() {
+    const newsTopics = [
+      "Solana Ecosystem Growth",
+      "Bitcoin Price Action", 
+      "Meme Coin Season"
+    ];
+
+    const memes = [];
+
+    for (let i = 0; i < 3; i++) {
+      const topic = newsTopics[i];
+      let meme = null;
+      
+      // Try Gemini 3 Pro Preview with 3 retries
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          console.log(`🎨 Generating meme ${i + 1}/3 with Gemini 3 (attempt ${retry + 1}/3)...`);
+          meme = await geminiService.generateSingleMeme(topic, "gemini-3");
+          if (meme && meme.imageUrl) {
+            console.log(`✅ Meme ${i + 1} generated successfully with Gemini 3`);
+            break;
+          }
+        } catch (error) {
+          console.warn(`⚠️ Gemini 3 attempt ${retry + 1} failed:`, error.message);
+          if (retry < 2) {
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
+          }
         }
       }
 
-      // Close voting period
-      await dbUtils.updateDocument(collections.VOTING_PERIODS, activePeriod.id, {
-        status: 'completed',
-        endTime: new Date().toISOString(),
-        results: results
-      });
+      // Fallback to Gemini 2.5 if Gemini 3 failed
+      if (!meme || !meme.imageUrl) {
+        console.log(`🔄 Falling back to Gemini 2.5 for meme ${i + 1}...`);
+        try {
+          meme = await geminiService.generateSingleMeme(topic, "gemini-2.5");
+          if (meme && meme.imageUrl) {
+            console.log(`✅ Meme ${i + 1} generated with Gemini 2.5 fallback`);
+          }
+        } catch (error) {
+          console.error(`❌ Gemini 2.5 fallback also failed:`, error.message);
+          // Use placeholder
+          meme = await this.createPlaceholderMeme(topic, i);
+        }
+      }
 
-    } catch (error) {
-      console.error('❌ Error ending voting period:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check voting progress (hourly monitoring)
-   */
-  async checkVotingProgress() {
-    const today = new Date().toISOString().split('T')[0];
-    const activePeriod = await this.getActiveDailyVotingPeriod(today);
-    
-    if (!activePeriod) {
-      return; // No active voting period
+      if (meme) {
+        memes.push(meme);
+      }
     }
 
-    const stats = await votingController.getTodayVotingStats();
-    console.log(`📊 Voting progress - Total votes: ${stats.totalVotes}, Unique voters: ${stats.uniqueVoters}`);
-    
-    // Log progress to database for analytics
-    await this.logVotingProgress(activePeriod.id, stats);
-  }
-
-  /**
-   * Run weekly lottery
-   */
-  async runWeeklyLottery() {
-    console.log('🎰 Running weekly lottery draw...');
-    
-    try {
-      // Use lottery controller to run the draw
-      const req = { body: {} };
-      const res = {
-        json: (data) => data,
-        status: (code) => ({ json: (data) => ({ ...data, statusCode: code }) })
-      };
-
-      const result = await lotteryController.drawLottery(req, res);
-      console.log('✅ Weekly lottery completed:', result);
-
-    } catch (error) {
-      console.error('❌ Weekly lottery failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Weekly data cleanup
-   */
-  async weeklyCleanup() {
-    console.log('🧹 Starting weekly data cleanup...');
-    
-    try {
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const db = getFirestore();
-
-      // Archive old votes (older than 1 week)
-      const oldVotes = await db.collection(collections.VOTES)
-        .where('timestamp', '<', oneWeekAgo.toISOString())
-        .get();
-
-      console.log(`🗃️ Archiving ${oldVotes.size} old votes...`);
-      
-      const batch = db.batch();
-      oldVotes.forEach(doc => {
-        // Move to archive collection
-        batch.set(
-          db.collection(collections.VOTES + '_archive').doc(doc.id),
-          { ...doc.data(), archivedAt: new Date().toISOString() }
-        );
-        // Delete from active collection
-        batch.delete(doc.ref);
-      });
-
-      await batch.commit();
-      console.log('✅ Weekly cleanup completed');
-
-    } catch (error) {
-      console.error('❌ Weekly cleanup failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Helper: Get today's memes
-   */
-  async getTodaysMemes() {
-    const today = new Date().toISOString().split('T')[0];
-    const startOfDay = new Date(today + 'T00:00:00.000Z').toISOString();
-    const endOfDay = new Date(today + 'T23:59:59.999Z').toISOString();
-    
-    const db = getFirestore();
-    const snapshot = await db.collection(collections.MEMES)
-      .where('type', '==', 'daily')
-      .where('generatedAt', '>=', startOfDay)
-      .where('generatedAt', '<=', endOfDay)
-      .get();
-    
-    const memes = [];
-    snapshot.forEach(doc => {
-      memes.push({ id: doc.id, ...doc.data() });
-    });
-    
     return memes;
   }
 
   /**
-   * Helper: Get active daily voting period
+   * Create placeholder meme when generation fails
    */
-  async getActiveDailyVotingPeriod(date) {
+  async createPlaceholderMeme(topic, index) {
     const db = getFirestore();
-    const snapshot = await db.collection(collections.VOTING_PERIODS)
-      .where('date', '==', date)
-      .where('status', '==', 'active')
-      .limit(1)
-      .get();
+    const memeId = `meme_${Date.now()}_${index}`;
     
-    if (snapshot.empty) return null;
-    
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
-  }
-
-  /**
-   * Helper: Calculate voting results
-   */
-  async calculateVotingResults(memeIds) {
-    const results = {};
-    
-    for (const memeId of memeIds) {
-      const meme = await dbUtils.getDocument(collections.MEMES, memeId);
-      if (meme) {
-        results[memeId] = {
-          id: memeId,
-          title: meme.title,
-          votes: meme.votes || { selection: {}, rarity: {} },
-          totalSelectionVotes: Object.values(meme.votes?.selection || {}).reduce((a, b) => a + b, 0),
-          totalRarityVotes: Object.values(meme.votes?.rarity || {}).reduce((a, b) => a + b, 0)
-        };
-      }
-    }
-    
-    return results;
-  }
-
-  /**
-   * Helper: Select winning meme
-   */
-  selectWinningMeme(results) {
-    let winner = null;
-    let maxVotes = 0;
-    
-    for (const result of Object.values(results)) {
-      if (result.totalSelectionVotes > maxVotes) {
-        maxVotes = result.totalSelectionVotes;
-        winner = result;
-      }
-    }
-    
-    return winner;
-  }
-
-  /**
-   * Helper: Calculate rarity based on votes
-   */
-  calculateRarity(rarityVotes) {
-    if (!rarityVotes) return 'common';
-    
-    const totals = {
-      common: rarityVotes.common || 0,
-      uncommon: rarityVotes.uncommon || 0,
-      rare: rarityVotes.rare || 0,
-      legendary: rarityVotes.legendary || 0
+    const meme = {
+      id: memeId,
+      title: `${topic} Meme`,
+      description: "AI meme generation temporarily unavailable",
+      imageUrl: `https://via.placeholder.com/512x512/1e40af/ffffff?text=${encodeURIComponent(topic)}`,
+      type: "daily",
+      status: "active",
+      generatedAt: new Date().toISOString(),
+      votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
+      metadata: { placeholder: true, topic }
     };
-    
-    // Find the rarity with the most votes
-    const winner = Object.entries(totals).reduce((a, b) => totals[a[0]] > totals[b[0]] ? a : b);
-    
-    return winner[0];
+
+    await db.collection(collections.MEMES).doc(memeId).set(meme);
+    return meme;
   }
 
   /**
-   * Helper: Trigger NFT minting
+   * Schedule hourly tasks
    */
-  async triggerNFTMinting(memeId, rarity) {
-    console.log(`🎨 Triggering NFT minting for meme ${memeId} with rarity ${rarity}`);
-    
-    // This would integrate with Solana NFT minting
-    // For now, just log the action
-    const mintData = {
-      id: uuidv4(),
-      memeId,
-      rarity,
-      status: 'pending_mint',
-      createdAt: new Date().toISOString()
-    };
-    
-    await dbUtils.setDocument(collections.NFTS, mintData.id, mintData);
-    console.log('✅ NFT minting record created');
-  }
-
-  /**
-   * Helper: Log task execution
-   */
-  async logTaskExecution(taskName, status, error = null) {
-    const logEntry = {
-      taskName,
-      status,
-      timestamp: new Date().toISOString(),
-      error
-    };
-    
-    console.log(`📝 Task log: ${taskName} - ${status}`);
-    
-    // Save to scheduler_logs collection
-    await dbUtils.setDocument(
-      'scheduler_logs',
-      `${taskName}_${Date.now()}`,
-      logEntry
-    );
-  }
-
-  /**
-   * Helper: Log voting progress
-   */
-  async logVotingProgress(votingPeriodId, stats) {
-    const progressLog = {
-      votingPeriodId,
-      timestamp: new Date().toISOString(),
-      stats
-    };
-    
-    await dbUtils.setDocument(
-      'voting_progress',
-      `${votingPeriodId}_${Date.now()}`,
-      progressLog
-    );
-  }
-
-  /**
-   * Helper: Update scheduler status
-   */
-  async updateSchedulerStatus(taskName, data) {
-    await dbUtils.setDocument('scheduler_status', taskName, {
-      ...data,
-      updatedAt: new Date().toISOString()
+  scheduleHourly() {
+    // Hourly voting progress update
+    const votingProgressTask = cron.schedule("0 * * * *", async () => {
+      console.log("📊 Updating voting progress...");
+      // Could update stats, send notifications, etc.
+    }, {
+      scheduled: true,
+      timezone: "UTC"
     });
-  }
 
-  /**
-   * Helper: Log current scheduler status
-   */
-  async logSchedulerStatus() {
-    const status = {
-      initialized: this.isInitialized,
-      activeTasks: Array.from(this.tasks.keys()),
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log('📊 Scheduler Status:', status);
-    await dbUtils.setDocument('scheduler_status', 'main', status);
-  }
-
-  /**
-   * Manually trigger a task (for testing)
-   */
-  async triggerTask(taskName) {
-    console.log(`🔧 Manually triggering task: ${taskName}`);
-    
-    try {
-      switch (taskName) {
-        case 'daily_memes':
-          await this.generateDailyMemes();
-          break;
-        case 'start_voting':
-          await this.startDailyVotingPeriod();
-          break;
-        case 'end_voting':
-          await this.endDailyVotingPeriod();
-          break;
-        case 'lottery_draw':
-          await this.runWeeklyLottery();
-          break;
-        case 'cleanup':
-          await this.weeklyCleanup();
-          break;
-        default:
-          throw new Error(`Unknown task: ${taskName}`);
-      }
-      
-      console.log(`✅ Task ${taskName} completed successfully`);
-      await this.logTaskExecution(taskName, 'success');
-      
-    } catch (error) {
-      console.error(`❌ Task ${taskName} failed:`, error);
-      await this.logTaskExecution(taskName, 'failed', error.message);
-      throw error;
-    }
+    this.tasks.set("voting_progress", votingProgressTask);
   }
 
   /**
    * Get scheduler status
    */
   async getStatus() {
-    const status = await dbUtils.getDocument('scheduler_status', 'main');
+    const memeStatus = await this.getMemeReadyStatus();
+    
     return {
-      ...status,
-      taskCount: this.tasks.size,
-      running: this.isInitialized
+      initialized: this.isInitialized,
+      activeTasks: Array.from(this.tasks.keys()),
+      memeReady: memeStatus.memeReady,
+      memeDate: memeStatus.date,
+      schedule: {
+        dailyCycle: "0:00 UTC (8:00 AM UTC+8)",
+        description: "Generate memes + determine previous winner"
+      }
     };
   }
 
   /**
-   * Stop all scheduled tasks
+   * Log task execution
+   */
+  async logTaskExecution(taskName, status, details = {}) {
+    const db = getFirestore();
+    
+    await db.collection(collections.TASK_LOGS || "task_logs").add({
+      taskName,
+      status,
+      details,
+      executedAt: new Date().toISOString()
+    });
+
+    console.log(`📝 Task log: ${taskName} - ${status}`);
+  }
+
+  /**
+   * Manual trigger for testing
+   */
+  async triggerTask(taskName, reason = "manual") {
+    console.log(`🔧 Manual trigger: ${taskName} (${reason})`);
+    
+    if (taskName === "daily_cycle") {
+      await this.runDailyCycle();
+      return { success: true, message: "Daily cycle executed" };
+    }
+    
+    return { success: false, message: `Unknown task: ${taskName}` };
+  }
+
+  /**
+   * Stop all tasks
    */
   stopAll() {
-    console.log('⏹️ Stopping all scheduled tasks...');
-    
+    console.log("⏹️ Stopping all scheduled tasks...");
     for (const [name, task] of this.tasks) {
       task.stop();
       console.log(`⏹️ Stopped task: ${name}`);
     }
-    
-    this.tasks.clear();
-    this.isInitialized = false;
-    console.log('✅ All scheduled tasks stopped');
+    console.log("✅ All scheduled tasks stopped");
   }
 }
 
-// Create singleton instance
-const schedulerService = new SchedulerService();
-
-module.exports = schedulerService;
+module.exports = new SchedulerService();

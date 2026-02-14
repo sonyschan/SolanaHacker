@@ -75,7 +75,7 @@ class StorageService {
   async uploadImageFromUrl(imageUrl, filename, metadata = {}) {
     try {
       const response = await fetch(imageUrl);
-      if (\!response.ok) {
+      if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
 

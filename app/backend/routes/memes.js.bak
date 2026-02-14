@@ -38,39 +38,7 @@ router.get("/today", getTodaysMemes);
 
 /**
  * GET /api/memes/hall-of-memes - Get historical memes for gallery
-
-/**
- * GET /api/memes/status - Get meme generation status
- * Returns whether today's memes are ready for voting
  */
-router.get("/status", async (req, res) => {
-  try {
-    const schedulerService = require("../services/schedulerService");
-    const status = await schedulerService.getMemeReadyStatus();
-
-    res.json({
-      success: true,
-      data: {
-        memeReady: status.memeReady,
-        date: status.date,
-        message: status.message || (status.memeReady ? "Memes are ready!" : "Generating memes..."),
-        updatedAt: status.updatedAt
-      }
-    });
-  } catch (error) {
-    console.error("Get meme status error:", error);
-    res.json({
-      success: true,
-      data: {
-        memeReady: true, // Default to ready on error
-        date: new Date().toISOString().split("T")[0],
-        message: "Status check error, assuming ready",
-        error: true
-      }
-    });
-  }
-});
-
 router.get("/hall-of-memes", async (req, res) => {
   try {
     const { days = 30, limit = 50 } = req.query;
