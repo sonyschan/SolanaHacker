@@ -1,6 +1,74 @@
 const { v4: uuidv4 } = require('uuid');
-const { getFirestore, collections, dbUtils } = require('../config/firebase');
+const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
 const rarityService = require('../services/rarityService');
+
+/**
+ * Award tickets to user after rarity vote
+ * Returns number of tickets earned (8-15 random)
+ */
+async function awardVotingTickets(walletAddress) {
+  try {
+    const db = getFirestore();
+    const userRef = db.collection(collections.USERS).doc(walletAddress);
+    const ticketsEarned = Math.floor(Math.random() * 8) + 8; // 8-15 tickets
+
+    const today = new Date().toISOString().split('T')[0];
+
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(userRef);
+
+      if (!doc.exists) {
+        // Create user if not exists
+        transaction.set(userRef, {
+          id: walletAddress,
+          walletAddress,
+          weeklyTickets: ticketsEarned,
+          totalTicketsAllTime: ticketsEarned,
+          streakDays: 1,
+          lastVoteDate: today,
+          totalVotes: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        const userData = doc.data();
+        const lastVoteDate = userData.lastVoteDate || '';
+
+        // Calculate streak
+        let newStreak = userData.streakDays || 0;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastVoteDate === yesterdayStr) {
+          newStreak += 1; // Consecutive day
+        } else if (lastVoteDate !== today) {
+          newStreak = 1; // Reset streak (not consecutive and not same day)
+        }
+        // If lastVoteDate === today, keep same streak (already voted today)
+
+        transaction.update(userRef, {
+          weeklyTickets: (userData.weeklyTickets || 0) + ticketsEarned,
+          totalTicketsAllTime: (userData.totalTicketsAllTime || 0) + ticketsEarned,
+          streakDays: newStreak,
+          lastVoteDate: today,
+          totalVotes: (userData.totalVotes || 0) + 1,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // Fetch updated user
+    const updatedUser = await userRef.get();
+    return {
+      ticketsEarned,
+      user: updatedUser.exists ? { id: updatedUser.id, ...updatedUser.data() } : null
+    };
+  } catch (error) {
+    console.error('Error awarding tickets:', error);
+    return { ticketsEarned: 0, user: null };
+  }
+}
 
 /**
  * Submit vote for a meme (Selection or Rarity phase)
@@ -57,8 +125,22 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
       await updateMemeVoteCount(memeId, voteType, choice);
     }
 
+    // Award tickets after RARITY vote (not selection)
+    let ticketsEarned = 0;
+    let updatedUser = null;
+    if (voteType === 'rarity') {
+      const reward = await awardVotingTickets(walletAddress);
+      ticketsEarned = reward.ticketsEarned;
+      updatedUser = reward.user;
+      console.log(`🎫 Awarded ${ticketsEarned} tickets to ${walletAddress}`);
+    }
+
     console.log(`✅ Vote submitted: ${voteId} (${voteType}${score ? `, score=${score}` : ''})`);
-    return voteData;
+    return {
+      ...voteData,
+      ticketsEarned,
+      user: updatedUser
+    };
     
   } catch (error) {
     console.error('❌ Error submitting vote:', error);
@@ -284,6 +366,7 @@ module.exports = {
   getUserVotes,
   updateMemeVoteCount,
   updateMemeRarityScore,
+  awardVotingTickets,
   getTodayVotingStats,
   canUserVote,
   // Aliases for routes
