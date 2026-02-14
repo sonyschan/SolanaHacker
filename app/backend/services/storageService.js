@@ -1,3 +1,21 @@
+/**
+ * Google Cloud Storage Service for MemeForge
+ * 
+ * ⚠️ IMPORTANT: GCS Bucket Configuration
+ * =====================================
+ * The bucket "memeforge-images-web3ai" uses UNIFORM bucket-level access.
+ * This means:
+ * 
+ * 1. DO NOT use `public: true` in createWriteStream options
+ * 2. DO NOT call file.makePublic() after upload
+ * 3. Public access is controlled via IAM policy on the bucket, not per-object ACL
+ * 
+ * If you see "Cannot insert legacy ACL for an object when uniform bucket-level 
+ * access is enabled" error, it means someone added ACL code that should be removed.
+ * 
+ * Reference: https://cloud.google.com/storage/docs/uniform-bucket-level-access
+ */
+
 const { Storage } = require("@google-cloud/storage");
 
 class StorageService {
@@ -13,6 +31,7 @@ class StorageService {
     try {
       const file = this.bucket.file(`memes/${filename}`);
       
+      // ⚠️ NEVER add "public: true" here - bucket uses uniform access via IAM
       const stream = file.createWriteStream({
         metadata: {
           contentType: metadata.contentType || "image/png",
@@ -23,7 +42,6 @@ class StorageService {
           }
         },
         resumable: false
-        // NOTE: Do NOT set public: true - bucket uses uniform access via IAM
       });
 
       return new Promise((resolve, reject) => {
@@ -33,7 +51,7 @@ class StorageService {
         });
 
         stream.on("finish", () => {
-          // Bucket is publicly readable via IAM policy
+          // Bucket is publicly readable via IAM policy - no makePublic() needed
           const publicUrl = `https://storage.googleapis.com/${this.bucketName}/memes/${filename}`;
           
           console.log(`✅ Image uploaded to GCS: ${filename}`);
@@ -57,7 +75,7 @@ class StorageService {
   async uploadImageFromUrl(imageUrl, filename, metadata = {}) {
     try {
       const response = await fetch(imageUrl);
-      if (!response.ok) {
+      if (\!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
 
