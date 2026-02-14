@@ -256,6 +256,43 @@ async function getTodaysMemes(req, res) {
     const snapshot = await query.get();
     const memes = [];
     snapshot.forEach(doc => { memes.push(fixImageUrl({ id: doc.id, ...doc.data() })); });
+
+    // Enrich memes with actual vote counts from votes collection
+    for (const meme of memes) {
+      try {
+        const selectionSnapshot = await db.collection(collections.VOTES)
+          .where('memeId', '==', meme.id)
+          .where('voteType', '==', 'selection')
+          .get();
+
+        const raritySnapshot = await db.collection(collections.VOTES)
+          .where('memeId', '==', meme.id)
+          .where('voteType', '==', 'rarity')
+          .get();
+
+        let selectionYes = 0;
+        selectionSnapshot.forEach(doc => {
+          const vote = doc.data();
+          if (vote.choice === 'yes' || vote.choice === true) selectionYes++;
+        });
+
+        const rarityVotes = { common: 0, rare: 0, legendary: 0 };
+        raritySnapshot.forEach(doc => {
+          const vote = doc.data();
+          if (rarityVotes.hasOwnProperty(vote.choice)) {
+            rarityVotes[vote.choice]++;
+          }
+        });
+
+        meme.votes = {
+          selection: { yes: selectionYes, no: 0 },
+          rarity: rarityVotes
+        };
+      } catch (voteErr) {
+        console.error('Vote count error for meme ' + meme.id + ':', voteErr.message);
+      }
+    }
+
     res.json({ success: true, memes, date: today, count: memes.length });
   } catch (error) {
     console.error('❌ Error fetching today\'s memes:', error);
