@@ -18,7 +18,8 @@ router.get('/status', async (req, res) => {
         serverTime: new Date().toISOString(),
         timezone: 'UTC',
         nextScheduledTasks: [
-          { name: 'daily_memes', time: '08:00 UTC', description: 'Generate daily memes' },
+          { name: 'daily_cycle',
+      'daily_memes', time: '08:00 UTC', description: 'Generate daily memes' },
           { name: 'start_voting', time: '08:30 UTC', description: 'Start voting period' },
           { name: 'end_voting', time: '20:00 UTC', description: 'End voting & calculate rarity' },
           { name: 'lottery_draw', time: 'Sunday 20:00 UTC', description: 'Weekly lottery draw' }
@@ -40,7 +41,6 @@ router.get('/status', async (req, res) => {
  * @desc Manually trigger a scheduled task
  * @access Admin only (add auth middleware in production)
  */
-router.post('/trigger/:taskName', async (req, res) => {
   try {
     const { taskName } = req.params;
     const { reason } = req.body;
