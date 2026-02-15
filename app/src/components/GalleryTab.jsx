@@ -9,10 +9,40 @@ const GalleryTab = () => {
   const [error, setError] = useState(null);
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'winners'
+  const [copied, setCopied] = useState(false);
+
+  // Share helpers
+  const getShareUrl = (meme) => {
+    if (!meme?.id) return '';
+    return `https://aimemeforge.io/meme/${meme.id}`;
+  };
+
+  const handleCopyLink = async () => {
+    const url = getShareUrl(selectedMeme);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleShareToX = () => {
+    const url = getShareUrl(selectedMeme);
+    const text = `${selectedMeme.title} - Check out this meme on AI MemeForge!`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     fetchHallOfMemes();
   }, []);
+
+  // Reset copied state when modal closes
+  useEffect(() => {
+    if (!selectedMeme) setCopied(false);
+  }, [selectedMeme]);
 
   const fetchHallOfMemes = async () => {
     try {
@@ -336,6 +366,48 @@ const GalleryTab = () => {
                   📰 Inspired by: {selectedMeme.newsSource}
                 </div>
               )}
+
+              {/* Share Buttons */}
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-center gap-3">
+                  {/* Share to X Button */}
+                  <button
+                    onClick={handleShareToX}
+                    className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 border border-white/20 rounded-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <span className="text-white text-sm font-medium">Share</span>
+                  </button>
+
+                  {/* Copy Link Button */}
+                  <button
+                    onClick={handleCopyLink}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
+                      copied
+                        ? 'bg-green-500/20 border border-green-500/50'
+                        : 'bg-white/5 hover:bg-white/10 border border-white/20'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-green-400 text-sm font-medium">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-gray-300 text-sm font-medium">Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>,
