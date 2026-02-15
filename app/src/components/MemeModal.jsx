@@ -63,27 +63,10 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
   if (!isOpen || !meme) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        minHeight: '-webkit-fill-available',
-      }}
-    >
-      {/* Backdrop - full viewport coverage */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/95"
-        style={{
-          position: 'fixed',
-          top: '-50vh',
-          left: 0,
-          right: 0,
-          height: '200vh',
-        }}
+        className="absolute inset-0 bg-black/95"
         onClick={onClose}
       />
 
