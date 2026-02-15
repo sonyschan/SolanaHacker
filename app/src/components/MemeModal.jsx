@@ -67,8 +67,8 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
       className="fixed z-50 grid place-items-center bg-black/90 backdrop-blur-sm p-4"
       style={{
         top: '-10vh',
-        left: '-10vw',
-        width: '120vw',
+        left: 0,
+        width: '100vw',
         height: '120vh'
       }}
       onClick={onClose}
