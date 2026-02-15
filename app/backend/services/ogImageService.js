@@ -104,8 +104,17 @@ async function generateOGImage(meme) {
   const style = meme.style || '';
   const tags = meme.tags || [];
   const newsSource = meme.newsSource || '';
-  const rarityLevel = meme.rarity?.level || '';
+  const rarityLevel = meme.rarity?.level || meme.finalRarity || '';
   const totalVotes = (meme.votes?.selection?.yes || 0) + (meme.votes?.selection?.no || 0);
+
+  // Detect if voting is still active (meme is from today)
+  const memeDate = meme.generatedAt ? new Date(meme.generatedAt).toISOString().split('T')[0] : null;
+  const today = new Date().toISOString().split('T')[0];
+  const isVotingActive = memeDate === today && !meme.finalRarity;
+
+  // CTA text based on voting status
+  const ctaText = isVotingActive ? 'Vote & Earn Tickets' : 'See More Memes';
+  const ctaIcon = isVotingActive ? '>' : '→';
 
   // Try to use image URL directly (satori can fetch images)
   // If that fails, we'll fall back to pre-fetching
@@ -387,7 +396,7 @@ async function generateOGImage(meme) {
                             alignItems: 'center',
                             gap: '12px',
                             fontSize: '32px',
-                            color: '#06b6d4',
+                            color: isVotingActive ? '#06b6d4' : '#a78bfa',
                             fontWeight: 700,
                           },
                           children: [
@@ -395,12 +404,12 @@ async function generateOGImage(meme) {
                               type: 'span',
                               props: {
                                 style: { fontSize: '28px' },
-                                children: '>',
+                                children: ctaIcon,
                               },
                             },
                             {
                               type: 'span',
-                              props: { children: 'Vote & Earn Tickets' },
+                              props: { children: ctaText },
                             },
                           ],
                         },

@@ -85,6 +85,11 @@ export default async function handler(req, res) {
     const createdAt = meme.generatedAt || meme.createdAt || '';
     const isWinner = meme.isWinner || false;
 
+    // Detect if voting is still active (meme is from today and no final rarity)
+    const memeDate = createdAt ? new Date(createdAt).toISOString().split('T')[0] : null;
+    const today = new Date().toISOString().split('T')[0];
+    const isVotingActive = memeDate === today && !meme.finalRarity;
+
     // Schema.org structured data
     const schemaData = {
       "@context": "https://schema.org",
@@ -463,12 +468,25 @@ export default async function handler(req, res) {
         </div>
 
         <!-- CTA Button -->
+        ${isVotingActive ? `
         <a href="${SITE_URL}?meme=${id}" class="cta-button">
           🗳️ Connect Wallet & Vote
         </a>
         <p style="text-align: center; font-size: 13px; color: #9ca3af;">
           Vote to earn lottery tickets & decide meme rarity!
         </p>
+        ` : `
+        <div style="background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 16px;">
+          <p style="color: #a78bfa; font-weight: 600; margin-bottom: 8px;">⏰ Voting Ended</p>
+          <p style="color: #9ca3af; font-size: 13px;">This meme's voting period has concluded.</p>
+        </div>
+        <a href="${SITE_URL}" class="cta-button" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa);">
+          🎨 Vote on Today's Memes
+        </a>
+        <p style="text-align: center; font-size: 13px; color: #9ca3af;">
+          New memes are generated daily - join the vote!
+        </p>
+        `}
 
         <!-- Share Section -->
         <div class="share-section">
