@@ -102,6 +102,8 @@ async function generateOGImage(meme) {
 
   const title = meme.title || 'AI Generated Meme';
   const style = meme.style || '';
+  const tags = meme.tags || [];
+  const newsSource = meme.newsSource || '';
   const rarityLevel = meme.rarity?.level || '';
   const totalVotes = (meme.votes?.selection?.yes || 0) + (meme.votes?.selection?.no || 0);
 
@@ -125,7 +127,23 @@ async function generateOGImage(meme) {
     }
   }
 
+  // Load logo as data URL
+  let logoDataUrl = null;
+  try {
+    logoDataUrl = await fetchImageAsDataUrl('https://aimemeforge.io/images/logo-64.png');
+  } catch (e) {
+    console.log('[OG] Failed to load logo');
+  }
+
   const colors = RARITY_COLORS[rarityLevel] || RARITY_COLORS['Common'];
+
+  // Build tags array for display (style + newsSource + first 2 tags)
+  const displayTags = [];
+  if (style) displayTags.push({ text: style, color: '#a78bfa', bg: 'rgba(139, 92, 246, 0.25)' });
+  if (newsSource) displayTags.push({ text: newsSource, color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.25)' });
+  tags.slice(0, 2).forEach(tag => {
+    displayTags.push({ text: tag, color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.25)' });
+  });
 
   const svg = await satori(
     {
@@ -202,16 +220,24 @@ async function generateOGImage(meme) {
                       alignItems: 'flex-start',
                     },
                     children: [
-                      // Logo
+                      // Logo with image
                       {
                         type: 'div',
                         props: {
                           style: { display: 'flex', alignItems: 'center', gap: '12px' },
                           children: [
-                            {
+                            logoDataUrl ? {
+                              type: 'img',
+                              props: {
+                                src: logoDataUrl,
+                                width: 48,
+                                height: 48,
+                                style: { borderRadius: '8px' },
+                              },
+                            } : {
                               type: 'span',
                               props: {
-                                style: { fontSize: '36px' },
+                                style: { fontSize: '36px', color: '#06b6d4' },
                                 children: 'AI',
                               },
                             },
@@ -219,7 +245,7 @@ async function generateOGImage(meme) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '28px',
+                                  fontSize: '32px',
                                   fontWeight: 700,
                                   color: '#06b6d4',
                                 },
@@ -268,7 +294,7 @@ async function generateOGImage(meme) {
                   },
                 },
 
-                // Middle - Title & Style
+                // Middle - Title & Tags
                 {
                   type: 'div',
                   props: {
@@ -278,38 +304,38 @@ async function generateOGImage(meme) {
                       gap: '16px',
                     },
                     children: [
+                      // Title - larger font
                       {
                         type: 'span',
                         props: {
                           style: {
-                            fontSize: title.length > 25 ? '40px' : '48px',
+                            fontSize: title.length > 20 ? '52px' : '60px',
                             fontWeight: 700,
                             color: '#ffffff',
-                            lineHeight: 1.2,
+                            lineHeight: 1.15,
                           },
                           children: title,
                         },
                       },
-                      style ? {
+                      // Tags row - show multiple tags
+                      displayTags.length > 0 ? {
                         type: 'div',
                         props: {
-                          style: { display: 'flex', gap: '10px' },
-                          children: [
-                            {
-                              type: 'span',
-                              props: {
-                                style: {
-                                  background: 'rgba(139, 92, 246, 0.25)',
-                                  border: '2px solid rgba(139, 92, 246, 0.5)',
-                                  borderRadius: '10px',
-                                  padding: '8px 16px',
-                                  fontSize: '18px',
-                                  color: '#a78bfa',
-                                },
-                                children: style,
+                          style: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+                          children: displayTags.slice(0, 4).map(tag => ({
+                            type: 'span',
+                            props: {
+                              style: {
+                                background: tag.bg,
+                                border: `2px solid ${tag.color}50`,
+                                borderRadius: '8px',
+                                padding: '6px 14px',
+                                fontSize: '16px',
+                                color: tag.color,
                               },
+                              children: tag.text,
                             },
-                          ],
+                          })),
                         },
                       } : null,
                     ].filter(Boolean),
@@ -323,7 +349,7 @@ async function generateOGImage(meme) {
                     style: {
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '14px',
+                      gap: '12px',
                     },
                     children: [
                       // Vote stats
@@ -334,7 +360,7 @@ async function generateOGImage(meme) {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            fontSize: '20px',
+                            fontSize: '22px',
                             color: '#a78bfa',
                           },
                           children: [
@@ -352,22 +378,25 @@ async function generateOGImage(meme) {
                           ],
                         },
                       } : null,
-                      // CTA
+                      // CTA - Larger and more prominent
                       {
                         type: 'div',
                         props: {
                           style: {
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px',
-                            fontSize: '22px',
+                            gap: '12px',
+                            fontSize: '32px',
                             color: '#06b6d4',
-                            fontWeight: 600,
+                            fontWeight: 700,
                           },
                           children: [
                             {
                               type: 'span',
-                              props: { children: '>' },
+                              props: {
+                                style: { fontSize: '28px' },
+                                children: '>',
+                              },
                             },
                             {
                               type: 'span',
