@@ -34,10 +34,11 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
   if (!isOpen || !meme) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ top: 0, left: 0, right: 0, bottom: 0, position: 'fixed' }}>
+      {/* Backdrop - full viewport coverage */}
+      <div
+        className="fixed inset-0 bg-black/90 backdrop-blur-sm transition-opacity duration-300"
+        style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
         onClick={onClose}
       />
       
@@ -54,20 +55,30 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
         </button>
 
         {/* Modal Header */}
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-2xl font-bold text-white mb-2">{meme.title}</h2>
-          <div className="flex items-center space-x-4 text-sm text-gray-400">
-            {meme.votes && meme.votes.selection && (
-              <span>{meme.votes.selection.yes + meme.votes.selection.no} votes</span>
-            )}
-            {meme.sentiment && (
-              <span className={`px-2 py-1 rounded ${
-                meme.sentiment === 'Bullish' ? 'bg-green-500/20 text-green-400' :
-                meme.sentiment === 'Frustrated' ? 'bg-red-500/20 text-red-400' :
-                'bg-blue-500/20 text-blue-400'
-              }`}>
-                {typeof meme.sentiment === 'object' ? JSON.stringify(meme.sentiment) : meme.sentiment}
-              </span>
+        <div className="p-6 pr-16 border-b border-white/10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-white mb-2">{meme.title}</h2>
+              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                {meme.votes && meme.votes.selection && (
+                  <span>{meme.votes.selection.yes + meme.votes.selection.no} votes</span>
+                )}
+                {meme.sentiment && (
+                  <span className={`px-2 py-1 rounded ${
+                    meme.sentiment === 'Bullish' ? 'bg-green-500/20 text-green-400' :
+                    meme.sentiment === 'Frustrated' ? 'bg-red-500/20 text-red-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {typeof meme.sentiment === 'object' ? JSON.stringify(meme.sentiment) : meme.sentiment}
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Navigation Counter in header */}
+            {onNavigate && memes.length > 1 && (
+              <div className="bg-white/10 text-white text-sm px-3 py-1 rounded-full whitespace-nowrap">
+                {currentIndex + 1} / {memes.length}
+              </div>
             )}
           </div>
         </div>
@@ -146,11 +157,6 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-
-            {/* Navigation Counter */}
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
-              {currentIndex + 1} / {memes.length}
-            </div>
           </>
         )}
       </div>
