@@ -64,7 +64,13 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
 
   return (
     <div
-      className="fixed inset-0 z-50 grid h-screen w-screen place-items-center bg-black/90 backdrop-blur-sm p-4"
+      className="fixed top-0 left-0 right-0 bottom-0 z-50 grid place-items-center bg-black/90 backdrop-blur-sm p-4"
+      style={{
+        height: '100vh',
+        height: '100dvh',
+        width: '100vw',
+        width: '100dvw'
+      }}
       onClick={onClose}
     >
       {/* Modal Content */}
