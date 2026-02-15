@@ -63,16 +63,32 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
   if (!isOpen || !meme) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ top: 0, left: 0, right: 0, bottom: 0, position: 'fixed' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        minHeight: '-webkit-fill-available',
+      }}
+    >
       {/* Backdrop - full viewport coverage */}
       <div
-        className="fixed inset-0 bg-black/90 backdrop-blur-sm transition-opacity duration-300"
-        style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
+        className="fixed inset-0 bg-black/95"
+        style={{
+          position: 'fixed',
+          top: '-50vh',
+          left: 0,
+          right: 0,
+          height: '200vh',
+        }}
         onClick={onClose}
       />
-      
+
       {/* Modal Content */}
-      <div className="relative z-10 max-w-4xl max-h-[90vh] mx-4 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden animate-in fade-in duration-300">
+      <div className="relative z-10 w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -84,10 +100,10 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
         </button>
 
         {/* Modal Header */}
-        <div className="p-6 pr-16 border-b border-white/10">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-2">{meme.title}</h2>
+        <div className="p-4 md:p-6 pr-14 md:pr-16 border-b border-white/10">
+          <div className="flex items-start justify-between gap-2 md:gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg md:text-2xl font-bold text-white mb-1 md:mb-2 truncate">{meme.title}</h2>
               <div className="flex items-center space-x-4 text-sm text-gray-400">
                 {meme.votes && meme.votes.selection && (
                   <span>{meme.votes.selection.yes + meme.votes.selection.no} votes</span>
@@ -113,13 +129,13 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
         </div>
 
         {/* Image Display */}
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <div className="flex justify-center">
             {meme.imageUrl ? (
-              <img 
-                src={meme.imageUrl} 
+              <img
+                src={meme.imageUrl}
                 alt={meme.title}
-                className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
+                className="max-w-full max-h-[50vh] md:max-h-[60vh] object-contain rounded-lg shadow-2xl"
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'flex';
@@ -139,8 +155,8 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
         </div>
 
         {/* Share Buttons */}
-        <div className="px-6 pb-4">
-          <div className="flex items-center justify-center gap-3">
+        <div className="px-4 md:px-6 pb-4">
+          <div className="flex items-center justify-center gap-2 md:gap-3">
             {/* Share to X Button */}
             <button
               onClick={handleShareToX}
@@ -182,19 +198,19 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
 
         {/* Modal Footer */}
         {meme.source && (
-          <div className="px-6 pb-4">
-            <div className="bg-white/5 rounded-lg p-4">
-              <p className="text-xs text-gray-400">Source: {meme.source}</p>
+          <div className="px-4 md:px-6 pb-3 md:pb-4">
+            <div className="bg-white/5 rounded-lg p-3 md:p-4">
+              <p className="text-xs text-gray-400 truncate">Source: {meme.source}</p>
             </div>
           </div>
         )}
 
         {/* Helper Text */}
-        <div className="px-6 pb-4">
+        <div className="px-4 md:px-6 pb-3 md:pb-4">
           <p className="text-xs text-gray-500 text-center">
             {onNavigate && memes.length > 1
-              ? 'Use ← → arrows to navigate | Press ESC or click outside to close'
-              : 'Press ESC or click outside to close'}
+              ? 'Swipe or use arrows to navigate'
+              : 'Tap outside to close'}
           </p>
         </div>
 
@@ -208,9 +224,9 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
                 const newIndex = currentIndex > 0 ? currentIndex - 1 : memes.length - 1;
                 onNavigate(newIndex);
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
             >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -222,9 +238,9 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
                 const newIndex = currentIndex < memes.length - 1 ? currentIndex + 1 : 0;
                 onNavigate(newIndex);
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
             >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>

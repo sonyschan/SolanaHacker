@@ -565,11 +565,21 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               </div>
             </div>
 
+            {/* Next Step - Prominent CTA */}
+            <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/50 rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl">⏰</span>
+                <div>
+                  <p className="font-bold text-orange-300">Come back tomorrow!</p>
+                  <p className="text-sm text-orange-200/80">New AI memes drop daily at 8 AM UTC</p>
+                </div>
+              </div>
+            </div>
+
             {/* Info lines */}
             <div className="text-sm text-gray-400 space-y-1 mb-6">
               <p>📅 Weekly lottery: Sunday draws</p>
               <p>🚀 NFT minting & SOL rewards coming in Beta!</p>
-              <p>⏰ Come back tomorrow for new AI memes!</p>
             </div>
 
             <button
