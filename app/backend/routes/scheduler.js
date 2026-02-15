@@ -18,6 +18,7 @@ router.get('/status', async (req, res) => {
         serverTime: new Date().toISOString(),
         timezone: 'UTC',
         nextScheduledTasks: [
+          { name: 'daily_cycle', time: '00:00 UTC', description: 'Full daily cycle (generate + vote start)' },
           { name: 'daily_memes', time: '08:00 UTC', description: 'Generate daily memes' },
           { name: 'start_voting', time: '08:30 UTC', description: 'Start voting period' },
           { name: 'end_voting', time: '20:00 UTC', description: 'End voting & calculate rarity' },
