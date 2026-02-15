@@ -3,22 +3,77 @@
  * Generates branded 1200x630 images for Twitter/X sharing
  */
 
-import satori from 'satori';
-import { Resvg } from '@resvg/resvg-js';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+const satori = require('satori').default;
+const { Resvg } = require('@resvg/resvg-js');
+const { readFileSync } = require('fs');
+const { join } = require('path');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// Load fonts at startup
+let fontBold = null;
+let fontRegular = null;
+let fontsLoaded = false;
 
-// Load fonts once at startup
-let fontBold, fontRegular;
-try {
-  fontBold = readFileSync(join(__dirname, '../assets/fonts/Inter-Bold.ttf'));
-  fontRegular = readFileSync(join(__dirname, '../assets/fonts/Inter-Regular.ttf'));
-  console.log('[OG] Fonts loaded successfully');
-} catch (e) {
-  console.warn('[OG] Fonts not loaded, will use system fallback:', e.message);
+async function loadFonts() {
+  if (fontsLoaded) return;
+
+  try {
+    // Try to load local fonts first (using static woff files, not variable ttf)
+    fontBold = readFileSync(join(__dirname, '../assets/fonts/Inter-Bold.woff'));
+    fontRegular = readFileSync(join(__dirname, '../assets/fonts/Inter-Regular.woff'));
+    fontsLoaded = true;
+    console.log('[OG] Local fonts loaded successfully');
+  } catch (e) {
+    console.warn('[OG] Local fonts not found, fetching from CDN...');
+    try {
+      // Fetch fonts using native fetch (Node 18+)
+      const fetchFont = async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+        return Buffer.from(await response.arrayBuffer());
+      };
+
+      // Use jsDelivr CDN hosting @fontsource/inter TTF files
+      const [boldRes, regularRes] = await Promise.all([
+        fetchFont('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff'),
+        fetchFont('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff')
+      ]);
+      fontBold = boldRes;
+      fontRegular = regularRes;
+      fontsLoaded = true;
+      console.log('[OG] CDN Fonts loaded successfully');
+    } catch (fetchError) {
+      console.error('[OG] Failed to load fonts from CDN:', fetchError.message);
+    }
+  }
+}
+
+/**
+ * Fetch image and convert to data URL for satori embedding
+ */
+async function fetchImageAsDataUrl(url) {
+  if (!url) {
+    console.log('[OG] No image URL provided');
+    return null;
+  }
+  try {
+    console.log('[OG] Fetching image:', url);
+    const response = await fetch(url);
+    console.log('[OG] Image fetch status:', response.status);
+    if (!response.ok) {
+      console.warn('[OG] Image fetch failed with status:', response.status);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    console.log('[OG] Image size:', arrayBuffer.byteLength);
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || 'image/png';
+    const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+    console.log('[OG] Image converted to data URL, length:', dataUrl.length);
+    return dataUrl;
+  } catch (e) {
+    console.error('[OG] Failed to fetch image:', e.message, e.stack);
+    return null;
+  }
 }
 
 // Rarity colors
@@ -35,12 +90,40 @@ const RARITY_COLORS = {
  * @param {Object} meme - Meme data with title, imageUrl, style, rarity, etc.
  * @returns {Buffer} PNG image buffer
  */
-export async function generateOGImage(meme) {
+async function generateOGImage(meme) {
+  // Ensure fonts are loaded
+  await loadFonts();
+
+  // If fonts still aren't loaded, use simple SVG fallback
+  if (!fontBold || !fontRegular) {
+    console.warn('[OG] Using SVG fallback due to font loading failure');
+    return generateSimpleOGImage(meme.title || 'AI Generated Meme');
+  }
+
   const title = meme.title || 'AI Generated Meme';
-  const imageUrl = meme.imageUrl;
   const style = meme.style || '';
   const rarityLevel = meme.rarity?.level || '';
   const totalVotes = (meme.votes?.selection?.yes || 0) + (meme.votes?.selection?.no || 0);
+
+  // Try to use image URL directly (satori can fetch images)
+  // If that fails, we'll fall back to pre-fetching
+  let imageDataUrl = meme.imageUrl;
+
+  // Test if the image URL is accessible
+  if (meme.imageUrl) {
+    try {
+      const testFetch = await fetch(meme.imageUrl, { method: 'HEAD' });
+      if (!testFetch.ok) {
+        console.log('[OG] Image URL not accessible, trying data URL');
+        imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
+      } else {
+        console.log('[OG] Using direct image URL');
+      }
+    } catch (e) {
+      console.log('[OG] URL test failed, trying data URL');
+      imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
+    }
+  }
 
   const colors = RARITY_COLORS[rarityLevel] || RARITY_COLORS['Common'];
 
@@ -53,7 +136,7 @@ export async function generateOGImage(meme) {
           width: '100%',
           height: '100%',
           background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%)',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Inter',
           padding: '20px',
         },
         children: [
@@ -75,11 +158,11 @@ export async function generateOGImage(meme) {
                 justifyContent: 'center',
                 backgroundColor: '#1a1a3e',
               },
-              children: imageUrl ? [
+              children: imageDataUrl ? [
                 {
                   type: 'img',
                   props: {
-                    src: imageUrl,
+                    src: imageDataUrl,
                     width: 500,
                     height: 500,
                     style: { objectFit: 'cover' },
@@ -90,7 +173,7 @@ export async function generateOGImage(meme) {
                   type: 'span',
                   props: {
                     style: { fontSize: '120px' },
-                    children: '🤖',
+                    children: 'AI',
                   },
                 },
               ],
@@ -129,7 +212,7 @@ export async function generateOGImage(meme) {
                               type: 'span',
                               props: {
                                 style: { fontSize: '36px' },
-                                children: '🤖',
+                                children: 'AI',
                               },
                             },
                             {
@@ -164,7 +247,7 @@ export async function generateOGImage(meme) {
                               type: 'span',
                               props: {
                                 style: { fontSize: '20px' },
-                                children: '🏆',
+                                children: '*',
                               },
                             } : null,
                             {
@@ -257,7 +340,7 @@ export async function generateOGImage(meme) {
                           children: [
                             {
                               type: 'span',
-                              props: { children: '🗳️' },
+                              props: { children: 'VOTES:' },
                             },
                             {
                               type: 'span',
@@ -284,7 +367,7 @@ export async function generateOGImage(meme) {
                           children: [
                             {
                               type: 'span',
-                              props: { children: '🎫' },
+                              props: { children: '>' },
                             },
                             {
                               type: 'span',
@@ -301,7 +384,7 @@ export async function generateOGImage(meme) {
                             fontSize: '18px',
                             color: '#9ca3af',
                           },
-                          children: 'AI Dreams. Humans Decide. • aimemeforge.io',
+                          children: 'AI Dreams. Humans Decide. | aimemeforge.io',
                         },
                       },
                     ].filter(Boolean),
@@ -330,7 +413,7 @@ export async function generateOGImage(meme) {
 /**
  * Generate a simple fallback OG image
  */
-export async function generateSimpleOGImage(title = 'AI MemeForge') {
+async function generateSimpleOGImage(title = 'AI MemeForge') {
   const svg = `
     <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -343,10 +426,15 @@ export async function generateSimpleOGImage(title = 'AI MemeForge') {
       <rect width="100%" height="100%" fill="url(#bg)"/>
       <text x="600" y="280" font-size="72" fill="#06b6d4" font-family="sans-serif" font-weight="bold" text-anchor="middle">🤖 AI MemeForge</text>
       <text x="600" y="380" font-size="36" fill="#ffffff" font-family="sans-serif" text-anchor="middle">${title}</text>
-      <text x="600" y="480" font-size="24" fill="#9ca3af" font-family="sans-serif" text-anchor="middle">AI Dreams. Humans Decide. • aimemeforge.io</text>
+      <text x="600" y="480" font-size="24" fill="#9ca3af" font-family="sans-serif" text-anchor="middle">AI Dreams. Humans Decide. | aimemeforge.io</text>
     </svg>
   `;
 
   const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } });
   return resvg.render().asPng();
 }
+
+module.exports = {
+  generateOGImage,
+  generateSimpleOGImage,
+};

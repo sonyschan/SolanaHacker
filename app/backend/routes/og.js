@@ -5,17 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { getMemeById } = require('../controllers/memeController');
 const { getFirestore, collections } = require('../config/firebase');
-
-// Dynamic import for ES modules
-let ogService = null;
-async function getOGService() {
-  if (!ogService) {
-    ogService = await import('../services/ogImageService.js');
-  }
-  return ogService;
-}
+const { generateOGImage, generateSimpleOGImage } = require('../services/ogImageService');
 
 /**
  * GET /api/og/:memeId
@@ -31,8 +22,7 @@ router.get('/:memeId', async (req, res) => {
 
     if (!memeDoc.exists) {
       // Return simple fallback image
-      const service = await getOGService();
-      const png = await service.generateSimpleOGImage('Meme not found');
+      const png = await generateSimpleOGImage('Meme not found');
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=3600');
       return res.send(Buffer.from(png));
@@ -41,8 +31,7 @@ router.get('/:memeId', async (req, res) => {
     const meme = { id: memeDoc.id, ...memeDoc.data() };
 
     // Generate OG image
-    const service = await getOGService();
-    const png = await service.generateOGImage(meme);
+    const png = await generateOGImage(meme);
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
@@ -53,8 +42,7 @@ router.get('/:memeId', async (req, res) => {
 
     // Return simple fallback on error
     try {
-      const service = await getOGService();
-      const png = await service.generateSimpleOGImage('AI MemeForge');
+      const png = await generateSimpleOGImage('AI MemeForge');
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=60');
       res.send(Buffer.from(png));
