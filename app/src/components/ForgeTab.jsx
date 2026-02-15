@@ -15,6 +15,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [error, setError] = useState(null);
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMemeIndex, setModalMemeIndex] = useState(0); // Track current meme index for navigation
   const [isInitializing, setIsInitializing] = useState(true); // Prevents UI flash during vote status check
 
   // Fetch today's memes on component mount
@@ -294,6 +295,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     alt={meme.title}
                     className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
                     onClick={() => {
+                      const index = dailyMemes.findIndex(m => m.id === meme.id);
+                      setModalMemeIndex(index >= 0 ? index : 0);
                       setModalMeme(meme);
                       setIsModalOpen(true);
                     }}
@@ -404,6 +407,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   alt={selectedMeme.title}
                   className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
                   onClick={() => {
+                    const index = dailyMemes.findIndex(m => m.id === selectedMeme.id);
+                    setModalMemeIndex(index >= 0 ? index : 0);
                     setModalMeme(selectedMeme);
                     setIsModalOpen(true);
                   }}
@@ -526,6 +531,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       alt={selectedMeme.title}
                       className="w-64 h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
                       onClick={() => {
+                        const index = dailyMemes.findIndex(m => m.id === selectedMeme.id);
+                        setModalMemeIndex(index >= 0 ? index : 0);
                         setModalMeme(selectedMeme);
                         setIsModalOpen(true);
                       }}
@@ -576,13 +583,19 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       )}
 
       {/* Meme Modal */}
-      <MemeModal 
+      <MemeModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setModalMeme(null);
         }}
         meme={modalMeme}
+        memes={dailyMemes}
+        currentIndex={modalMemeIndex}
+        onNavigate={(newIndex) => {
+          setModalMemeIndex(newIndex);
+          setModalMeme(dailyMemes[newIndex]);
+        }}
       />
     </div>
   );
