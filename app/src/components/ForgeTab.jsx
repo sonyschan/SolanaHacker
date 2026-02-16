@@ -222,8 +222,15 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
     <div className="space-y-8">
       {/* Reward Animation */}
       {showReward && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-bounce">
+        <div
+          className="fixed left-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          style={{
+            top: '-50vh',
+            width: '100vw',
+            height: '200vh'
+          }}
+        >
+          <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-bounce -translate-y-[5vh]">
             <div className="text-6xl mb-4">🎉</div>
             <h3 className="text-2xl font-bold mb-2">Vote Successful!</h3>
             <p className="text-lg">You earned <span className="font-bold text-yellow-300">{earnedTickets} tickets</span>!</p>
