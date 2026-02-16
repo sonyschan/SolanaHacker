@@ -54,13 +54,6 @@ const Dashboard = ({
           </div>
         </div>
 
-        {/* MVP Notice */}
-        <div className="bg-blue-500/10 border border-blue-400/20 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-400">
-            🚀 <strong>MVP Version</strong>: Real SOL rewards coming in Beta release!
-          </p>
-        </div>
-
       </div>
 
       {/* Market Stats - Preview Mode */}
@@ -160,7 +153,7 @@ const Dashboard = ({
         <div className="absolute top-1/2 left-1/4 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-      {/* Enhanced Header with MVP indicator - Mobile Responsive */}
+      {/* Enhanced Header - Mobile Responsive */}
       <header className="relative z-10 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
           <div className="flex justify-between items-center">
@@ -171,14 +164,9 @@ const Dashboard = ({
                 className="w-10 h-10 md:w-12 md:h-12 rounded-xl shadow-lg shadow-cyan-500/25"
               />
               <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    AI MemeForge
-                  </h1>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-1.5 md:px-2 py-0.5 md:py-1 rounded font-medium">
-                    MVP
-                  </span>
-                </div>
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  AI MemeForge
+                </h1>
                 <div className="hidden md:block text-xs text-gray-500">AI Meme Democracy Platform</div>
               </div>
             </button>

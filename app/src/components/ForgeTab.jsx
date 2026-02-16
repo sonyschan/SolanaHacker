@@ -248,7 +248,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
             <p className="text-gray-300">Vote for your favorite meme to advance to rarity voting</p>
             
-            {/* MVP Notice */}
+            {/* Phase indicator */}
             <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4 mt-4 inline-block">
               <span className="text-green-300">🚀 Phase 1/2: Meme Selection - Pick the winner!</span>
             </div>
