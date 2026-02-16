@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * ModalOverlay - Reusable modal backdrop component
@@ -54,7 +55,7 @@ const ModalOverlay = ({
     e.stopPropagation();
   };
 
-  return (
+  return createPortal(
     <>
       {/* Layer 1: Oversized backdrop for mobile viewport coverage (height only) */}
       <div
@@ -80,7 +81,8 @@ const ModalOverlay = ({
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 
