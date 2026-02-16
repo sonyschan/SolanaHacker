@@ -58,10 +58,9 @@ const ModalOverlay = ({
     <>
       {/* Layer 1: Oversized backdrop for mobile viewport coverage (height only) */}
       <div
-        className={`fixed left-0 ${backdropOpacity} ${blur ? 'backdrop-blur-sm' : ''}`}
+        className={`fixed left-0 right-0 ${backdropOpacity} ${blur ? 'backdrop-blur-sm' : ''}`}
         style={{
           top: '-100vh',
-          width: '100vw',
           height: '300vh',
           zIndex,
         }}
