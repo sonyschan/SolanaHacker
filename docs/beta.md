@@ -31,6 +31,91 @@
 - [ ] 微服務拆分
 - [ ] NFT 鑄造智能合約
 
+---
+
+## ⏰ GCP Cloud Scheduler 排程系統
+
+### 為什麼使用 Cloud Scheduler 而非 node-cron？
+
+Cloud Run 採用 scale-to-zero 架構，當沒有請求時容器會關閉。這導致 node-cron 無法可靠執行：
+- 容器 cold start 時 cron job 可能錯過執行時間
+- 容器被關閉後，所有 in-memory 的 cron 排程都會消失
+- 無法保證每日 8:00 AM 的梗圖生成任務會執行
+
+**解決方案**：使用 GCP Cloud Scheduler（外部服務）觸發 Cloud Run API 端點
+
+### 當前排程任務 (Taiwan Time, UTC+8)
+
+| Job 名稱 | 執行時間 | 觸發端點 | 說明 |
+|---------|---------|---------|------|
+| `memeforge-daily-cycle` | 每日 8:00 AM | POST `/api/scheduler/trigger/daily_cycle` | 生成每日梗圖 + 開始投票 |
+| `memeforge-end-voting` | 每日 7:55 AM | POST `/api/scheduler/trigger/end_voting` | 結算前日投票、計算稀有度 |
+| `memeforge-lottery-draw` | 每週日 8:00 PM | POST `/api/scheduler/trigger/lottery_draw` | 每週抽獎 |
+
+### GCP Cloud Scheduler 管理指令
+
+```bash
+# 列出所有排程任務
+gcloud scheduler jobs list --location=asia-southeast1
+
+# 手動觸發任務測試
+gcloud scheduler jobs run memeforge-daily-cycle --location=asia-southeast1
+
+# 更新任務時間
+gcloud scheduler jobs update http memeforge-end-voting \
+  --location=asia-southeast1 \
+  --schedule="55 7 * * *" \
+  --time-zone="Asia/Taipei"
+
+# 暫停/恢復任務
+gcloud scheduler jobs pause memeforge-daily-cycle --location=asia-southeast1
+gcloud scheduler jobs resume memeforge-daily-cycle --location=asia-southeast1
+
+# 查看任務詳情
+gcloud scheduler jobs describe memeforge-daily-cycle --location=asia-southeast1
+```
+
+### API 端點
+
+```
+POST /api/scheduler/trigger/:taskName
+
+可用的 taskName：
+- daily_cycle    - 完整每日流程（生成梗圖 + 開始投票）
+- daily_memes    - 僅生成每日梗圖
+- start_voting   - 開始投票期
+- end_voting     - 結束投票期、計算稀有度
+- lottery_draw   - 執行每週抽獎
+- cleanup        - 週清理（歸檔舊投票）
+- voting_progress - 檢查投票進度
+
+GET /api/scheduler/status   - 取得排程狀態
+GET /api/scheduler/logs     - 取得執行日誌
+GET /api/scheduler/health   - 健康檢查
+```
+
+### 故障排除
+
+**問題：梗圖沒有在預定時間生成**
+1. 檢查 Cloud Scheduler job 狀態：`gcloud scheduler jobs list`
+2. 查看最後執行時間和結果
+3. 檢查 Cloud Run 日誌：`gcloud run services logs read memeforge-api`
+
+**問題：投票結果沒有正確計算**
+1. 手動觸發 end_voting：`gcloud scheduler jobs run memeforge-end-voting`
+2. 檢查 Firestore 中的 voting_periods collection
+3. 查看 scheduler_logs collection 的錯誤訊息
+
+**問題：需要調整時區或執行時間**
+```bash
+# 更新排程時間（使用 cron 格式）
+gcloud scheduler jobs update http JOB_NAME \
+  --location=asia-southeast1 \
+  --schedule="新的CRON表達式" \
+  --time-zone="Asia/Taipei"
+```
+
+---
 
 ## 🌐 前後端通訊升級 (Beta)
 
@@ -432,102 +517,3 @@ Beta 階段需新增:
 ```
 
 ---
-
----
-
-## 🪙 Token-Gating Implementation (Beta Priority)
-
-### Why Token-Gating?
-
-**Problem**: Free wallet creation enables Sybil attacks
-- One person can create unlimited wallets
-- Vote manipulation affects rarity outcomes
-- Undermines democratic pricing model
-
-**Solution**: Native $FORGE token for weighted voting
-
-### Technical Implementation
-
-#### Token Contract (Solana SPL)
-```rust
-// $FORGE Token Program
-pub struct ForgeToken {
-    pub mint: Pubkey,
-    pub authority: Pubkey,
-    pub total_supply: u64,
-    pub decimals: u8,
-}
-
-// Voting weight calculation
-pub fn calculate_vote_weight(token_balance: u64) -> u8 {
-    match token_balance {
-        0 => 1,           // Free user: 1x
-        1..=100 => 3,     // Basic holder: 3x
-        101..=1000 => 4,  // Active holder: 4x
-        _ => 5,           // Whale: 5x (capped)
-    }
-}
-```
-
-#### Voting Integration
-```javascript
-// Backend voting service
-const calculateVoteWeight = async (walletAddress) => {
-  const tokenBalance = await getForgeTokenBalance(walletAddress);
-  
-  if (tokenBalance === 0) return 1;  // Free user
-  if (tokenBalance <= 100) return 3;
-  if (tokenBalance <= 1000) return 4;
-  return 5; // Capped at 5x
-};
-
-// Apply weight to rarity voting
-const submitRarityVote = async (memeId, rarity, walletAddress) => {
-  const weight = await calculateVoteWeight(walletAddress);
-  
-  await db.collection(rarity_votes).add({
-    memeId,
-    rarity,
-    walletAddress,
-    weight,
-    timestamp: new Date()
-  });
-};
-```
-
-### Token Distribution Plan
-
-| Allocation | Percentage | Purpose |
-|------------|------------|---------|
-| Community Airdrop | TBD | Early voter rewards |
-| Development Fund | TBD | Team & operations |
-| Liquidity Pool | TBD | DEX trading |
-| Treasury | TBD | Future initiatives |
-
-> **Note**: Distribution will depend on launch mechanism. Considering fair launch platforms (e.g., PumpFun) where team cannot pre-allocate 100% of supply.
-
-### Airdrop Criteria
-- Wallet connected before token launch
-- Minimum 5 votes cast
-- Bonus for voting streaks
-- Snapshot at announcement date
-
-### Revenue Streams
-
-| Source | Description |
-|--------|-------------|
-| Token Sale | Initial distribution event |
-| DEX Fees | LP rewards from trading |
-| Premium Features | Token-gated advanced features |
-| NFT Royalties | Secondary market sales |
-
-### Implementation Priority
-
-| Task | Priority | Status |
-|------|----------|--------|
-| SPL Token Contract | 🔴 High | Planned |
-| Voting Weight Logic | 🔴 High | Planned |
-| Airdrop Snapshot | 🟡 Medium | Planned |
-| Token Launch | 🟡 Medium | Post-hackathon |
-| Governance DAO | 🟢 Low | Future |
-
