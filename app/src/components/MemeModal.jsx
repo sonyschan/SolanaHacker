@@ -77,9 +77,9 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
           height: '140vh'
         }}
       />
-      {/* Modal Content */}
+      {/* Modal Content - shifted slightly up for better visual balance */}
       <div
-        className="relative z-10 w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto"
+        className="relative z-10 w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto -mt-[5vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
