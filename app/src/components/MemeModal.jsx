@@ -74,7 +74,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
     >
       {/* Modal Content - shifted slightly up on desktop for better visual balance */}
       <div
-        className="relative w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto md:-mt-[5vh]"
+        className="relative w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto md:-translate-y-[5vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
