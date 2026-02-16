@@ -56,13 +56,12 @@ const ModalOverlay = ({
 
   return (
     <>
-      {/* Layer 1: Oversized backdrop for mobile viewport coverage */}
+      {/* Layer 1: Oversized backdrop for mobile viewport coverage (height only) */}
       <div
-        className={`fixed ${backdropOpacity} ${blur ? 'backdrop-blur-sm' : ''}`}
+        className={`fixed left-0 ${backdropOpacity} ${blur ? 'backdrop-blur-sm' : ''}`}
         style={{
           top: '-100vh',
-          left: '-50vw',
-          width: '200vw',
+          width: '100vw',
           height: '300vh',
           zIndex,
         }}
@@ -71,7 +70,7 @@ const ModalOverlay = ({
 
       {/* Layer 2: Fixed to viewport for proper centering */}
       <div
-        className="fixed inset-0 flex items-center justify-center p-4"
+        className="fixed inset-0 flex items-center justify-center p-4 overflow-hidden"
         style={{ zIndex: zIndex + 1 }}
         onClick={handleBackdropClick}
       >
