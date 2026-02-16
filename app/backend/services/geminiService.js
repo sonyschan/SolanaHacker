@@ -102,29 +102,27 @@ Title:`;
   // Weighted random helper for tag count distribution
   weightedRandomTagCount() {
     const distribution = [
-      { count: 2, weight: 35 },  // 35% - most common
-      { count: 3, weight: 25 },  // 25%
-      { count: 4, weight: 18 },  // 18%
-      { count: 5, weight: 12 },  // 12%
-      { count: 6, weight: 6 },   // 6%
-      { count: 7, weight: 3 },   // 3%
-      { count: 8, weight: 1 },   // 1% - most rare
+      { count: 2, weight: 35 },
+      { count: 3, weight: 25 },
+      { count: 4, weight: 18 },
+      { count: 5, weight: 12 },
+      { count: 6, weight: 6 },
+      { count: 7, weight: 3 },
+      { count: 8, weight: 1 },
     ];
-
     const total = distribution.reduce((sum, d) => sum + d.weight, 0);
     let random = Math.random() * total;
-
     for (const d of distribution) {
       random -= d.weight;
       if (random <= 0) return d.count;
     }
-    return 2; // fallback
+    return 2;
   }
 
   async generateMemeTags(memePrompt, newsSource) {
     try {
       const tagCount = this.weightedRandomTagCount();
-      console.log(`🏷️ Generating ${tagCount} tags for meme...`);
+      console.log(`🏷️ Generating ${tagCount} tags...`);
 
       const prompt = `Analyze this meme and extract exactly ${tagCount} descriptive tags.
 
@@ -132,66 +130,46 @@ Meme concept: "${memePrompt.substring(0, 300)}"
 News context: "${newsSource}"
 
 Requirements:
-- Output EXACTLY ${tagCount} tags, no more, no less
-- Be specific and creative, avoid generic tags
-- Include: emotions, topics, visual elements, characters, cultural references
-- Capture any trending topics, crypto terms, or meme references
-- Format: lowercase, hyphenated for multi-word (e.g., "diamond-hands")
+- Output EXACTLY ${tagCount} tags
+- Be specific and creative
+- Include: emotions, topics, visual elements, cultural references
+- Format: lowercase, hyphenated for multi-word
 
-BAD tags (too generic): "funny", "meme", "crypto", "image", "cool"
-GOOD tags (specific): "bear-market-cope", "degen-energy", "this-is-fine-moment", "hopium-overdose", "ngmi-vibes"
-
-Output as JSON array only, no explanation:
+Output as JSON array only:
 ["tag1", "tag2", ...]`;
 
       const result = await this.textModel.generateContent(prompt);
       const response = await result.response;
       let text = response.text().trim();
 
-      // Clean up response to extract JSON array
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const tags = JSON.parse(jsonMatch[0]);
-        // Ensure tags are properly formatted
         const cleanTags = tags
           .slice(0, tagCount)
           .map(tag => tag.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-
         console.log(`✅ Generated tags: ${cleanTags.join(', ')}`);
-        return {
-          tags: cleanTags,
-          count: cleanTags.length,
-          targetCount: tagCount
-        };
+        return cleanTags;
       }
-
-      throw new Error('Could not parse tags from response');
+      return ['ai-generated', 'crypto-meme'];
     } catch (error) {
-      console.error('Error generating meme tags:', error);
-      // Fallback: generate basic tags from news source
-      const fallbackTags = ['ai-generated', 'crypto-meme'];
-      return {
-        tags: fallbackTags,
-        count: fallbackTags.length,
-        targetCount: 2,
-        error: error.message
-      };
+      console.error('Error generating tags:', error);
+      return ['ai-generated', 'crypto-meme'];
     }
   }
 
   async generateMemeDescription(memePrompt, newsSource) {
     try {
-      const prompt = `Write a brief, engaging meme description in 1-2 sentences (max 100 characters).
+      const prompt = `Write a brief, fun meme description in 1-2 sentences (max 120 characters).
 
 Meme concept: "${memePrompt.substring(0, 200)}"
 News topic: "${newsSource}"
 
 Requirements:
-- Maximum 100 characters total
+- Maximum 120 characters
 - No "Here is" or "This is" prefix
-- Describe what the meme shows, not how it was made
+- Describe what the meme shows
 - Fun and punchy tone
-- Example: "When your portfolio is down 80% but you keep buying the dip"
 
 Description:`;
 
@@ -199,26 +177,24 @@ Description:`;
       const response = await result.response;
       let desc = response.text().trim();
 
-      // Clean up
       desc = desc.replace(/^Description:\s*/i, '');
       desc = desc.replace(/^["']/g, '');
       desc = desc.replace(/["']$/g, '');
 
-      // Ensure max length
-      if (desc.length > 120) {
-        desc = desc.substring(0, 117) + '...';
+      if (desc.length > 150) {
+        desc = desc.substring(0, 147) + '...';
       }
 
       return desc || `Meme inspired by: ${newsSource}`;
     } catch (error) {
-      console.error('Error generating meme description:', error);
+      console.error('Error generating description:', error);
       return `Meme inspired by: ${newsSource}`;
     }
   }
 
   async generateMemeImage(prompt, style = 'Classic 2D Illustration') {
     try {
-      // Enhanced prompt for high-quality NFT meme generation with specific art style
+      // Enhanced prompt with specific art style
       const imagePrompt = `Create a high-quality meme image: ${prompt}
 
 **ART STYLE: ${style}**
@@ -336,158 +312,25 @@ Technical requirements:
     }
   }
 
-  /**
-   * Generate a single meme with model selection
-   * Used by scheduler with retry logic
-   * @param {string} topic - News topic or content
-   * @param {string} modelVersion - "gemini-3" or "gemini-2.5"
-   */
-  async generateSingleMeme(topic, modelVersion = "gemini-3") {
-    const db = require('../config/firebase').getFirestore();
-    const collections = require('../config/firebase').collections;
-
-    try {
-      // Select image model based on version
-      let imageModel;
-      if (modelVersion === "gemini-3") {
-        imageModel = this.genAI.getGenerativeModel({
-          model: "gemini-3-pro-image-preview",
-          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-        });
-      } else {
-        // Fallback to Gemini 2.5 (text-to-image via different approach)
-        imageModel = this.genAI.getGenerativeModel({
-          model: "gemini-2.5-flash-preview-05-20",
-          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-        });
-      }
-
-      console.log(`🎨 Using model: ${modelVersion}`);
-
-      // Pick random style
-      const style = this.pickRandomStyles(1)[0];
-
-      // Generate meme prompt from topic
-      const memePrompt = await this.generateMemePrompt(topic);
-
-      // Generate image prompt
-      const imagePrompt = `Create a high-quality meme image: ${memePrompt}
-
-**ART STYLE: ${style}**
-- Render this meme in the "${style}" art style
-- The style should be clearly recognizable and distinct
-
-Technical requirements:
-- Square aspect ratio (1:1)
-- Bold, readable text overlay if text is needed
-- High contrast colors for visual impact
-- NFT-quality artwork suitable for collection
-- 1024x1024 pixels resolution`;
-
-      // Generate image
-      const result = await imageModel.generateContent(imagePrompt);
-      const response = result.response;
-      const candidates = response.candidates;
-
-      if (!candidates || candidates.length === 0) {
-        throw new Error('No candidates in Gemini response');
-      }
-
-      const parts = candidates[0].content?.parts;
-      if (!parts) {
-        throw new Error('No parts in Gemini response');
-      }
-
-      const imagePart = parts.find((part) =>
-        part.inlineData?.mimeType?.startsWith('image/')
-      );
-
-      if (!imagePart || !imagePart.inlineData?.data) {
-        const textPart = parts.find((part) => part.text);
-        if (textPart) {
-          throw new Error(`Image generation failed - ${textPart.text.substring(0, 200)}`);
-        }
-        throw new Error('No image in Gemini response');
-      }
-
-      // Upload to GCS
-      const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      const filename = storageService.generateFilename('meme', 'png');
-
-      const uploadResult = await storageService.uploadImage(imageBuffer, filename, {
-        contentType: 'image/png',
-        aiModel: modelVersion,
-        generatedAt: new Date().toISOString()
-      });
-
-      // Generate metadata
-      const title = await this.generateMemeTitle(memePrompt);
-      const description = await this.generateMemeDescription(memePrompt, topic);
-      const tags = await this.generateMemeTags(memePrompt, topic);
-
-      // Create meme object
-      const memeId = `meme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const meme = {
-        id: memeId,
-        title: title,
-        description: description,
-        prompt: memePrompt,
-        imageUrl: uploadResult.url,
-        newsSource: topic,
-        generatedAt: new Date().toISOString(),
-        type: 'daily',
-        status: 'active',
-        style: style,
-        tags: tags.tags || tags,
-        votes: {
-          selection: { yes: 0, no: 0 },
-          rarity: { common: 0, rare: 0, legendary: 0 }
-        },
-        metadata: {
-          originalNews: topic,
-          aiModel: modelVersion,
-          artStyle: style,
-          imageGenerated: true,
-          fileSize: imageBuffer.length,
-          storageLocation: 'gcs'
-        },
-        rarity: 'unknown'
-      };
-
-      // Save to Firestore
-      await db.collection(collections.MEMES).doc(memeId).set(meme);
-      console.log(`✅ Meme saved: ${memeId} (${modelVersion})`);
-
-      return meme;
-
-    } catch (error) {
-      console.error(`❌ generateSingleMeme (${modelVersion}) error:`, error);
-      throw error;
-    }
-  }
   async generateDailyMemes(newsData, count = 3) {
     try {
       const memes = [];
 
-      // Pick 3 unique random styles for today's memes
+      // Pick unique random styles for today's memes
       const todaysStyles = this.pickRandomStyles(count);
       console.log(`🎨 Today's art styles: ${todaysStyles.join(', ')}`);
 
       for (let i = 0; i < count; i++) {
-        const newsItem = newsData[i] || newsData[0]; // Use available news or fallback
-        const style = todaysStyles[i]; // Each meme gets a unique style
+        const newsItem = newsData[i] || newsData[0];
+        const style = todaysStyles[i];
 
         const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem);
         const imageData = await this.generateMemeImage(memePrompt, style);
 
-        // Generate a catchy title using the new improved method
+        // Generate title, description, and tags
         const title = await this.generateMemeTitle(memePrompt);
-
-        // Generate a clean, short description
         const description = await this.generateMemeDescription(memePrompt, newsItem.title || 'Crypto News');
-
-        // Generate tags with weighted random count (2-8 tags)
-        const tagsResult = await this.generateMemeTags(memePrompt, newsItem.title || 'Crypto News');
+        const tags = await this.generateMemeTags(memePrompt, newsItem.title || 'Crypto News');
 
         memes.push({
           id: `meme_${Date.now()}_${i}`,
@@ -499,8 +342,8 @@ Technical requirements:
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
-          style: style,  // Art style trait
-          tags: tagsResult.tags,
+          style: style,
+          tags: tags,
           votes: {
             selection: { yes: 0, no: 0 },
             rarity: { common: 0, rare: 0, legendary: 0 }
@@ -513,17 +356,16 @@ Technical requirements:
             fileSize: imageData.fileSize || 0,
             storageLocation: imageData.storageLocation || 'unknown',
             environment: imageData.environment || {},
-            tagsGenerated: tagsResult.count,
-            tagsTargetCount: tagsResult.targetCount
+            tagsCount: tags.length
           },
           rarity: 'unknown'
         });
-        
-        // Add delay to avoid rate limiting (Gemini has generous limits)
+
+        // Add delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
-      
-      console.log(`✅ Generated ${memes.length} daily memes with real AI images and improved titles`);
+
+      console.log(`✅ Generated ${memes.length} daily memes with styles, tags, and descriptions`);
       return memes;
     } catch (error) {
       console.error('Error generating daily memes:', error);
@@ -535,7 +377,7 @@ Technical requirements:
   async testConnection() {
     try {
       // Test text model
-      const textResult = await this.textModel.generateContent("Say hello from AI MemeForge!");
+      const textResult = await this.textModel.generateContent("Say hello from MemeForge!");
       const textResponse = await textResult.response;
       
       return {

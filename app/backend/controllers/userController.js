@@ -242,10 +242,30 @@ async function getUserDashboard(walletAddress) {
   }
 }
 
+// Alias for routes compatibility
+const getUserProfile = getOrCreateUser;
+
+async function updateUserProfile(walletAddress, updates) {
+  const user = await getOrCreateUser(walletAddress);
+  return updateUserStats(user.id, updates);
+}
+
+async function getUserStats(walletAddress, timeframe = '30d') {
+  const user = await getOrCreateUser(walletAddress);
+  return {
+    wallet: walletAddress,
+    ...user.stats,
+    timeframe
+  };
+}
+
 module.exports = {
   getOrCreateUser,
+  getUserProfile,
+  updateUserProfile,
   updateUserStats,
   getUserTickets,
+  getUserStats,
   awardTickets,
   getUserVotingHistory,
   getUserDashboard

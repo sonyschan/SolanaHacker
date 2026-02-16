@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { getFirestore, collections } = require('../config/firebase');
-const { rateLimitByWallet } = require('../middleware/auth');
+const { getUserProfile, updateUserProfile, getUserTickets, getUserStats } = require('../controllers/userController');
+const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const Joi = require('joi');
-
-const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
 
 // Validation schemas
 const profileUpdateSchema = Joi.object({
@@ -24,7 +22,7 @@ const profileUpdateSchema = Joi.object({
 router.get('/:wallet', async (req, res) => {
   try {
     const { wallet } = req.params;
-
+    
     // Validate wallet format (basic check)
     if (!wallet || wallet.length < 32) {
       return res.status(400).json({
@@ -32,17 +30,11 @@ router.get('/:wallet', async (req, res) => {
         error: 'Invalid wallet address'
       });
     }
-
-    const db = getFirestore();
-
-    // Try to find existing user
-    const userQuery = await db.collection(collections.USERS)
-      .where('walletAddress', '==', wallet)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      // Return default profile for new user
+    
+    const userProfile = await getUserProfile(wallet);
+    
+    if (!userProfile) {
+      // Create default profile if user doesn't exist
       return res.json({
         success: true,
         user: {
@@ -58,22 +50,10 @@ router.get('/:wallet', async (req, res) => {
         }
       });
     }
-
-    const userData = userQuery.docs[0].data();
-
+    
     res.json({
       success: true,
-      user: {
-        wallet: userData.walletAddress,
-        displayName: userData.displayName || `User_${wallet.slice(0, 6)}`,
-        joinDate: userData.createdAt,
-        weeklyTickets: userData.weeklyTickets || 0,
-        streakDays: userData.streakDays || 0,
-        totalVotes: userData.totalVotes || 0,
-        winCount: userData.winCount || 0,
-        level: calculateLevel(userData.totalVotes || 0),
-        isNewUser: false
-      }
+      user: userProfile
     });
   } catch (error) {
     console.error('Get user profile error:', error);
@@ -86,23 +66,12 @@ router.get('/:wallet', async (req, res) => {
 });
 
 /**
- * Calculate user level based on total votes
- */
-function calculateLevel(totalVotes) {
-  if (totalVotes >= 100) return 'Legend';
-  if (totalVotes >= 50) return 'Veteran';
-  if (totalVotes >= 20) return 'Regular';
-  if (totalVotes >= 5) return 'Member';
-  return 'Rookie';
-}
-
-/**
  * PUT /api/users/:wallet - Update user profile
  */
 router.put('/:wallet', rateLimiter, async (req, res) => {
   try {
     const { wallet } = req.params;
-
+    
     // Validate request body
     const { error, value } = profileUpdateSchema.validate(req.body);
     if (error) {
@@ -112,39 +81,13 @@ router.put('/:wallet', rateLimiter, async (req, res) => {
         details: error.details[0].message
       });
     }
-
-    const db = getFirestore();
-
-    // Find user
-    const userQuery = await db.collection(collections.USERS)
-      .where('walletAddress', '==', wallet)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      // Create new user with profile data
-      const userRef = db.collection(collections.USERS).doc(wallet);
-      await userRef.set({
-        walletAddress: wallet,
-        ...value,
-        weeklyTickets: 0,
-        streakDays: 0,
-        totalVotes: 0,
-        winCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-    } else {
-      // Update existing user
-      await userQuery.docs[0].ref.update({
-        ...value,
-        updatedAt: new Date().toISOString()
-      });
-    }
-
+    
+    const updatedProfile = await updateUserProfile(wallet, value);
+    
     res.json({
       success: true,
-      message: 'Profile updated successfully!'
+      data: updatedProfile,
+      message: 'Profile updated successfully! ✨'
     });
   } catch (error) {
     console.error('Update user profile error:', error);
@@ -162,32 +105,21 @@ router.put('/:wallet', rateLimiter, async (req, res) => {
 router.get('/:wallet/tickets', async (req, res) => {
   try {
     const { wallet } = req.params;
-
-    const db = getFirestore();
-    const userQuery = await db.collection(collections.USERS)
-      .where('walletAddress', '==', wallet)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      return res.json({
-        success: true,
-        data: {
-          weeklyTickets: 0,
-          totalTickets: 0,
-          tickets: []
-        }
-      });
-    }
-
-    const userData = userQuery.docs[0].data();
-
+    const { page = 1, limit = 20, status = 'active' } = req.query;
+    
+    const tickets = await getUserTickets(wallet, {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      status
+    });
+    
     res.json({
       success: true,
-      data: {
-        weeklyTickets: userData.weeklyTickets || 0,
-        totalTickets: userData.totalTickets || userData.weeklyTickets || 0,
-        streakDays: userData.streakDays || 0
+      data: tickets,
+      meta: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: tickets.length
       }
     });
   } catch (error) {
@@ -206,38 +138,13 @@ router.get('/:wallet/tickets', async (req, res) => {
 router.get('/:wallet/stats', async (req, res) => {
   try {
     const { wallet } = req.params;
-
-    const db = getFirestore();
-    const userQuery = await db.collection(collections.USERS)
-      .where('walletAddress', '==', wallet)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      return res.json({
-        success: true,
-        data: {
-          totalVotes: 0,
-          weeklyTickets: 0,
-          streakDays: 0,
-          winCount: 0,
-          level: 'Rookie'
-        }
-      });
-    }
-
-    const userData = userQuery.docs[0].data();
-
+    const { timeframe = '30d' } = req.query; // 7d, 30d, 90d, all
+    
+    const stats = await getUserStats(wallet, timeframe);
+    
     res.json({
       success: true,
-      data: {
-        totalVotes: userData.totalVotes || 0,
-        weeklyTickets: userData.weeklyTickets || 0,
-        streakDays: userData.streakDays || 0,
-        winCount: userData.winCount || 0,
-        level: calculateLevel(userData.totalVotes || 0),
-        lastVoteDate: userData.lastVoteDate || null
-      }
+      data: stats
     });
   } catch (error) {
     console.error('Get user stats error:', error);
@@ -250,40 +157,66 @@ router.get('/:wallet/stats', async (req, res) => {
 });
 
 /**
+ * POST /api/users/:wallet/tickets/claim - Claim lottery tickets for voting
+ */
+router.post('/:wallet/tickets/claim', rateLimiter, async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const { voteId, memeId } = req.body;
+    
+    if (!voteId || !memeId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vote ID and Meme ID are required'
+      });
+    }
+    
+    // Logic to award tickets based on voting participation
+    // Number of tickets awarded: 8-15 per vote (randomized)
+    const ticketCount = Math.floor(Math.random() * 8) + 8; // 8-15 tickets
+    
+    const claimedTickets = await claimTickets(wallet, {
+      voteId,
+      memeId,
+      ticketCount,
+      claimedAt: new Date().toISOString()
+    });
+    
+    res.json({
+      success: true,
+      data: claimedTickets,
+      message: `Congratulations! You've received ${ticketCount} lottery tickets! 🎫`
+    });
+  } catch (error) {
+    console.error('Claim tickets error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to claim tickets',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/users/leaderboard - Get user leaderboard
  */
 router.get('/leaderboard', async (req, res) => {
   try {
-    const { type = 'votes', limit = 50 } = req.query;
-
-    const db = getFirestore();
-    let orderField = 'totalVotes';
-
-    if (type === 'tickets') orderField = 'weeklyTickets';
-    if (type === 'streak') orderField = 'streakDays';
-
-    const snapshot = await db.collection(collections.USERS)
-      .orderBy(orderField, 'desc')
-      .limit(parseInt(limit))
-      .get();
-
-    const leaderboard = [];
-    snapshot.forEach((doc, index) => {
-      const data = doc.data();
-      leaderboard.push({
-        rank: index + 1,
-        wallet: data.walletAddress,
-        displayName: data.displayName || `User_${data.walletAddress?.slice(0, 6)}`,
-        value: data[orderField] || 0,
-        level: calculateLevel(data.totalVotes || 0)
-      });
+    const { type = 'votes', limit = 50, timeframe = '30d' } = req.query;
+    // type: votes, wins, tickets, earnings
+    
+    const leaderboard = await getUserLeaderboard({
+      type,
+      limit: parseInt(limit),
+      timeframe
     });
-
+    
     res.json({
       success: true,
       data: leaderboard,
       meta: {
         type,
+        timeframe,
         lastUpdated: new Date().toISOString()
       }
     });
@@ -292,6 +225,29 @@ router.get('/leaderboard', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch leaderboard',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/users/:wallet/achievements - Get user achievements
+ */
+router.get('/:wallet/achievements', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    
+    const achievements = await getUserAchievements(wallet);
+    
+    res.json({
+      success: true,
+      data: achievements
+    });
+  } catch (error) {
+    console.error('Get user achievements error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch achievements',
       message: error.message
     });
   }
