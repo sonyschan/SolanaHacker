@@ -55,3 +55,4 @@
 - **[2026-02-15]** Tools vs Skills 定義對照：Tools (工具) = 單一功能的原子化操作 (如 API 呼叫)，由 Agent 根據描述直接決定是否執行。Skills (技能) = 複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。
 - **[2026-02-15]** Skills vs Tools 定義差異：Tools(工具)是單一功能的原子化操作(如API呼叫)，由Agent根據描述直接決定是否執行；Skills(技能)是複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。例如：read_file是Tool(單純讀檔案)，grok_research是Skill(搜尋→評估→決定繼續→撰寫報告)
 - **[2026-02-16]** release 流程要求：1) 先檢查 git diff 看未提交變更 2) 比較本地與 GitHub commits 差異，確認哪些 commits 需要推送 3) 然後進行完整的 release 流程
+- **[2026-02-16]** Release 檢查流程修正：使用 'git log' 而非 'git log --oneline origin/main..HEAD' 來比較本地和 GitHub commits。需要能看到完整的 commit 歷史來避免遺漏重要變更（如 modal shift fix）
