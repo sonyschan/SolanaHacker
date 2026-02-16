@@ -64,14 +64,11 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
 
   return (
     <div
-      className="fixed z-50 flex items-center justify-center p-4 bg-black/95"
+      className="fixed left-0 z-50 flex items-center justify-center p-4 bg-black/95"
       style={{
         top: '-50vh',
-        left: '-25vw',
-        width: '150vw',
-        height: '200vh',
-        paddingTop: '50vh',
-        paddingBottom: '50vh'
+        width: '100vw',
+        height: '200vh'
       }}
       onClick={onClose}
     >
