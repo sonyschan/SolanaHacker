@@ -64,18 +64,22 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
 
   return (
     <div
-      className="fixed z-50 grid place-items-center bg-black/90 backdrop-blur-sm p-4"
-      style={{
-        top: '-10vh',
-        left: 0,
-        width: '100vw',
-        height: '120vh'
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
+      {/* Backdrop - oversized for mobile viewport coverage */}
+      <div
+        className="absolute bg-black/90 backdrop-blur-sm"
+        style={{
+          top: '-20vh',
+          left: '-10vw',
+          width: '120vw',
+          height: '140vh'
+        }}
+      />
       {/* Modal Content */}
       <div
-        className="relative w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto"
+        className="relative z-10 w-full max-w-4xl max-h-[85vh] bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
