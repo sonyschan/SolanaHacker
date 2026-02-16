@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import memeService from '../services/memeService';
 import MemeModal from './MemeModal';
+import ModalOverlay from './ModalOverlay';
 
 const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
@@ -221,23 +222,17 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   return (
     <div className="space-y-8">
       {/* Reward Animation */}
-      {showReward && (
-        <div
-          className="fixed left-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          style={{
-            top: '-50vh',
-            width: '100vw',
-            height: '200vh'
-          }}
-        >
-          <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-bounce -translate-y-[5vh]">
-            <div className="text-6xl mb-4">🎉</div>
-            <h3 className="text-2xl font-bold mb-2">Vote Successful!</h3>
-            <p className="text-lg">You earned <span className="font-bold text-yellow-300">{earnedTickets} tickets</span>!</p>
-            <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
-          </div>
-        </div>
-      )}
+      <ModalOverlay
+        isOpen={showReward}
+        backdropOpacity="bg-black/80"
+        closeOnBackdropClick={false}
+        className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-bounce"
+      >
+        <div className="text-6xl mb-4">🎉</div>
+        <h3 className="text-2xl font-bold mb-2">Vote Successful!</h3>
+        <p className="text-lg">You earned <span className="font-bold text-yellow-300">{earnedTickets} tickets</span>!</p>
+        <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
+      </ModalOverlay>
 
       {/* Initialization Loading - prevents UI flash while checking vote status */}
       {isInitializing && (

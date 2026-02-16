@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import ModalOverlay from './ModalOverlay';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -293,17 +294,16 @@ const GalleryTab = () => {
         </>
       )}
 
-      {/* Meme Detail Modal - Using Portal for proper z-index */}
-      {selectedMeme && createPortal(
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 md:p-4"
-          style={{ zIndex: 99999 }}
-          onClick={() => setSelectedMeme(null)}
-        >
-          <div
-            className="bg-gray-900/95 border border-white/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* Meme Detail Modal */}
+      <ModalOverlay
+        isOpen={!!selectedMeme}
+        onClose={() => setSelectedMeme(null)}
+        backdropOpacity="bg-black/80"
+        zIndex={60}
+        className="bg-gray-900/95 border border-white/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+      >
+        {selectedMeme && (
+          <>
             {/* Modal Header - Fixed */}
             <div className="flex-shrink-0 flex justify-between items-center p-3 md:p-4 border-b border-white/10">
               <div className="flex items-center gap-2 md:gap-3 flex-wrap">
@@ -409,10 +409,9 @@ const GalleryTab = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </>
+        )}
+      </ModalOverlay>
     </div>
   );
 };
