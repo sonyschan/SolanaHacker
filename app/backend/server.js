@@ -187,34 +187,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize scheduler service
-async function initializeScheduler() {
-  // DEV_MODE: Skip scheduler in development
-  if (process.env.DEV_MODE === 'true') {
-    console.log('⏭️ DEV_MODE: Skipping scheduler initialization');
-    return;
-  }
-
-  try {
-    console.log('🔄 Initializing MemeForge Automation System...');
-    await schedulerService.initialize();
-    console.log('✅ MemeForge Automation System initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize scheduler:', error);
-    // Don't exit process, allow manual operation
-  }
-}
+// Note: Scheduler is now handled by GCP Cloud Scheduler (external)
+// Cloud Scheduler calls POST /api/scheduler/trigger/:taskName endpoints
+// This ensures reliability even when Cloud Run scales to zero
 
 // Start server
-const server = app.listen(PORT, '0.0.0.0', async () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 MemeForge API server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🎨 Ready for AI meme generation and voting! 🗳️`);
-  console.log(`📊 Scheduler management: http://localhost:${PORT}/api/scheduler/status`);
-  
-  // Initialize automation after server starts
-  await initializeScheduler();
+  console.log(`⏰ Scheduler: GCP Cloud Scheduler (external) triggers /api/scheduler/trigger/:taskName`);
 });
 
 // Graceful shutdown
