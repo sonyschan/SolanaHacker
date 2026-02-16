@@ -1,0 +1,1085 @@
+/* =============================================================================
+   Morandi Theme - CSS Override System
+   Activate via: ?theme=morandi or localStorage
+   Specificity: [data-theme="morandi"] .class (0-2-0) > .class (0-1-0)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. CSS Custom Properties - Morandi Color Palette
+   ----------------------------------------------------------------------------- */
+[data-theme="morandi"] {
+  --m-cream: #e8e2d9;
+  --m-warm-bg: #f0ebe4;
+  --m-card-bg: #f5f0ea;
+  --m-card-hover: #ebe5dc;
+  --m-text-primary: #57534e;
+  --m-text-secondary: #78716c;
+  --m-text-tertiary: #a8a29e;
+  --m-sage: #a8a690;
+  --m-sage-dark: #8e8c78;
+  --m-sage-light: #bfbdad;
+  --m-soft-purple: #a395a1;
+  --m-soft-purple-dark: #8a7d87;
+  --m-soft-purple-light: #bbb0b8;
+  --m-muted-blue: #8b96a1;
+  --m-muted-blue-dark: #737e88;
+  --m-muted-blue-light: #a7b0b9;
+  --m-pale-green: #96a396;
+  --m-pale-green-dark: #7d8a7d;
+  --m-pale-green-light: #b0bab0;
+  --m-soft-brown: #9b8874;
+  --m-soft-brown-dark: #837261;
+  --m-soft-brown-light: #b3a18e;
+  --m-dusty-rose: #b5a19d;
+  --m-dusty-rose-dark: #9a8683;
+  --m-dusty-rose-light: #c9b8b5;
+  --m-border: rgba(87, 83, 78, 0.12);
+  --m-border-hover: rgba(87, 83, 78, 0.22);
+  --m-glass: rgba(245, 240, 234, 0.6);
+  --m-glass-border: rgba(87, 83, 78, 0.08);
+}
+
+/* -----------------------------------------------------------------------------
+   2. Global Overrides - Body, Scrollbar, Selection
+   ----------------------------------------------------------------------------- */
+[data-theme="morandi"] body {
+  background: var(--m-cream) !important;
+  color: var(--m-text-primary);
+}
+
+[data-theme="morandi"] ::-webkit-scrollbar-track {
+  background: var(--m-warm-bg);
+}
+
+[data-theme="morandi"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--m-sage), var(--m-muted-blue));
+}
+
+[data-theme="morandi"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, var(--m-sage-dark), var(--m-muted-blue-dark));
+}
+
+[data-theme="morandi"] ::selection {
+  background: rgba(168, 166, 144, 0.3);
+  color: var(--m-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   3. Background Color Overrides
+   ----------------------------------------------------------------------------- */
+
+/* -- Main page backgrounds -- */
+[data-theme="morandi"] .bg-black {
+  background-color: var(--m-cream) !important;
+}
+
+/* Animated background gradient */
+[data-theme="morandi"] .bg-gradient-to-br.from-gray-900.via-black.to-gray-900 {
+  background: linear-gradient(to bottom right, #ddd7ce, var(--m-cream), #ddd7ce) !important;
+}
+
+/* Grid pattern - warm subtle lines */
+[data-theme="morandi"] .bg-grid-white\/\[0\.02\] {
+  background-image:
+    linear-gradient(rgba(87, 83, 78, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(87, 83, 78, 0.03) 1px, transparent 1px) !important;
+}
+
+/* -- Glow orbs (background blobs) -- */
+[data-theme="morandi"] .bg-cyan-500\/30 {
+  background-color: rgba(168, 166, 144, 0.15) !important;
+}
+[data-theme="morandi"] .bg-cyan-500\/20 {
+  background-color: rgba(168, 166, 144, 0.1) !important;
+}
+[data-theme="morandi"] .bg-purple-500\/30 {
+  background-color: rgba(163, 149, 161, 0.15) !important;
+}
+[data-theme="morandi"] .bg-purple-500\/20 {
+  background-color: rgba(163, 149, 161, 0.1) !important;
+}
+[data-theme="morandi"] .bg-blue-500\/20 {
+  background-color: rgba(139, 150, 161, 0.1) !important;
+}
+[data-theme="morandi"] .bg-blue-500\/15 {
+  background-color: rgba(139, 150, 161, 0.08) !important;
+}
+[data-theme="morandi"] .bg-green-500\/20 {
+  background-color: rgba(150, 163, 150, 0.1) !important;
+}
+
+/* -- Glass / translucent panels -- */
+[data-theme="morandi"] .bg-white\/5 {
+  background-color: rgba(87, 83, 78, 0.04) !important;
+}
+[data-theme="morandi"] .bg-white\/10 {
+  background-color: rgba(87, 83, 78, 0.06) !important;
+}
+
+/* -- Badge / tag backgrounds -- */
+[data-theme="morandi"] .bg-cyan-400\/10 {
+  background-color: rgba(168, 166, 144, 0.12) !important;
+}
+[data-theme="morandi"] .bg-purple-400\/10 {
+  background-color: rgba(163, 149, 161, 0.12) !important;
+}
+[data-theme="morandi"] .bg-green-400\/10 {
+  background-color: rgba(150, 163, 150, 0.12) !important;
+}
+[data-theme="morandi"] .bg-cyan-400\/50 {
+  background-color: rgba(168, 166, 144, 0.3) !important;
+}
+
+/* -- Solid color backgrounds -- */
+[data-theme="morandi"] .bg-green-400 {
+  background-color: var(--m-pale-green) !important;
+}
+
+/* -- Card / surface backgrounds -- */
+[data-theme="morandi"] .bg-gray-900\/95 {
+  background-color: rgba(245, 240, 234, 0.97) !important;
+}
+[data-theme="morandi"] .bg-gray-900\/50 {
+  background-color: rgba(240, 235, 228, 0.6) !important;
+}
+[data-theme="morandi"] .bg-gray-900 {
+  background-color: var(--m-warm-bg) !important;
+}
+[data-theme="morandi"] .bg-gray-800\/50 {
+  background-color: rgba(232, 226, 217, 0.5) !important;
+}
+[data-theme="morandi"] .bg-gray-800 {
+  background-color: #e0d9cf !important;
+}
+[data-theme="morandi"] .bg-gray-700 {
+  background-color: #d6cfc5 !important;
+}
+[data-theme="morandi"] .bg-gray-700\/50 {
+  background-color: rgba(214, 207, 197, 0.5) !important;
+}
+[data-theme="morandi"] .bg-gray-600 {
+  background-color: #ccc5bb !important;
+}
+[data-theme="morandi"] .bg-gray-600\/30 {
+  background-color: rgba(204, 197, 187, 0.3) !important;
+}
+[data-theme="morandi"] .bg-gray-600\/20 {
+  background-color: rgba(204, 197, 187, 0.2) !important;
+}
+
+/* -- Status tag backgrounds with bg-opacity -- */
+[data-theme="morandi"] .bg-green-600.bg-opacity-20 {
+  background-color: rgba(150, 163, 150, 0.2) !important;
+}
+[data-theme="morandi"] .bg-purple-600.bg-opacity-20 {
+  background-color: rgba(163, 149, 161, 0.2) !important;
+}
+[data-theme="morandi"] .bg-blue-600.bg-opacity-20 {
+  background-color: rgba(139, 150, 161, 0.2) !important;
+}
+[data-theme="morandi"] .bg-cyan-600.bg-opacity-20 {
+  background-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .bg-yellow-600.bg-opacity-20 {
+  background-color: rgba(155, 136, 116, 0.2) !important;
+}
+[data-theme="morandi"] .bg-red-600.bg-opacity-20 {
+  background-color: rgba(181, 161, 157, 0.2) !important;
+}
+[data-theme="morandi"] .bg-yellow-500.bg-opacity-20 {
+  background-color: rgba(155, 136, 116, 0.2) !important;
+}
+[data-theme="morandi"] .bg-orange-500\/20 {
+  background-color: rgba(155, 136, 116, 0.15) !important;
+}
+
+/* -- Rarity badges -- */
+[data-theme="morandi"] .bg-purple-500\/20 {
+  background-color: rgba(163, 149, 161, 0.15) !important;
+}
+[data-theme="morandi"] .bg-gray-500\/20 {
+  background-color: rgba(168, 162, 158, 0.15) !important;
+}
+
+/* -- Phase / status indicator backgrounds -- */
+[data-theme="morandi"] .bg-green-500\/10 {
+  background-color: rgba(150, 163, 150, 0.1) !important;
+}
+[data-theme="morandi"] .bg-blue-500\/10 {
+  background-color: rgba(139, 150, 161, 0.1) !important;
+}
+[data-theme="morandi"] .bg-cyan-500\/10 {
+  background-color: rgba(168, 166, 144, 0.1) !important;
+}
+[data-theme="morandi"] .bg-red-500\/10 {
+  background-color: rgba(181, 161, 157, 0.1) !important;
+}
+[data-theme="morandi"] .bg-red-500\/20 {
+  background-color: rgba(181, 161, 157, 0.15) !important;
+}
+[data-theme="morandi"] .bg-green-500\/20 {
+  background-color: rgba(150, 163, 150, 0.15) !important;
+}
+[data-theme="morandi"] .bg-cyan-400\/30 {
+  background-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .bg-green-400\/30 {
+  background-color: rgba(150, 163, 150, 0.2) !important;
+}
+
+/* -- Close / navigation button backgrounds -- */
+[data-theme="morandi"] .bg-black\/50 {
+  background-color: rgba(87, 83, 78, 0.4) !important;
+}
+[data-theme="morandi"] .bg-black\/70 {
+  background-color: rgba(87, 83, 78, 0.55) !important;
+}
+[data-theme="morandi"] .bg-black\/80 {
+  background-color: rgba(87, 83, 78, 0.65) !important;
+}
+[data-theme="morandi"] .bg-black\/90 {
+  background-color: rgba(87, 83, 78, 0.75) !important;
+}
+[data-theme="morandi"] .bg-black\/95 {
+  background-color: rgba(87, 83, 78, 0.8) !important;
+}
+
+/* -- Wallet button hover states -- */
+[data-theme="morandi"] .hover\:bg-white\/5:hover {
+  background-color: rgba(87, 83, 78, 0.04) !important;
+}
+[data-theme="morandi"] .hover\:bg-white\/10:hover {
+  background-color: rgba(87, 83, 78, 0.06) !important;
+}
+[data-theme="morandi"] .hover\:bg-black\/70:hover {
+  background-color: rgba(87, 83, 78, 0.55) !important;
+}
+[data-theme="morandi"] .hover\:bg-black\/90:hover {
+  background-color: rgba(87, 83, 78, 0.75) !important;
+}
+[data-theme="morandi"] .hover\:bg-cyan-500\/10:hover {
+  background-color: rgba(168, 166, 144, 0.1) !important;
+}
+[data-theme="morandi"] .hover\:bg-gray-800:hover {
+  background-color: #ddd7ce !important;
+}
+[data-theme="morandi"] .hover\:bg-red-500\/30:hover {
+  background-color: rgba(181, 161, 157, 0.2) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   4. Gradient Background Overrides
+   ----------------------------------------------------------------------------- */
+
+/* -- from-* classes (set --tw-gradient-from) -- */
+[data-theme="morandi"] .from-cyan-400 {
+  --tw-gradient-from: var(--m-sage) !important;
+}
+[data-theme="morandi"] .from-cyan-500 {
+  --tw-gradient-from: var(--m-sage) !important;
+}
+[data-theme="morandi"] .from-blue-400 {
+  --tw-gradient-from: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .from-blue-500 {
+  --tw-gradient-from: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .from-blue-600 {
+  --tw-gradient-from: var(--m-muted-blue-dark) !important;
+}
+[data-theme="morandi"] .from-purple-400 {
+  --tw-gradient-from: var(--m-soft-purple) !important;
+}
+[data-theme="morandi"] .from-purple-500 {
+  --tw-gradient-from: var(--m-soft-purple) !important;
+}
+[data-theme="morandi"] .from-purple-600 {
+  --tw-gradient-from: var(--m-soft-purple-dark) !important;
+}
+[data-theme="morandi"] .from-green-400 {
+  --tw-gradient-from: var(--m-pale-green) !important;
+}
+[data-theme="morandi"] .from-green-500 {
+  --tw-gradient-from: var(--m-pale-green) !important;
+}
+[data-theme="morandi"] .from-green-600 {
+  --tw-gradient-from: var(--m-pale-green-dark) !important;
+}
+[data-theme="morandi"] .from-yellow-400 {
+  --tw-gradient-from: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .from-yellow-500 {
+  --tw-gradient-from: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .from-orange-400 {
+  --tw-gradient-from: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .from-orange-500 {
+  --tw-gradient-from: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .from-pink-400 {
+  --tw-gradient-from: var(--m-dusty-rose) !important;
+}
+[data-theme="morandi"] .from-pink-500 {
+  --tw-gradient-from: var(--m-dusty-rose) !important;
+}
+[data-theme="morandi"] .from-red-500 {
+  --tw-gradient-from: var(--m-dusty-rose) !important;
+}
+[data-theme="morandi"] .from-white {
+  --tw-gradient-from: var(--m-text-primary) !important;
+}
+[data-theme="morandi"] .from-gray-900 {
+  --tw-gradient-from: #ddd7ce !important;
+}
+
+/* Gradient from with opacity for bg sections */
+[data-theme="morandi"] .from-cyan-500\/10 {
+  --tw-gradient-from: rgba(168, 166, 144, 0.08) !important;
+}
+[data-theme="morandi"] .from-cyan-500\/20 {
+  --tw-gradient-from: rgba(168, 166, 144, 0.12) !important;
+}
+[data-theme="morandi"] .from-blue-500\/10 {
+  --tw-gradient-from: rgba(139, 150, 161, 0.08) !important;
+}
+[data-theme="morandi"] .from-blue-500\/20 {
+  --tw-gradient-from: rgba(139, 150, 161, 0.12) !important;
+}
+[data-theme="morandi"] .from-purple-500\/10 {
+  --tw-gradient-from: rgba(163, 149, 161, 0.08) !important;
+}
+[data-theme="morandi"] .from-purple-500\/20 {
+  --tw-gradient-from: rgba(163, 149, 161, 0.12) !important;
+}
+[data-theme="morandi"] .from-green-500\/10 {
+  --tw-gradient-from: rgba(150, 163, 150, 0.08) !important;
+}
+[data-theme="morandi"] .from-orange-500\/10 {
+  --tw-gradient-from: rgba(155, 136, 116, 0.08) !important;
+}
+[data-theme="morandi"] .from-orange-500\/20 {
+  --tw-gradient-from: rgba(155, 136, 116, 0.12) !important;
+}
+[data-theme="morandi"] .from-yellow-500\/20 {
+  --tw-gradient-from: rgba(155, 136, 116, 0.12) !important;
+}
+[data-theme="morandi"] .from-white\/5 {
+  --tw-gradient-from: rgba(87, 83, 78, 0.03) !important;
+}
+[data-theme="morandi"] .from-cyan-500\/5 {
+  --tw-gradient-from: rgba(168, 166, 144, 0.04) !important;
+}
+
+/* -- via-* classes -- */
+[data-theme="morandi"] .via-blue-400 {
+  --tw-gradient-via: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .via-black {
+  --tw-gradient-via: var(--m-cream) !important;
+}
+[data-theme="morandi"] .via-gray-200 {
+  --tw-gradient-via: var(--m-text-secondary) !important;
+}
+[data-theme="morandi"] .via-white\/10 {
+  --tw-gradient-via: rgba(87, 83, 78, 0.06) !important;
+}
+[data-theme="morandi"] .via-blue-500\/10 {
+  --tw-gradient-via: rgba(139, 150, 161, 0.08) !important;
+}
+
+/* -- to-* classes -- */
+[data-theme="morandi"] .to-purple-400 {
+  --tw-gradient-to: var(--m-soft-purple) !important;
+}
+[data-theme="morandi"] .to-purple-500 {
+  --tw-gradient-to: var(--m-soft-purple) !important;
+}
+[data-theme="morandi"] .to-pink-500 {
+  --tw-gradient-to: var(--m-dusty-rose) !important;
+}
+[data-theme="morandi"] .to-pink-600 {
+  --tw-gradient-to: var(--m-dusty-rose-dark) !important;
+}
+[data-theme="morandi"] .to-blue-400 {
+  --tw-gradient-to: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .to-blue-500 {
+  --tw-gradient-to: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .to-blue-600 {
+  --tw-gradient-to: var(--m-muted-blue-dark) !important;
+}
+[data-theme="morandi"] .to-blue-700 {
+  --tw-gradient-to: var(--m-muted-blue-dark) !important;
+}
+[data-theme="morandi"] .to-emerald-500 {
+  --tw-gradient-to: var(--m-pale-green) !important;
+}
+[data-theme="morandi"] .to-emerald-600 {
+  --tw-gradient-to: var(--m-pale-green-dark) !important;
+}
+[data-theme="morandi"] .to-cyan-600 {
+  --tw-gradient-to: var(--m-sage-dark) !important;
+}
+[data-theme="morandi"] .to-orange-500 {
+  --tw-gradient-to: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .to-red-500 {
+  --tw-gradient-to: var(--m-dusty-rose) !important;
+}
+[data-theme="morandi"] .to-indigo-500 {
+  --tw-gradient-to: var(--m-muted-blue-dark) !important;
+}
+[data-theme="morandi"] .to-white {
+  --tw-gradient-to: var(--m-text-primary) !important;
+}
+[data-theme="morandi"] .to-gray-900 {
+  --tw-gradient-to: #ddd7ce !important;
+}
+[data-theme="morandi"] .to-white\/5 {
+  --tw-gradient-to: rgba(87, 83, 78, 0.03) !important;
+}
+[data-theme="morandi"] .to-transparent {
+  --tw-gradient-to: transparent !important;
+}
+[data-theme="morandi"] .to-purple-500\/10 {
+  --tw-gradient-to: rgba(163, 149, 161, 0.08) !important;
+}
+[data-theme="morandi"] .to-purple-500\/5 {
+  --tw-gradient-to: rgba(163, 149, 161, 0.04) !important;
+}
+[data-theme="morandi"] .to-purple-500\/20 {
+  --tw-gradient-to: rgba(163, 149, 161, 0.12) !important;
+}
+[data-theme="morandi"] .to-blue-500\/20 {
+  --tw-gradient-to: rgba(139, 150, 161, 0.12) !important;
+}
+[data-theme="morandi"] .to-emerald-500\/10 {
+  --tw-gradient-to: rgba(150, 163, 150, 0.08) !important;
+}
+[data-theme="morandi"] .to-pink-500\/10 {
+  --tw-gradient-to: rgba(181, 161, 157, 0.08) !important;
+}
+[data-theme="morandi"] .to-red-500\/10 {
+  --tw-gradient-to: rgba(181, 161, 157, 0.08) !important;
+}
+[data-theme="morandi"] .to-yellow-500\/20 {
+  --tw-gradient-to: rgba(155, 136, 116, 0.12) !important;
+}
+
+/* -- Hover gradient overrides -- */
+[data-theme="morandi"] .hover\:from-cyan-600:hover {
+  --tw-gradient-from: var(--m-sage-dark) !important;
+}
+[data-theme="morandi"] .hover\:to-blue-700:hover {
+  --tw-gradient-to: var(--m-muted-blue-dark) !important;
+}
+
+/* -- Gradient line (flow arrows, dividers) -- */
+[data-theme="morandi"] .from-cyan-500\/30 {
+  --tw-gradient-from: rgba(168, 166, 144, 0.2) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   5. Text Color Overrides
+   ----------------------------------------------------------------------------- */
+
+/* -- Primary text -- */
+[data-theme="morandi"] .text-white {
+  color: var(--m-text-primary) !important;
+}
+
+/* -- Gray scale text -- */
+[data-theme="morandi"] .text-gray-200 {
+  color: var(--m-text-primary) !important;
+}
+[data-theme="morandi"] .text-gray-300 {
+  color: var(--m-text-secondary) !important;
+}
+[data-theme="morandi"] .text-gray-400 {
+  color: var(--m-text-tertiary) !important;
+}
+[data-theme="morandi"] .text-gray-500 {
+  color: #b8b2aa !important;
+}
+
+/* -- Accent text colors -- */
+[data-theme="morandi"] .text-cyan-300 {
+  color: var(--m-sage-light) !important;
+}
+[data-theme="morandi"] .text-cyan-400 {
+  color: var(--m-sage) !important;
+}
+[data-theme="morandi"] .text-cyan-500 {
+  color: var(--m-sage-dark) !important;
+}
+
+[data-theme="morandi"] .text-purple-300 {
+  color: var(--m-soft-purple-light) !important;
+}
+[data-theme="morandi"] .text-purple-400 {
+  color: var(--m-soft-purple) !important;
+}
+[data-theme="morandi"] .text-purple-500 {
+  color: var(--m-soft-purple-dark) !important;
+}
+
+[data-theme="morandi"] .text-blue-300 {
+  color: var(--m-muted-blue-light) !important;
+}
+[data-theme="morandi"] .text-blue-400 {
+  color: var(--m-muted-blue) !important;
+}
+[data-theme="morandi"] .text-blue-500 {
+  color: var(--m-muted-blue-dark) !important;
+}
+
+[data-theme="morandi"] .text-green-300 {
+  color: var(--m-pale-green-light) !important;
+}
+[data-theme="morandi"] .text-green-400 {
+  color: var(--m-pale-green) !important;
+}
+[data-theme="morandi"] .text-green-500 {
+  color: var(--m-pale-green-dark) !important;
+}
+
+[data-theme="morandi"] .text-orange-300 {
+  color: var(--m-soft-brown-light) !important;
+}
+[data-theme="morandi"] .text-orange-400 {
+  color: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .text-orange-200\/80 {
+  color: rgba(179, 161, 142, 0.8) !important;
+}
+
+[data-theme="morandi"] .text-yellow-300 {
+  color: var(--m-soft-brown-light) !important;
+}
+[data-theme="morandi"] .text-yellow-400 {
+  color: var(--m-soft-brown) !important;
+}
+
+[data-theme="morandi"] .text-red-300 {
+  color: var(--m-dusty-rose-light) !important;
+}
+[data-theme="morandi"] .text-red-400 {
+  color: var(--m-dusty-rose) !important;
+}
+
+[data-theme="morandi"] .text-pink-400 {
+  color: var(--m-dusty-rose) !important;
+}
+
+[data-theme="morandi"] .text-purple-200 {
+  color: var(--m-soft-purple-light) !important;
+}
+
+/* -- Hover text colors -- */
+[data-theme="morandi"] .hover\:text-white:hover {
+  color: var(--m-text-primary) !important;
+}
+[data-theme="morandi"] .hover\:text-cyan-100:hover {
+  color: var(--m-sage) !important;
+}
+[data-theme="morandi"] .hover\:text-cyan-300:hover {
+  color: var(--m-sage-light) !important;
+}
+[data-theme="morandi"] .hover\:text-yellow-300:hover {
+  color: var(--m-soft-brown-light) !important;
+}
+[data-theme="morandi"] .group-hover\:text-cyan-300 {
+  /* handled by group hover below */
+}
+[data-theme="morandi"] .group:hover .group-hover\:text-cyan-300 {
+  color: var(--m-sage-light) !important;
+}
+[data-theme="morandi"] .group:hover .group-hover\:text-yellow-300 {
+  color: var(--m-soft-brown-light) !important;
+}
+
+/* -- Gradient text (clip-text transparent) -- */
+/* The gradient colors are handled by from/via/to overrides above.
+   We only need to ensure text-transparent stays transparent. */
+
+/* -----------------------------------------------------------------------------
+   6. Border Color Overrides
+   ----------------------------------------------------------------------------- */
+
+/* -- White borders with opacity -- */
+[data-theme="morandi"] .border-white\/10 {
+  border-color: var(--m-border) !important;
+}
+[data-theme="morandi"] .border-white\/20 {
+  border-color: var(--m-border-hover) !important;
+}
+
+/* -- Inline border-opacity pattern (Tailwind v2 style) -- */
+[data-theme="morandi"] .border-white.border-opacity-20 {
+  border-color: rgba(87, 83, 78, 0.15) !important;
+}
+
+/* -- Accent borders -- */
+[data-theme="morandi"] .border-cyan-400 {
+  border-color: var(--m-sage) !important;
+}
+[data-theme="morandi"] .border-cyan-400\/20 {
+  border-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .border-cyan-400\/40 {
+  border-color: rgba(168, 166, 144, 0.3) !important;
+}
+[data-theme="morandi"] .border-cyan-500\/20 {
+  border-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .border-cyan-500\/30 {
+  border-color: rgba(168, 166, 144, 0.25) !important;
+}
+[data-theme="morandi"] .border-cyan-500\/50 {
+  border-color: rgba(168, 166, 144, 0.4) !important;
+}
+
+[data-theme="morandi"] .border-purple-400\/20 {
+  border-color: rgba(163, 149, 161, 0.2) !important;
+}
+[data-theme="morandi"] .border-purple-400\/40 {
+  border-color: rgba(163, 149, 161, 0.3) !important;
+}
+
+[data-theme="morandi"] .border-green-400\/20 {
+  border-color: rgba(150, 163, 150, 0.2) !important;
+}
+[data-theme="morandi"] .border-green-400\/30 {
+  border-color: rgba(150, 163, 150, 0.25) !important;
+}
+[data-theme="morandi"] .border-green-400\/40 {
+  border-color: rgba(150, 163, 150, 0.3) !important;
+}
+
+[data-theme="morandi"] .border-blue-400\/30 {
+  border-color: rgba(139, 150, 161, 0.25) !important;
+}
+
+[data-theme="morandi"] .border-orange-400\/20 {
+  border-color: rgba(155, 136, 116, 0.2) !important;
+}
+
+[data-theme="morandi"] .border-yellow-500 {
+  border-color: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .border-yellow-500\/30 {
+  border-color: rgba(155, 136, 116, 0.25) !important;
+}
+[data-theme="morandi"] .border-yellow-500\/50 {
+  border-color: rgba(155, 136, 116, 0.4) !important;
+}
+[data-theme="morandi"] .border-yellow-600 {
+  border-color: var(--m-soft-brown-dark) !important;
+}
+
+[data-theme="morandi"] .border-green-600 {
+  border-color: var(--m-pale-green-dark) !important;
+}
+[data-theme="morandi"] .border-purple-600 {
+  border-color: var(--m-soft-purple-dark) !important;
+}
+[data-theme="morandi"] .border-red-600 {
+  border-color: var(--m-dusty-rose-dark) !important;
+}
+[data-theme="morandi"] .border-red-500\/30 {
+  border-color: rgba(181, 161, 157, 0.25) !important;
+}
+
+[data-theme="morandi"] .border-orange-500\/50 {
+  border-color: rgba(155, 136, 116, 0.4) !important;
+}
+
+[data-theme="morandi"] .border-green-500\/50 {
+  border-color: rgba(150, 163, 150, 0.4) !important;
+}
+
+/* -- Hover border colors -- */
+[data-theme="morandi"] .hover\:border-green-400\/40:hover {
+  border-color: rgba(150, 163, 150, 0.3) !important;
+}
+[data-theme="morandi"] .hover\:border-purple-400\/40:hover {
+  border-color: rgba(163, 149, 161, 0.3) !important;
+}
+[data-theme="morandi"] .hover\:border-cyan-400\/40:hover {
+  border-color: rgba(168, 166, 144, 0.3) !important;
+}
+[data-theme="morandi"] .hover\:border-cyan-500\/50:hover {
+  border-color: rgba(168, 166, 144, 0.4) !important;
+}
+[data-theme="morandi"] .hover\:border-yellow-400:hover {
+  border-color: var(--m-soft-brown) !important;
+}
+[data-theme="morandi"] .hover\:border-white\/30:hover {
+  border-color: rgba(87, 83, 78, 0.2) !important;
+}
+
+/* -- Gradient divider line -- */
+[data-theme="morandi"] .from-cyan-500\/30 {
+  --tw-gradient-from: rgba(168, 166, 144, 0.2) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   7. Shadow Overrides
+   ----------------------------------------------------------------------------- */
+[data-theme="morandi"] .shadow-cyan-500\/25 {
+  --tw-shadow-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .shadow-purple-500\/25 {
+  --tw-shadow-color: rgba(163, 149, 161, 0.2) !important;
+}
+[data-theme="morandi"] .shadow-green-500\/25 {
+  --tw-shadow-color: rgba(150, 163, 150, 0.2) !important;
+}
+[data-theme="morandi"] .shadow-yellow-500\/25 {
+  --tw-shadow-color: rgba(155, 136, 116, 0.2) !important;
+}
+[data-theme="morandi"] .shadow-cyan-500\/20 {
+  --tw-shadow-color: rgba(168, 166, 144, 0.15) !important;
+}
+[data-theme="morandi"] .shadow-yellow-500\/20 {
+  --tw-shadow-color: rgba(155, 136, 116, 0.15) !important;
+}
+
+[data-theme="morandi"] .hover\:shadow-cyan-500\/25:hover {
+  --tw-shadow-color: rgba(168, 166, 144, 0.2) !important;
+}
+[data-theme="morandi"] .hover\:shadow-cyan-500\/20:hover {
+  --tw-shadow-color: rgba(168, 166, 144, 0.15) !important;
+}
+[data-theme="morandi"] .hover\:shadow-yellow-500\/20:hover {
+  --tw-shadow-color: rgba(155, 136, 116, 0.15) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   8. Animation Adjustments
+   ----------------------------------------------------------------------------- */
+
+/* Reduce pulse intensity for morandi's calm aesthetic */
+[data-theme="morandi"] .animate-pulse {
+  animation-duration: 6s !important;
+}
+
+[data-theme="morandi"] .animate-ping {
+  animation-duration: 3s !important;
+}
+
+/* Reduce pulse-glow opacity */
+[data-theme="morandi"] .animate-pulse-glow {
+  animation-duration: 6s !important;
+}
+
+/* Slow down bouncy reward animation */
+[data-theme="morandi"] .animate-bounce {
+  animation-duration: 1.5s !important;
+}
+
+/* -----------------------------------------------------------------------------
+   9. Custom Utility Overrides (from index.css)
+   ----------------------------------------------------------------------------- */
+
+/* Glow effects - softer morandi glows */
+[data-theme="morandi"] .glow-cyan {
+  box-shadow: 0 0 20px rgba(168, 166, 144, 0.2) !important;
+}
+
+[data-theme="morandi"] .glow-purple {
+  box-shadow: 0 0 20px rgba(163, 149, 161, 0.2) !important;
+}
+
+[data-theme="morandi"] .glow-blue {
+  box-shadow: 0 0 20px rgba(139, 150, 161, 0.2) !important;
+}
+
+/* Glass morphism - warm glass */
+[data-theme="morandi"] .glass-morphism {
+  background: var(--m-glass) !important;
+  border-color: var(--m-glass-border) !important;
+}
+
+/* Cyber border - warm subtle shift */
+[data-theme="morandi"] .cyber-border {
+  background: linear-gradient(45deg, transparent, rgba(168, 166, 144, 0.08), transparent) !important;
+}
+
+/* Button cyber sweep effect */
+[data-theme="morandi"] .btn-cyber::before {
+  background: linear-gradient(90deg, transparent, rgba(87, 83, 78, 0.06), transparent) !important;
+}
+
+/* Gradient text utility */
+[data-theme="morandi"] .text-gradient-cyber {
+  background-image: linear-gradient(to right, var(--m-sage), var(--m-muted-blue), var(--m-soft-purple)) !important;
+}
+
+/* Backdrop blur on warm backgrounds */
+[data-theme="morandi"] .backdrop-blur-sm {
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+[data-theme="morandi"] .backdrop-blur-md {
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   10. Range Slider Override (ForgeTab rarity slider)
+   ----------------------------------------------------------------------------- */
+
+/* The slider has inline style with purple gradient - override with !important */
+[data-theme="morandi"] input[type="range"] {
+  accent-color: var(--m-soft-purple) !important;
+}
+
+[data-theme="morandi"] input[type="range"].accent-purple-500 {
+  accent-color: var(--m-soft-purple) !important;
+}
+
+/* Override the inline gradient style on the range slider */
+[data-theme="morandi"] input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--m-soft-purple) var(--range-progress, 50%),
+    #d6cfc5 var(--range-progress, 50%)
+  ) !important;
+}
+
+/* Slider thumb */
+[data-theme="morandi"] input[type="range"]::-webkit-slider-thumb {
+  background: var(--m-soft-purple) !important;
+}
+
+[data-theme="morandi"] input[type="range"]::-moz-range-thumb {
+  background: var(--m-soft-purple) !important;
+}
+
+[data-theme="morandi"] input[type="range"]::-moz-range-progress {
+  background: var(--m-soft-purple) !important;
+}
+
+/* Override the bg-gray-700 on the slider */
+[data-theme="morandi"] input[type="range"].bg-gray-700 {
+  background: #d6cfc5 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   11. Wallet Adapter Button Overrides
+   ----------------------------------------------------------------------------- */
+
+/* Solana wallet adapter buttons render with inline styles and their own classes.
+   We need !important to override them under the morandi theme. */
+[data-theme="morandi"] .wallet-adapter-button {
+  background-color: transparent !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-button-trigger {
+  background-color: var(--m-sage) !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-modal-wrapper {
+  background-color: var(--m-warm-bg) !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-modal-button-close {
+  background-color: rgba(87, 83, 78, 0.1) !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-modal-button-close:hover {
+  background-color: rgba(87, 83, 78, 0.2) !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-modal-list .wallet-adapter-button {
+  color: var(--m-text-primary) !important;
+}
+
+[data-theme="morandi"] .wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background-color: rgba(168, 166, 144, 0.1) !important;
+}
+
+/* WalletConnection component button variants */
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500.to-blue-600 {
+  background: linear-gradient(to right, var(--m-sage), var(--m-muted-blue-dark)) !important;
+}
+
+[data-theme="morandi"] .hover\:from-cyan-600:hover.hover\:to-blue-700:hover {
+  background: linear-gradient(to right, var(--m-sage-dark), var(--m-muted-blue-dark)) !important;
+}
+
+[data-theme="morandi"] .hover\:shadow-cyan-500\/25:hover {
+  --tw-shadow-color: rgba(168, 166, 144, 0.2) !important;
+}
+
+/* Secondary wallet button */
+[data-theme="morandi"] .bg-gray-800\/50.border-cyan-500\/30 {
+  background-color: rgba(232, 226, 217, 0.5) !important;
+  border-color: rgba(168, 166, 144, 0.25) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   12. Specific Component Pattern Overrides
+   ----------------------------------------------------------------------------- */
+
+/* Winner card gradient border (ForgeTab phase 2 & 3) */
+[data-theme="morandi"] .bg-gradient-to-br.from-yellow-400.to-orange-500 {
+  background: linear-gradient(to bottom right, var(--m-soft-brown-light), var(--m-soft-brown)) !important;
+}
+
+/* Winner badge */
+[data-theme="morandi"] .bg-gradient-to-r.from-yellow-500.to-orange-500 {
+  background: linear-gradient(to right, var(--m-soft-brown), var(--m-soft-brown-dark)) !important;
+}
+
+/* Active tab pulse bg overlay */
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500\/20.to-blue-500\/20 {
+  background: linear-gradient(to right, rgba(168, 166, 144, 0.1), rgba(139, 150, 161, 0.1)) !important;
+}
+
+/* CTA section pulse bg */
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500\/5.to-purple-500\/5 {
+  background: linear-gradient(to right, rgba(168, 166, 144, 0.04), rgba(163, 149, 161, 0.04)) !important;
+}
+
+/* Stats bar glass */
+[data-theme="morandi"] .bg-gradient-to-r.from-white\/5.via-white\/10.to-white\/5 {
+  background: linear-gradient(to right, rgba(87, 83, 78, 0.03), rgba(87, 83, 78, 0.06), rgba(87, 83, 78, 0.03)) !important;
+}
+
+/* Beta info box */
+[data-theme="morandi"] .bg-gradient-to-r.from-blue-500\/20.to-purple-500\/20 {
+  background: linear-gradient(to right, rgba(139, 150, 161, 0.12), rgba(163, 149, 161, 0.12)) !important;
+}
+
+/* CTA box orange-yellow */
+[data-theme="morandi"] .bg-gradient-to-r.from-orange-500\/20.to-yellow-500\/20 {
+  background: linear-gradient(to right, rgba(155, 136, 116, 0.12), rgba(155, 136, 116, 0.08)) !important;
+}
+
+/* Gallery date header gradient line */
+[data-theme="morandi"] .from-cyan-500\/30.to-transparent {
+  --tw-gradient-from: rgba(168, 166, 144, 0.2) !important;
+  --tw-gradient-to: transparent !important;
+}
+
+/* Filter button active state */
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500.to-blue-600.text-white.shadow-lg {
+  background: linear-gradient(to right, var(--m-sage), var(--m-muted-blue-dark)) !important;
+  color: #fff !important;
+}
+
+[data-theme="morandi"] .bg-gradient-to-r.from-yellow-500.to-orange-500.text-white.shadow-lg {
+  background: linear-gradient(to right, var(--m-soft-brown), var(--m-soft-brown-dark)) !important;
+  color: #fff !important;
+}
+
+/* Reward animation popup */
+[data-theme="morandi"] .bg-gradient-to-br.from-purple-600.to-pink-600 {
+  background: linear-gradient(to bottom right, var(--m-soft-purple-dark), var(--m-dusty-rose-dark)) !important;
+}
+
+/* Primary action buttons */
+[data-theme="morandi"] .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(to right, var(--m-soft-purple-dark), var(--m-dusty-rose-dark)) !important;
+}
+
+[data-theme="morandi"] .bg-gradient-to-r.from-green-600.to-emerald-600 {
+  background: linear-gradient(to right, var(--m-pale-green-dark), var(--m-pale-green)) !important;
+}
+
+[data-theme="morandi"] .bg-gradient-to-r.from-blue-600.to-cyan-600 {
+  background: linear-gradient(to right, var(--m-muted-blue-dark), var(--m-sage-dark)) !important;
+}
+
+/* Gallery date badge */
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500\/20.to-purple-500\/20 {
+  background: linear-gradient(to right, rgba(168, 166, 144, 0.12), rgba(163, 149, 161, 0.12)) !important;
+}
+
+/* Mobile wallet selector - share button */
+[data-theme="morandi"] button.bg-black.hover\:bg-gray-800 {
+  background-color: var(--m-text-primary) !important;
+}
+[data-theme="morandi"] button.bg-black.hover\:bg-gray-800:hover {
+  background-color: var(--m-text-secondary) !important;
+}
+
+/* Placeholder shimmer effect */
+[data-theme="morandi"] .placeholder-card.card-shimmer {
+  background: var(--m-card-bg) !important;
+}
+
+[data-theme="morandi"] .placeholder-image {
+  background: rgba(87, 83, 78, 0.08) !important;
+}
+
+[data-theme="morandi"] .placeholder-text {
+  background: rgba(87, 83, 78, 0.08) !important;
+}
+
+[data-theme="morandi"] .placeholder-button {
+  background: rgba(163, 149, 161, 0.2) !important;
+}
+
+/* Purple placeholder variants */
+[data-theme="morandi"] .bg-purple-600\/30 {
+  background-color: rgba(163, 149, 161, 0.2) !important;
+}
+
+/* Copy link button states */
+[data-theme="morandi"] .bg-green-500\/20.border-green-500\/50 {
+  background-color: rgba(150, 163, 150, 0.15) !important;
+  border-color: rgba(150, 163, 150, 0.4) !important;
+}
+
+/* Retry button in error state */
+[data-theme="morandi"] .bg-red-500\/20 {
+  background-color: rgba(181, 161, 157, 0.15) !important;
+}
+[data-theme="morandi"] .hover\:bg-red-500\/30:hover {
+  background-color: rgba(181, 161, 157, 0.2) !important;
+}
+
+/* Loading indicator purple/pink bg-opacity combo - keep text white for contrast on dark bg */
+[data-theme="morandi"] .bg-gradient-to-br.from-purple-600.to-pink-600 .text-2xl,
+[data-theme="morandi"] .bg-gradient-to-br.from-purple-600.to-pink-600 h3,
+[data-theme="morandi"] .bg-gradient-to-br.from-purple-600.to-pink-600 p,
+[data-theme="morandi"] .bg-gradient-to-br.from-purple-600.to-pink-600 span {
+  color: #fff !important;
+}
+
+/* Keep text white on dark gradient action buttons for readability */
+[data-theme="morandi"] .bg-gradient-to-r.from-purple-600.to-pink-600,
+[data-theme="morandi"] .bg-gradient-to-r.from-green-600.to-emerald-600,
+[data-theme="morandi"] .bg-gradient-to-r.from-blue-600.to-cyan-600,
+[data-theme="morandi"] .bg-gradient-to-r.from-cyan-500.to-blue-600 {
+  color: #fff !important;
+}
+
+/* Navigation/close buttons on dark overlays - keep white */
+[data-theme="morandi"] .bg-black\/50 .text-white,
+[data-theme="morandi"] .bg-black\/70 .text-white,
+[data-theme="morandi"] .bg-black\/50 svg,
+[data-theme="morandi"] .bg-black\/70 svg,
+[data-theme="morandi"] button.bg-black\/50,
+[data-theme="morandi"] button.bg-black\/70 {
+  color: #fff !important;
+}
+
+/* Badges on gradient buttons should stay white */
+[data-theme="morandi"] .bg-gradient-to-r.from-yellow-500.to-orange-500 span {
+  color: #fff !important;
+}
+
+/* Gallery filter buttons - active state with white text for contrast */
+[data-theme="morandi"] .shadow-lg.shadow-cyan-500\/25 {
+  color: #fff !important;
+}
+[data-theme="morandi"] .shadow-lg.shadow-yellow-500\/25 {
+  color: #fff !important;
+}
