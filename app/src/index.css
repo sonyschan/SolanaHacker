@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import cyberpunk theme as default */
+@import './styles/bv7x-enhanced.css';
+
 @layer base {
   body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    background: var(--morandi-cream);
-    color: var(--morandi-mushroom);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     overflow-x: hidden;
+    transition: all 0.3s ease;
   }
   
   * {
@@ -16,110 +20,67 @@
   }
 }
 
-@layer utilities {
-  /* Morandi color system - ultra soft and muted */
-  :root {
-    --morandi-cream: #e8e2d9;
-    --morandi-sage: #a8a690;
-    --morandi-dusty-rose: #b5a19d;
-    --morandi-soft-brown: #9b8874;
-    --morandi-muted-blue: #8b96a1;
-    --morandi-pale-green: #96a396;
-    --morandi-warm-gray: #a8a19a;
-    --morandi-soft-purple: #a395a1;
-    --morandi-deep-cream: #d6cfc4;
-    --morandi-mushroom: #8a7f73;
-    --morandi-soft-clay: #a08b7e;
-    --morandi-muted-olive: #888a7a;
-  }
-
-  /* Grid background pattern - ultra subtle */
-  .bg-grid-morandi {
-    background-image: 
-      linear-gradient(rgba(168, 161, 154, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(168, 161, 154, 0.06) 1px, transparent 1px);
-    background-size: 28px 28px;
-  }
-  
-  /* Morandi gradient text - muted */
-  .text-gradient-morandi {
-    @apply bg-gradient-to-r from-stone-600 via-stone-500 to-neutral-600 bg-clip-text text-transparent;
-  }
-  
-  /* Ultra soft shadow effects */
-  .shadow-morandi-soft {
-    box-shadow: 0 6px 25px rgba(138, 127, 115, 0.15);
-  }
-  
-  .shadow-morandi-rose {
-    box-shadow: 0 6px 20px rgba(181, 161, 157, 0.18);
-  }
-  
-  .shadow-morandi-sage {
-    box-shadow: 0 6px 20px rgba(168, 166, 144, 0.18);
-  }
-  
-  .shadow-morandi-clay {
-    box-shadow: 0 6px 20px rgba(160, 139, 126, 0.18);
-  }
-  
-  /* Animated background elements */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  }
-  
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.1; }
-    50% { opacity: 0.3; }
-  }
-  
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-  
-  .animate-pulse-glow {
-    animation: pulse-glow 4s ease-in-out infinite;
-  }
-  
-  /* Backdrop blur support */
-  .backdrop-blur-md {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-  
-  .backdrop-blur-sm {
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-  
-  /* Morandi scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: var(--morandi-cream);
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, var(--morandi-dusty-rose), var(--morandi-soft-brown));
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #c19a94, #9e8a74);
-  }
+/* Theme switching classes */
+.theme-cyberpunk {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
 }
 
-/* Morandi styling - ultra muted */
-.glass-morphism-morandi {
+.theme-morandi {
+  background: var(--morandi-cream);
+  color: var(--morandi-mushroom);
+}
+
+/* Conditional Morandi styles - only applied when theme-morandi class is present */
+.theme-morandi {
+  --morandi-cream: #e8e2d9;
+  --morandi-sage: #a8a690;
+  --morandi-dusty-rose: #b5a19d;
+  --morandi-soft-brown: #9b8874;
+  --morandi-muted-blue: #8b96a1;
+  --morandi-pale-green: #96a396;
+  --morandi-warm-gray: #a8a19a;
+  --morandi-soft-purple: #a395a1;
+  --morandi-deep-cream: #d6cfc4;
+  --morandi-mushroom: #8a7f73;
+  --morandi-soft-clay: #a08b7e;
+  --morandi-muted-olive: #888a7a;
+}
+
+.theme-morandi .bg-grid-morandi {
+  background-image: 
+    linear-gradient(rgba(168, 161, 154, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 161, 154, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.theme-morandi .text-gradient-morandi {
+  @apply bg-gradient-to-r from-stone-600 via-stone-500 to-neutral-600 bg-clip-text text-transparent;
+}
+
+.theme-morandi .shadow-morandi-soft {
+  box-shadow: 0 6px 25px rgba(138, 127, 115, 0.15);
+}
+
+.theme-morandi .shadow-morandi-rose {
+  box-shadow: 0 6px 20px rgba(181, 161, 157, 0.18);
+}
+
+.theme-morandi .shadow-morandi-sage {
+  box-shadow: 0 6px 20px rgba(168, 166, 144, 0.18);
+}
+
+.theme-morandi .shadow-morandi-clay {
+  box-shadow: 0 6px 20px rgba(160, 139, 126, 0.18);
+}
+
+.theme-morandi .glass-morphism-morandi {
   background: rgba(232, 226, 217, 0.6);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(168, 166, 144, 0.2);
 }
 
-.morandi-border {
+.theme-morandi .morandi-border {
   position: relative;
   background: linear-gradient(45deg, transparent, rgba(181, 161, 157, 0.12), transparent);
   background-size: 200% 200%;
@@ -131,41 +92,76 @@
   50% { background-position: 100% 50%; }
 }
 
-/* Morandi button effects - softer */
-.btn-morandi {
+.theme-morandi .btn-morandi {
   position: relative;
   overflow: hidden;
   transition: all 0.5s ease;
   background: linear-gradient(135deg, var(--morandi-dusty-rose), var(--morandi-soft-brown));
 }
 
-.btn-morandi:hover {
+.theme-morandi .btn-morandi:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 25px rgba(181, 161, 157, 0.25);
 }
 
-.btn-morandi-sage {
+.theme-morandi .btn-morandi-sage {
   background: linear-gradient(135deg, var(--morandi-sage), var(--morandi-pale-green));
 }
 
-.btn-morandi-sage:hover {
+.theme-morandi .btn-morandi-sage:hover {
   box-shadow: 0 8px 25px rgba(168, 166, 144, 0.25);
 }
 
-.btn-morandi-clay {
+.theme-morandi .btn-morandi-clay {
   background: linear-gradient(135deg, var(--morandi-soft-clay), var(--morandi-mushroom));
 }
 
-.btn-morandi-clay:hover {
+.theme-morandi .btn-morandi-clay:hover {
   box-shadow: 0 8px 25px rgba(160, 139, 126, 0.25);
 }
 
-/* Soft animations */
+/* Soft animations for morandi theme */
 @keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }
 }
 
-.animate-gentle-float {
+.theme-morandi .animate-gentle-float {
   animation: gentleFloat 8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.theme-morandi .animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+}
+
+.theme-morandi .animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* Morandi scrollbar */
+.theme-morandi ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.theme-morandi ::-webkit-scrollbar-track {
+  background: var(--morandi-cream);
+}
+
+.theme-morandi ::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--morandi-dusty-rose), var(--morandi-soft-brown));
+  border-radius: 4px;
+}
+
+.theme-morandi ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #c19a94, #9e8a74);
 }

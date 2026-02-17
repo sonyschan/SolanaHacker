@@ -14,6 +14,40 @@ function App() {
   const [userTickets, setUserTickets] = useState(0);
   const [votingStreak, setVotingStreak] = useState(0);
   const [userDataLoading, setUserDataLoading] = useState(false);
+  // 預設使用賽博朋克主題
+  const [currentTheme, setCurrentTheme] = useState("cyberpunk");
+
+  // 監聽 URL 參數，決定使用哪個主題
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const theme = urlParams.get('theme');
+    
+    if (theme === 'morandi') {
+      setCurrentTheme('morandi');
+    } else {
+      // 無參數或其他參數都使用賽博朋克主題
+      setCurrentTheme('cyberpunk');
+    }
+  }, []);
+
+  // 監聽 URL 變化
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const theme = urlParams.get('theme');
+      
+      if (theme === 'morandi' && currentTheme !== 'morandi') {
+        setCurrentTheme('morandi');
+        window.location.reload(); // 重新載入以套用新主題
+      } else if (theme !== 'morandi' && currentTheme !== 'cyberpunk') {
+        setCurrentTheme('cyberpunk');
+        window.location.reload(); // 重新載入以套用新主題
+      }
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, [currentTheme]);
 
   // Fetch user data from API when wallet connects - v2 fix
   useEffect(() => {
@@ -92,14 +126,44 @@ function App() {
     console.log("Use WalletConnection component instead");
   };
 
+  // 主題切換函數
+  const switchTheme = (theme) => {
+    const url = new URL(window.location);
+    if (theme === 'morandi') {
+      url.searchParams.set('theme', 'morandi');
+    } else {
+      url.searchParams.delete('theme');
+    }
+    window.history.pushState({}, '', url);
+    window.location.reload();
+  };
+
   return (
-    <div className="app min-h-screen flex flex-col">
+    <div className={`app min-h-screen flex flex-col ${currentTheme === 'morandi' ? 'theme-morandi' : 'theme-cyberpunk'}`}>
+      {/* 添加 Aurora 背景效果 (僅賽博朋克主題) */}
+      {currentTheme === 'cyberpunk' && <div className="aurora-bg"></div>}
+      
+      {/* 主題切換按鈕 */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => switchTheme(currentTheme === 'morandi' ? 'cyberpunk' : 'morandi')}
+          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ${
+            currentTheme === 'morandi'
+              ? 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+              : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+          }`}
+        >
+          {currentTheme === 'morandi' ? '🌌 Cyberpunk' : '🎨 Morandi'}
+        </button>
+      </div>
+      
       <div className="flex-grow">
         {currentView === "home" ? (
           <HomePage 
             onConnectWallet={connectWallet}
             walletConnected={connected}
             connecting={connecting}
+            currentTheme={currentTheme}
           />
         ) : (
           <Dashboard
@@ -110,6 +174,7 @@ function App() {
             setVotingStreak={setVotingStreak}
             walletAddress={publicKey?.toBase58()}
             userDataLoading={userDataLoading}
+            currentTheme={currentTheme}
           />
         )}
       </div>
