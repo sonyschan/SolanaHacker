@@ -1,0 +1,3 @@
+import{U as o}from"./index-CbAQxBO9.js";import"./index.browser.esm-B0GrH2t9.js";import"./index-CTQr_OER.js";import"./index-CSdy_MG3.js";import"./signIn-DZ5WYyjf.js";import"./adapter-Bdk-Hy2w.js";const s=o` <svg fill="none" viewBox="0 0 13 4">
+  <path fill="currentColor" d="M.5 0h12L8.9 3.13a3.76 3.76 0 0 1-4.8 0L.5 0Z" />
+</svg>`;export{s as cursorSvg};

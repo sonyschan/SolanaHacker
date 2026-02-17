@@ -43,18 +43,18 @@ const WalletConnection = ({ variant = "primary", className = "", showAddress = t
     };
 
     const buttonClasses = {
-        primary: "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 text-sm md:text-base",
-        secondary: "bg-gray-800/50 backdrop-blur-sm border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 text-sm md:text-base",
-        ghost: "text-cyan-300 hover:text-cyan-100 hover:bg-cyan-500/10 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all duration-300 text-sm md:text-base"
+        primary: "btn-morandi-clay text-stone-100 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-500 shadow-morandi-clay text-sm md:text-base",
+        secondary: "glass-morphism-morandi border text-stone-700 hover:bg-stone-200/30 font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-500 text-sm md:text-base",
+        ghost: "text-stone-600 hover:text-stone-800 hover:bg-stone-200/20 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all duration-500 text-sm md:text-base"
     };
 
     if (connected && publicKey) {
         return (
             <div className={`flex items-center space-x-3 ${className}`}>
                 {showAddress && (
-                    <div className="hidden sm:flex items-center space-x-2 bg-gray-900/50 backdrop-blur-sm px-3 py-2 rounded-lg border border-cyan-500/20">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-cyan-300 font-mono text-sm">
+                    <div className="hidden sm:flex items-center space-x-2 glass-morphism-morandi px-3 py-2 rounded-lg">
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--morandi-pale-green)' }}></div>
+                        <span className="font-mono text-sm" style={{ color: 'var(--morandi-mushroom)' }}>
                             {formatAddress(publicKey)}
                         </span>
                         {wallet && (
@@ -86,7 +86,7 @@ const WalletConnection = ({ variant = "primary", className = "", showAddress = t
                 >
                     {connecting ? (
                         <div className="flex items-center space-x-2">
-                            <div className="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
+                            <div className="placeholder-button button-pulse w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(155, 136, 116, 0.5)' }}></div>
                             <span>Connecting...</span>
                         </div>
                     ) : (
@@ -119,7 +119,7 @@ const WalletConnection = ({ variant = "primary", className = "", showAddress = t
             >
                 {connecting ? (
                     <div className="flex items-center space-x-2">
-                        <div className="placeholder-button button-pulse w-4 h-4 bg-cyan-400/50 rounded-full"></div>
+                        <div className="placeholder-button button-pulse w-4 h-4 rounded-full" style={{ backgroundColor: 'rgba(155, 136, 116, 0.5)' }}></div>
                         <span>Connecting...</span>
                     </div>
                 ) : (

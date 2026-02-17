@@ -6,7 +6,8 @@
   body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    background: #000;
+    background: var(--morandi-cream);
+    color: var(--morandi-mushroom);
     overflow-x: hidden;
   }
   
@@ -16,29 +17,50 @@
 }
 
 @layer utilities {
-  /* Grid background pattern */
-  .bg-grid-white\/\[0\.02\] {
+  /* Morandi color system - ultra soft and muted */
+  :root {
+    --morandi-cream: #e8e2d9;
+    --morandi-sage: #a8a690;
+    --morandi-dusty-rose: #b5a19d;
+    --morandi-soft-brown: #9b8874;
+    --morandi-muted-blue: #8b96a1;
+    --morandi-pale-green: #96a396;
+    --morandi-warm-gray: #a8a19a;
+    --morandi-soft-purple: #a395a1;
+    --morandi-deep-cream: #d6cfc4;
+    --morandi-mushroom: #8a7f73;
+    --morandi-soft-clay: #a08b7e;
+    --morandi-muted-olive: #888a7a;
+  }
+
+  /* Grid background pattern - ultra subtle */
+  .bg-grid-morandi {
     background-image: 
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      linear-gradient(rgba(168, 161, 154, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168, 161, 154, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
   }
   
-  /* Custom gradient text */
-  .text-gradient-cyber {
-    @apply bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent;
+  /* Morandi gradient text - muted */
+  .text-gradient-morandi {
+    @apply bg-gradient-to-r from-stone-600 via-stone-500 to-neutral-600 bg-clip-text text-transparent;
   }
   
-  /* Glowing effects */
-  .glow-cyan {
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+  /* Ultra soft shadow effects */
+  .shadow-morandi-soft {
+    box-shadow: 0 6px 25px rgba(138, 127, 115, 0.15);
   }
   
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+  .shadow-morandi-rose {
+    box-shadow: 0 6px 20px rgba(181, 161, 157, 0.18);
   }
   
-  .glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  .shadow-morandi-sage {
+    box-shadow: 0 6px 20px rgba(168, 166, 144, 0.18);
+  }
+  
+  .shadow-morandi-clay {
+    box-shadow: 0 6px 20px rgba(160, 139, 126, 0.18);
   }
   
   /* Animated background elements */
@@ -71,62 +93,79 @@
     -webkit-backdrop-filter: blur(4px);
   }
   
-  /* Custom scrollbar */
+  /* Morandi scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
   }
   
   ::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: var(--morandi-cream);
   }
   
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #06b6d4, #3b82f6);
+    background: linear-gradient(to bottom, var(--morandi-dusty-rose), var(--morandi-soft-brown));
     border-radius: 4px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #0891b2, #2563eb);
+    background: linear-gradient(to bottom, #c19a94, #9e8a74);
   }
 }
 
-/* Additional modern styling */
-.glass-morphism {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Morandi styling - ultra muted */
+.glass-morphism-morandi {
+  background: rgba(232, 226, 217, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 166, 144, 0.2);
 }
 
-.cyber-border {
+.morandi-border {
   position: relative;
-  background: linear-gradient(45deg, transparent, rgba(34, 211, 238, 0.1), transparent);
+  background: linear-gradient(45deg, transparent, rgba(181, 161, 157, 0.12), transparent);
   background-size: 200% 200%;
-  animation: borderShift 3s ease infinite;
+  animation: morandiBorderShift 6s ease infinite;
 }
 
-@keyframes borderShift {
+@keyframes morandiBorderShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
 
-/* Button hover effects */
-.btn-cyber {
+/* Morandi button effects - softer */
+.btn-morandi {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.5s ease;
+  background: linear-gradient(135deg, var(--morandi-dusty-rose), var(--morandi-soft-brown));
 }
 
-.btn-cyber::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
+.btn-morandi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(181, 161, 157, 0.25);
 }
 
-.btn-cyber:hover::before {
-  left: 100%;
+.btn-morandi-sage {
+  background: linear-gradient(135deg, var(--morandi-sage), var(--morandi-pale-green));
+}
+
+.btn-morandi-sage:hover {
+  box-shadow: 0 8px 25px rgba(168, 166, 144, 0.25);
+}
+
+.btn-morandi-clay {
+  background: linear-gradient(135deg, var(--morandi-soft-clay), var(--morandi-mushroom));
+}
+
+.btn-morandi-clay:hover {
+  box-shadow: 0 8px 25px rgba(160, 139, 126, 0.25);
+}
+
+/* Soft animations */
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 8s ease-in-out infinite;
 }
