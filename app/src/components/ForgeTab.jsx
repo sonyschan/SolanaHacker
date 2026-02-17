@@ -44,20 +44,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           setVotes(newVotes);
           // Note: rarityVotes will be set per-meme when user selects one in handleVote
         } else {
-          console.log('⚠️ No memes found, generating new ones...');
-          const generateResult = await memeService.generateDailyMemes();
-
-          if (generateResult.success && generateResult.memes) {
-            setDailyMemes(generateResult.memes);
-            const newVotes = {};
-            generateResult.memes.forEach((meme) => {
-              const selectionYes = meme.votes?.selection?.yes;
-              newVotes[meme.id] = typeof selectionYes === 'number' ? selectionYes : 0;
-            });
-            setVotes(newVotes);
-          } else {
-            throw new Error('Failed to generate daily memes');
-          }
+          console.log('⚠️ No memes found for today');
+          setError('No memes available yet. Daily memes are generated at 8 AM UTC+8.');
+          setDailyMemes([]);
         }
 
         setError(null);
@@ -85,7 +74,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   // Check user's vote status after memes are loaded
   useEffect(() => {
     const checkUserVoteStatus = async () => {
-      if (!walletAddress || dailyMemes.length === 0 || loading) return;
+      if (loading) return;
+      if (!walletAddress || dailyMemes.length === 0) {
+        setIsInitializing(false);
+        return;
+      }
 
       try {
         console.log('🔍 Checking user vote status for wallet:', walletAddress);
