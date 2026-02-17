@@ -86,6 +86,19 @@ async function generateMeme(req, res) {
 async function generateDailyMemes(req, res) {
   try {
     console.log('📅 Starting daily meme generation...');
+
+    // Check if memes already exist for today (prevent duplicates)
+    const today = new Date().toISOString().split("T")[0];
+    const startOfDay = new Date(today + "T00:00:00.000Z");
+    const endOfDay = new Date(today + "T23:59:59.999Z");
+    const existingSnapshot = await getFirestore().collection(collections.MEMES).where("type", "==", "daily")
+      .where("generatedAt", ">=", startOfDay.toISOString())
+      .where("generatedAt", "<=", endOfDay.toISOString())
+      .get();
+    if (!existingSnapshot.empty && existingSnapshot.size >= 3) {
+      console.log("ℹ️ Daily memes already exist for today ("+existingSnapshot.size+" found), skipping generation");
+      return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
+    }
     
     // Get crypto news
     const newsData = await newsService.getCryptoNews();
@@ -252,7 +265,7 @@ async function getTodaysMemes(req, res) {
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
     const db = getFirestore();
-    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', '==', 'active').where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc').limit(3);
+    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', 'in', ['active', 'voting_active', 'voting_completed']).where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc').limit(3);
     const snapshot = await query.get();
     const memes = [];
     snapshot.forEach(doc => { memes.push(fixImageUrl({ id: doc.id, ...doc.data() })); });
