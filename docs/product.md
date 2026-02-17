@@ -42,16 +42,22 @@
 - ❌ 鏈上 SOL 獎勵分配 → **Beta 版本**
 - ❌ 真實獎池管理 → **Beta 版本**
 
-### 🌟 Beta 版本 (開發中)
-**新增功能:**
-- ✅ 實際 NFT 鑄造到 Solana 區塊鏈
-- ✅ 3天競標拍賣系統
-- ✅ 真實 SOL 獎勵分配
-- ✅ 智能合約集成
-- ✅ 多簽錢包管理
-- ✅ 獎池自動分配 (80% 用戶，20% 營運)
-- ✅ **Firestore 即時同步**: 投票統計即時更新，多用戶同時看到變化
-- ✅ **即時社群體驗**: onSnapshot 監聽器創造動態投票氛圍
+### 🌟 Beta 版本 (開發中) — 三階段漸進式上線
+**Phase 1: Encourage Human Votes (鼓勵真人投票)**
+- 每日勝出 Meme 選出後，從所有當日投票者中隨機抽選一位 NFT 擁有者
+- 儲存中獎者的 wallet address 至 DB，供後續 NFT 鑄造使用
+- 投票參與 = 抽獎資格，激勵用戶每日投票
+
+**Phase 2: NFT Minting (NFT 鑄造)**
+- 將勝出 Meme 鑄造為 Solana NFT (Metaplex Standard)
+- 中獎者自行 claim 並支付 minting 費用 (~0.01 SOL)
+- Meme 圖片上傳至 Arweave 永久儲存
+- 已鑄造 Meme 狀態標記為 `minted`，防止重複鑄造
+
+**Phase 3: Token Gated (代幣門檻)**
+- 發行 SPL Token 保護投票公平性
+- 投票需持有最低代幣餘額門檻
+- 防止多錢包濫用 (Sybil Attack)
 
 ---
 
@@ -64,12 +70,12 @@
     ↓ (免費參與，獲得獎勵機會)
 3. 投票結果決定 Meme 稀有度 (Common → Legendary) ✅ (MVP)
     ↓ (民主化價值發現)
-4. 高稀有度 Meme → 鑄造為 NFT → 競標拍賣 🚧 (Beta)
-    ↓ (稀有內容變現)
-5. 競標收益 → 進入獎池 (80% 分配給用戶，20% 用於營運) 🚧 (Beta)
-    ↓ (創造實際價值)
-6. 週日 8PM UTC 開獎 → 分配 SOL 給中獎者 🚧 (Beta，MVP為模擬)
-    ↓ (價值回饋參與者，激勵下週參與)
+4. 勝出 Meme → 隨機抽選投票者為 NFT 擁有者 🚧 (Beta Phase 1)
+    ↓ (投票即挖礦，激勵參與)
+5. 中獎者 claim NFT → 支付 gas → Arweave 永久儲存 🚧 (Beta Phase 2)
+    ↓ (真實 NFT 資產)
+6. SPL Token 門檻 → 持有代幣才能投票 → 防 Sybil 🔮 (Beta Phase 3)
+    ↓ (公平性保障，代幣價值支撐)
 ```
 
 ### MVP 階段詳細說明
@@ -107,10 +113,10 @@
 - **狀態**: **完全實作** ✅
 
 #### Step 4-6: Beta 版本功能 🚧
-- **NFT 鑄造**: 稀缺性驅動 (每日僅 1 個)
-- **競標系統**: 3 天拍賣期，最高價得標
-- **真實獎勵**: SOL 分配給彩票中獎者
-- **狀態**: **開發中，標記為 Coming Soon**
+- **Phase 1**: 每日投票勝出 Meme → 隨機抽選 1 位投票者為 NFT 擁有者 → 儲存 wallet
+- **Phase 2**: NFT 鑄造 → 中獎者 claim + 支付 gas → Arweave 永久儲存 → 標記 `minted`
+- **Phase 3**: 發行 SPL Token → 投票需持有最低餘額 → 防止 Sybil Attack
+- **狀態**: **Phase 1 開發中**
 
 ---
 
@@ -201,18 +207,16 @@
 - [x] 錢包集成和用戶界面
 - [x] 模擬抽獎功能
 
-### Phase 2: Beta Release 🚧 (開發中)
-- [ ] NFT 鑄造智能合約
-- [ ] 競標拍賣系統
-- [ ] 真實 SOL 獎勵分配
-- [ ] 多簽錢包安全管理
-- [ ] Advanced Analytics 儀表板
+### Phase 2: Beta Release 🚧 (開發中) — 三階段
+- [ ] **Beta Phase 1**: 每日 NFT 擁有者抽選系統 (投票 → 勝出 → 抽選 → 儲存 wallet)
+- [ ] **Beta Phase 2**: NFT 鑄造 (Metaplex + Arweave + claim flow + `minted` 狀態管理)
+- [ ] **Beta Phase 3**: SPL Token 發行 + 最低持有門檻投票
 
 ### Phase 3: Full Production 🔮 (規劃中)
-- [ ] 移動應用程式
+- [ ] NFT 競標拍賣市場
+- [ ] SOL 獎勵分配 (獎池管理)
 - [ ] 社群治理系統
-- [ ] 跨鏈橋接 (Ethereum, BSC)
-- [ ] 企業 API 服務
+- [ ] 移動應用程式
 - [ ] 全球化和多語言支持
 
 ---

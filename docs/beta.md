@@ -1,519 +1,413 @@
-# 🎯 MemeForge Beta 階段技術規劃書
+# MemeForge Beta — 三階段實作規劃書
 
-基於 MVP 的技術基礎，以下是 **Beta 測試階段**的技術執行計畫：
+> 基於 MVP 的投票系統，漸進式引入 NFT 擁有權、鏈上鑄造、代幣門檻
+
+*最後更新: 2026-02-18*
 
 ---
 
----
-
-## 📍 當前部署狀態 (2026-02-12)
-
-### Production 環境
+## 當前部署狀態
 
 | 服務 | URL | 狀態 |
 |-----|-----|------|
-| Frontend | https://solana-hacker.vercel.app | ✅ 運行中 |
-| Backend API | https://memeforge-api-836651762884.asia-southeast1.run.app | ✅ 運行中 |
-| Firestore | web3ai-469609 | ✅ 已建立索引 |
-
-### 已完成的基礎設施
-
-- [x] Cloud Run 部署 (asia-southeast1)
-- [x] Firebase Admin SDK 認證
-- [x] Firestore Composite Index (memes collection)
-- [x] CORS 設定 (Vercel + Droplet origins)
-- [x] 讀寫分離架構 (Firebase direct + Cloud Run API)
-
-### 下一步 Beta 準備
-
-- [ ] WebSocket 即時通訊
-- [ ] Redis 快取層
-- [ ] 微服務拆分
-- [ ] NFT 鑄造智能合約
+| Frontend | https://solana-hacker.vercel.app | Running |
+| Backend API | https://memeforge-api-836651762884.asia-southeast1.run.app | Running |
+| Firestore | web3ai-469609 | Indexed |
+| Cloud Scheduler | memeforge-daily-cycle (8AM UTC+8) | Active |
 
 ---
 
-## ⏰ GCP Cloud Scheduler 排程系統
+## Beta Phase 1: Encourage Human Votes
 
-### 為什麼使用 Cloud Scheduler 而非 node-cron？
+### 目標
+投票即有機會成為 NFT 擁有者。每日勝出 Meme 選出後，從當日所有投票者中隨機抽選一位，儲存其 wallet address 供後續 NFT 鑄造。
 
-Cloud Run 採用 scale-to-zero 架構，當沒有請求時容器會關閉。這導致 node-cron 無法可靠執行：
-- 容器 cold start 時 cron job 可能錯過執行時間
-- 容器被關閉後，所有 in-memory 的 cron 排程都會消失
-- 無法保證每日 8:00 AM 的梗圖生成任務會執行
+### 流程
 
-**解決方案**：使用 GCP Cloud Scheduler（外部服務）觸發 Cloud Run API 端點
+```
+每日 8:00 AM (UTC+8): AI 生成 3 個 Meme → 開始投票
+        ↓
+用戶連接錢包 → 投票選出最喜歡的 Meme → 獲得 tickets
+        ↓
+隔日 7:55 AM: 結算投票 → 選出勝出 Meme (最高票)
+        ↓
+從所有當日投票者中隨機抽選 1 位 → 記錄為 NFT Owner
+        ↓
+更新勝出 Meme 狀態:
+  status: 'winner'
+  nftOwner: { walletAddress, selectedAt, claimedAt: null }
+```
 
-### 當前排程任務 (Taiwan Time, UTC+8)
+### Firestore Schema 變更
 
-| Job 名稱 | 執行時間 | 觸發端點 | 說明 |
-|---------|---------|---------|------|
-| `memeforge-daily-cycle` | 每日 8:00 AM | POST `/api/scheduler/trigger/daily_cycle` | 生成每日梗圖 + 開始投票 |
-| `memeforge-end-voting` | 每日 7:55 AM | POST `/api/scheduler/trigger/end_voting` | 結算前日投票、計算稀有度 |
-| `memeforge-lottery-draw` | 每週日 8:00 PM | POST `/api/scheduler/trigger/lottery_draw` | 每週抽獎 |
+**memes collection — 新增欄位:**
 
-### GCP Cloud Scheduler 管理指令
+```javascript
+{
+  // 既有欄位 (不變)
+  id: 'meme_xxx',
+  type: 'daily',
+  status: 'active' | 'voting_active' | 'voting_completed' | 'winner' | 'minted',
+  generatedAt: '2026-02-18T00:00:00.000Z',
+  title: 'Meme Title',
+  imageUrl: 'https://storage.googleapis.com/...',
+  votes: { selection: { yes: 42, no: 10 } },
+
+  // Phase 1 新增
+  nftOwner: {
+    walletAddress: 'ABC123...xyz',    // 中獎者錢包地址
+    selectedAt: '2026-02-19T00:00:00Z', // 抽選時間
+    claimTxSignature: null,             // Phase 2: claim 交易簽名
+    claimedAt: null,                    // Phase 2: claim 時間
+    mintAddress: null                   // Phase 2: NFT mint address
+  }
+}
+```
+
+**votes collection — 確認結構 (不變):**
+
+```javascript
+{
+  memeId: 'meme_xxx',
+  walletAddress: 'ABC123...xyz',
+  vote: 'yes',
+  timestamp: '2026-02-18T10:30:00.000Z'
+}
+```
+
+### Backend 實作
+
+**新增 API endpoint: `POST /api/scheduler/trigger/select_winner`**
+
+```javascript
+// schedulerService.js — 新增 selectDailyWinner()
+async selectDailyWinner() {
+  // 1. 找到昨日勝出 Meme (投票最高)
+  const yesterday = getYesterdayDate(); // UTC+8 adjusted
+  const memes = await getTodaysMemes(yesterday);
+  const winner = memes.sort((a, b) =>
+    (b.votes?.selection?.yes || 0) - (a.votes?.selection?.yes || 0)
+  )[0];
+
+  // 2. 取得所有昨日投票者的 wallet addresses (去重)
+  const votesSnapshot = await db.collection('votes')
+    .where('timestamp', '>=', startOfDay)
+    .where('timestamp', '<=', endOfDay)
+    .get();
+  const uniqueVoters = [...new Set(
+    votesSnapshot.docs.map(doc => doc.data().walletAddress)
+  )];
+
+  // 3. 隨機抽選 1 位
+  const selectedWallet = uniqueVoters[
+    Math.floor(Math.random() * uniqueVoters.length)
+  ];
+
+  // 4. 更新勝出 Meme
+  await db.collection('memes').doc(winner.id).update({
+    status: 'winner',
+    nftOwner: {
+      walletAddress: selectedWallet,
+      selectedAt: new Date().toISOString(),
+      claimTxSignature: null,
+      claimedAt: null,
+      mintAddress: null
+    }
+  });
+
+  // 5. 記錄到 users collection (方便查詢「我贏了哪些 NFT」)
+  await db.collection('users').doc(selectedWallet).update({
+    nftWins: FieldValue.arrayUnion({
+      memeId: winner.id,
+      title: winner.title,
+      selectedAt: new Date().toISOString(),
+      claimed: false
+    })
+  });
+}
+```
+
+**Cloud Scheduler 新增排程:**
+
+| Job | 時間 | 端點 | 說明 |
+|-----|------|------|------|
+| `memeforge-select-winner` | 每日 7:56 AM (UTC+8) | POST `/api/scheduler/trigger/select_winner` | 結算後 1 分鐘抽選 NFT Owner |
+
+執行順序: `end_voting` (7:55) → `select_winner` (7:56) → `daily_cycle` (8:00)
+
+### Frontend 變更
+
+1. **ForgeTab**: 勝出 Meme 顯示 NFT Owner badge (截斷 wallet address)
+2. **GalleryTab**: 歷史 Meme 顯示 Owner 和 claim 狀態
+3. **Dashboard**: 新增「My NFTs」區域 — 顯示用戶贏得的 NFT 列表和 claim 按鈕 (Phase 2 啟用)
+
+### Phase 1 驗收標準
+
+- [ ] 每日投票結算後自動選出勝出 Meme
+- [ ] 從所有投票者中隨機抽選 1 位，wallet address 寫入 DB
+- [ ] Gallery 顯示歷史 winner 和 owner
+- [ ] 用戶 Dashboard 顯示自己贏得的 NFT (pending claim)
+- [ ] 邊界情況處理：0 投票者、僅 1 投票者、平票
+
+---
+
+## Beta Phase 2: NFT Minting
+
+### 目標
+中獎者可以 claim 勝出 Meme 的 NFT。系統將圖片上傳至 Arweave，鑄造為 Solana NFT (Metaplex Standard)，中獎者支付 gas 費。已鑄造的 Meme 標記為 `minted` 防止重複。
+
+### 流程
+
+```
+中獎者打開 Dashboard → 看到 "Claim NFT" 按鈕
+        ↓
+點擊 Claim → 前端建構 mint transaction
+        ↓
+系統上傳 Meme 圖片至 Arweave → 取得永久 URI
+        ↓
+建構 Metaplex NFT metadata → 上傳至 Arweave
+        ↓
+建構 Solana mint transaction → 用戶簽名 + 支付 gas (~0.01 SOL)
+        ↓
+交易確認後:
+  - Meme status → 'minted'
+  - nftOwner.mintAddress → NFT mint public key
+  - nftOwner.claimTxSignature → transaction signature
+  - nftOwner.claimedAt → timestamp
+```
+
+### NFT Metadata (Metaplex Standard)
+
+```json
+{
+  "name": "MemeForge #001 — Meme Season Calls",
+  "symbol": "MFORGE",
+  "description": "AI-generated meme voted by the MemeForge community. Winner selected on 2026-02-18.",
+  "image": "https://arweave.net/xxx",
+  "external_url": "https://aimemeforge.io/meme/meme_xxx",
+  "attributes": [
+    { "trait_type": "Rarity", "value": "Legendary" },
+    { "trait_type": "Art Style", "value": "Classic Oil Painting" },
+    { "trait_type": "Vote Count", "value": 42 },
+    { "trait_type": "Generation Date", "value": "2026-02-18" },
+    { "trait_type": "AI Model", "value": "Gemini 3 Pro" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [
+      { "address": "PLATFORM_WALLET", "share": 0 },
+      { "address": "WINNER_WALLET", "share": 100 }
+    ]
+  }
+}
+```
+
+### 技術依賴
+
+| 套件 | 用途 |
+|------|------|
+| `@metaplex-foundation/mpl-token-metadata` | NFT metadata program |
+| `@metaplex-foundation/umi` | Metaplex framework |
+| `@irys/sdk` (formerly Bundlr) | Arweave 上傳 |
+| `@solana/web3.js` | Solana transaction 建構 |
+
+### Backend API
+
+**`POST /api/nft/prepare-mint`** — 準備 mint 交易 (server-side)
+```javascript
+// 1. 驗證 caller 是 nftOwner
+// 2. 驗證 meme status !== 'minted'
+// 3. 上傳圖片至 Arweave
+// 4. 上傳 metadata JSON 至 Arweave
+// 5. 建構 unsigned mint transaction
+// 6. 回傳 serialized transaction 給前端簽名
+```
+
+**`POST /api/nft/confirm-mint`** — 確認 mint 完成
+```javascript
+// 1. 驗證 transaction signature on-chain
+// 2. 更新 Firestore: status → 'minted', 記錄 mintAddress
+// 3. 更新 users collection: claimed → true
+```
+
+### Meme Status 狀態機
+
+```
+active → voting_active → voting_completed → winner → minted
+                                              ↑
+                                        (Phase 1 設定)
+```
+
+- `minted` 為終態，任何 endpoint 收到 `minted` 狀態的 meme 一律拒絕操作
+- `winner` + `nftOwner.claimedAt === null` = 等待 claim
+- `winner` + `nftOwner.claimedAt !== null` = 異常 (已 claim 但未 minted，需排查)
+
+### 防重複鑄造機制
+
+```javascript
+// memeController.js 或 nftController.js
+async function prepareMint(req, res) {
+  const meme = await db.collection('memes').doc(memeId).get();
+
+  // Guard 1: 狀態檢查
+  if (meme.data().status === 'minted') {
+    return res.status(400).json({ error: 'Already minted' });
+  }
+
+  // Guard 2: Owner 檢查
+  if (meme.data().nftOwner?.walletAddress !== callerWallet) {
+    return res.status(403).json({ error: 'Not the NFT owner' });
+  }
+
+  // Guard 3: Firestore transaction (atomic)
+  await db.runTransaction(async (t) => {
+    const fresh = await t.get(db.collection('memes').doc(memeId));
+    if (fresh.data().status === 'minted') throw new Error('Race condition');
+    t.update(db.collection('memes').doc(memeId), {
+      status: 'minting_in_progress'
+    });
+  });
+
+  // Proceed with Arweave upload + transaction building...
+}
+```
+
+### Phase 2 驗收標準
+
+- [ ] 中獎者可以在 Dashboard 看到 "Claim NFT" 按鈕
+- [ ] 圖片成功上傳至 Arweave 並取得永久 URI
+- [ ] NFT metadata 符合 Metaplex Standard
+- [ ] 用戶簽名交易後 NFT 出現在其錢包
+- [ ] Meme status 更新為 `minted`，無法再次 claim
+- [ ] 併發 claim 請求不會造成 double mint (Firestore transaction guard)
+- [ ] Solana Explorer 上可查看 NFT 詳情
+
+---
+
+## Beta Phase 3: Token Gated
+
+### 目標
+發行 SPL Token，要求投票者持有最低餘額門檻，防止多錢包 Sybil Attack。
+
+### 設計
+
+**Token 資訊:**
+- Standard: SPL Token (Token-2022 optional)
+- Name: MemeForge Token
+- Symbol: $MFORGE
+- Decimals: 6
+- Initial Supply: TBD (根據用戶規模決定)
+
+**門檻機制:**
+```
+投票前檢查:
+  1. 前端: 讀取用戶錢包的 $MFORGE 餘額
+  2. 後端: /api/voting/vote 驗證鏈上餘額 >= MINIMUM_BALANCE
+  3. 不足: 顯示「需持有 X $MFORGE 才能投票」+ 取得方式引導
+```
+
+**最低持有量:**
+- 投票門檻: 100 $MFORGE (可通過 config 調整)
+- 不需要 staking/lock，僅需持有
+- 後端透過 `@solana/web3.js` getTokenAccountsByOwner 驗證
+
+### Token 分發方式 (待定)
+
+| 方式 | 說明 |
+|------|------|
+| Airdrop | 對早期 Beta 用戶空投初始 token |
+| Vote-to-Earn | 每次投票獲得少量 token (取代或補充 tickets) |
+| DEX Listing | 上架 Raydium/Jupiter 供購買 |
+
+### Backend 驗證
+
+```javascript
+// votingController.js — 新增 token 餘額檢查
+const { Connection, PublicKey } = require('@solana/web3.js');
+const { TOKEN_PROGRAM_ID } = require('@solana/spl-token');
+
+const MFORGE_MINT = new PublicKey('TOKEN_MINT_ADDRESS');
+const MIN_BALANCE = 100_000_000; // 100 tokens * 10^6 decimals
+
+async function verifyTokenBalance(walletAddress) {
+  const connection = new Connection(process.env.SOLANA_RPC_URL);
+  const wallet = new PublicKey(walletAddress);
+
+  const tokenAccounts = await connection.getTokenAccountsByOwner(wallet, {
+    mint: MFORGE_MINT
+  });
+
+  if (tokenAccounts.value.length === 0) return 0;
+
+  const balance = tokenAccounts.value[0].account.data.parsed
+    .info.tokenAmount.amount;
+  return parseInt(balance);
+}
+```
+
+### Phase 3 驗收標準
+
+- [ ] SPL Token 成功部署至 Solana (devnet → mainnet)
+- [ ] 投票 API 驗證鏈上 token 餘額
+- [ ] 餘額不足時前端顯示引導訊息
+- [ ] Token 分發機制至少一種可運作
+- [ ] 最低門檻可通過 config 動態調整
+
+---
+
+## 排程系統 (更新)
+
+### Cloud Scheduler Jobs
+
+| Job | 時間 (UTC+8) | 端點 | Phase |
+|-----|-------------|------|-------|
+| `memeforge-end-voting` | 每日 7:55 AM | POST `/api/scheduler/trigger/end_voting` | MVP |
+| `memeforge-select-winner` | 每日 7:56 AM | POST `/api/scheduler/trigger/select_winner` | Beta P1 |
+| `memeforge-daily-cycle` | 每日 8:00 AM | POST `/api/scheduler/trigger/daily_cycle` | MVP |
+| `memeforge-lottery-draw` | 每週日 8:00 PM | POST `/api/scheduler/trigger/lottery_draw` | MVP |
+
+### 管理指令
 
 ```bash
-# 列出所有排程任務
+# 列出所有排程
 gcloud scheduler jobs list --location=asia-southeast1
 
-# 手動觸發任務測試
-gcloud scheduler jobs run memeforge-daily-cycle --location=asia-southeast1
-
-# 更新任務時間
-gcloud scheduler jobs update http memeforge-end-voting \
+# 新增 winner 抽選 job
+gcloud scheduler jobs create http memeforge-select-winner \
   --location=asia-southeast1 \
-  --schedule="55 7 * * *" \
-  --time-zone="Asia/Taipei"
+  --schedule="56 7 * * *" \
+  --time-zone="Asia/Taipei" \
+  --uri="https://memeforge-api-836651762884.asia-southeast1.run.app/api/scheduler/trigger/select_winner" \
+  --http-method=POST \
+  --headers="Content-Type=application/json"
 
-# 暫停/恢復任務
-gcloud scheduler jobs pause memeforge-daily-cycle --location=asia-southeast1
-gcloud scheduler jobs resume memeforge-daily-cycle --location=asia-southeast1
-
-# 查看任務詳情
-gcloud scheduler jobs describe memeforge-daily-cycle --location=asia-southeast1
+# 手動觸發測試
+gcloud scheduler jobs run memeforge-select-winner --location=asia-southeast1
 ```
 
-### API 端點
+---
 
-```
-POST /api/scheduler/trigger/:taskName
+## 部署注意事項
 
-可用的 taskName：
-- daily_cycle    - 完整每日流程（生成梗圖 + 開始投票）
-- daily_memes    - 僅生成每日梗圖
-- start_voting   - 開始投票期
-- end_voting     - 結束投票期、計算稀有度
-- lottery_draw   - 執行每週抽獎
-- cleanup        - 週清理（歸檔舊投票）
-- voting_progress - 檢查投票進度
-
-GET /api/scheduler/status   - 取得排程狀態
-GET /api/scheduler/logs     - 取得執行日誌
-GET /api/scheduler/health   - 健康檢查
-```
-
-### 故障排除
-
-**問題：梗圖沒有在預定時間生成**
-1. 檢查 Cloud Scheduler job 狀態：`gcloud scheduler jobs list`
-2. 查看最後執行時間和結果
-3. 檢查 Cloud Run 日誌：`gcloud run services logs read memeforge-api`
-
-**問題：投票結果沒有正確計算**
-1. 手動觸發 end_voting：`gcloud scheduler jobs run memeforge-end-voting`
-2. 檢查 Firestore 中的 voting_periods collection
-3. 查看 scheduler_logs collection 的錯誤訊息
-
-**問題：需要調整時區或執行時間**
+### Cloud Run 部署
 ```bash
-# 更新排程時間（使用 cron 格式）
-gcloud scheduler jobs update http JOB_NAME \
-  --location=asia-southeast1 \
-  --schedule="新的CRON表達式" \
-  --time-zone="Asia/Taipei"
+# 使用 deploy.sh 確保 env vars 不被覆蓋
+cd /home/projects/solanahacker/app/backend && ./deploy.sh
 ```
 
----
+**重要: 永遠使用 `--env-vars-file` 或 `--update-env-vars`，禁止使用 `--set-env-vars` 避免覆蓋既有環境變數。**
 
-## 🌐 前後端通訊升級 (Beta)
+### Phase 2 新增環境變數
 
-### Vercel Frontend ↔ GCP Microservices
+| Key | 說明 |
+|-----|------|
+| `ARWEAVE_WALLET_KEY` | Arweave/Irys 上傳金鑰 |
+| `SOLANA_RPC_URL` | Solana RPC (mainnet-beta for production) |
+| `PLATFORM_WALLET_KEYPAIR` | 平台錢包 keypair (用於建構 mint tx) |
 
-#### 1. 微服務 API Gateway
-```javascript
-// Cloud Run 服務分割
-const MICROSERVICES = {
-  voting: 'https://voting-service-xxx.run.app',
-  memes: 'https://meme-service-xxx.run.app',
-  lottery: 'https://lottery-service-xxx.run.app',
-  nft: 'https://nft-service-xxx.run.app',
-  notifications: 'https://notification-service-xxx.run.app'
-};
+### Phase 3 新增環境變數
 
-// Frontend 統一 API 客戶端
-class MemeForgeAPI {
-  async vote(data) {
-    return this.post(`${MICROSERVICES.voting}/vote`, data);
-  }
-  
-  async getMemes() {
-    return this.get(`${MICROSERVICES.memes}/today`);
-  }
-  
-  async mintNFT(memeId) {
-    return this.post(`${MICROSERVICES.nft}/mint`, { memeId });
-  }
-}
-```
-
-#### 2. WebSocket 即時通訊
-```javascript
-// 即時投票更新 & 社群聊天
-import { io } from 'socket.io-client';
-
-const useRealtimeUpdates = () => {
-  useEffect(() => {
-    const socket = io(MICROSERVICES.voting);
-    
-    // 即時投票統計
-    socket.on('voteUpdate', (data) => {
-      updateVotingStats(data);
-    });
-    
-    // 社群聊天消息
-    socket.on('newMessage', (message) => {
-      addChatMessage(message);
-    });
-    
-    // NFT Mint 成功通知
-    socket.on('nftMinted', (nft) => {
-      showSuccessNotification(nft);
-    });
-    
-    return () => socket.disconnect();
-  }, []);
-};
-```
-
-#### 3. 高級快取策略
-```javascript
-// Service Worker + Redis 混合快取
-// Frontend: Service Worker
-self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/api/memes')) {
-    event.respondWith(
-      caches.open('memes-cache').then(cache => {
-        return cache.match(event.request).then(response => {
-          // Cache first, 24小時過期
-          return response || fetch(event.request);
-        });
-      })
-    );
-  }
-});
-
-// Backend: Redis 快取
-const redis = new Redis(process.env.REDIS_URL);
-
-const getCachedMemes = async (date) => {
-  const cacheKey = `memes:${date}`;
-  const cached = await redis.get(cacheKey);
-  
-  if (cached) return JSON.parse(cached);
-  
-  const memes = await generateDailyMemes();
-  await redis.setex(cacheKey, 86400, JSON.stringify(memes)); // 24h
-  return memes;
-};
-```
-
-#### 4. GraphQL 數據查詢
-```graphql
-# 替代 REST API，減少網路請求
-type Query {
-  currentMemes: [Meme!]!
-  userProfile(walletAddress: String!): UserProfile
-  votingStats(memeId: String!): VotingStats
-  leaderboard(period: TimePeriod!): [LeaderboardEntry!]!
-}
-
-type Mutation {
-  vote(input: VoteInput!): VoteResult!
-  sendMessage(input: MessageInput!): Message!
-  mintNFT(memeId: String!): NFTResult!
-}
-
-type Subscription {
-  votingUpdates(memeId: String!): VotingStats!
-  chatMessages: Message!
-  lotteryResults: LotteryResult!
-}
-```
-
-#### 5. 離線支援機制
-```javascript
-// Progressive Web App 離線功能
-const OfflineManager = {
-  // 離線時暫存投票
-  queueVote: (voteData) => {
-    const pending = JSON.parse(localStorage.getItem('pendingVotes') || '[]');
-    pending.push({ ...voteData, timestamp: Date.now() });
-    localStorage.setItem('pendingVotes', JSON.stringify(pending));
-  },
-  
-  // 重新上線時同步
-  syncPendingActions: async () => {
-    const pending = JSON.parse(localStorage.getItem('pendingVotes') || '[]');
-    for (const vote of pending) {
-      try {
-        await api.vote(vote);
-      } catch (error) {
-        console.warn('Sync failed for vote:', vote);
-      }
-    }
-    localStorage.removeItem('pendingVotes');
-  }
-};
-```
-
-#### 6. 企業級監控與錯誤追蹤
-```javascript
-// Sentry 錯誤追蹤
-import * as Sentry from "@sentry/react";
-
-Sentry.init({
-  dsn: process.env.VITE_SENTRY_DSN,
-  integrations: [
-    new Sentry.BrowserTracing(),
-  ],
-  tracesSampleRate: 1.0,
-});
-
-// 自定義錯誤邊界
-const APIErrorBoundary = ({ children }) => {
-  return (
-    <Sentry.ErrorBoundary fallback={ErrorFallback}>
-      {children}
-    </Sentry.ErrorBoundary>
-  );
-};
-
-// Performance 監控
-const trackUserAction = (action, metadata) => {
-  Sentry.addBreadcrumb({
-    message: action,
-    category: 'user-action',
-    data: metadata,
-    level: 'info',
-  });
-};
-```
-
----
-
-## 📊 現況分析
-
-### MVP 已完成
-- ✅ 前端投票 UI 與狀態管理
-- ✅ Local Storage 數據持久化  
-- ✅ 彩票分配邏輯
-- ✅ 每日梗圖生成機制
-- ✅ 連續投票獎勵系統
-
-### Beta 階段目標
-**支援多個外部用戶同時測試完整的 MemeForge 體驗**
-
----
-
-## 🛠 技術架構升級
-
-### 1. Cloud Run 微服務架構
-**目標：從單體後端升級為微服務架構**
-
-- **投票微服務 (Cloud Run)**
-  - 投票邏輯和驗證
-  - 彩票發放算法
-  - 連續投票獎勵計算
-  - 防止重複投票機制
-
-- **梗圖微服務 (Cloud Run)**
-  - Gemini API 梗圖生成
-  - Cloud Storage 圖片管理
-  - 圖片壓縮和 CDN 優化
-  - 每日生成排程管理
-
-- **用戶微服務 (Cloud Run)**
-  - Firebase Auth 身份驗證
-  - 用戶資料管理
-  - 投票歷史和統計
-  - 成就和排行榜系統
-
-### 2. GCP 數據層設計
-**目標：高性能多用戶數據管理**
-
-- **Firestore Database**
-  - 即時投票同步 (多用戶)
-  - 用戶投票記錄
-  - 彩票和獎勵數據
-  - 成就和統計數據
-
-- **Cloud Storage + CDN**
-  - AI 生成梗圖存儲
-  - 全球 CDN 加速
-  - 自動圖片優化
-  - 備份和版本控制
-
-- **BigQuery 數據分析**
-  - 用戶行為分析
-  - 投票趨勢分析
-  - 營運決策數據
-  - 自動報表生成
-
-### 3. AI 整合升級
-**目標：真實的 AI 梗圖生成**
-
-- **Gemini API 整合**
-  - 每日自動生成 3 個梗圖
-  - 基於時事熱點的梗圖內容
-  - 圖片品質優化與存儲
-  - 生成失敗的備用機制
-
-- **排程系統**
-  - UTC 時區的每日重置
-  - 自動梗圖生成任務
-  - 週日開獎排程
-  - 數據清理任務
-
-### 4. 用戶體驗優化
-**目標：流暢的多用戶互動體驗**
-
-- **即時反饋系統**
-  - 投票動畫效果
-  - 彩票獲得提醒
-  - 投票統計更新動畫
-  - 排行榜即時更新
-
-- **社群功能**
-  - 即時在線人數顯示
-  - 週投票排行榜
-  - 用戶投票歷史
-  - 連續投票成就系統
-
-### 5. GCP 原生部署與監控
-**目標：企業級測試環境**
-
-- **完全 Serverless 部署**
-  - Frontend: Firebase Hosting (全球 CDN)
-  - Backend: Cloud Run (自動擴展)
-  - Database: Firestore (多區域複製)
-  - Storage: Cloud Storage (高可用性)
-
-- **GCP 原生監控**
-  - Cloud Monitoring: 實時系統指標
-  - Cloud Logging: 結構化日誌收集
-  - Error Reporting: 自動錯誤追蹤
-  - Cloud Trace: API 性能分析
-  - Uptime Checks: 服務可用性監控
-
----
-
-## ⏱ 開發時程規劃
-
-### Week 1: GCP 微服務建設
-- 投票微服務 (Cloud Run) 開發
-- Firestore 數據模型設計
-- Firebase Auth 身份驗證整合
-- Cloud Storage 梗圖存儲設置
-
-### Week 2: AI 與自動化整合
-- 梗圖微服務 + Gemini API 整合
-- Cloud Scheduler 定時任務設置
-- BigQuery 數據分析管道建立
-- Cloud Monitoring 監控設置
-
-### Week 3: 前端與即時同步
-- Firestore 即時數據同步
-- Firebase Hosting 前端部署
-- 用戶體驗優化 (PWA 支援)
-- 錯誤處理與離線支援
-
-### Week 4: 測試與優化
-- Cloud Load Testing 負載測試
-- 多地區部署和 CDN 優化
-- 安全性測試和性能調優
-- Beta 用戶邀請和反饋收集
-
----
-
-## 🎮 Beta 測試功能清單
-
-### 核心功能
-- [ ] 多用戶同時投票
-- [ ] 即時投票統計同步
-- [ ] AI 生成每日梗圖
-- [ ] 跨用戶彩票獎勵
-- [ ] 週排行榜競賽
-
-### 用戶體驗
-- [ ] 流暢的註冊/登入流程
-- [ ] 即時反饋與動畫
-- [ ] 響應式移動端支持
-- [ ] 錯誤提示與引導
-- [ ] 投票歷史查看
-
-### 技術品質
-- [ ] 99% 服務可用性
-- [ ] <500ms API 響應時間
-- [ ] 支援 50+ 並發用戶
-- [ ] 完整錯誤監控
-- [ ] 自動化備份機制
-
----
-
-## 🚀 成功指標
-
-**用戶參與度**
-- 每日活躍用戶 > 20 人
-- 平均投票完成率 > 80%
-- 用戶留存率 > 60% (3天)
-
-**技術穩定性**  
-- 系統可用性 > 99%
-- API 錯誤率 < 1%
-- 頁面載入時間 < 3 秒
-
-**功能完整度**
-- 所有核心功能正常運作
-- 多用戶並發無衝突
-- AI 梗圖生成成功率 > 95%
----
-
-## 🔄 MVP Ready 完成項目 (2026-02-12)
-
-### MVP 已完成功能
-
-| 功能 | 狀態 | 說明 |
-|------|------|------|
-| GCS 圖片儲存 | ✅ | 修復 uniform bucket-level access |
-| API-based meme 獲取 | ✅ | 移除 Firebase direct read |
-| 用戶資料管理 | ✅ | weeklyTickets, streakDays, lastVoteDate |
-| 平台統計 | ✅ | weeklyVoters 動態更新 |
-| 投票獎勵 | ✅ | 8-15 隨機 tickets |
-| 連續投票 streak | ✅ | 自動計算並更新 |
-| 週日重置 API | ✅ | tickets 和 voters 歸零 |
-
-### Beta 階段待實作
-
-| 功能 | 優先級 | 說明 |
-|------|--------|------|
-| NFT 鑄造 | 🔴 高 | Solana SPL Token 標準 |
-| 競標拍賣 | 🔴 高 | 3 天拍賣期 |
-| SOL 獎勵分配 | 🔴 高 | 鏈上轉帳 |
-| 智能合約 | 🔴 高 | 獎池管理 |
-| WebSocket 即時同步 | 🟡 中 | 投票統計即時更新 |
-| Redis 快取 | 🟡 中 | 效能優化 |
-| GraphQL | 🟢 低 | API 優化 |
-
-### MVP → Beta 升級路徑
-
-```
-MVP 階段:
-├── 投票系統 ✅
-├── Tickets 累積 ✅
-├── 用戶 Streak ✅
-└── 模擬抽獎 ✅ (顯示 Coming Soon)
-
-Beta 階段需新增:
-├── NFT 鑄造服務
-│   └── Solana Program (Anchor)
-├── 競標拍賣系統
-│   └── 智能合約 + Frontend UI
-├── 真實 SOL 獎勵
-│   └── 獎池管理 + 分配邏輯
-└── 即時同步
-    └── WebSocket + Redis
-```
-
----
+| Key | 說明 |
+|-----|------|
+| `MFORGE_TOKEN_MINT` | $MFORGE SPL Token mint address |
+| `MIN_TOKEN_BALANCE` | 投票最低持有量 (default: 100) |
