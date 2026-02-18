@@ -190,54 +190,18 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12">
-            {/* Flywheel visual — 4-step loop */}
-            {/* Desktop */}
-            <div className="hidden md:flex items-start justify-center mb-2">
-              {[
-                { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
-                { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
-                { label: "Community Grows", icon: "👥", color: "text-blue-400" },
-                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" }
-              ].map((item, i) => (
-                <React.Fragment key={i}>
-                  <div className="text-center w-32">
-                    <div className="text-4xl mb-2">{item.icon}</div>
-                    <div className={`font-bold text-sm ${item.color}`}>{item.label}</div>
-                  </div>
-                  {i < 3 && (
-                    <div className="text-gray-500 text-xl mt-2.5 mx-2">&rarr;</div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            {/* Desktop loop-back */}
-            <div className="hidden md:block text-center text-gray-500 text-sm mb-6">
-              &#8630; the cycle repeats &#8631;
+          <div className="max-w-4xl mx-auto">
+            {/* Flywheel diagram — generated image */}
+            <div className="mb-8">
+              <img
+                src="/images/flywheel-growth.jpg"
+                alt="Growth Flywheel: Vote Free → Win Memes → Community Grows → NFTs Gain Value → cycle repeats"
+                className="w-full rounded-2xl"
+                loading="lazy"
+              />
             </div>
 
-            {/* Mobile */}
-            <div className="md:hidden flex flex-col items-center gap-1 mb-6">
-              {[
-                { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
-                { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
-                { label: "Community Grows", icon: "👥", color: "text-blue-400" },
-                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" }
-              ].map((item, i) => (
-                <React.Fragment key={i}>
-                  <div className="flex items-center space-x-3">
-                    <div className="text-3xl">{item.icon}</div>
-                    <div className={`font-bold text-sm ${item.color}`}>{item.label}</div>
-                  </div>
-                  {i < 3 && (
-                    <div className="text-gray-500 text-lg">&darr;</div>
-                  )}
-                </React.Fragment>
-              ))}
-              <div className="text-gray-500 text-sm mt-1">&#8630; the cycle repeats &#8631;</div>
-            </div>
-
-            <div className="text-center border-t border-white/10 pt-8">
+            <div className="text-center">
               <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3">
                 The earlier you start collecting, the more you accumulate before the ecosystem takes off.
               </p>
