@@ -129,28 +129,28 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             {[
               {
                 step: "1",
-                icon: "\uD83E\uDD16",
+                icon: "🤖",
                 title: "AI Creates",
                 desc: "3 fresh memes daily from trending crypto news",
                 color: "from-cyan-400 to-blue-500"
               },
               {
                 step: "2",
-                icon: "\uD83D\uDDF3\uFE0F",
+                icon: "🗳️",
                 title: "You Vote",
                 desc: "Pick your favorite, earn lottery tickets (free)",
                 color: "from-purple-400 to-pink-500"
               },
               {
                 step: "3",
-                icon: "\uD83C\uDFC6",
+                icon: "🏆",
                 title: "Daily Winner",
                 desc: "Top meme selected, lottery picks one owner",
                 color: "from-yellow-400 to-orange-500"
               },
               {
                 step: "4",
-                icon: "\uD83C\uDFA8",
+                icon: "🎨",
                 title: "Claim NFT",
                 desc: "Winner mints as Solana pNFT — own it forever",
                 color: "from-green-400 to-emerald-500"
@@ -192,30 +192,26 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="max-w-4xl mx-auto bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12">
             {/* Flywheel visual */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-2 mb-8">
               {[
-                { label: "Vote Free", icon: "\uD83D\uDDF3\uFE0F", color: "text-green-400" },
-                { label: "Win Memes", icon: "\uD83C\uDFC6", color: "text-cyan-400" },
-                { label: "Community Grows", icon: "\uD83D\uDC65", color: "text-blue-400" },
-                { label: "NFTs Gain Value", icon: "\uD83D\uDCC8", color: "text-purple-400" },
-                { label: "Royalties Fund Platform", icon: "\uD83D\uDD04", color: "text-yellow-400" }
+                { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
+                { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
+                { label: "Community Grows", icon: "👥", color: "text-blue-400" },
+                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" },
+                { label: "Royalties Fund Platform", icon: "🔄", color: "text-yellow-400" }
               ].map((item, i) => (
-                <div key={i} className="flex md:flex-col items-center space-x-3 md:space-x-0 md:space-y-2 text-center">
-                  <div className="text-3xl md:text-4xl">{item.icon}</div>
-                  <div>
+                <React.Fragment key={i}>
+                  <div className="flex md:flex-col items-center space-x-3 md:space-x-0 md:space-y-2 text-center flex-shrink-0">
+                    <div className="text-3xl md:text-4xl">{item.icon}</div>
                     <div className={`font-bold text-sm md:text-base ${item.color}`}>{item.label}</div>
                   </div>
                   {i < 4 && (
-                    <div className="hidden md:block text-gray-600 text-xl absolute-none">&rarr;</div>
+                    <div className="hidden md:block text-gray-500 text-xl flex-shrink-0 mx-1">&rarr;</div>
                   )}
-                </div>
-              ))}
-            </div>
-
-            {/* Arrow flow for desktop */}
-            <div className="hidden md:flex justify-between items-center px-8 -mt-2 mb-8">
-              {[0,1,2,3].map(i => (
-                <div key={i} className="text-gray-500 text-lg">&rarr;</div>
+                  {i < 4 && (
+                    <div className="md:hidden text-gray-500 text-xl">&darr;</div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
 
@@ -241,7 +237,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8">
-              <div className="text-2xl mb-4">\uD83C\uDFAF</div>
+              <div className="text-2xl mb-4">🎯</div>
               <h4 className="text-xl font-bold text-cyan-400 mb-3">Daily Voter</h4>
               <p className="text-gray-400 mb-4">
                 Enter every lottery. You get 8-15 tickets each time.
@@ -255,7 +251,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
 
             <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-400/20 rounded-2xl p-8">
-              <div className="text-2xl mb-4">\uD83E\uDDE0</div>
+              <div className="text-2xl mb-4">🧠</div>
               <h4 className="text-xl font-bold text-purple-400 mb-3">Strategic Accumulator</h4>
               <p className="text-gray-400 mb-4">
                 Skip lotteries and save tickets. When the perfect meme appears,
@@ -274,7 +270,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-20 md:mb-28">
           <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-400/20 rounded-2xl p-8 hover:border-green-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-green-500/25">
-              <span className="text-2xl">\u26A1</span>
+              <span className="text-2xl">⚡</span>
             </div>
             <h3 className="text-2xl font-bold mb-4 text-green-400">100% Free</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
@@ -288,7 +284,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/20 rounded-2xl p-8 hover:border-cyan-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-cyan-500/25">
-              <span className="text-2xl">\uD83C\uDF1F</span>
+              <span className="text-2xl">🌟</span>
             </div>
             <h3 className="text-2xl font-bold mb-4 text-cyan-400">Daily NFT Drops</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
@@ -302,7 +298,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-400/20 rounded-2xl p-8 hover:border-purple-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-purple-500/25">
-              <span className="text-2xl">\uD83D\uDCDA</span>
+              <span className="text-2xl">📚</span>
             </div>
             <h3 className="text-2xl font-bold mb-4 text-purple-400">Your Collection Grows</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
