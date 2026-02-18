@@ -1,9 +1,51 @@
-
-# Secrets
+# === Secrets & Credentials ===
 .env
 .env.*
-*.log
+*.env
+env-vars.yaml
+env-vars.yml
+**/env-vars*.yaml
+**/env-vars*.yml
+*.pem
+*.key
+*.p12
+*.pfx
+*-key.json
+*credentials*.json
+serviceAccountKey*.json
 .git-credentials
-agent/.env
+
+# === API Keys & Tokens ===
+# Catch common patterns where keys might be stored
+secrets/
+.secrets/
+*.secret
+
+# === Node ===
 node_modules/
 */node_modules/
+
+# === Build Artifacts ===
+app/dist/
+dist/
+build/
+*.log
+
+# === Agent Runtime ===
+agent/.env
+agent/heartbeat-state.json
+screenshots/
+*.png.bak
+
+# === IDE & OS ===
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# === Backups ===
+*.bak
+*.orig
+*.backup
