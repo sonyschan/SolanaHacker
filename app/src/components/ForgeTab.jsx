@@ -230,34 +230,18 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
       </ModalOverlay>
 
-      {/* Initialization Loading - prevents UI flash while checking vote status */}
-      {isInitializing && (
-        <div className="text-center py-20">
-          <div className="inline-block animate-spin text-5xl mb-4">🎰</div>
-          <h2 className="text-2xl font-bold mb-2">Loading your status...</h2>
-          <p className="text-gray-400">Checking today's voting progress</p>
-        </div>
-      )}
-
-      {/* Phase 1: Meme Selection */}
-      {!isInitializing && currentPhase === 'selection' && (
+      {/* Phase 1: Meme Selection (also shows skeleton during initialization) */}
+      {(isInitializing || currentPhase === 'selection') && (
         <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
             <p className="text-gray-300">Vote for your favorite meme to advance to rarity voting</p>
-            
+
             {/* Phase indicator */}
             <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4 mt-4 inline-block">
               <span className="text-green-300">🚀 Phase 1/2: Meme Selection - Pick the winner!</span>
             </div>
-            
-            {/* Status indicators */}
-            {loading && (
-              <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-lg p-3 mt-4 inline-block">
-                <span className="text-yellow-300">🔄 Loading AI-generated memes...</span>
-              </div>
-            )}
-            
+
             {error && (
               <div className="bg-red-600 bg-opacity-20 border border-red-600 rounded-lg p-3 mt-4 inline-block">
                 <span className="text-red-300">⚠️ Using fallback memes (Backend: {error})</span>
@@ -265,7 +249,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             )}
           </div>
 
-          {loading ? (
+          {(loading || isInitializing) ? (
             <div className="grid md:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="placeholder-card card-shimmer bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
@@ -283,6 +267,13 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   </div>
                 </div>
               ))}
+            </div>
+          ) : dailyMemes.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🎨</div>
+              <h3 className="text-2xl font-bold mb-2">No memes available yet</h3>
+              <p className="text-gray-400 mb-2">Daily AI memes are generated at 8:00 AM (UTC+8)</p>
+              <p className="text-gray-500 text-sm">Check back soon!</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
