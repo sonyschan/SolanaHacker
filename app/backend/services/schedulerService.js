@@ -192,11 +192,15 @@ class SchedulerService {
 
         for (const memeId of allMemeIds) {
           if (memeId !== winningMeme.id) {
-            await dbUtils.updateDocument(collections.MEMES, memeId, {
-              status: 'voting_completed',
-              isWinner: false,
-              votingCompleted: new Date().toISOString()
-            });
+            try {
+              await dbUtils.updateDocument(collections.MEMES, memeId, {
+                status: 'voting_completed',
+                isWinner: false,
+                votingCompleted: new Date().toISOString()
+              });
+            } catch (updateErr) {
+              console.warn(`⚠️ Could not update meme ${memeId} (may not exist):`, updateErr.message);
+            }
           }
         }
 
@@ -206,11 +210,15 @@ class SchedulerService {
         console.log('⚠️ No votes cast — marking all memes as voting_completed with no winner');
 
         for (const memeId of allMemeIds) {
-          await dbUtils.updateDocument(collections.MEMES, memeId, {
-            status: 'voting_completed',
-            isWinner: false,
-            votingCompleted: new Date().toISOString()
-          });
+          try {
+            await dbUtils.updateDocument(collections.MEMES, memeId, {
+              status: 'voting_completed',
+              isWinner: false,
+              votingCompleted: new Date().toISOString()
+            });
+          } catch (updateErr) {
+            console.warn(`⚠️ Could not update meme ${memeId} (may not exist):`, updateErr.message);
+          }
         }
       }
 
