@@ -583,6 +583,12 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
 
       {/* Meme Modal */}
       <MemeModal
+        votedMemeId={votedMemeId}
+        onVote={(memeId) => {
+          setIsModalOpen(false);
+          setModalMeme(null);
+          handleVote(memeId);
+        }}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

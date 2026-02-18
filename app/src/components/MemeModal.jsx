@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ModalOverlay from './ModalOverlay';
 
-const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavigate }) => {
+const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavigate, votedMemeId, onVote }) => {
   const [copied, setCopied] = useState(false);
 
   const getShareUrl = () => {
@@ -60,6 +60,8 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
   }, [meme?.id]);
 
   if (!meme) return null;
+
+  const showVoting = typeof onVote === 'function';
 
   return (
     <ModalOverlay
@@ -131,6 +133,81 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
           </div>
         </div>
       </div>
+
+      {/* Voting Section (shown when onVote prop is provided) */}
+      {showVoting && (
+        <div className="px-4 md:px-6 pb-4">
+          {/* Description */}
+          {(meme.description || meme.newsSource) && (
+            <p className="text-gray-300 text-sm mb-4">
+              {meme.description || `AI-generated from: ${meme.newsSource}`}
+            </p>
+          )}
+
+          {/* NFT Traits - Row 1: AI Generated + Style */}
+          <div className="flex flex-wrap gap-1 mb-2">
+            {meme.metadata?.imageGenerated && (
+              <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
+                AI Generated
+              </span>
+            )}
+            {meme.style && (
+              <span className="text-xs bg-purple-600 bg-opacity-20 text-purple-300 px-2 py-1 rounded">
+                {meme.style}
+              </span>
+            )}
+          </div>
+
+          {/* NFT Traits - Row 2: News Source */}
+          <div className="flex flex-wrap gap-1 mb-2">
+            {meme.newsSource && (
+              <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
+                {meme.newsSource}
+              </span>
+            )}
+          </div>
+
+          {/* NFT Traits - Row 3: Tags */}
+          {meme.tags && meme.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {meme.tags.map((tag, idx) => (
+                <span key={idx} className="text-xs bg-cyan-600 bg-opacity-20 text-cyan-300 px-2 py-1 rounded">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Vote Count */}
+          <div className="text-sm text-gray-400 mb-4">
+            Current votes: <span className="text-white font-bold">{meme.votes?.selection?.yes || 0}</span>
+          </div>
+
+          {/* Vote Button - 3 states */}
+          {votedMemeId == null ? (
+            <button
+              onClick={() => onVote(meme.id)}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform text-white"
+            >
+              ❤️ Vote for This Meme
+            </button>
+          ) : votedMemeId === meme.id ? (
+            <button
+              disabled
+              className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90 text-white"
+            >
+              ✅ You Voted This Meme
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50 text-white"
+            >
+              Not Voted
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Share Buttons */}
       <div className="px-4 md:px-6 pb-4">
