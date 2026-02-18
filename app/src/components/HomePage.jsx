@@ -168,41 +168,13 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
         {/* Ticket Strategy Teaser */}
         <div className="mb-20 md:mb-28">
-          <div className="text-center mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-4">Play It Smart</h3>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Not every meme is worth entering the lottery for. Accumulate tickets and strike when it matters.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8">
-              <div className="text-2xl mb-4">🎯</div>
-              <h4 className="text-xl font-bold text-cyan-400 mb-3">Daily Voter</h4>
-              <p className="text-gray-400 mb-4">
-                Enter every lottery. You get 8-15 tickets each time.
-                Small but consistent chances — great if you want to collect broadly.
-              </p>
-              <div className="text-sm text-gray-500 bg-white/5 rounded-lg p-3">
-                Day 1: 12 tickets &rarr; enter lottery &rarr; reset<br/>
-                Day 2: 9 tickets &rarr; enter lottery &rarr; reset<br/>
-                Day 3: 14 tickets &rarr; enter lottery &rarr; reset
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-400/20 rounded-2xl p-8">
-              <div className="text-2xl mb-4">🧠</div>
-              <h4 className="text-xl font-bold text-purple-400 mb-3">Strategic Accumulator</h4>
-              <p className="text-gray-400 mb-4">
-                Skip lotteries and save tickets. When the perfect meme appears,
-                enter with overwhelming odds.
-              </p>
-              <div className="text-sm text-gray-500 bg-white/5 rounded-lg p-3">
-                Day 1-6: vote + skip lottery = ~70 tickets saved<br/>
-                Day 7: see a meme you love &rarr; enter with 70+ tickets<br/>
-                Result: dominate the lottery pool
-              </div>
-            </div>
+          <div className="max-w-5xl mx-auto">
+            <img
+              src="/images/play-it-smart.jpg"
+              alt="Play It Smart: Daily Voter enters every lottery with 8-15 tickets vs Strategic Accumulator saves tickets across days then goes ALL IN with 80+ tickets"
+              className="w-full rounded-2xl"
+              loading="lazy"
+            />
           </div>
         </div>
 
