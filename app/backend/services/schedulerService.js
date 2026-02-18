@@ -5,11 +5,10 @@
  * This service only contains task execution methods called via API endpoints:
  * POST /api/scheduler/trigger/:taskName
  *
- * GCP Cloud Scheduler Jobs (all times in UTC, 8AM Taiwan = 0:00 UTC):
- * - daily_memes:    0:00 UTC (8AM UTC+8) - Generate daily memes
- * - start_voting:   0:30 UTC (8:30AM UTC+8) - Start voting period
- * - end_voting:     12:00 UTC (8PM UTC+8) - End voting & calculate rarity
- * - lottery_draw:   Sunday 12:00 UTC (8PM UTC+8) - Weekly lottery
+ * GCP Cloud Scheduler Jobs (Asia/Taipei timezone, UTC+8):
+ * - memeforge-end-voting:    7:55 AM (23:55 UTC prev day) - End voting & select winner
+ * - memeforge-daily-cycle:   8:00 AM (00:00 UTC) - Generate memes + start voting
+ * - memeforge-lottery-draw:  Sunday 8:00 PM (12:00 UTC) - Weekly lottery
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -42,13 +41,26 @@ class SchedulerService {
       // Generate memes using the existing controller
       const req = { body: {} };
       let result = null;
+      let statusCode = 200;
       const res = {
         json: (data) => { result = data; return data; },
-        status: (code) => ({ json: (data) => { result = data; return { ...data, statusCode: code }; } })
+        status: (code) => {
+          statusCode = code;
+          return { json: (data) => { result = data; return data; } };
+        }
       };
 
       await memeController.generateDailyMemes(req, res);
-      console.log('✅ Daily memes generated successfully:', result);
+
+      // Check if the controller returned an error
+      if (statusCode >= 400 || (result && result.success === false)) {
+        const errorMsg = result?.message || result?.error || 'Unknown generation error';
+        console.error('❌ Meme generation controller returned error:', errorMsg);
+        await this.logTaskExecution('daily_memes', 'failed', errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      console.log('✅ Daily memes generated successfully:', result?.message || `${result?.memes?.length || 0} memes`);
 
       // Log execution
       await this.logTaskExecution('daily_memes', 'success');
@@ -57,7 +69,10 @@ class SchedulerService {
 
     } catch (error) {
       console.error('❌ Error in daily meme generation:', error);
-      await this.logTaskExecution('daily_memes', 'failed', error.message);
+      // Only log if not already logged above
+      if (!error.message?.includes('generation error')) {
+        await this.logTaskExecution('daily_memes', 'failed', error.message);
+      }
       throw error;
     }
   }
@@ -70,6 +85,14 @@ class SchedulerService {
 
     try {
       const today = new Date().toISOString().split('T')[0];
+
+      // Check for existing active voting period to prevent duplicates
+      const existingPeriod = await this.getActiveDailyVotingPeriod(today);
+      if (existingPeriod) {
+        console.log('ℹ️ Active voting period already exists for today, skipping');
+        return { skipped: true, reason: 'Voting period already exists', existingPeriodId: existingPeriod.id };
+      }
+
       const memes = await this.getTodaysMemes();
 
       if (memes.length === 0) {
@@ -77,8 +100,12 @@ class SchedulerService {
         return { skipped: true, reason: 'No memes found' };
       }
 
+      // Only use the first 3 memes to prevent duplicate sets from being tracked
+      const memesToVote = memes.slice(0, 3);
+      console.log(`📋 Found ${memes.length} memes, using first ${memesToVote.length} for voting`);
+
       // Update memes status to voting_active
-      for (const meme of memes) {
+      for (const meme of memesToVote) {
         await dbUtils.updateDocument(collections.MEMES, meme.id, {
           status: 'voting_active',
           votingStarted: new Date().toISOString(),
@@ -93,15 +120,15 @@ class SchedulerService {
         startTime: new Date().toISOString(),
         endTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
         status: 'active',
-        memeIds: memes.map(m => m.id),
+        memeIds: memesToVote.map(m => m.id),
         phase: 'selection'
       };
 
       await dbUtils.setDocument(collections.VOTING_PERIODS, votingPeriod.id, votingPeriod);
-      console.log('✅ Voting period started for', memes.length, 'memes');
+      console.log('✅ Voting period started for', memesToVote.length, 'memes:', memesToVote.map(m => m.id));
 
       await this.logTaskExecution('start_voting', 'success');
-      return { started: true, memeCount: memes.length };
+      return { started: true, memeCount: memesToVote.length };
 
     } catch (error) {
       console.error('❌ Error starting voting period:', error);
@@ -121,14 +148,17 @@ class SchedulerService {
 
       const activePeriod = await this.getActiveDailyVotingPeriod(today);
       if (!activePeriod) {
-        console.log('⚠️ No active voting period found for today');
+        console.log('⚠️ No active voting period found for today:', today);
         return { skipped: true, reason: 'No active voting period' };
       }
+
+      console.log(`📋 Found active voting period: ${activePeriod.id} with ${activePeriod.memeIds?.length || 0} memes`);
 
       const results = await this.calculateVotingResults(activePeriod.memeIds);
       const winningMeme = this.selectWinningMeme(results);
 
       if (winningMeme) {
+        // Winner found — mark winner and losers
         const rarity = this.calculateRarity(winningMeme.votes.rarity);
 
         await dbUtils.updateDocument(collections.MEMES, winningMeme.id, {
@@ -148,17 +178,29 @@ class SchedulerService {
           }
         }
 
-        console.log(`✅ Voting completed. Winner: ${winningMeme.id} with rarity: ${rarity}`);
+        console.log(`✅ Voting completed. Winner: ${winningMeme.id} with ${winningMeme.totalYesVotes} yes votes, rarity: ${rarity}`);
+      } else {
+        // No votes — still mark all memes as completed (no winner)
+        console.log('⚠️ No votes cast — marking all memes as voting_completed with no winner');
+
+        for (const memeId of activePeriod.memeIds) {
+          await dbUtils.updateDocument(collections.MEMES, memeId, {
+            status: 'voting_completed',
+            isWinner: false,
+            votingCompleted: new Date().toISOString()
+          });
+        }
       }
 
       await dbUtils.updateDocument(collections.VOTING_PERIODS, activePeriod.id, {
         status: 'completed',
         endTime: new Date().toISOString(),
-        results: results
+        results: results,
+        winnerId: winningMeme?.id || null
       });
 
       await this.logTaskExecution('end_voting', 'success');
-      return { completed: true, winner: winningMeme?.id };
+      return { completed: true, winner: winningMeme?.id || null, hadVotes: !!winningMeme };
 
     } catch (error) {
       console.error('❌ Error ending voting period:', error);
@@ -260,7 +302,12 @@ class SchedulerService {
       // Step 1: Generate memes
       const generateResult = await this.generateDailyMemes();
 
-      // Step 2: Start voting (after short delay)
+      // Abort if generation failed (alreadyGenerated is OK)
+      if (!generateResult) {
+        throw new Error('Meme generation returned no result');
+      }
+
+      // Step 2: Start voting (after short delay to ensure Firestore consistency)
       await new Promise(resolve => setTimeout(resolve, 5000));
       const votingResult = await this.startDailyVotingPeriod();
 
@@ -316,13 +363,17 @@ class SchedulerService {
     for (const memeId of memeIds) {
       const meme = await dbUtils.getDocument(collections.MEMES, memeId);
       if (meme) {
+        const yesVotes = meme.votes?.selection?.yes || 0;
         results[memeId] = {
           id: memeId,
           title: meme.title,
           votes: meme.votes || { selection: {}, rarity: {} },
+          totalYesVotes: yesVotes,
           totalSelectionVotes: Object.values(meme.votes?.selection || {}).reduce((a, b) => a + b, 0),
           totalRarityVotes: Object.values(meme.votes?.rarity || {}).reduce((a, b) => a + b, 0)
         };
+      } else {
+        console.warn(`⚠️ Meme ${memeId} not found in Firestore`);
       }
     }
 
@@ -334,10 +385,15 @@ class SchedulerService {
     let maxVotes = 0;
 
     for (const result of Object.values(results)) {
-      if (result.totalSelectionVotes > maxVotes) {
-        maxVotes = result.totalSelectionVotes;
+      // Use yes votes specifically (not yes + no combined)
+      if (result.totalYesVotes > maxVotes) {
+        maxVotes = result.totalYesVotes;
         winner = result;
       }
+    }
+
+    if (!winner) {
+      console.log('📊 No memes received any yes votes — no winner selected');
     }
 
     return winner;
@@ -366,7 +422,7 @@ class SchedulerService {
       error
     };
 
-    console.log(`📝 Task log: ${taskName} - ${status}`);
+    console.log(`📝 Task log: ${taskName} - ${status}${error ? ' - ' + error : ''}`);
 
     await dbUtils.setDocument(
       'scheduler_logs',
