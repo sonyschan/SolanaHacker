@@ -15,6 +15,7 @@ const Dashboard = ({
   const [activeTab, setActiveTab] = useState('forge');
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
@@ -171,6 +172,15 @@ const Dashboard = ({
               </div>
             </button>
 
+            {/* How It Works icon */}
+            <button
+              onClick={() => setShowHowItWorks(true)}
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200 ml-2"
+              title="How It Works"
+            >
+              <span className="text-sm font-bold">?</span>
+            </button>
+
             {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
             <div className="flex items-center space-x-2 md:space-x-6">
               <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
@@ -255,6 +265,100 @@ const Dashboard = ({
         }}
         meme={modalMeme}
       />
+
+      {/* How It Works Modal */}
+      {showHowItWorks && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowHowItWorks(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div
+            className="relative bg-gray-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowHowItWorks(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all z-10"
+            >
+              ✕
+            </button>
+
+            <div className="p-6 md:p-8 space-y-8">
+              {/* Header */}
+              <div className="text-center pr-8">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">How It Works</h2>
+                <p className="text-gray-400">A simple daily loop — completely free to participate.</p>
+              </div>
+
+              {/* 4-Step Daily Loop */}
+              <div className="space-y-4">
+                {[
+                  { step: "1", icon: "🤖", title: "AI Creates", desc: "Every day, AI generates 3 fresh memes from trending crypto news.", color: "from-cyan-400 to-blue-500" },
+                  { step: "2", icon: "🗳️", title: "You Vote", desc: "Pick your favorite meme. You earn 8-15 lottery tickets just for voting — free, no gas.", color: "from-purple-400 to-pink-500" },
+                  { step: "3", icon: "🏆", title: "Daily Winner", desc: "The most-voted meme wins. A weighted lottery picks one voter as the owner.", color: "from-yellow-400 to-orange-500" },
+                  { step: "4", icon: "🎨", title: "Claim NFT", desc: "The winner can mint their meme as a Solana pNFT — true ownership, forever.", color: "from-green-400 to-emerald-500" }
+                ].map((item) => (
+                  <div key={item.step} className="flex items-start space-x-4">
+                    <div className={`w-10 h-10 flex-shrink-0 bg-gradient-to-r ${item.color} rounded-lg flex items-center justify-center`}>
+                      <span className="text-lg">{item.icon}</span>
+                    </div>
+                    <div>
+                      <div className={`font-bold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>{item.title}</div>
+                      <p className="text-sm text-gray-400">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ticket Strategy */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                <h3 className="font-bold text-lg mb-3">🧠 Ticket Strategy</h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  You can choose when to enter the lottery. Skip days to save tickets, then enter with better odds when you see a meme you love.
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="font-bold text-cyan-400 mb-1">🎯 Daily Player</div>
+                    <p className="text-gray-500 text-xs">Enter every day with 8-15 tickets. Consistent small chances.</p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="font-bold text-purple-400 mb-1">🧠 Accumulator</div>
+                    <p className="text-gray-500 text-xs">Save tickets across days. Enter once with 70+ tickets to dominate.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Growth Flywheel */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                <h3 className="font-bold text-lg mb-3">🔄 Why It Gets Better</h3>
+                <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                  <span className="text-green-400 font-medium">Vote free</span>
+                  <span className="text-gray-600">&rarr;</span>
+                  <span className="text-cyan-400 font-medium">Win memes</span>
+                  <span className="text-gray-600">&rarr;</span>
+                  <span className="text-blue-400 font-medium">Community grows</span>
+                  <span className="text-gray-600">&rarr;</span>
+                  <span className="text-purple-400 font-medium">NFTs gain value</span>
+                  <span className="text-gray-600">&rarr;</span>
+                  <span className="text-yellow-400 font-medium">5% royalty funds platform</span>
+                </div>
+                <p className="text-center text-xs text-gray-500 mt-3">
+                  Only 365 NFTs per year. The earlier you collect, the more you have when the ecosystem grows.
+                </p>
+              </div>
+
+              {/* Got it button */}
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => setShowHowItWorks(false)}
+                  className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold rounded-xl transition-all duration-200"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
