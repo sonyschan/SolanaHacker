@@ -125,59 +125,13 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                step: "1",
-                icon: "🤖",
-                title: "AI Creates",
-                desc: "3 fresh memes daily from trending crypto news",
-                color: "from-cyan-400 to-blue-500"
-              },
-              {
-                step: "2",
-                icon: "🗳️",
-                title: "You Vote",
-                desc: "Pick your favorite, earn lottery tickets (free)",
-                color: "from-purple-400 to-pink-500"
-              },
-              {
-                step: "3",
-                icon: "🏆",
-                title: "Daily Winner",
-                desc: "Top meme selected, lottery picks one owner",
-                color: "from-yellow-400 to-orange-500"
-              },
-              {
-                step: "4",
-                icon: "🎨",
-                title: "Claim NFT",
-                desc: "Winner mints as Solana pNFT — own it forever",
-                color: "from-green-400 to-emerald-500"
-              }
-            ].map((step, index) => (
-              <div key={index} className="relative group">
-                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 md:p-6 hover:bg-white/10 transition-all duration-300 group-hover:scale-105 h-full">
-                  <div className={`w-12 h-12 bg-gradient-to-r ${step.color} rounded-xl flex items-center justify-center mb-4 mx-auto shadow-lg`}>
-                    <span className="text-xl">{step.icon}</span>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-gray-500 mb-1">Step {step.step}</div>
-                    <div className={`text-lg font-bold bg-gradient-to-r ${step.color} bg-clip-text text-transparent mb-2`}>
-                      {step.title}
-                    </div>
-                    <p className="text-xs md:text-sm text-gray-400 leading-tight">{step.desc}</p>
-                  </div>
-                </div>
-
-                {index < 3 && (
-                  <div className="hidden md:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-20">
-                    <div className={`w-6 h-0.5 bg-gradient-to-r ${step.color} opacity-60`} />
-                    <div className={`w-2 h-2 bg-gradient-to-r ${step.color} rounded-full absolute -right-1 top-0 transform -translate-y-1/2`} />
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="max-w-5xl mx-auto">
+            <img
+              src="/images/how-it-works.jpg"
+              alt="How It Works: 1. AI Creates 3 memes, 2. You Vote for your favorite, 3. Daily Winner selected, 4. Claim as Solana NFT"
+              className="w-full rounded-2xl"
+              loading="lazy"
+            />
           </div>
         </div>
 
