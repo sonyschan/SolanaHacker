@@ -560,7 +560,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 <span className="text-2xl">⏰</span>
                 <div>
                   <p className="font-bold text-orange-300">Come back tomorrow!</p>
-                  <p className="text-sm text-orange-200/80">New AI memes drop daily at 8 AM UTC+8</p>
+                  <p className="text-sm text-orange-200/80">New AI memes drop daily at 00:00 UTC</p>
                 </div>
               </div>
             </div>
