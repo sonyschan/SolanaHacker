@@ -168,10 +168,16 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
         {/* Ticket Strategy Teaser */}
         <div className="mb-20 md:mb-28">
+          <div className="text-center mb-12">
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">Play It Smart</h3>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Not every meme is worth entering the lottery for. Accumulate tickets and strike when it matters.
+            </p>
+          </div>
           <div className="max-w-5xl mx-auto">
             <img
               src="/images/play-it-smart.jpg"
-              alt="Play It Smart: Daily Voter enters every lottery with 8-15 tickets vs Strategic Accumulator saves tickets across days then goes ALL IN with 80+ tickets"
+              alt="Daily Voter enters every lottery with 8-15 tickets vs Strategic Accumulator saves tickets across days then goes ALL IN with 80+ tickets"
               className="w-full rounded-2xl"
               loading="lazy"
             />
