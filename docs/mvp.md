@@ -487,102 +487,38 @@ export const LotterySystem = {
 }
 ```
 
-### 4. Cloud Scheduler 自動化任務
-```javascript
-// 新建: backend/scheduledTasks.js
-const { CloudSchedulerClient } = require('@google-cloud/scheduler');
+### 4. GCP Cloud Scheduler 自動化排程
 
-export const ScheduledTasks = {
-  // 每日 UTC 00:00 生成新梗圖
-  dailyMemeGeneration: async () => {
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    // 3 種不同風格的 Prompt 策略
-    const promptTemplates = [
-      // 風格 1: 加密貨幣熱門話題
-      {
-        type: 'crypto_trend',
-        prompt: `Create a humorous meme about recent cryptocurrency trends. Include popular crypto terminology but make it accessible to general audience. Style: internet meme format with bold text overlay.`
-      },
-      
-      // 風格 2: AI 與科技幽默
-      {
-        type: 'ai_tech',
-        prompt: `Generate a funny meme about AI and technology interactions in daily life. Focus on relatable situations where AI behaves unexpectedly. Style: modern meme template with contrasting scenarios.`
-      },
-      
-      // 風格 3: 社群文化梗
-      {
-        type: 'community',
-        prompt: `Create a meme about online community culture and social media behavior. Include current internet slang but keep it family-friendly. Style: reaction meme or comparison format.`
-      }
-    ];
-    
-    const memes = [];
-    
-    for (let i = 0; i < 3; i++) {
-      try {
-        const template = promptTemplates[i];
-        
-        // 添加隨機性確保差異化
-        const randomSeed = Math.floor(Math.random() * 1000);
-        const enhancedPrompt = `${template.prompt} Unique seed: ${randomSeed}. Make this completely different from other memes generated today.`;
-        
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.5-flash-image",
-          generationConfig: {
-            temperature: 0.9, // 高創意度
-            maxOutputTokens: 100
-          }
-        });
-        
-        const result = await model.generateContent(enhancedPrompt);
-        const imageUrl = await uploadToCloudStorage(result, `meme_${Date.now()}_${i}`);
-        
-        memes.push({
-          id: `meme_${Date.now()}_${i}`,
-          imageUrl,
-          prompt: template.prompt,
-          type: template.type,
-          generatedAt: new Date().toISOString()
-        });
-        
-        // 間隔 2 秒避免 API Rate Limit
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-      } catch (error) {
-        console.error(`Failed to generate meme ${i}:`, error);
-        // 失敗時使用備用梗圖
-        memes.push(await getFallbackMeme(i));
-      }
-    }
-    
-    // 品質檢查：確保 3 個梗圖風格不同
-    const uniqueTypes = new Set(memes.map(m => m.type));
-    if (uniqueTypes.size < 3) {
-      console.warn('Generated memes lack diversity, triggering regeneration');
-      // 重新生成缺少的風格
-    }
-    
-    await saveTodayMemes(memes);
-    return memes;
-  },
-  
-  // 每日重置投票狀態
-  dailyReset: async () => {
-    // 清理昨日投票數據
-    // 重置用戶投票狀態
-    // 準備新一輪投票
-  },
-  
-  // 週日開獎邏輯
-  weeklyLottery: async () => {
-    // 計算本週所有彩票
-    // 隨機選出中獎者
-    // 發送獎勵通知
-  }
-}
+MemeForge 使用 GCP Cloud Scheduler 作為外部排程服務，透過 HTTP POST 觸發 Cloud Run API endpoints。
+後端不包含任何排程邏輯，僅提供 API 接口供 Cloud Scheduler 調用。
+
+**架構:**
+```
+GCP Cloud Scheduler → HTTP POST → Cloud Run API → Execute Task → Firestore
+```
+
+**Cloud Scheduler Jobs (Asia/Taipei timezone):**
+
+| Job Name | Schedule | Endpoint | 說明 |
+|----------|----------|----------|------|
+| `memeforge-end-voting` | 每日 7:55 AM | POST `/api/scheduler/trigger/end_voting` | 結束投票、選出贏家、計算稀有度 |
+| `memeforge-daily-cycle` | 每日 8:00 AM | POST `/api/scheduler/trigger/daily_cycle` | 生成新梗圖 + 開始投票 |
+| `memeforge-lottery-draw` | 每週日 8:00 PM | POST `/api/scheduler/trigger/lottery_draw` | 週末彩票抽獎 |
+
+**每日時序:**
+1. 7:55 AM — `end_voting`: 結算前日投票，選出 winning meme，計算 rarity
+2. 8:00 AM — `daily_cycle`: AI 生成 3 張新梗圖，開始新的投票週期
+
+**管理指令:**
+```bash
+# 列出排程
+gcloud scheduler jobs list --location=asia-southeast1
+
+# 手動觸發
+gcloud scheduler jobs run memeforge-daily-cycle --location=asia-southeast1
+
+# 查看執行歷史
+curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/scheduler/logs
 ```
 
 ### 5. 整合現有組件

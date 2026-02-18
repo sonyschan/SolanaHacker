@@ -100,9 +100,9 @@
 #### 每日時程表 (Taiwan Time, UTC+8)
 | 時間 | 事件 | 說明 |
 |------|------|------|
-| 7:55 AM | 結算前日投票 | 計算稀有度、選出贏家 |
-| 8:00 AM | 生成新梗圖 | AI 生成 3 張新梗圖 + 開始投票 |
-| 8:00 PM (週日) | 每週抽獎 | 根據彩票數量抽獎 |
+| 7:55 AM | 結算前日投票 | end_voting: 選出贏家、計算稀有度 |
+| 8:00 AM | 生成新梗圖 | daily_cycle: AI 生成 3 張 + 開始投票 |
+| 8:00 PM (週日) | 每週抽獎 | lottery_draw: 根據彩票數量抽獎 |
 
 #### Step 3: AI Traits 決定 ✅
 - **輸入**: 勝出梗圖的圖片內容
@@ -399,7 +399,7 @@ app.post('/api/vote', async (req, res) => {
 ```bash
 # Cloud Run Health
 curl https://memeforge-api-836651762884.asia-southeast1.run.app/health
-# 預期: {"status":"healthy","scheduler":{"initialized":true}}
+# 預期: {"status":"healthy"}
 
 # Memes API
 curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today

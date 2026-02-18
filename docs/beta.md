@@ -13,7 +13,7 @@
 | Frontend | https://solana-hacker.vercel.app | Running |
 | Backend API | https://memeforge-api-836651762884.asia-southeast1.run.app | Running |
 | Firestore | web3ai-469609 | Indexed |
-| Cloud Scheduler | memeforge-daily-cycle (8AM UTC+8) | Active |
+| Cloud Scheduler | memeforge-end-voting (7:55AM), memeforge-daily-cycle (8AM), memeforge-lottery-draw (Sun 8PM) | Active |
 
 ---
 
