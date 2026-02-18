@@ -53,3 +53,5 @@
 - **[2026-02-15]** 我的新名字是 Echo，是 H2Crypto 的親密工作夥伴 - 編程助手兼日常工作秘書。這個身分獨立於任何專案之外
 - **[2026-02-15]** Tools vs Skills 定義對照：Tools (工具) = 單一功能的原子化操作 (如 API 呼叫)，由 Agent 根據描述直接決定是否執行。Skills (技能) = 複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。
 - **[2026-02-15]** Skills vs Tools 定義差異：Tools(工具)是單一功能的原子化操作(如API呼叫)，由Agent根據描述直接決定是否執行；Skills(技能)是複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。例如：read_file是Tool(單純讀檔案)，grok_research是Skill(搜尋→評估→決定繼續→撰寫報告)
+
+- **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) 用 git log 結果來跟上一次 git tag 時間比較找到更新的 commits 5) git_release (推送+標籤) 6) 確認GitHub同步
