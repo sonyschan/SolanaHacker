@@ -192,7 +192,8 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="max-w-3xl mx-auto bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12">
             {/* Flywheel visual — 4-step loop */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-3 mb-4">
+            {/* Desktop */}
+            <div className="hidden md:flex items-start justify-center mb-2">
               {[
                 { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
                 { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
@@ -200,24 +201,40 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" }
               ].map((item, i) => (
                 <React.Fragment key={i}>
-                  <div className="flex md:flex-col items-center space-x-3 md:space-x-0 md:space-y-2 text-center flex-shrink-0">
-                    <div className="text-3xl md:text-4xl">{item.icon}</div>
-                    <div className={`font-bold text-sm md:text-base ${item.color}`}>{item.label}</div>
+                  <div className="text-center w-32">
+                    <div className="text-4xl mb-2">{item.icon}</div>
+                    <div className={`font-bold text-sm ${item.color}`}>{item.label}</div>
                   </div>
                   {i < 3 && (
-                    <div className="hidden md:block text-gray-500 text-xl flex-shrink-0 mx-1">&rarr;</div>
-                  )}
-                  {i < 3 && (
-                    <div className="md:hidden text-gray-500 text-xl">&darr;</div>
+                    <div className="text-gray-500 text-xl mt-2.5 mx-2">&rarr;</div>
                   )}
                 </React.Fragment>
               ))}
             </div>
+            {/* Desktop loop-back */}
+            <div className="hidden md:block text-center text-gray-500 text-sm mb-6">
+              &#8630; the cycle repeats &#8631;
+            </div>
 
-            {/* Loop-back arrow */}
-            <div className="text-center text-gray-500 text-sm mb-6">
-              <span className="hidden md:inline">&#8627; more value = more reason to vote &#8618;</span>
-              <span className="md:hidden">&#8627; more value = more reason to vote &#8618;</span>
+            {/* Mobile */}
+            <div className="md:hidden flex flex-col items-center gap-1 mb-6">
+              {[
+                { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
+                { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
+                { label: "Community Grows", icon: "👥", color: "text-blue-400" },
+                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" }
+              ].map((item, i) => (
+                <React.Fragment key={i}>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-3xl">{item.icon}</div>
+                    <div className={`font-bold text-sm ${item.color}`}>{item.label}</div>
+                  </div>
+                  {i < 3 && (
+                    <div className="text-gray-500 text-lg">&darr;</div>
+                  )}
+                </React.Fragment>
+              ))}
+              <div className="text-gray-500 text-sm mt-1">&#8630; the cycle repeats &#8631;</div>
             </div>
 
             <div className="text-center border-t border-white/10 pt-8">
