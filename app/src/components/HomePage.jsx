@@ -190,29 +190,34 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12">
-            {/* Flywheel visual */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-2 mb-8">
+          <div className="max-w-3xl mx-auto bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12">
+            {/* Flywheel visual — 4-step loop */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-3 mb-4">
               {[
                 { label: "Vote Free", icon: "🗳️", color: "text-green-400" },
                 { label: "Win Memes", icon: "🏆", color: "text-cyan-400" },
                 { label: "Community Grows", icon: "👥", color: "text-blue-400" },
-                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" },
-                { label: "Royalties Fund Platform", icon: "🔄", color: "text-yellow-400" }
+                { label: "NFTs Gain Value", icon: "📈", color: "text-purple-400" }
               ].map((item, i) => (
                 <React.Fragment key={i}>
                   <div className="flex md:flex-col items-center space-x-3 md:space-x-0 md:space-y-2 text-center flex-shrink-0">
                     <div className="text-3xl md:text-4xl">{item.icon}</div>
                     <div className={`font-bold text-sm md:text-base ${item.color}`}>{item.label}</div>
                   </div>
-                  {i < 4 && (
+                  {i < 3 && (
                     <div className="hidden md:block text-gray-500 text-xl flex-shrink-0 mx-1">&rarr;</div>
                   )}
-                  {i < 4 && (
+                  {i < 3 && (
                     <div className="md:hidden text-gray-500 text-xl">&darr;</div>
                   )}
                 </React.Fragment>
               ))}
+            </div>
+
+            {/* Loop-back arrow */}
+            <div className="text-center text-gray-500 text-sm mb-6">
+              <span className="hidden md:inline">&#8627; more value = more reason to vote &#8618;</span>
+              <span className="md:hidden">&#8627; more value = more reason to vote &#8618;</span>
             </div>
 
             <div className="text-center border-t border-white/10 pt-8">

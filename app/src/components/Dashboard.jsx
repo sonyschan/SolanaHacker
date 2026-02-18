@@ -339,7 +339,7 @@ const Dashboard = ({
                   <span className="text-gray-600">&rarr;</span>
                   <span className="text-purple-400 font-medium">NFTs gain value</span>
                   <span className="text-gray-600">&rarr;</span>
-                  <span className="text-yellow-400 font-medium">5% royalty funds platform</span>
+                  <span className="text-green-400 font-medium">Vote more</span>
                 </div>
                 <p className="text-center text-xs text-gray-500 mt-3">
                   Only 365 NFTs per year. The earlier you collect, the more you have when the ecosystem grows.
