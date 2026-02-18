@@ -558,33 +558,49 @@ async runDailyLottery() {
 
 ### Phase 2: NFT Claim & 鑄造
 
-**目標**: 贏家 Claim → Arweave 上傳 → Metaplex NFT 鑄造 → 用戶簽名。
+**目標**: 贏家 Claim → Arweave 上傳 → Metaplex pNFT 鑄造 (5% royalty 強制執行) → 用戶簽名。
+
+**NFT 規格:**
+- **Standard**: Metaplex Programmable NFT (pNFT)
+- **Royalty**: 5% (強制執行，無法被交易所跳過)
+- **Royalty 收款**: 平台錢包 (PLATFORM_WALLET)
+- **Creator share**: Platform 5% royalty, Winner 100% ownership
 
 **API:**
 - `POST /api/nft/prepare-mint` — 準備 mint transaction (server-side)
 - `POST /api/nft/confirm-mint` — 確認 mint 完成
 
-**NFT Metadata (Metaplex Standard):**
+**NFT Metadata (Metaplex pNFT):**
 ```json
 {
   "name": "MemeForge #001 — When Solana Hits $200",
   "symbol": "MFORGE",
   "image": "https://arweave.net/xxx",
+  "seller_fee_basis_points": 500,
   "attributes": [
     { "trait_type": "Rarity", "value": "Legendary" },
     { "trait_type": "Vote Count", "value": 42 },
     { "trait_type": "Generation Date", "value": "2026-02-18" }
-  ]
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [
+      { "address": "PLATFORM_WALLET", "share": 100 }
+    ]
+  }
 }
 ```
+
+> `seller_fee_basis_points: 500` = 5% royalty。pNFT 的 RuleSet 確保所有交易所 (Magic Eden, Tensor 等) 強制執行此 royalty。
 
 **防重複鑄造**: Firestore transaction guard，`minting_in_progress` 中間態。
 
 **新增依賴:**
 | 套件 | 用途 |
 |------|------|
-| `@metaplex-foundation/mpl-token-metadata` | NFT metadata |
+| `@metaplex-foundation/mpl-token-metadata` | pNFT metadata + RuleSet |
 | `@metaplex-foundation/umi` | Metaplex framework |
+| `@metaplex-foundation/mpl-token-auth-rules` | pNFT royalty enforcement |
 | `@irys/sdk` | Arweave 上傳 |
 
 **新增環境變數:** `ARWEAVE_WALLET_KEY`, `SOLANA_RPC_URL`, `PLATFORM_WALLET_KEYPAIR`
