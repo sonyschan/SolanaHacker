@@ -947,11 +947,16 @@ ${recentMemory.slice(-1500)}
       }
       console.log(`[ChatMode] History: ${this.chatHistory.length} messages`);
 
-      // v4.1: Skip final message if already sent via send_telegram tool
-      if (!sentViaTelegram) {
+      // v4.1/v4.6: Send final message to Telegram
+      // Previously: skip if send_telegram was used. But this caused lost messages when
+      // Grok sent an intermediate "in progress" via send_telegram and had a final summary.
+      // Fix: always send the final answer if it has meaningful content.
+      if (answer && answer.trim()) {
+        if (sentViaTelegram) {
+          // send_telegram was used during tool loop — send final answer as a follow-up
+          console.log('[ChatMode] send_telegram was used during loop, but still sending final answer');
+        }
         await this.telegram.sendDevlog(`💬 ${answer}`);
-      } else {
-        console.log('[ChatMode] Skipping final message (already sent via send_telegram)');
       }
       return answer;
     } catch (err) {
