@@ -59,15 +59,14 @@ app.get('/health', async (req, res) => {
   }
   try {
     const schedulerStatus = await schedulerService.getStatus();
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       scheduler: {
-        initialized: schedulerStatus.running,
-        taskCount: schedulerStatus.taskCount,
+        mode: schedulerStatus.mode,
         lastUpdate: schedulerStatus.updatedAt
       }
     });
@@ -203,10 +202,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully...');
-  
-  // Stop all scheduled tasks
-  schedulerService.stopAll();
-  
   server.close(() => {
     console.log('Process terminated');
     process.exit(0);
@@ -215,10 +210,6 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('\nSIGINT received, shutting down gracefully...');
-  
-  // Stop all scheduled tasks
-  schedulerService.stopAll();
-  
   server.close(() => {
     console.log('Process terminated');
     process.exit(0);
