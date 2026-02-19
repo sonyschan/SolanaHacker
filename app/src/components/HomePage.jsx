@@ -129,7 +129,13 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             <img
               src="/images/how-it-works.jpg"
               alt="How It Works: 1. AI Creates 3 memes, 2. You Vote for your favorite, 3. Daily Winner selected, 4. Claim as Solana NFT"
-              className="w-full rounded-2xl"
+              className="hidden md:block w-full rounded-2xl"
+              loading="lazy"
+            />
+            <img
+              src="/images/how-it-works-mobile.jpg"
+              alt="How It Works: 1. AI Creates 3 memes, 2. You Vote for your favorite, 3. Daily Winner selected, 4. Claim as Solana NFT"
+              className="md:hidden w-full max-w-sm mx-auto rounded-2xl"
               loading="lazy"
             />
           </div>
