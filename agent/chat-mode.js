@@ -26,7 +26,8 @@ export class ChatMode {
   constructor(deps) {
     this.telegram = deps.telegram;
     this.grokApiKey = deps.grokApiKey;
-    this.claudeClient = deps.claudeClient;
+    this.claudeClient = deps.claudeClient;         // LLM provider for chat (Grok or Anthropic)
+    this.anthropicClient = deps.anthropicClient;    // Raw Anthropic SDK for vision (browse_url)
     this.memoryDir = deps.memoryDir;
     this.baseDir = deps.baseDir || path.join(this.memoryDir, '..');
     this.reviewer = deps.reviewer; // UXReviewer for browse_url
@@ -341,15 +342,6 @@ export class ChatMode {
     return hour === 8 && (now - this.lastMorningNews > 50 * 60 * 1000);
   }
 
-  /**
-   * Check if it's tool search time (09:00 GMT+8)
-   */
-  isToolSearchTime() {
-    const hour = this.getGMT8Hour();
-    const now = Date.now();
-    // Check if it's 9am and we haven't done tool search in the last 50 minutes
-    return hour === 9 && (now - (this.lastToolSearch || 0) > 50 * 60 * 1000);
-  }
 
   /**
    * Call Grok API
@@ -654,7 +646,6 @@ ${recentMemory.slice(-1500)}
       let response;
       try {
         response = await this.claudeClient.messages.create({
-          model: 'claude-sonnet-4-20250514',
           max_tokens: 2500,
           tools: this.chatTools,
           system: [{
@@ -783,7 +774,6 @@ ${recentMemory.slice(-1500)}
 
         // Continue conversation
         response = await this.claudeClient.messages.create({
-          model: 'claude-sonnet-4-20250514',
           max_tokens: 2500,
           tools: this.chatTools,
           system: [{
@@ -1062,11 +1052,12 @@ ${recentMemory.slice(-1500)}
           await this.reviewer.init();
           const screenshotPath = await this.reviewer.takeScreenshot(url, 'browse');
 
-          // Analyze with Claude Vision
+          // Analyze with Claude Vision (always use Anthropic for vision)
           const imageBuffer = fs.readFileSync(screenshotPath);
           const base64Image = imageBuffer.toString('base64');
 
-          const visionResponse = await this.claudeClient.messages.create({
+          const visionClient = this.anthropicClient || this.claudeClient;
+          const visionResponse = await visionClient.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 1500,
             messages: [{
@@ -1670,82 +1661,6 @@ ${recentMemory.slice(-1500)}
     }
   }
 
-  /**
-   * Daily tool search (09:00 GMT+8)
-   * Search for new agentic tools, SDKs, MCP updates
-   */
-  async doToolSearch() {
-    console.log('[ChatMode] Doing daily tool search...');
-    this.lastToolSearch = Date.now();
-
-    const today = new Date().toISOString().split('T')[0];
-
-    try {
-      const searchPrompt = `現在是 ${today}。請搜尋「過去 24 小時內」最新的 AI Agent 開發工具和 SDK 更新。
-
-重點搜尋:
-1. Claude MCP (Model Context Protocol) 新工具或更新
-2. Anthropic SDK 更新 (Python, TypeScript)
-3. AI Agent 框架更新 (LangChain, AutoGPT, CrewAI, etc.)
-4. 新的 Agentic 工具或 API
-5. AI coding assistant 更新
-
-只要 2026 年 2 月的新聞/更新，不要舊資訊！
-
-格式:
-- 工具名稱
-- 更新內容簡述
-- 對 Agent 開發的意義
-
-如果過去 24 小時沒有重大更新，請說「過去 24 小時暫無重大工具更新」`;
-
-      // Use search-enabled Grok for real-time tool search
-      const results = await this.callGrokWithSearch(searchPrompt, 800);
-
-      // Save to docs/tool_discoveries.md
-      const docsDir = path.join(this.memoryDir, '..', 'docs');
-      if (!fs.existsSync(docsDir)) {
-        fs.mkdirSync(docsDir, { recursive: true });
-      }
-
-      const discoveryPath = path.join(docsDir, 'tool_discoveries.md');
-      const entry = `
-## ${today} 09:00 Daily Tool Search
-
-${results}
-
----
-`;
-
-      if (fs.existsSync(discoveryPath)) {
-        const existing = fs.readFileSync(discoveryPath, 'utf-8');
-        fs.writeFileSync(discoveryPath, existing + entry);
-      } else {
-        const header = `# Tool Discoveries Log
-
-> Daily search for new agentic tools and SDK updates.
-> Runs at 09:00 GMT+8.
-
----
-${entry}`;
-        fs.writeFileSync(discoveryPath, header);
-      }
-
-      // Notify via Telegram
-      await this.telegram.sendDevlog(
-        `🔧 <b>每日工具搜尋 (09:00)</b>\n\n${results}\n\n<i>完整記錄在 docs/tool_discoveries.md</i>`
-      );
-
-      // Save to short-term memory
-      this.saveToJournal('tool_search', results);
-
-      return results;
-    } catch (err) {
-      console.error('[ChatMode] Tool search error:', err.message);
-      await this.telegram.sendDevlog(`❌ 工具搜尋錯誤: ${err.message}`);
-      return null;
-    }
-  }
 
   /**
    * Heartbeat action - reflect, chat, or search news
@@ -1753,6 +1668,12 @@ ${entry}`;
   async doHeartbeat() {
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');
+      return;
+    }
+
+    // Check morning news BEFORE active hours gate (8am is outside 9-23 window)
+    if (this.isMorningNewsTime()) {
+      await this.doMorningNews();
       return;
     }
 
@@ -1767,18 +1688,6 @@ ${entry}`;
     }
 
     this.lastHeartbeat = now;
-
-    // Check if morning news time
-    if (this.isMorningNewsTime()) {
-      await this.doMorningNews();
-      return;
-    }
-
-    // Check if tool search time (9:00 AM GMT+8)
-    if (this.isToolSearchTime()) {
-      await this.doToolSearch();
-      return;
-    }
 
     // Random choice: reflect, search news, or stay quiet
     const actions = ['reflect', 'news', 'quiet', 'quiet']; // 50% chance to stay quiet

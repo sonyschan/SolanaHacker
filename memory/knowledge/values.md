@@ -39,7 +39,7 @@
 - **[2026-02-08]** H2Crypto said "記得 我們可以一起維護這些記憶與價值觀" - We collaborate together to maintain memories and values
 - **[2026-02-12]** 當我開頭提到 '修改' 或 '更新', 'update' ，會預期你用 edit_file / write_file 工具編輯檔案
 
-- **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) git_release (推送+標籤) 5) 確認GitHub同步
+- **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) 用 `git log --oneline $(git describe --tags --abbrev=0)..HEAD` 列出所有新commits 5) git_release (推送+標籤) 6) 確認GitHub同步
 - **[2026-02-12]** React 組件依賴分析方法：1) 不能只看直接 import，要遞歸追蹤所有依賴層級 2) 搜尋時要包含可能的命名變體(如 Provider/Context) 3) 要檢查 JSX 標籤使用，不只是 import 聲明 4) 複雜專案需要建立完整依賴圖譜，避免遺漏間接依賴
 - **[2026-02-12]** 程式碼架構分析思路：當發現分析結果與預期不符時，要立即檢討分析方法的完整性。特別是在大型專案中，淺層搜尋容易遺漏深層依賴關係。應該建立系統性的追蹤方法，而不是依賴單一工具或單一搜尋策略
 - **[2026-02-12]** React 組件依賴分析方法：1) 不能只看直接 import，要遞歸追蹤所有依賴層級 2) 搜尋時要包含可能的命名變體(如 Provider/Context) 3) 要檢查 JSX 標籤使用，不只是 import 聲明 4) 複雜專案需要建立完整依賴圖譜，避免遺漏間接依賴
@@ -54,4 +54,4 @@
 - **[2026-02-15]** Tools vs Skills 定義對照：Tools (工具) = 單一功能的原子化操作 (如 API 呼叫)，由 Agent 根據描述直接決定是否執行。Skills (技能) = 複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。
 - **[2026-02-15]** Skills vs Tools 定義差異：Tools(工具)是單一功能的原子化操作(如API呼叫)，由Agent根據描述直接決定是否執行；Skills(技能)是複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。例如：read_file是Tool(單純讀檔案)，grok_research是Skill(搜尋→評估→決定繼續→撰寫報告)
 
-- **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) 用 git log 結果來跟上一次 git tag 時間比較找到更新的 commits 5) git_release (推送+標籤) 6) 確認GitHub同步
+- **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) 用 `git log --oneline $(git describe --tags --abbrev=0)..HEAD` 列出所有新commits 5) git_release (推送+標籤) 6) 確認GitHub同步

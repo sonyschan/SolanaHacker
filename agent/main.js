@@ -24,6 +24,7 @@ import { ColosseumAPI } from './colosseum-api.js';
 import { TOOL_DEFINITIONS, createToolExecutors } from './agent-tools.js';
 import { SKILL_REGISTRY, LOAD_SKILL_TOOL, loadSkill, getSkillHints } from './skill-loader.js';
 import { ChatMode } from './chat-mode.js';
+import { createProvider } from './llm-provider.js';
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,8 +43,14 @@ const CONFIG = {
   devServerPort: 5173,
   heartbeatInterval: parseInt(process.env.HEARTBEAT_INTERVAL) || 1800000,
   uxThreshold: parseInt(process.env.UX_CONFIDENCE_THRESHOLD) || 90,
-  model: process.env.AI_MODEL || 'claude-sonnet-4-20250514',
-  maxTokens: 8192, // Tier 1 output limit: 8K/min for Sonnet
+  // Per-mode LLM configuration
+  devProvider: process.env.DEVMODE_PROVIDER || 'grok',
+  devModel: process.env.DEVMODE_MODEL || 'grok-4-1-fast-reasoning',
+  chatProvider: process.env.CHATMODE_PROVIDER || 'grok',
+  chatModel: process.env.CHATMODE_MODEL || 'grok-4-1-fast-reasoning',
+  // Legacy single model (used as fallback)
+  model: 'claude-sonnet-4-20250514',
+  maxTokens: 8192,
   maxTurns: 200,
   maxMessages: 50, // prune after this many messages — lower = less rate limiting
   maxRetries: 3,
@@ -58,11 +65,26 @@ const STATE_FILE = path.join(CONFIG.logsDir, 'agent-state.json');
 
 class SolanaHackerAgent {
   constructor() {
-    // Claude API client
-    this.client = new Anthropic({
-      apiKey: process.env.MINIMAX_API_KEY || process.env.ANTHROPIC_API_KEY,
-      baseURL: process.env.MINIMAX_BASE_URL || undefined  // Set MINIMAX_BASE_URL=https://api.minimax.io/anthropic to use MiniMax
+    // Raw Anthropic SDK client (kept for vision and as fallback)
+    this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    // Per-mode LLM providers
+    this.devProvider = createProvider(CONFIG.devProvider, {
+      apiKey: process.env.XAI_API_KEY,
+      model: CONFIG.devModel,
+      client: this.anthropicClient,
     });
+    this.chatProvider = createProvider(CONFIG.chatProvider, {
+      apiKey: process.env.XAI_API_KEY,
+      model: CONFIG.chatModel,
+      client: this.anthropicClient,
+    });
+
+    console.log(`[Agent] Dev provider: ${CONFIG.devProvider} (${CONFIG.devModel})`);
+    console.log(`[Agent] Chat provider: ${CONFIG.chatProvider} (${CONFIG.chatModel})`);
+
+    // Legacy alias
+    this.client = this.anthropicClient;
 
     // Modules
     this.telegram = new TelegramBridge(
@@ -141,7 +163,8 @@ class SolanaHackerAgent {
     this.chatMode = new ChatMode({
       telegram: this.telegram,
       grokApiKey: process.env.XAI_API_KEY,
-      claudeClient: this.client,
+      claudeClient: this.chatProvider,      // Provider for chat (Grok or Anthropic)
+      anthropicClient: this.anthropicClient, // Raw Anthropic SDK for vision
       memoryDir: CONFIG.memoryDir,
       baseDir: CONFIG.baseDir,
       reviewer: this.reviewer,
@@ -1486,7 +1509,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
     }
 
     return {
-      model: CONFIG.model,
+      model: CONFIG.devModel,
       max_tokens: CONFIG.maxTokens,
       system: cachedSystem,
       tools: cachedTools,
@@ -1499,7 +1522,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
     for (let attempt = 0; attempt <= CONFIG.maxRetries; attempt++) {
       try {
         const request = this.buildCachedRequest();
-        const response = await this.client.messages.create(request);
+        const response = await this.devProvider.messages.create(request);
 
         // Log cache performance (available in response.usage)
         if (response.usage) {

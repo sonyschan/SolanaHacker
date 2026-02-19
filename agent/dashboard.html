@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolanaHacker Agent Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --cyan: #58a6ff;
+    --purple: #bc8cff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.6em;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  h1 span { color: var(--purple); }
+  .meta { color: var(--text-dim); font-size: 0.85em; margin-bottom: 24px; }
+  .meta code { background: var(--surface); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+  }
+  .section-header:hover { background: rgba(88,166,255,0.06); }
+  .section-header .icon { font-size: 1.1em; }
+  .section-header h2 {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .section-header .badge {
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(88,166,255,0.15);
+    color: var(--cyan);
+  }
+  .chevron {
+    color: var(--text-dim);
+    transition: transform 0.2s;
+    font-size: 0.8em;
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .section-body { padding: 0 16px 16px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code {
+    background: rgba(88,166,255,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+  td .path { color: var(--text-dim); font-size: 0.9em; }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.75em;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin: 1px 2px;
+    white-space: nowrap;
+  }
+  .tag-cyan { background: rgba(88,166,255,0.15); color: var(--cyan); }
+  .tag-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .tag-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-orange { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .tag-pink { background: rgba(247,120,186,0.15); color: var(--pink); }
+  .tag-red { background: rgba(248,81,73,0.15); color: var(--red); }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .compare-col { padding: 0; }
+  .compare-col h3 {
+    text-align: center;
+    padding: 8px;
+    font-size: 0.9em;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-col:first-child { border-right: 1px solid var(--border); }
+  .compare-col:first-child h3 { color: var(--cyan); background: rgba(88,166,255,0.06); }
+  .compare-col:last-child h3 { color: var(--purple); background: rgba(188,140,255,0.06); }
+
+  .compare-row {
+    display: contents;
+  }
+  .compare-label {
+    grid-column: 1 / -1;
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 0.8em;
+    color: var(--text-dim);
+    background: rgba(48,54,61,0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .compare-cell {
+    padding: 6px 10px;
+    font-size: 0.85em;
+    border-bottom: 1px solid rgba(48,54,61,0.3);
+  }
+  .compare-cell:first-of-type { border-right: 1px solid var(--border); }
+
+  .tool-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 12px;
+    font-size: 0.85em;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--cyan);
+    background: var(--bg);
+  }
+  .timeline-item.special::before { border-color: var(--orange); }
+  .timeline-time {
+    color: var(--text-dim);
+    font-size: 0.9em;
+    font-weight: 600;
+  }
+  .timeline-desc { color: var(--text); margin-top: 2px; }
+
+  .note {
+    font-size: 0.8em;
+    color: var(--text-dim);
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(48,54,61,0.3);
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.85em;
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-dot.alive { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.dead { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .ctrl-btn {
+    padding: 4px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9em;
+    font-family: inherit;
+  }
+  .ctrl-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .ctrl-btn.danger { border-color: var(--red); color: var(--red); }
+  .ctrl-btn.danger:hover { background: rgba(248,81,73,0.12); }
+
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    .compare { grid-template-columns: 1fr; }
+    .compare-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+    .compare-cell:first-of-type { border-right: none; }
+    table { font-size: 0.8em; }
+    td, th { padding: 4px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="status-bar" id="status-bar">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Checking...</span>
+    <code id="status-uptime" style="font-size:0.85em;color:var(--text-dim);"></code>
+    <code id="status-pid" style="font-size:0.85em;color:var(--text-dim);"></code>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="ctrl-btn" id="btn-shutdown" onclick="shutdownServer()">Stop Server</button>
+  </div>
+</div>
+
+<h1>SolanaHacker <span>Agent Dashboard</span></h1>
+<div class="meta">
+  v4 Architecture &middot; Chat: <code>grok-4-1-fast-reasoning</code> &middot; Dev: <code>grok-4-1-fast-reasoning</code> &middot; Vision: <code>claude-sonnet-4</code> &middot; Droplet: <code>165.22.136.40</code>
+</div>
+
+<!-- Section 1: System Prompt Files -->
+<div class="section" id="s-prompt">
+  <div class="section-header" onclick="toggle('s-prompt')">
+    <span class="icon">📄</span>
+    <h2>System Prompt Files</h2>
+    <span class="badge">7 sources</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <table>
+      <tr><th>File</th><th>Runtime Path</th><th>Loaded By</th><th>Prompt Section</th><th>Limit</th></tr>
+      <tr>
+        <td><code>AGENTS.md</code></td>
+        <td class="path">/home/projects/solanahacker/AGENTS.md</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Top of prompt (identity, rules, commands)</td>
+        <td><span class="tag tag-green">Full</span></td>
+      </tr>
+      <tr>
+        <td><code>journal/YYYY-MM-DD.md</code></td>
+        <td class="path">memory/journal/</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Recent Memory &mdash; today + yesterday</td>
+        <td><span class="tag tag-orange">3000 chars</span></td>
+      </tr>
+      <tr>
+        <td><code>current_task.md</code></td>
+        <td class="path">memory/journal/</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Recent Memory &mdash; Current Task</td>
+        <td><span class="tag tag-green">Full</span></td>
+      </tr>
+      <tr>
+        <td><code>values.md</code></td>
+        <td class="path">memory/knowledge/</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Long-Term Knowledge &mdash; H2Crypto's Values</td>
+        <td><span class="tag tag-orange">2000 chars</span></td>
+      </tr>
+      <tr>
+        <td><code>bugs/index.md</code></td>
+        <td class="path">memory/knowledge/bugs/</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Long-Term Knowledge &mdash; Bug Solutions Registry</td>
+        <td><span class="tag tag-green">Full</span></td>
+      </tr>
+      <tr>
+        <td><code>docs/*.md / *.txt</code></td>
+        <td class="path">docs/ (excl _transient/)</td>
+        <td><code>buildSystemPrompt()</code></td>
+        <td>Reference Docs</td>
+        <td><span class="tag tag-orange">2000 chars each</span></td>
+      </tr>
+      <tr>
+        <td><code>skills/*/skill.md</code></td>
+        <td class="path">agent/skills/*/</td>
+        <td><code>getSkillHints()</code></td>
+        <td>Available Skills</td>
+        <td><span class="tag tag-purple">Metadata only</span></td>
+      </tr>
+    </table>
+    <div class="note">
+      <strong>Chat Mode</strong> builds its own inline system prompt from: <code>current_task.md</code>, <code>values.md</code>, <code>journal/YYYY-MM-DD.md</code> (last 1500 chars), plus hardcoded tool usage guide and project context.
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Heartbeat Actions -->
+<div class="section" id="s-heartbeat">
+  <div class="section-header" onclick="toggle('s-heartbeat')">
+    <span class="icon">💓</span>
+    <h2>Heartbeat Actions</h2>
+    <span class="badge">2 systems</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <h3 style="font-size:0.9em;color:var(--cyan);margin-bottom:8px;">System Heartbeat (main.js)</h3>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-time">Every 30 min</div>
+        <div class="timeline-desc">TG status ping: turn count, uptime, message count</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:0.9em;color:var(--purple);margin:16px 0 8px;">Chat Mode Heartbeat (chat-mode.js)</h3>
+    <div class="timeline">
+      <div class="timeline-item special">
+        <div class="timeline-time">08:00 GMT+8 (00:00 UTC)</div>
+        <div class="timeline-desc">
+          <code>doMorningNews()</code> &mdash; Crypto/AI news via Grok search (last 8h) &rarr; TG + journal
+          <br><span style="color:var(--orange);font-size:0.85em;">Runs BEFORE active hours gate (8am is outside 9-23 window)</span>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">09:00&ndash;23:00 GMT+8 (hourly, random)</div>
+        <div class="timeline-desc">
+          <code>doReflection()</code> &mdash; Share dev insights, ask H2Crypto a question (25%)
+          <br><code>doNewsSearch()</code> &mdash; Latest 1h crypto/AI news via Grok search (25%)
+          <br><em style="color:var(--text-dim);">Quiet &mdash; no action (50%)</em>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">00:00&ndash;07:00 GMT+8</div>
+        <div class="timeline-desc" style="color:var(--text-dim);">Sleep &mdash; no heartbeat activity</div>
+      </div>
+    </div>
+    <div class="note">
+      Sleep mode (<code>#sleep</code>) disables all heartbeat actions until next reset. Sleep resets on <code>#clear_message</code>.
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: Scheduled Tasks -->
+<div class="section" id="s-scheduler">
+  <div class="section-header" onclick="toggle('s-scheduler')">
+    <span class="icon">⏰</span>
+    <h2>Scheduled Tasks (MemeForge Backend)</h2>
+    <span class="badge">7 tasks</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <table>
+      <tr><th>Task</th><th>Schedule</th><th>Endpoint</th><th>Description</th></tr>
+      <tr>
+        <td><code>daily_cycle</code></td>
+        <td><span class="tag tag-cyan">00:00 UTC</span></td>
+        <td class="path">POST /api/scheduler/trigger/daily_cycle</td>
+        <td>Full daily cycle (generate memes + start voting)</td>
+      </tr>
+      <tr>
+        <td><code>daily_memes</code></td>
+        <td><span class="tag tag-cyan">08:00 UTC</span></td>
+        <td class="path">POST /api/scheduler/trigger/daily_memes</td>
+        <td>Generate daily memes via Gemini</td>
+      </tr>
+      <tr>
+        <td><code>start_voting</code></td>
+        <td><span class="tag tag-cyan">08:30 UTC</span></td>
+        <td class="path">POST /api/scheduler/trigger/start_voting</td>
+        <td>Open voting period for generated memes</td>
+      </tr>
+      <tr>
+        <td><code>end_voting</code></td>
+        <td><span class="tag tag-cyan">20:00 UTC</span></td>
+        <td class="path">POST /api/scheduler/trigger/end_voting</td>
+        <td>Close voting &amp; calculate rarity scores</td>
+      </tr>
+      <tr>
+        <td><code>lottery_draw</code></td>
+        <td><span class="tag tag-orange">Daily 20:00 UTC</span></td>
+        <td class="path">POST /api/scheduler/trigger/lottery_draw</td>
+        <td>Daily lottery draw (tickets accumulate)</td>
+      </tr>
+      <tr>
+        <td><code>cleanup</code></td>
+        <td><span class="tag tag-purple">On demand</span></td>
+        <td class="path">POST /api/scheduler/trigger/cleanup</td>
+        <td>Clean up stale data</td>
+      </tr>
+      <tr>
+        <td><code>voting_progress</code></td>
+        <td><span class="tag tag-purple">On demand</span></td>
+        <td class="path">POST /api/scheduler/trigger/voting_progress</td>
+        <td>Check voting progress for current period</td>
+      </tr>
+    </table>
+    <div class="note">
+      Backend: <code>https://memeforge-api-836651762884.asia-southeast1.run.app</code><br>
+      Scheduler status: <code>GET /api/scheduler/status</code> &middot; Health: <code>GET /api/scheduler/health</code>
+    </div>
+  </div>
+</div>
+
+<!-- Section 4: Skills & Tools -->
+<div class="section" id="s-tools">
+  <div class="section-header" onclick="toggle('s-tools')">
+    <span class="icon">🔧</span>
+    <h2>Available Skills &amp; Tools</h2>
+    <span class="badge">24 + 4 skills</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <h3 style="font-size:0.9em;color:var(--cyan);margin-bottom:8px;">Dev Mode &mdash; 24 core tools + <code>load_skill</code></h3>
+    <div class="tool-grid">
+      <span class="tag tag-cyan">read_file</span>
+      <span class="tag tag-cyan">write_file</span>
+      <span class="tag tag-cyan">list_files</span>
+      <span class="tag tag-cyan">run_command</span>
+      <span class="tag tag-cyan">dev_server</span>
+      <span class="tag tag-cyan">take_screenshot</span>
+      <span class="tag tag-cyan">review_ux</span>
+      <span class="tag tag-cyan">check_console_errors</span>
+      <span class="tag tag-cyan">browse_url</span>
+      <span class="tag tag-cyan">send_telegram</span>
+      <span class="tag tag-cyan">request_approval</span>
+      <span class="tag tag-cyan">git_commit</span>
+      <span class="tag tag-cyan">git_commit_push</span>
+      <span class="tag tag-cyan">git_release</span>
+      <span class="tag tag-cyan">colosseum_project</span>
+      <span class="tag tag-cyan">read_knowledge</span>
+      <span class="tag tag-cyan">write_journal</span>
+      <span class="tag tag-cyan">update_current_task</span>
+      <span class="tag tag-cyan">lookup_bug</span>
+      <span class="tag tag-cyan">add_bug_solution</span>
+      <span class="tag tag-cyan">remember</span>
+      <span class="tag tag-cyan">search_memory</span>
+      <span class="tag tag-cyan">log_attempt</span>
+      <span class="tag tag-cyan">complete_task</span>
+      <span class="tag tag-purple">load_skill</span>
+    </div>
+
+    <h3 style="font-size:0.9em;color:var(--purple);margin:16px 0 8px;">Chat Mode &mdash; 20 tools (includes exclusive tools)</h3>
+    <div class="tool-grid">
+      <span class="tag tag-purple">read_file</span>
+      <span class="tag tag-pink">edit_file</span>
+      <span class="tag tag-purple">write_file</span>
+      <span class="tag tag-purple">list_files</span>
+      <span class="tag tag-purple">browse_url</span>
+      <span class="tag tag-purple">check_console_errors</span>
+      <span class="tag tag-purple">take_screenshot</span>
+      <span class="tag tag-purple">dev_server</span>
+      <span class="tag tag-pink">cron_list</span>
+      <span class="tag tag-pink">cron_add</span>
+      <span class="tag tag-pink">cron_remove</span>
+      <span class="tag tag-purple">run_command</span>
+      <span class="tag tag-purple">git_commit</span>
+      <span class="tag tag-purple">git_release</span>
+      <span class="tag tag-purple">read_knowledge</span>
+      <span class="tag tag-purple">search_memory</span>
+      <span class="tag tag-purple">remember</span>
+      <span class="tag tag-purple">send_telegram</span>
+      <span class="tag tag-purple">write_journal</span>
+    </div>
+    <div class="note" style="margin-top:6px;">
+      <span class="tag tag-pink" style="margin-right:4px;">Pink</span> = Chat Mode exclusive tools (not in Dev Mode)
+    </div>
+
+    <h3 style="font-size:0.9em;color:var(--orange);margin:16px 0 8px;">On-Demand Skills (via <code>load_skill</code>)</h3>
+    <table>
+      <tr><th>Skill</th><th>Purpose</th></tr>
+      <tr>
+        <td><code>gemini_image</code></td>
+        <td>Image generation via Gemini API (UX assets + NFT art)</td>
+      </tr>
+      <tr>
+        <td><code>grok_research</code></td>
+        <td>Web research via Grok API with search</td>
+      </tr>
+      <tr>
+        <td><code>v0_ui</code></td>
+        <td>UI component generation via v0.dev</td>
+      </tr>
+      <tr>
+        <td><code>xai_analysis</code></td>
+        <td>Deep analysis via xAI API</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 5: Chat Mode vs Dev Mode -->
+<div class="section" id="s-compare">
+  <div class="section-header" onclick="toggle('s-compare')">
+    <span class="icon">⚖️</span>
+    <h2>Chat Mode vs Dev Mode</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="compare">
+      <div class="compare-col"><h3>💬 Chat Mode</h3></div>
+      <div class="compare-col"><h3>🛠️ Dev Mode</h3></div>
+
+      <div class="compare-label">Entry Condition</div>
+      <div class="compare-cell">Default on startup. Always active unless <code>#dotask</code> triggers Dev Mode.</div>
+      <div class="compare-cell">Only via <code>#dotask</code> when WIP task exists. Returns to Chat Mode on completion.</div>
+
+      <div class="compare-label">Loop Mechanism</div>
+      <div class="compare-cell"><code>chatModeLoop()</code> &mdash; polls TG every 5s, runs heartbeat</div>
+      <div class="compare-cell"><code>agentLoop()</code> &mdash; Claude API tool-use loop, max 200 turns</div>
+
+      <div class="compare-label">LLM Model</div>
+      <div class="compare-cell"><code>grok-4-1-fast-reasoning</code> (configurable) + Grok search (news/reflection)</div>
+      <div class="compare-cell"><code>grok-4-1-fast-reasoning</code> (configurable) &middot; Vision: <code>claude-sonnet-4</code></div>
+
+      <div class="compare-label">Max Output Tokens</div>
+      <div class="compare-cell">2,500</div>
+      <div class="compare-cell">8,192</div>
+
+      <div class="compare-label">Tool Count</div>
+      <div class="compare-cell">20 tools (incl. cron_*, edit_file)</div>
+      <div class="compare-cell">24 core + load_skill + skill tools</div>
+
+      <div class="compare-label">System Prompt</div>
+      <div class="compare-cell">Inline in <code>handleWithClaude()</code> &mdash; hardcoded Chinese context with tool guide</div>
+      <div class="compare-cell"><code>buildSystemPrompt()</code> &mdash; AGENTS.md + memory + docs + skills</div>
+
+      <div class="compare-label">Conversation</div>
+      <div class="compare-cell">Sliding window, max 50 messages. Tool messages cleaned from history after each exchange.</div>
+      <div class="compare-cell">Full history with pruning at 50 messages. State persisted to disk for resume.</div>
+
+      <div class="compare-label">Heartbeat</div>
+      <div class="compare-cell">Morning news (08:00), reflection/news (hourly 09-23), sleep mode support</div>
+      <div class="compare-cell">TG status ping every 30 min (turn count, uptime)</div>
+
+      <div class="compare-label">Task Management</div>
+      <div class="compare-cell"><code>#addtask</code>, <code>#tasklist</code>, <code>#deltask</code> &mdash; WIP file management</div>
+      <div class="compare-cell">Reads WIP, tracks progress, calls <code>complete_task</code> when done</div>
+
+      <div class="compare-label">Prompt Caching</div>
+      <div class="compare-cell">System prompt cached (ephemeral)</div>
+      <div class="compare-cell">Tools + system prompt + message prefix cached (up to 4 breakpoints)</div>
+
+      <div class="compare-label">Idle Behavior</div>
+      <div class="compare-cell">Polls TG every 5s, no API calls when idle</div>
+      <div class="compare-cell">Idle mode after "waiting" detected &mdash; sleeps 30s, checks TG without API calls</div>
+    </div>
+  </div>
+</div>
+
+<div class="meta" style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+  Generated: <code id="gen-time">2026-02-19 10:46:42 GMT+8</code> &middot; Source: <code>main.js</code> <code>chat-mode.js</code> <code>agent-tools.js</code> <code>scheduler.js</code> <code>skill-loader.js</code>
+  <br><button id="regen-btn" onclick="regen()" style="
+    margin-top:8px;
+    padding:5px 16px;
+    background:rgba(88,166,255,0.12);
+    color:var(--cyan);
+    border:1px solid var(--cyan);
+    border-radius:6px;
+    cursor:pointer;
+    font-size:0.85em;
+    font-family:inherit;
+  ">Regenerate</button>
+  <span id="regen-status" style="margin-left:8px;font-size:0.85em;"></span>
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+// --- Server health polling ---
+let serverAlive = false;
+async function checkHealth() {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const uptime = document.getElementById('status-uptime');
+  const pid = document.getElementById('status-pid');
+  const btn = document.getElementById('btn-shutdown');
+  try {
+    const res = await fetch('/health', { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    if (data.ok) {
+      serverAlive = true;
+      dot.className = 'status-dot alive';
+      text.textContent = 'Server Online';
+      text.style.color = 'var(--green)';
+      uptime.textContent = 'uptime: ' + data.uptime;
+      pid.textContent = 'PID: ' + data.pid;
+      btn.textContent = 'Stop Server';
+      btn.className = 'ctrl-btn danger';
+      btn.disabled = false;
+    }
+  } catch {
+    serverAlive = false;
+    dot.className = 'status-dot dead';
+    text.textContent = 'Server Offline';
+    text.style.color = 'var(--red)';
+    uptime.textContent = '';
+    pid.textContent = '';
+    btn.textContent = 'Offline';
+    btn.className = 'ctrl-btn';
+    btn.disabled = true;
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+async function shutdownServer() {
+  if (!serverAlive) return;
+  if (!confirm('Stop the dashboard server? You will need SSH to restart it:\n\nssh root@165.22.136.40\nsystemctl start dashboard-server')) return;
+  try {
+    await fetch('/shutdown', { method: 'POST' });
+    document.getElementById('status-dot').className = 'status-dot dead';
+    document.getElementById('status-text').textContent = 'Shutting down...';
+    document.getElementById('status-text').style.color = 'var(--orange)';
+  } catch {}
+}
+
+async function regen() {
+  const btn = document.getElementById('regen-btn');
+  const status = document.getElementById('regen-status');
+  btn.disabled = true;
+  btn.textContent = 'Regenerating...';
+  status.textContent = '';
+  try {
+    const res = await fetch('/regen', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      status.style.color = 'var(--green)';
+      status.textContent = data.timestamp;
+      setTimeout(() => location.reload(), 600);
+    } else {
+      status.style.color = 'var(--red)';
+      status.textContent = 'Error: ' + data.error;
+    }
+  } catch (e) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Server unreachable (need dashboard-server.js)';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Regenerate';
+}
+</script>
+</body>
+</html>
