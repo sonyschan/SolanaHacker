@@ -678,6 +678,23 @@ export function createToolExecutors(deps) {
       if (DANGEROUS_CMD.test(command)) {
         return `Error: Dangerous command blocked: ${command}`;
       }
+
+      // v4.6: Resolve paths in mkdir commands to prevent workDir/baseDir mismatch
+      // mkdir runs in workDir (app/) but paths like memory/, docs/, agent/ should resolve to baseDir
+      let resolvedCommand = command;
+      const mkdirMatch = command.match(/^mkdir\s+(-p\s+)?(.+)$/);
+      if (mkdirMatch) {
+        const flags = mkdirMatch[1] || '';
+        const dirs = mkdirMatch[2].trim().split(/\s+/);
+        const resolvedDirs = dirs.map(d => {
+          try { return resolveProjectPath(d); } catch { return d; }
+        });
+        resolvedCommand = `mkdir ${flags}${resolvedDirs.join(' ')}`;
+        if (resolvedCommand !== command) {
+          console.log(`[run_command] Path resolved: "${command}" → "${resolvedCommand}"`);
+        }
+      }
+
       // Strip sensitive env vars from child process to prevent leaks via env/printenv
       const safeEnv = { ...process.env };
       delete safeEnv.ANTHROPIC_API_KEY;
@@ -687,7 +704,7 @@ export function createToolExecutors(deps) {
       delete safeEnv.COLOSSEUM_API_KEY;
       delete safeEnv.COLOSSEUM_CLAIM_CODE;
       try {
-        const { stdout, stderr } = await execAsync(command, {
+        const { stdout, stderr } = await execAsync(resolvedCommand, {
           cwd: workDir,
           timeout: timeout_ms,
           maxBuffer: 2 * 1024 * 1024,

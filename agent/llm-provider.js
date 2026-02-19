@@ -250,6 +250,9 @@ class GrokProvider {
         } catch {
           args = {};
         }
+        // v4.6: Fix Grok double-escaping — after JSON.parse, literal \n \t \\ remain
+        // as two-char sequences instead of actual control characters
+        args = this._unescapeLiterals(args);
         content.push({
           type: 'tool_use',
           id: tc.id,
@@ -284,6 +287,35 @@ class GrokProvider {
       usage,
       model: data.model || this.model,
     };
+  }
+
+  /**
+   * Recursively fix Grok's double-escaped strings in tool call arguments.
+   * Grok often sends \\n instead of \n in JSON, so after JSON.parse we get
+   * literal two-char "\n" instead of actual newline (0x0a).
+   */
+  _unescapeLiterals(obj) {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'string') {
+      // Only unescape if the string contains literal escape sequences
+      // Check for literal \n (0x5c 0x6e) by looking for backslash followed by n/t/r
+      if (obj.includes('\\n') || obj.includes('\\t') || obj.includes('\\r')) {
+        return obj
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\r/g, '\r');
+      }
+      return obj;
+    }
+    if (Array.isArray(obj)) return obj.map(item => this._unescapeLiterals(item));
+    if (typeof obj === 'object') {
+      const fixed = {};
+      for (const [key, value] of Object.entries(obj)) {
+        fixed[key] = this._unescapeLiterals(value);
+      }
+      return fixed;
+    }
+    return obj;
   }
 
   /**

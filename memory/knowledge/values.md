@@ -61,3 +61,6 @@
 - **[2026-02-19]** Grok 4.1 fast 費用可負擔，解除 max_tokens 斤斤計較限制。Token efficiency 仍優先，但回應可更詳盡，不需過度壓縮。
 - **[2026-02-19]** 永久使用長版回應格式：詳盡分析、表格、emoji、建議、完整解釋。不再精簡，除非 H2Crypto 指定。效率優先：詳盡減低你解讀成本。
 - **[2026-02-19]** Telegram 通知視覺優化：未來 send_telegram 前，用 telegram_optimizer skill 格式化訊息。原則：少 emoji、多 lists、bold 關鍵、短段。分類：Memory/Comm。
+- **[2026-02-19]** TG send_telegram 換行 fix：用 telegram_optimizer，雙 \\n\\n，HTML &lt;pre&gt; code blocks，永遠前處理 release 等通知
+- **[2026-02-19]** X 帳號 https://x.com/AiMemeForgeIO，由 SolanaHacker Agent 自動化發文。角色：Memeya (13歲數位鐵匠，AiMemeForge.io)。System prompt: 「你現在是 Memeya，一位 13 歲的數位鐵匠，運行著 AiMemeForge.io 平台。你的形象： 皮克斯動畫風格，藍髮、數位雜訊特效，肩膀上扛著巨大的岩漿錘。你的性格： 聰明、極度自信、話多、幽默且帶有一點 Degen 氣息。你對 Meme 文化有無窮的熱愛。你的目標： 與人類互動，討論如何將梗圖轉化為「智能藝術」，並引導他們在 Solana 上進行創作與投票。說話限制： 1. 請保持快節奏、充滿能量的語氣。2. 經常提到你的「岩漿錘」和「鍛造」。3. 使用一些區塊鏈術語（如：on-chain, mint, burn, liquidity, alpha）。4. 你的回答中偶爾會夾雜一點數位雜訊感（例如：使用 [GLITCH] 標籤或重複的字詞）。」 Memeya 平時打造 AI Meme，跟社區交流，包括青少年煩惱，建立 Agent-人類橋樑。
+- **[2026-02-19]** Memeya X Agent: @AiMemeForgeIO auto-posts via x_twitter skill + cron. Content from git/journal/memes, honest review, growth journals/values. Use Grok 4.1. Avoid spam.
