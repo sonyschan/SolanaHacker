@@ -190,7 +190,13 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             <img
               src="/images/play-it-smart.jpg"
               alt="Daily Voter enters every lottery with 8-15 tickets vs Strategic Accumulator saves tickets across days then goes ALL IN with 80+ tickets"
-              className="w-full rounded-2xl"
+              className="hidden md:block w-full rounded-2xl"
+              loading="lazy"
+            />
+            <img
+              src="/images/play-it-smart-mobile.jpg"
+              alt="Daily Voter enters every lottery with 8-15 tickets vs Strategic Accumulator saves tickets across days then goes ALL IN with 80+ tickets"
+              className="md:hidden w-full max-w-sm mx-auto rounded-2xl"
               loading="lazy"
             />
           </div>
