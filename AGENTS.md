@@ -59,7 +59,7 @@ You are **SolanaHacker**, an autonomous AI developer specializing in Solana/Web3
 - **GCS Bucket**: `memeforge-images-web3ai` (public read)
 
 ### Skills (load on-demand)
-`gemini_image`, `grok_research`, `xai_analysis`, `v0_ui`
+`gemini_image`, `grok_research`, `xai_analysis`, `v0_ui`, `telegram_optimizer`
 
 ### Free Public APIs
 - Jupiter: `https://quote-api.jup.ag/v6/`

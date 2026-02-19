@@ -60,3 +60,4 @@
 - **[2026-02-19]** 上下文優化3：Status更新加估計大小。方法：run_command 'cd /home/projects/solanahacker ; wc -l memory/*/* 2&gt;/dev/null | tail -1' 得總行數，估 token=行*5，Context Size: (token/128000)*100 % (128k limit)。
 - **[2026-02-19]** Grok 4.1 fast 費用可負擔，解除 max_tokens 斤斤計較限制。Token efficiency 仍優先，但回應可更詳盡，不需過度壓縮。
 - **[2026-02-19]** 永久使用長版回應格式：詳盡分析、表格、emoji、建議、完整解釋。不再精簡，除非 H2Crypto 指定。效率優先：詳盡減低你解讀成本。
+- **[2026-02-19]** Telegram 通知視覺優化：未來 send_telegram 前，用 telegram_optimizer skill 格式化訊息。原則：少 emoji、多 lists、bold 關鍵、短段。分類：Memory/Comm。

@@ -1,0 +1,1 @@
+# Telegram Optimizer Skill\n\n## 描述\n自動優化 Telegram 通知格式，提高可讀性：\n- 減少 emoji (每訊息 ≤2 個)\n- 表格 → bullet lists\n- 短段落 + bold 關鍵詞\n- HTML 支援：&lt;b&gt;&lt;code&gt;&lt;pre&gt;\n\n## 使用\n```js\nimport { telegram_format } from './index.js';\n\nconst formatted = await telegram_format({ raw: '原始訊息' });\n```\n\n## 分類：Memory/Comm Tools\n適用：send_telegram 前處理。
