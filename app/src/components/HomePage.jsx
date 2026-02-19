@@ -145,12 +145,18 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Flywheel diagram — generated image */}
+            {/* Flywheel diagram — landscape on desktop, square on mobile */}
             <div className="mb-8">
               <img
                 src="/images/flywheel-growth.jpg"
                 alt="Growth Flywheel: Vote Free → Win Memes → Community Grows → NFTs Gain Value → cycle repeats"
-                className="w-full rounded-2xl"
+                className="hidden md:block w-full rounded-2xl"
+                loading="lazy"
+              />
+              <img
+                src="/images/flywheel-growth-square.jpg"
+                alt="Growth Flywheel: Vote Free → Win Memes → Community Grows → NFTs Gain Value → cycle repeats"
+                className="md:hidden w-full max-w-sm mx-auto rounded-2xl"
                 loading="lazy"
               />
             </div>
