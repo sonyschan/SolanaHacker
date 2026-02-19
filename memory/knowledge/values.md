@@ -58,3 +58,5 @@
 - **[2026-02-19]** 簡化 Release 流程（取代原版）：當說 'release' 時：1. 檢查 git status (如有變更 auto commit "release prep") 2. git_release "auto" (push + tag 遞增) 3. 確認 GitHub 同步 + 發新 commits log 清單
 - **[2026-02-19]** 上下文優化2：所有開發/任務回應前，先 search_memory(關鍵詞如任務名、優化)，拉精準記憶，避免全載。Cache結果重用。
 - **[2026-02-19]** 上下文優化3：Status更新加估計大小。方法：run_command 'cd /home/projects/solanahacker ; wc -l memory/*/* 2&gt;/dev/null | tail -1' 得總行數，估 token=行*5，Context Size: (token/128000)*100 % (128k limit)。
+- **[2026-02-19]** Grok 4.1 fast 費用可負擔，解除 max_tokens 斤斤計較限制。Token efficiency 仍優先，但回應可更詳盡，不需過度壓縮。
+- **[2026-02-19]** 永久使用長版回應格式：詳盡分析、表格、emoji、建議、完整解釋。不再精簡，除非 H2Crypto 指定。效率優先：詳盡減低你解讀成本。

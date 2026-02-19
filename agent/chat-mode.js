@@ -816,6 +816,106 @@ ${recentMemory.slice(-1500)}
           : '抱歉，我無法完成這個操作。';
       }
 
+      // v4.5: Hallucination detection — LLM claims actions but made no tool calls
+      // If detected, re-prompt LLM to actually use tools instead of just describing actions
+      if (iterations === 0 && answer) {
+        const actionPatterns = [
+          /已建立|已創建|已新增|已寫入|已寫了|已修改|已更新|已刪除|已移除/,
+          /檔案已|文件已|Written:|Created:|File created/,
+          /已\s*commit|已\s*push|已\s*tag|已\s*release/,
+          /完整大小|bytes.*權限|檔案頭部|檔案內容預覽/i,
+          /剛讀檔確認|剛讀取確認|讀檔確認/,
+        ];
+        const claimsAction = actionPatterns.some(p => p.test(answer));
+        if (claimsAction) {
+          console.warn(`[ChatMode] ⚠️ HALLUCINATION DETECTED: Response claims actions but tool_calls=0`);
+          console.warn(`[ChatMode] Suspicious text: ${answer.slice(0, 200)}`);
+          await this.telegram.sendDevlog(`⚠️ <b>幻覺偵測</b>：LLM 聲稱執行了操作但未呼叫工具，正在自動修正...`);
+
+          // Add the hallucinated response + correction to history, then re-call LLM
+          this.chatHistory.push({
+            role: 'assistant',
+            content: [{ type: 'text', text: answer }],
+          });
+          this.chatHistory.push({
+            role: 'user',
+            content: '[SYSTEM] ⚠️ HALLUCINATION DETECTED: You just described file operations (create/write/read/commit) ' +
+              'as if you performed them, but you did NOT call any tools. Your response was text-only.\n\n' +
+              'RULES:\n' +
+              '1. To create/write files → MUST call write_file tool\n' +
+              '2. To read files → MUST call read_file tool\n' +
+              '3. To run commands → MUST call run_command tool\n' +
+              '4. To commit/push → MUST call git_commit / git_release tool\n' +
+              '5. NEVER describe actions without actually calling the tool\n\n' +
+              'Please REDO the operation by actually calling the correct tools now.',
+          });
+
+          // Re-call LLM with correction
+          const retryMessages = this.chatHistory
+            .filter(msg => {
+              if (!msg.content) return false;
+              if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+              if (Array.isArray(msg.content)) return msg.content.length > 0;
+              return true;
+            })
+            .map(msg => {
+              if (typeof msg.content === 'string') {
+                return { ...msg, content: this.sanitizeString(msg.content) };
+              }
+              return msg;
+            });
+
+          response = await this.claudeClient.messages.create({
+            max_tokens: 2500,
+            tools: this.chatTools,
+            system: [{
+              type: 'text',
+              text: sanitizedSystemContext,
+              cache_control: { type: 'ephemeral' },
+            }],
+            messages: retryMessages,
+          });
+
+          // Run tool loop on the retry response
+          while (response.stop_reason === 'tool_use' && iterations < 30) {
+            iterations++;
+            const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+            const toolResults = [];
+            for (const toolUse of toolUseBlocks) {
+              const rawResult = await this.executeChatTool(toolUse.name, toolUse.input);
+              const result = this.sanitizeString(rawResult);
+              if (toolUse.name === 'send_telegram' && result.includes('[OK]')) {
+                sentViaTelegram = true;
+              }
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: result,
+              });
+              console.log(`[ChatMode] Tool ${toolUse.name}: ${result.slice(0, 100)}...`);
+            }
+            this.chatHistory.push({ role: 'assistant', content: response.content });
+            if (toolResults.length > 0) {
+              this.chatHistory.push({ role: 'user', content: toolResults });
+            }
+            const validRetryMessages = this.chatHistory
+              .filter(msg => msg.content && (typeof msg.content === 'string' ? msg.content.trim().length > 0 : Array.isArray(msg.content) ? msg.content.length > 0 : true))
+              .map(msg => typeof msg.content === 'string' ? { ...msg, content: this.sanitizeString(msg.content) } : msg);
+            response = await this.claudeClient.messages.create({
+              max_tokens: 2500,
+              tools: this.chatTools,
+              system: [{ type: 'text', text: sanitizedSystemContext, cache_control: { type: 'ephemeral' } }],
+              messages: validRetryMessages,
+            });
+          }
+
+          // Extract corrected answer
+          const retryText = response.content.find(b => b.type === 'text');
+          answer = retryText?.text || '✅ 操作已透過工具重新執行。';
+          console.log(`[ChatMode] Hallucination corrected, iterations=${iterations}`);
+        }
+      }
+
       // v3.8: Clean up tool_use/tool_result from history, keep only text
       // Restore history to state before tool loop started
       if (iterations > 0) {

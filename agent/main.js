@@ -1268,6 +1268,43 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
         }
       }
 
+      // v4.5: Hallucination detection — LLM claims actions but made no tool calls
+      if (response.stop_reason !== 'tool_use') {
+        const allText = response.content
+          .filter(b => b.type === 'text')
+          .map(b => b.text)
+          .join('\n');
+        const actionPatterns = [
+          /已建立|已創建|已新增|已寫入|已寫了|已修改|已更新|已刪除|已移除/,
+          /檔案已|文件已|Written:|Created:|File created/,
+          /已\s*commit|已\s*push|已\s*tag|已\s*release/,
+          /完整大小|bytes.*權限|檔案頭部|檔案內容預覽/i,
+          /剛讀檔確認|剛讀取確認|讀檔確認/,
+        ];
+        const claimsAction = actionPatterns.some(p => p.test(allText));
+        if (claimsAction) {
+          console.warn(`[Agent] ⚠️ HALLUCINATION DETECTED: Response claims actions but stop_reason=${response.stop_reason}, no tool calls`);
+          console.warn(`[Agent] Suspicious text: ${allText.slice(0, 300)}`);
+          // Inject correction message to force LLM to use tools
+          this.messages.push({
+            role: 'user',
+            content:
+              '[SYSTEM] ⚠️ HALLUCINATION DETECTED: You claimed to have performed file operations (write/read/create) ' +
+              'but you did NOT actually call any tools. Your response was text-only.\n\n' +
+              'RULES:\n' +
+              '1. To create/write files, you MUST call the write_file tool\n' +
+              '2. To read files, you MUST call the read_file tool\n' +
+              '3. To run commands, you MUST call the run_command tool\n' +
+              '4. NEVER describe actions as if you did them — actually DO them with tools\n\n' +
+              'Please REDO the operation using the correct tools.',
+          });
+          await this.telegram.sendDevlog(
+            `⚠️ <b>幻覺偵測</b>：LLM 聲稱執行了檔案操作但未呼叫工具。已自動要求重新執行。`
+          );
+          continue; // Retry the turn with correction
+        }
+      }
+
       // Handle stop_reason
       if (response.stop_reason === 'end_turn') {
         console.log('[Agent] Agent signaled end_turn');
