@@ -55,3 +55,6 @@
 - **[2026-02-15]** Skills vs Tools 定義差異：Tools(工具)是單一功能的原子化操作(如API呼叫)，由Agent根據描述直接決定是否執行；Skills(技能)是複雜的邏輯流、策略或多步操作，通常包含內部的判斷邏輯或循環控制。例如：read_file是Tool(單純讀檔案)，grok_research是Skill(搜尋→評估→決定繼續→撰寫報告)
 
 - **[2026-02-18]** Release 完整流程：1) 檢查 git status (未提交變更) 2) 檢查當前版號 3) 如有變更→git_commit 4) 用 `git log --oneline $(git describe --tags --abbrev=0)..HEAD` 列出所有新commits 5) git_release (推送+標籤) 6) 確認GitHub同步
+- **[2026-02-19]** 簡化 Release 流程（取代原版）：當說 'release' 時：1. 檢查 git status (如有變更 auto commit "release prep") 2. git_release "auto" (push + tag 遞增) 3. 確認 GitHub 同步 + 發新 commits log 清單
+- **[2026-02-19]** 上下文優化2：所有開發/任務回應前，先 search_memory(關鍵詞如任務名、優化)，拉精準記憶，避免全載。Cache結果重用。
+- **[2026-02-19]** 上下文優化3：Status更新加估計大小。方法：run_command 'cd /home/projects/solanahacker ; wc -l memory/*/* 2&gt;/dev/null | tail -1' 得總行數，估 token=行*5，Context Size: (token/128000)*100 % (128k limit)。

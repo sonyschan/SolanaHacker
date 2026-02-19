@@ -522,6 +522,8 @@ ${recentMemory.slice(-1500)}
 
 ### 通訊與日誌
 - **send_telegram**：主動發送訊息給 H2Crypto（進度更新、提問）
+  - 格式：Telegram HTML（<b>, <code>, <pre>）
+  - 換行：用 \\n，**禁止用 <br>**
 - **write_journal**：寫入今日日誌，讓 Dev Mode 能參考對話內容
 
 ## 檔案放置規則（路徑相對於 /home/projects/solanahacker/）

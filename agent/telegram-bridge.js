@@ -44,6 +44,9 @@ function sanitizeHtmlForTelegram(text) {
   if (!text) return text;
   let sanitized = String(text);
 
+  // Convert <br> variants to newlines (LLMs like Grok often use HTML line breaks)
+  sanitized = sanitized.replace(/<br\s*\/?>/gi, '\n');
+
   // List of allowed Telegram HTML tags
   const allowedTags = ['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del', 'code', 'pre', 'a'];
   const allowedPattern = allowedTags.join('|');

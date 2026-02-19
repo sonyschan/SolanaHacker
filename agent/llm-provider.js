@@ -62,6 +62,9 @@ class GrokProvider {
   async _callGrok(params) {
     const openaiRequest = this._convertRequest(params);
 
+    // Debug: log tool count and message count
+    console.log(`[Grok] Request: ${openaiRequest.messages.length} messages, ${openaiRequest.tools?.length || 0} tools, model: ${openaiRequest.model}`);
+
     const response = await fetch(GROK_API_URL, {
       method: 'POST',
       headers: {
@@ -79,6 +82,17 @@ class GrokProvider {
     }
 
     const data = await response.json();
+
+    // Debug: log raw response structure
+    const choice = data.choices?.[0];
+    const hasToolCalls = choice?.message?.tool_calls?.length > 0;
+    console.log(`[Grok] Response: finish_reason=${choice?.finish_reason}, tool_calls=${hasToolCalls ? choice.message.tool_calls.length : 0}, content_length=${choice?.message?.content?.length || 0}`);
+    if (hasToolCalls) {
+      for (const tc of choice.message.tool_calls) {
+        console.log(`[Grok]   tool_call: ${tc.function?.name}(${tc.function?.arguments?.slice(0, 80)}...)`);
+      }
+    }
+
     return this._convertResponse(data);
   }
 
@@ -246,8 +260,11 @@ class GrokProvider {
     }
 
     // Determine stop_reason
+    // Note: Grok/X.AI may use different finish_reason values than OpenAI
+    // Be robust: detect tool_use by presence of tool_calls, not just finish_reason string
+    const hasTools = message.tool_calls && message.tool_calls.length > 0;
     let stop_reason = 'end_turn';
-    if (choice.finish_reason === 'tool_calls') {
+    if (hasTools || choice.finish_reason === 'tool_calls') {
       stop_reason = 'tool_use';
     } else if (choice.finish_reason === 'length') {
       stop_reason = 'max_tokens';
