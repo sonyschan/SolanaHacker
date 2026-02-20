@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
@@ -20,6 +20,26 @@ const Dashboard = ({
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    const getNextDraw = () => {
+      const now = new Date();
+      const draw = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 55, 0));
+      if (now >= draw) draw.setUTCDate(draw.getUTCDate() + 1);
+      return draw;
+    };
+    const tick = () => {
+      const diff = getNextDraw() - new Date();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
@@ -241,7 +261,7 @@ const Dashboard = ({
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Next Draw</div>
-                  <div className="font-bold text-orange-400 text-lg">Daily 23:55 UTC</div>
+                  <div className="font-bold text-orange-400 text-lg font-mono">{countdown}</div>
                 </div>
               </div>
 
