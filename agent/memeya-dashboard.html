@@ -319,7 +319,7 @@
 
 <h1>Memeya <span>Agent Dashboard</span></h1>
 <div class="meta">
-  @AiMemeForgeIO &middot; Model: <code>grok-4-1-fast-reasoning</code> &middot; Character: <code>13yo Digital Blacksmith</code> &middot; Platform: <code>X (Twitter)</code>
+  @AiMemeForgeIO &middot; Model: <code>grok-4-1-fast-reasoning</code> + <code>grok-3-mini</code> (quality gate) &middot; Character: <code>13yo Digital Blacksmith</code> &middot; Platform: <code>X (Twitter)</code>
 </div>
 
 <!-- Section 1: System Prompt -->
@@ -349,7 +349,7 @@
         </tr>
         <tr>
           <td><code>journal snippet</code></td>
-          <td style="color:var(--text-dim);font-size:0.9em;">memory/journal/*.md (latest)</td>
+          <td style="color:var(--text-dim);font-size:0.9em;">memory/journal/memeya/*.md (last 2 days)</td>
           <td><span class="tag tag-orange">500 chars</span></td>
           <td id="prompt-journal-preview" style="font-size:0.85em;max-width:400px;"></td>
         </tr>
@@ -682,7 +682,14 @@ async function runTestGenerate() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    document.getElementById('testgen-topic').textContent = data.topic || 'unknown';
+    const topicColors = {
+      meme_spotlight: 'tag-green', personal_vibe: 'tag-purple',
+      dev_update: 'tag-cyan', crypto_commentary: 'tag-orange',
+      community_call: 'tag-pink', community_response: 'tag-pink',
+    };
+    const topicEl = document.getElementById('testgen-topic');
+    topicEl.textContent = data.topic || 'unknown';
+    topicEl.className = `tag ${topicColors[data.topic] || 'tag-green'}`;
     document.getElementById('testgen-memes').textContent = `${data.context?.todayMemes || 0} memes today`;
     document.getElementById('testgen-commits').textContent = `${data.context?.commits || 0} commits`;
     document.getElementById('testgen-journal').textContent = `${data.context?.journalChars || 0} chars journal`;
@@ -693,20 +700,19 @@ async function runTestGenerate() {
     const draftEl = document.getElementById('testgen-draft');
     const boredEl = document.getElementById('testgen-bored');
 
-    if (data.boredAction) {
-      draftEl.textContent = data.draft || '(no draft)';
-      draftEl.style.opacity = '0.5';
-      boredEl.textContent = data.boredAction;
+    draftEl.textContent = data.draft || '(no draft)';
+    if (data.isBored) {
+      draftEl.style.borderColor = 'var(--orange)';
+      boredEl.textContent = '^ bored vibe — would still be posted';
       boredEl.style.display = 'block';
     } else {
-      draftEl.textContent = data.draft || '(no draft)';
-      draftEl.style.opacity = '1';
+      draftEl.style.borderColor = 'var(--border)';
       boredEl.style.display = 'none';
     }
 
     result.style.display = 'block';
-    status.textContent = data.boredAction ? 'Boring (rejected)' : 'Done';
-    status.style.color = data.boredAction ? 'var(--orange)' : 'var(--green)';
+    status.textContent = data.isBored ? 'Done (bored vibe)' : 'Done';
+    status.style.color = data.isBored ? 'var(--orange)' : 'var(--green)';
   } catch (err) {
     status.textContent = 'Error: ' + err.message;
     status.style.color = 'var(--red)';

@@ -1819,13 +1819,7 @@ ${recentMemory.slice(-1500)}
         }
       }
     } catch (err) {
-      if (err.message?.startsWith('BORING_CONTENT:')) {
-        const boredAction = err.message.split('BORING_CONTENT: ')[1]?.split('\n')[0] || 'Memeya 翻了個白眼';
-        console.log(`[ChatMode] X post boring: ${boredAction}`);
-        await this.telegram.sendDevlog(`🥱 ${boredAction}`);
-      } else {
-        console.error('[ChatMode] maybePostToX error:', err.message);
-      }
+      console.error('[ChatMode] maybePostToX error:', err.message);
     }
   }
 

@@ -313,15 +313,29 @@ export function createExecutors(deps) {
     ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
 
     if (verdict.toUpperCase().includes('BORING')) {
-      // Generate a bored Memeya action instead of posting
-      const boredAction = await callGrok(apiKey, [
+      // Generate a bored Memeya moment — either an action or lazy speech — and post it instead
+      const boredTweet = await callGrok(apiKey, [
+        { role: 'system', content: MEMEYA_PROMPT },
         {
           role: 'user',
-          content: `Memeya (a 13yo digital blacksmith girl) found her own tweet draft boring. Write a short, funny bored action or gesture she would do, in Chinese, like "Memeya 無聊的伸了個懶腰" or "Memeya 打了個大哈欠". Just the action, nothing else. Keep it under 30 chars.`,
+          content: [
+            `Your tweet draft was boring, so instead of posting it, do one of these:`,
+            ``,
+            `Option A — BORED ACTION in parentheses:`,
+            `  (Memeya yawns and stares at the blockchain)`,
+            `  (Memeya puts down the lava hammer and doomscrolls)`,
+            `  (Memeya spins in her chair waiting for something interesting to happen)`,
+            ``,
+            `Option B — LAZY SPEECH, something low-energy but in-character:`,
+            `  "nothing to forge today... the chain is too quiet"`,
+            `  "sometimes the best move is no move"`,
+            ``,
+            `Pick one style randomly. Keep it under 100 chars. Just the action or speech, nothing else.`,
+          ].join('\n'),
         },
-      ], { model: 'grok-3-mini', maxTokens: 50, temperature: 1.0 });
+      ], { model: 'grok-3-mini', maxTokens: 80, temperature: 1.0 });
 
-      throw new Error(`BORING_CONTENT: ${boredAction || 'Memeya 翻了個白眼'}\nDraft was: ${tweet}`);
+      return boredTweet || '(Memeya stares into the void)';
     }
 
     return tweet;
@@ -437,8 +451,6 @@ export async function autoPost({ baseDir, grokApiKey }) {
   try {
     tweet = await executors.generateTweet(topicChoice);
   } catch (err) {
-    // Let BORING_CONTENT propagate (callers expect this specific error)
-    if (err.message?.startsWith('BORING_CONTENT:')) throw err;
     return { success: false, reason: `generate_failed: ${err.message}`, draft: null };
   }
 

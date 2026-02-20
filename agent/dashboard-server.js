@@ -150,15 +150,19 @@ const server = http.createServer((req, res) => {
 
       const valuesSnippet = (safeRead(path.join(BASE_DIR, 'memory/knowledge/memeya_values.md')) || '').slice(0, 300);
 
+      // Load Memeya journal (from memeya-specific directory, matching x-context.js)
       let journalSnippet = '';
-      const journalDir = path.join(BASE_DIR, 'memory/journal');
+      const memeyaJournalDir = path.join(BASE_DIR, 'memory/journal/memeya');
       try {
-        const files = fs.readdirSync(journalDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).sort();
-        const latest = files[files.length - 1];
-        if (latest) journalSnippet = fs.readFileSync(path.join(journalDir, latest), 'utf-8').slice(-500);
+        const files = fs.readdirSync(memeyaJournalDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).sort().slice(-2);
+        let text = '';
+        for (const f of files) {
+          text += fs.readFileSync(path.join(memeyaJournalDir, f), 'utf-8') + '\n';
+        }
+        journalSnippet = text.slice(-500);
       } catch { /* ignore */ }
 
-      // Load recent posts summary (mirrors generateTweet logic)
+      // Load recent posts summary with topic (mirrors x-context.js:loadRecentPosts)
       let recentPostsSummary = '(no recent posts)';
       try {
         const diaryDir = path.join(BASE_DIR, 'memory/journal/memeya');
@@ -168,19 +172,25 @@ const server = http.createServer((req, res) => {
           const c = fs.readFileSync(path.join(diaryDir, f), 'utf-8');
           const blocks = c.split(/^## /m).filter(Boolean);
           for (const b of blocks) {
-            const m = b.match(/- Posted: (.+)/);
-            if (m) { posts.push(m[1].trim()); if (posts.length >= 15) break; }
+            const postedMatch = b.match(/- Posted: (.+)/);
+            const topicMatch = b.match(/- Topic: (.+)/);
+            if (postedMatch) {
+              const text = postedMatch[1].trim();
+              const topic = topicMatch ? topicMatch[1].trim() : '';
+              posts.push(topic ? `[${topic}] ${text}` : text);
+              if (posts.length >= 15) break;
+            }
           }
           if (posts.length >= 15) break;
         }
-        if (posts.length) recentPostsSummary = posts.map((p, i) => `${i + 1}. ${p.slice(0, 100)}`).join('\n');
+        if (posts.length) recentPostsSummary = posts.map((p, i) => `${i + 1}. ${p.slice(0, 120)}`).join('\n');
       } catch { /* ignore */ }
 
       const composedSystem = memeyaPrompt;
       const composedUser = [
-        'Topic/Context: {context}',
+        'Topic/Context: {context} ← replaced by chooseTopic() prompt in autonomous mode',
         '',
-        `Recent journal: ${journalSnippet}`,
+        `Recent Memeya journal: ${journalSnippet}`,
         `Memeya's values: ${valuesSnippet}`,
         '',
         'RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):',
@@ -330,26 +340,22 @@ const server = http.createServer((req, res) => {
         const executors = createExecutors({ workDir: path.join(BASE_DIR, 'agent') });
 
         let draft = null;
-        let boredAction = null;
         let error = null;
 
         try {
           draft = await executors.generateTweet(topicChoice);
         } catch (err) {
-          if (err.message?.startsWith('BORING_CONTENT:')) {
-            boredAction = err.message.split('BORING_CONTENT: ')[1]?.split('\n')[0] || 'Memeya 翻了個白眼';
-            const draftMatch = err.message.match(/Draft was: (.+)/);
-            draft = draftMatch ? draftMatch[1] : null;
-          } else {
-            error = err.message;
-          }
+          error = err.message;
         }
+
+        // Detect if the draft is a bored action/speech (parenthetical or low-energy)
+        const isBored = draft && (draft.startsWith('(') || draft.length < 80);
 
         jsonRes(res, {
           topic: topicChoice.topic,
           prompt: topicChoice.prompt,
           draft,
-          boredAction,
+          isBored,
           error,
           context: {
             todayMemes: context.todayMemes.length,
