@@ -17,7 +17,7 @@ function getNextDrawTime() {
   const now = new Date();
   const todayDraw = new Date(Date.UTC(
     now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-    23, 56, 0, 0
+    23, 55, 0, 0
   ));
 
   if (now < todayDraw) {

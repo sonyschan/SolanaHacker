@@ -27,11 +27,11 @@
    │  ~24 小時投票期
    │  用戶連接錢包 → 投票選出最喜歡的梗圖 → 獲得 tickets
    │
-23:55 UTC ── 投票結算
+23:50 UTC ── 投票結算
    │          ├─ 最高票梗圖 = 每日贏家
    │          └─ AI 決定 NFT traits (稀有度由投票決定)
    │
-23:56 UTC ── 每日抽獎
+23:55 UTC ── 每日抽獎
    │          ├─ 所有「參與」的錢包進入抽獎池
    │          ├─ 根據 ticket 持有量加權隨機抽選
    │          ├─ 1 位贏家獲得該梗圖的擁有權
@@ -69,14 +69,14 @@
 **投票規則:**
 - 每個錢包每天只能投一次
 - 完全免費，不需 Gas Fee
-- 投票期為 ~24 小時 (00:00 — 23:55 UTC)
+- 投票期為 ~24 小時 (00:00 — 23:50 UTC)
 - 投票結果即時更新，所有人可見
 
 **連勝獎勵:** 連續每日投票可獲得額外 tickets。
 
 ### 3. 每日贏家選出
 
-23:55 UTC 投票結算：
+23:50 UTC 投票結算：
 
 - 最高票梗圖成為**每日贏家**
 - 稀有度由社群投票決定 (Common / Rare / Legendary)
@@ -88,7 +88,7 @@
 
 ### 4. 每日抽獎 (Daily Lottery)
 
-23:56 UTC 抽獎決定梗圖擁有者：
+23:55 UTC 抽獎決定梗圖擁有者：
 
 **抽獎機制:**
 - 所有「參與」狀態的錢包自動進入抽獎池
@@ -171,8 +171,8 @@
    └─ 看到抽獎狀態：「參與中」
 
 5. 等待結果
-   └─ 23:55 UTC 看到贏家梗圖
-   └─ 23:56 UTC 看到抽獎結果
+   └─ 23:50 UTC 看到贏家梗圖
+   └─ 23:55 UTC 看到抽獎結果
 
 6. 若中獎
    └─ Dashboard 顯示 "Claim NFT"
@@ -272,22 +272,40 @@ NFT 二級市場交易 (Magic Eden 等)
 
 ### 自主發文系統
 
-Memeya 每 2-4 小時自動發一篇推文（全天候，面向全球用戶），基於 6 種話題類型的加權隨機選擇：
+Memeya 每 2-4 小時自動發一篇推文（全天候，面向全球用戶），可透過 Dashboard toggle 即時啟停。話題基於加權隨機選擇，並有優先順序機制：
+
+**優先檢查**: 若有新 git commits 且當日尚未發過 `dev_update`，強制選擇 `dev_update`（每日最多 1 篇）。
 
 | 話題 | 基礎權重 | 說明 |
 |------|---------|------|
-| meme_spotlight | 30% | 分享/評論今日或歷史梗圖 |
-| personal_vibe | 25% | 2-5 個字的酷酷短句 (如 "chain never sleeps.") |
-| dev_update | 15% | 對近期 git commits 的反應 |
+| meme_spotlight | 30% | 分享/評論今日或歷史梗圖（附 meme-specific OG 連結） |
+| personal_vibe | 25% | 從日記和價值觀出發的個人反思 |
+| feature_showtime | 15% | 介紹 AiMemeForge 功能特色（載入 product.md 給 Grok 隨機挑選） |
 | crypto_commentary | 15% | 對即時加密貨幣新聞的熱評 (Grok 即時搜尋) |
-| community_call | 15% | 邀請社群參與投票/互動 |
+| dev_update | 15% | 以 Memeya 角度描述系統升級（她是建造者，不是旁觀者） |
 | community_response | 動態 | 回應粉絲留言 (有留言時才出現，有互動時權重提升至 35%) |
+
+> `community_call` 暫時停用 — 尚無社群基礎，啟用後會加回。
 
 ### 品質控制
 
 每篇推文經過雙重 Grok 審核：
 1. **生成**: Grok 根據 Memeya 人設 + 上下文生成推文 (<280 字元)
-2. **審核**: 第二個 Grok 判定是否「無聊/重複」→ 若是則丟棄，Memeya 做個無聊的小動作
+2. **審核**: grok-3-mini 判定是否「無聊/重複」→ 若是則生成一個無聊的 Memeya 小動作替代
+3. **例外**: `meme_spotlight` 搭配未發過的獨特梗圖 OG 連結時，跳過 boring check（因為梗圖本身就是新內容）
+
+### OG 連結系統
+
+- 每張梗圖有獨立的 OG 連結：`https://aimemeforge.io/meme/{memeId}`
+- 生成推文時自動附上 OG 連結，X 會顯示豐富預覽卡片
+- Grok 產生的 URL 會被自動清除，改以程式化方式附上正確的 canonical URL
+
+### 手動發文 (Dashboard)
+
+Dashboard 提供 **Generate Post** 功能：
+- **自動模式**: 不填 Purpose → 跑完整自主 pipeline（context 收集 → 話題選擇 → 生成 → 品質審核）
+- **手動模式**: 填入 Purpose → 跳過自動話題，Grok 根據指定目的生成內容，無字數限制（X Premium）
+- **Send 按鈕**: 生成後可直接從 Dashboard 發送到 @AiMemeForgeIO
 
 ### 反重複機制
 
@@ -326,10 +344,10 @@ Memeya 會自動讀取最近 3 篇推文的留言，分析粉絲情感和想法�
 | Hall of Memes | ✅ 已上線 | 歷史贏家展示 |
 | OG Card 分享 | ✅ 已上線 | Twitter/X 分享預覽卡 |
 | 每日贏家選出 | ✅ 已上線 | Cloud Scheduler 自動化 |
-| Agent Memeya 自主發文 | ✅ 已上線 | 6 種話題 + 品質審核 + 社群互動 |
-| Memeya Dashboard | ✅ 已上線 | 即時監控 + 測試生成 |
-| 每日抽獎 | 🚧 開發中 | 每日加權隨機抽選擁有者 |
-| Ticket 累積策略 | 🚧 開發中 | 參與/不參與 toggle |
+| Agent Memeya 自主發文 | ✅ 已上線 | 5 種話題 + 優先檢查 + 品質審核 + OG 連結 + 社群互動 |
+| Memeya Dashboard | ✅ 已上線 | 即時監控 + Generate Post + Send to X + ON/OFF toggle |
+| 每日抽獎 | ✅ 已上線 | 每日 23:55 UTC 加權隨機抽選擁有者 |
+| Ticket 累積策略 | ✅ 已上線 | 參與/不參與 toggle |
 | NFT Claim & 鑄造 | 🚧 開發中 | Metaplex + Arweave |
 | SPL Token 門檻 | 📋 規劃中 | 防 Sybil Attack |
 

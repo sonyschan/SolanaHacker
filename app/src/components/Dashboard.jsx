@@ -241,7 +241,7 @@ const Dashboard = ({
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Next Draw</div>
-                  <div className="font-bold text-orange-400 text-lg">Daily 23:56 UTC</div>
+                  <div className="font-bold text-orange-400 text-lg">Daily 23:55 UTC</div>
                 </div>
               </div>
 

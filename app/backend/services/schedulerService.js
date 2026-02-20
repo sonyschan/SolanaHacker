@@ -8,8 +8,8 @@
  * GCP Cloud Scheduler Jobs (all times in UTC, 8AM Taiwan = 0:00 UTC):
  * - daily_memes:    0:00 UTC (8AM UTC+8) - Generate daily memes
  * - start_voting:   0:30 UTC (8:30AM UTC+8) - Start voting period
- * - end_voting:     12:00 UTC (8PM UTC+8) - End voting & calculate rarity
- * - lottery_draw:   23:56 UTC daily - Daily lottery (1 min after end_voting)
+ * - end_voting:     23:50 UTC daily - End voting & calculate rarity
+ * - lottery_draw:   23:55 UTC daily - Daily lottery (5 min after end_voting)
  */
 
 const { v4: uuidv4 } = require('uuid');

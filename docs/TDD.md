@@ -17,8 +17,8 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 **每日排程 (UTC):**
 | 時間 | Job | 動作 |
 |------|-----|------|
-| 23:55 | end_voting | 結算投票、選出贏家梗圖、計算稀有度 |
-| 23:56 | lottery_draw | 加權隨機抽選擁有者、參與者 tickets 歸零 |
+| 23:50 | end_voting | 結算投票、選出贏家梗圖、計算稀有度 |
+| 23:55 | lottery_draw | 加權隨機抽選擁有者、參與者 tickets 歸零 |
 | 00:00 | daily_cycle | AI 生成 3 張新梗圖、開始新投票期 |
 
 ---
@@ -346,11 +346,11 @@ active → voting_active → voting_completed → winner → minted
 
 | Job | Cron (UTC+8) | UTC | 端點 |
 |-----|-------------|-----|------|
-| `memeforge-end-voting` | 每日 7:55 AM | 23:55 | POST `/api/scheduler/trigger/end_voting` |
-| `memeforge-lottery-draw` | 每日 7:56 AM | 23:56 | POST `/api/scheduler/trigger/lottery_draw` |
+| `memeforge-end-voting` | 每日 7:50 AM | 23:50 | POST `/api/scheduler/trigger/end_voting` |
+| `memeforge-lottery-draw` | 每日 7:55 AM | 23:55 | POST `/api/scheduler/trigger/lottery_draw` |
 | `memeforge-daily-cycle` | 每日 8:00 AM | 00:00 | POST `/api/scheduler/trigger/daily_cycle` |
 
-**執行順序**: end_voting → lottery_draw → daily_cycle (1 分鐘間隔)
+**執行順序**: end_voting (23:50) → lottery_draw (23:55) → daily_cycle (00:00) (5 分鐘間隔)
 
 ### 6.2 管理指令
 
@@ -367,7 +367,7 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/scheduler/lo
 # 新增 job
 gcloud scheduler jobs create http memeforge-lottery-draw \
   --location=asia-southeast1 \
-  --schedule="56 7 * * *" \
+  --schedule="55 7 * * *" \
   --time-zone="Asia/Taipei" \
   --uri="https://memeforge-api-836651762884.asia-southeast1.run.app/api/scheduler/trigger/lottery_draw" \
   --http-method=POST \
@@ -546,6 +546,7 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 │                    chat-mode.js (Heartbeat)                      │
 │                    doHeartbeat() → maybePostToX()                 │
 │                    Timer: 2-4 hours (randomized)                 │
+│                    Kill switch: agent/.memeya-x-enabled file     │
 │                    No active window (global users)               │
 └──────────────────────────────┬────────────────────────────────────┘
                                │ dynamic import
@@ -583,6 +584,7 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 | Memeya 價值觀 | `memory/knowledge/memeya_values.md` | — | `''` |
 | 最近 15 篇推文 | `memory/journal/memeya/` (最近 3 天) | — | `[]` |
 | 粉絲留言 | Twitter API v2 `conversation_id` search (最近 3 篇, 各 top 3) | 5s/篇 | `[]` |
+| 產品文件 | `docs/product.md` (for `feature_showtime`) | — | `''` |
 
 留言抓取依賴 `X_BEARER_TOKEN` (需 Basic tier)。Free tier 會收到 403，graceful 降級為空陣列。
 
@@ -590,11 +592,12 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 
 ```javascript
 BASE_TOPICS = [
-  { id: 'meme_spotlight',    weight: 30 },
-  { id: 'personal_vibe',     weight: 25 },
-  { id: 'dev_update',        weight: 15 },
-  { id: 'crypto_commentary', weight: 15 },
-  { id: 'community_call',    weight: 15 },
+  { id: 'meme_spotlight',     weight: 30 },
+  { id: 'personal_vibe',      weight: 25 },
+  { id: 'feature_showtime',   weight: 15 },
+  { id: 'crypto_commentary',  weight: 15 },
+  { id: 'dev_update',         weight: 15 },
+  // community_call disabled — no community yet
 ];
 
 // community_response: 動態加入
@@ -603,9 +606,14 @@ BASE_TOPICS = [
 // 無留言 → 不加入 pool
 ```
 
+**優先檢查 (Priority Override):**
+- 若有新 git commits 且當日尚未發過 `dev_update` → 強制選擇 `dev_update`（每日最多 1 篇）
+- Memeya 以建造者角度描述升級，而非列出技術 commit
+
 **Fallback 規則:**
 - `meme_spotlight` 無梗圖 → `personal_vibe`
 - `dev_update` 無 commits → `personal_vibe`
+- `feature_showtime` 無 product.md → `personal_vibe`
 - `community_response` 無留言 → `personal_vibe`
 
 **反重複:** 最近 3 篇若同話題，強制選不同話題。
@@ -613,32 +621,39 @@ BASE_TOPICS = [
 ### 9.4 推文生成流程
 
 ```
-contextInput (string | {topic, prompt})
+contextInput (string | {topic, prompt, ogUrl})
         │
         ▼
   ┌─────────────────────────────┐
-  │ generateTweet()              │
+  │ generateTweet(input, opts)   │
+  │   opts: { detailed, noCharLimit } │
   │                              │
   │ Structured? → 用 prompt 直接 │ (journal/values 已嵌入)
   │ String?    → 載入 journal +  │ (legacy 相容)
   │              values 後組裝   │
   │                              │
   │ + 載入最近 15 篇 (反重複)    │
+  │ + noCharLimit? → 無字數限制  │ (X Premium, maxTokens 1000)
   │                              │
   │ crypto_commentary?           │
   │   → Grok /responses + web_search │
   │ 其他?                        │
   │   → Grok /chat/completions   │
+  │                              │
+  │ Strip Grok-generated URLs    │
+  │ Append canonical ogUrl       │ (meme-specific OG preview)
   └──────────────┬──────────────┘
                  │
                  ▼
   ┌─────────────────────────────┐
-  │ Boring Check (Grok grok-3-mini) │
+  │ Boring Check (grok-3-mini)  │
   │                              │
+  │ meme_spotlight + unique OG?  │
+  │   → SKIP (unique meme)      │
   │ OK → return tweet            │
-  │ BORING → throw BORING_CONTENT│
-  │   → generate bored action    │
-  │   → Telegram: 🥱 {action}   │
+  │ BORING → generate bored     │
+  │   replacement action/speech  │
+  │   → still posted to X       │
   └─────────────────────────────┘
 ```
 
@@ -692,7 +707,10 @@ contextInput (string | {topic, prompt})
 | `/api/memeya/journals` | GET | 最近 3 天 Memeya 日記 |
 | `/api/memeya/values` | GET | Memeya 價值觀內容 |
 | `/api/memeya/activity` | GET | 今日活動時間軸 |
-| `/api/memeya/test-generate` | POST | 完整 pipeline 測試 (不實際發推) |
+| `/api/memeya/test-generate` | POST | Generate Post: 完整 pipeline (支援 `purpose` 參數跳過自動話題，`noCharLimit`) |
+| `/api/memeya/send-post` | POST | 發送推文到 @AiMemeForgeIO (body: `{ text, topic }`) |
+| `/api/memeya/x-post-status` | GET | 查詢 Heartbeat X Post 開關狀態 |
+| `/api/memeya/x-post-toggle` | POST | 切換 Heartbeat X Post ON/OFF (file-based flag) |
 | `/api/memeya/analyze` | POST | Grok 策略分析 |
 
 ---
@@ -705,14 +723,23 @@ contextInput (string | {topic, prompt})
 - [x] Memeya 人設 system prompt (MEMEYA_PROMPT)
 - [x] Grok 生成推文 + boring-check 品質審核
 - [x] 最近 15 篇推文反重複
-- [x] Context 收集: 梗圖 API + git commits + journal + values
-- [x] 6 種話題加權隨機選擇 (含 community_response)
-- [x] 自主發文 heartbeat (2-4hr, 全天候)
+- [x] Context 收集: 梗圖 API + git commits + journal + values + product.md
+- [x] 5 種話題加權隨機選擇 + community_response 動態加入
+- [x] `dev_update` 優先檢查 (有 commits 且當日未發 → 強制，每日最多 1 篇)
+- [x] `feature_showtime` 話題 (載入 product.md，Grok 挑選功能介紹)
+- [x] `community_call` 暫時停用 (無社群基礎)
+- [x] 自主發文 heartbeat (2-4hr, 全天候, 獨立於 heartbeat active hours gate)
+- [x] Heartbeat X Post ON/OFF toggle (file-based kill switch: `agent/.memeya-x-enabled`)
 - [x] `crypto_commentary` 用 Grok web search 即時新聞
 - [x] 粉絲留言抓取 (Twitter API v2 conversation_id search)
 - [x] 留言洞見寫入日記 + eureka boost 話題權重
-- [x] Memeya Dashboard (prompt 查看 + test-generate + 策略分析)
-- [x] `personal_vibe` 2-5 字酷酷短句
+- [x] OG 連結系統 (meme-specific URL, 自動清除 Grok URL, 程式化附上 canonical)
+- [x] `meme_spotlight` + 未發過的梗圖 OG → 跳過 boring check
+- [x] Memeya Dashboard: prompt 查看 + Generate Post + Send to X + 策略分析
+- [x] Dashboard Generate Post: 支援 Purpose 手動模式 (無字數限制, X Premium)
+- [x] `personal_vibe` 多樣化反思 (移除 2-5 字限制和固定 lava 參考)
+- [x] Telegram 通知 (發文成功/失敗，獨立 try-catch 不影響主流程)
+- [x] API key 缺失時 throw error (防止 debug 文字被發到 X)
 - [ ] Phase 2: 發文後 30 分鐘檢查互動指標，記錄到日記 → Grok 學習哪些話題有效
 
 ### Phase 1: 每日抽獎 (Daily Lottery)
@@ -863,22 +890,22 @@ async runDailyLottery() {
 - [x] Missing document 容錯處理
 - [x] Generation 錯誤偵測 (statusCode >= 400)
 - [x] 排程日誌 (scheduler_logs collection)
-- [ ] Cloud Scheduler lottery_draw job (每日 23:56 UTC)
+- [x] Cloud Scheduler lottery_draw job (每日 23:55 UTC)
 
 ### Phase 1: 每日抽獎
 
-- [ ] `lotteryOptIn` 欄位加入 users collection
-- [ ] `runDailyLottery()` 後端邏輯
-- [ ] 加權隨機抽選演算法
-- [ ] 參與者 tickets 歸零
-- [ ] 不參與者 tickets 保留
-- [ ] `nftOwner` 欄位更新 meme document
-- [ ] `nftWins` 陣列更新 user document
-- [ ] lottery_draw Cloud Scheduler job 建立
-- [ ] Frontend: opt-in/opt-out toggle
+- [x] `lotteryOptIn` 欄位加入 users collection
+- [x] `runDailyLottery()` 後端邏輯
+- [x] 加權隨機抽選演算法
+- [x] 參與者 tickets 歸零
+- [x] 不參與者 tickets 保留
+- [x] `nftOwner` 欄位更新 meme document
+- [x] `nftWins` 陣列更新 user document
+- [x] lottery_draw Cloud Scheduler job 建立 (每日 23:55 UTC)
+- [x] Frontend: opt-in/opt-out toggle
 - [ ] Frontend: 「My NFTs」Dashboard 區域
-- [ ] Frontend: Gallery 贏家 Owner badge
-- [ ] 邊界處理: 0 參與者、1 參與者、0 投票
+- [x] Frontend: Gallery 贏家 Owner badge
+- [x] 邊界處理: 0 參與者、1 參與者、0 投票
 
 ### Phase 2: NFT Claim & 鑄造
 
