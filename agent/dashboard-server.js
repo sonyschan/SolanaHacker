@@ -22,6 +22,7 @@ const PORT = parseInt(process.env.DASHBOARD_PORT || '8090');
 const DASHBOARD_PATH = path.join(__dirname, 'dashboard.html');
 const MEMEYA_DASHBOARD_PATH = path.join(__dirname, 'memeya-dashboard.html');
 const BASE_DIR = path.resolve(__dirname, '..');
+const X_POST_FLAG = path.join(__dirname, '.memeya-x-enabled');
 const startedAt = Date.now();
 
 // ─── Memeya helpers ─────────────────────────────────────────────
@@ -111,6 +112,28 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Shutting down...' }));
     setTimeout(() => process.exit(0), 500);
+    return;
+  }
+
+  // ─── Memeya X Post Toggle ────────────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/x-post-status') {
+    const enabled = fs.existsSync(X_POST_FLAG);
+    jsonRes(res, { enabled });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/memeya/x-post-toggle') {
+    try {
+      const enabled = fs.existsSync(X_POST_FLAG);
+      if (enabled) {
+        fs.unlinkSync(X_POST_FLAG);
+      } else {
+        fs.writeFileSync(X_POST_FLAG, new Date().toISOString(), 'utf-8');
+      }
+      jsonRes(res, { enabled: !enabled });
+    } catch (err) {
+      jsonRes(res, { error: err.message }, 500);
+    }
     return;
   }
 
@@ -319,7 +342,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // ─── Memeya API: Test Generate Post (with real context) ────
+  // ─── Memeya API: Generate Post (with real context or manual purpose) ────
   if (req.method === 'POST' && req.url === '/api/memeya/test-generate') {
     (async () => {
       try {
@@ -329,45 +352,131 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Dynamic import x-context and index for real context gathering
+        const body = JSON.parse(await readBody(req) || '{}');
+        const purpose = (body.purpose || '').trim();
+
+        // Dynamic import x-context and index
         const { gatherContext, chooseTopic } = await import('./skills/x_twitter/x-context.js');
         const { createExecutors } = await import('./skills/x_twitter/index.js');
 
-        const context = await gatherContext(BASE_DIR, { grokApiKey: apiKey });
-        const topicChoice = chooseTopic(context);
-
-        // Create executor to access generateTweet
         const executors = createExecutors({ workDir: path.join(BASE_DIR, 'agent') });
 
-        let draft = null;
+        let topicChoice;
+        let context = null;
+
+        if (purpose) {
+          // Manual purpose mode — skip auto context/topic, no char limit
+          topicChoice = {
+            topic: 'manual_purpose',
+            prompt: `PURPOSE: ${purpose}\n\nWrite a post as Memeya about this. Be in character — smart, witty, degen energy. Make it engaging and personal.`,
+            ogUrl: null,
+            meta: { pool: [], last3Topics: [], priorityForced: null, devUpdateToday: false, antiRepeatTriggered: false, fallbackFrom: null },
+          };
+        } else {
+          // Normal autonomous pipeline
+          context = await gatherContext(BASE_DIR, { grokApiKey: apiKey });
+          topicChoice = chooseTopic(context);
+        }
+
+        let result = null;
         let error = null;
 
         try {
-          draft = await executors.generateTweet(topicChoice);
+          result = await executors.generateTweet(topicChoice, { detailed: true, noCharLimit: !!purpose });
         } catch (err) {
           error = err.message;
         }
 
-        // Detect if the draft is a bored action/speech (parenthetical or low-energy)
-        const isBored = draft && (draft.startsWith('(') || draft.length < 80);
-
         jsonRes(res, {
           topic: topicChoice.topic,
           prompt: topicChoice.prompt,
-          draft,
-          isBored,
+          ogUrl: topicChoice.ogUrl || null,
+          draft: result?.text || null,
+          originalDraft: result?.originalDraft || null,
+          verdict: result?.verdict || null,
+          isBored: result?.isBored || false,
+          noCharLimit: !!purpose,
+          purpose: purpose || null,
           error,
-          context: {
-            todayMemes: context.todayMemes.length,
-            randomPastMeme: context.randomPastMeme ? `${context.randomPastMeme.topText || ''} ${context.randomPastMeme.bottomText || ''}`.trim() : null,
-            commits: context.commits.length,
-            journalChars: context.journal.length,
-            valuesChars: context.values.length,
-            recentPosts: context.recentPosts.length,
-            comments: (context.comments || []).length,
-            commentReplies: (context.comments || []).reduce((s, c) => s + c.replies.length, 0),
+          // Full pipeline flow for dashboard visualization
+          flow: {
+            context: context ? {
+              todayMemes: context.todayMemes.length,
+              hallMemes: context.randomPastMeme ? 'picked 1 random' : '0',
+              randomPastMeme: context.randomPastMeme ? `"${context.randomPastMeme.topText || ''} ${context.randomPastMeme.bottomText || ''}"`.trim() : null,
+              commits: context.commits.slice(0, 5),
+              journalChars: context.journal.length,
+              valuesChars: context.values.length,
+              recentPosts: context.recentPosts.map(p => ({
+                text: (p.text || p).slice(0, 80),
+                topic: p.topic || null,
+              })),
+              comments: (context.comments || []).length,
+              commentReplies: (context.comments || []).reduce((s, c) => s + c.replies.length, 0),
+              productDocChars: (context.productDoc || '').length,
+            } : { manual: true, purpose },
+            topicSelection: topicChoice.meta || {},
+            generation: result?.flow?.generation || {},
+            qualityGate: result?.flow?.qualityGate || {},
           },
         });
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
+  // ─── Memeya API: Send Post to X ─────────────────────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/send-post') {
+    (async () => {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const text = (body.text || '').trim();
+        const topic = (body.topic || 'manual').trim();
+
+        if (!text) {
+          jsonRes(res, { error: 'No tweet text provided' }, 400);
+          return;
+        }
+
+        // Dynamic import twitter-api-v2
+        let TwitterApi;
+        try {
+          const mod = await import('twitter-api-v2');
+          TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+        } catch {
+          jsonRes(res, { error: 'twitter-api-v2 not installed' }, 500);
+          return;
+        }
+
+        const consumerKey = process.env.X_CONSUMER_KEY;
+        const consumerSecret = process.env.X_CONSUMER_SECRET;
+        const accessToken = process.env.X_ACCESS_TOKEN;
+        const accessSecret = process.env.X_ACCESS_SECRET;
+
+        if (!consumerKey || !consumerSecret || !accessToken || !accessSecret) {
+          jsonRes(res, { error: 'Missing X API credentials in agent/.env' }, 500);
+          return;
+        }
+
+        const userClient = new TwitterApi({
+          appKey: consumerKey,
+          appSecret: consumerSecret,
+          accessToken,
+          accessSecret,
+        });
+
+        const { data } = await userClient.v2.tweet(text);
+        const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+
+        // Log to Memeya diary
+        try {
+          const { logPost } = await import('./skills/x_twitter/x-context.js');
+          logPost(BASE_DIR, topic, text, url);
+        } catch { /* best-effort */ }
+
+        jsonRes(res, { success: true, url, tweetId: data.id });
       } catch (err) {
         jsonRes(res, { error: err.message }, 500);
       }

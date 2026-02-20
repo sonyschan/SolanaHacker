@@ -1785,6 +1785,10 @@ ${recentMemory.slice(-1500)}
    * No active window — Memeya serves global users, not just GMT+8.
    */
   async maybePostToX() {
+    // Check kill switch — dashboard toggle controls this file
+    const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
+    if (!fs.existsSync(flagPath)) return; // Autonomous X posting disabled
+
     const now = Date.now();
     if (now - this.lastXPost < this.xPostInterval) return; // Not time yet
 
@@ -1802,20 +1806,28 @@ ${recentMemory.slice(-1500)}
 
       if (result.success) {
         console.log(`[ChatMode] X post success: ${result.topic} → ${result.url}`);
-        await this.telegram.sendDevlog(
-          `🐦 <b>Memeya posted to X!</b>\n` +
-          `Topic: <code>${result.topic}</code>\n` +
-          `${result.text}\n` +
-          `<a href="${result.url}">View tweet</a>`
-        );
+        try {
+          await this.telegram.sendDevlog(
+            `🐦 <b>Memeya posted to X!</b>\n` +
+            `Topic: <code>${result.topic}</code>\n` +
+            `${result.text}\n` +
+            `<a href="${result.url}">View tweet</a>`
+          );
+        } catch (e) {
+          console.error('[ChatMode] Telegram notification failed:', e.message);
+        }
       } else {
         console.log(`[ChatMode] X post skipped: ${result.reason}`);
         if (result.draft) {
-          await this.telegram.sendDevlog(
-            `🐦 <b>X draft (not posted)</b>\n` +
-            `Reason: ${result.reason}\n` +
-            `Draft: ${result.draft}`
-          );
+          try {
+            await this.telegram.sendDevlog(
+              `🐦 <b>X draft (not posted)</b>\n` +
+              `Reason: ${result.reason}\n` +
+              `Draft: ${result.draft}`
+            );
+          } catch (e) {
+            console.error('[ChatMode] Telegram notification failed:', e.message);
+          }
         }
       }
     } catch (err) {
@@ -1827,6 +1839,9 @@ ${recentMemory.slice(-1500)}
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
+    // Autonomous X posting runs on its own timer, independent of heartbeat logic
+    await this.maybePostToX();
+
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');
       return;
@@ -1864,9 +1879,6 @@ ${recentMemory.slice(-1500)}
     } else if (action === 'news') {
       await this.doNewsSearch();
     }
-
-    // Autonomous X posting (independent timer, runs every heartbeat check)
-    await this.maybePostToX();
   }
 
   /**

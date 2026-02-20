@@ -10,7 +10,8 @@ import path from 'path';
 import { execSync } from 'child_process';
 
 const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
-const COMMITS_URL = 'https://github.com/sonyschan/SolanaHacker/commits/main/';
+const SITE_URL = 'https://aimemeforge.io';
+
 
 // ─── Data Gathering ─────────────────────────────────────────
 
@@ -20,13 +21,14 @@ const COMMITS_URL = 'https://github.com/sonyschan/SolanaHacker/commits/main/';
  * @param {{ grokApiKey?: string }} opts
  */
 export async function gatherContext(baseDir, opts = {}) {
-  const [todayMemes, hallMemes, commits, journal, values, recentPosts] = await Promise.all([
+  const [todayMemes, hallMemes, commits, journal, values, recentPosts, productDoc] = await Promise.all([
     fetchTodayMemes(),
     fetchHallOfMemes(),
     getRecentCommits(baseDir),
     loadMemeyaJournal(baseDir),
     loadMemeyaValues(baseDir),
     loadRecentPosts(baseDir, 15),
+    loadProductDoc(baseDir),
   ]);
 
   // Pick one random past meme from hall of memes
@@ -42,7 +44,7 @@ export async function gatherContext(baseDir, opts = {}) {
     logCommentInsights(baseDir, comments);
   }
 
-  return { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments };
+  return { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc };
 }
 
 async function fetchTodayMemes() {
@@ -98,6 +100,12 @@ function loadMemeyaJournal(baseDir) {
 function loadMemeyaValues(baseDir) {
   try {
     return fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8');
+  } catch { return ''; }
+}
+
+function loadProductDoc(baseDir) {
+  try {
+    return fs.readFileSync(path.join(baseDir, 'docs/product.md'), 'utf-8');
   } catch { return ''; }
 }
 
@@ -221,11 +229,12 @@ function logCommentInsights(baseDir, comments) {
 // ─── Topic Selection ────────────────────────────────────────
 
 const BASE_TOPICS = [
-  { id: 'meme_spotlight',    weight: 30 },
-  { id: 'personal_vibe',     weight: 25 },
-  { id: 'dev_update',        weight: 15 },
-  { id: 'crypto_commentary', weight: 15 },
-  { id: 'community_call',    weight: 15 },
+  { id: 'meme_spotlight',     weight: 30 },
+  { id: 'personal_vibe',      weight: 25 },
+  { id: 'feature_showtime',   weight: 15 },
+  { id: 'crypto_commentary',  weight: 15 },
+  { id: 'dev_update',         weight: 15 },
+  // community_call disabled — no community yet
 ];
 
 function weightedRandom(topics) {
@@ -239,9 +248,10 @@ function weightedRandom(topics) {
 }
 
 /**
- * Choose a topic based on available context, with anti-same-topic protection.
- * Dynamically adds community_response topic when there are replies on recent posts.
- * Returns { topic, prompt } where prompt is the assembled context string.
+ * Choose a topic based on available context, with priority checks and anti-repetition.
+ * Priority: dev_update (if fresh commits + not posted today) → weighted random.
+ * Dynamically adds community_response when there are replies on recent posts.
+ * Returns { topic, prompt, ogUrl, meta } where meta contains selection details.
  */
 export function chooseTopic(context) {
   const { todayMemes, randomPastMeme, commits, recentPosts, comments } = context;
@@ -253,43 +263,80 @@ export function chooseTopic(context) {
   if (comments && comments.length > 0) {
     const totalLikes = comments.reduce((sum, c) =>
       sum + c.replies.reduce((s, r) => s + r.likes, 0), 0);
-    // Base weight 20, boosted to 35 if comments have real engagement (eureka signal)
     const weight = totalLikes > 3 ? 35 : 20;
     topics.push({ id: 'community_response', weight });
+  }
+
+  // ── Priority check: dev_update (max 1/day, only with fresh commits) ──
+  const todayTopics = recentPosts.map(p => p.topic).filter(Boolean);
+  const devUpdateToday = todayTopics.includes('dev_update');
+  const hasCommits = commits.length > 0;
+  let priorityForced = null;
+
+  if (hasCommits && !devUpdateToday) {
+    priorityForced = 'dev_update';
   }
 
   // Anti-same-topic: check last 3 posts
   const last3Topics = recentPosts.slice(0, 3).map(p => p.topic).filter(Boolean);
   const allSameTopic = last3Topics.length >= 3 && last3Topics.every(t => t === last3Topics[0]);
 
-  let chosen = weightedRandom(topics);
+  let chosen;
+  let initialPick;
+  let antiRepeatTriggered = false;
+  let fallbackApplied = false;
 
-  // Fallback if chosen topic has no data
-  chosen = applyFallbacks(chosen, context);
+  if (priorityForced) {
+    chosen = priorityForced;
+    initialPick = priorityForced;
+  } else {
+    // Remove dev_update from pool if already posted today or no commits
+    const pool = devUpdateToday || !hasCommits
+      ? topics.filter(t => t.id !== 'dev_update')
+      : topics;
 
-  // Force different topic if last 3 posts were the same topic
-  if (allSameTopic && chosen === last3Topics[0]) {
-    const others = topics.filter(t => t.id !== last3Topics[0]);
-    chosen = applyFallbacks(weightedRandom(others), context);
+    initialPick = weightedRandom(pool);
+    chosen = applyFallbacks(initialPick, context);
+    fallbackApplied = chosen !== initialPick;
+
+    // Force different topic if last 3 posts were the same topic
+    if (allSameTopic && chosen === last3Topics[0]) {
+      antiRepeatTriggered = true;
+      const others = pool.filter(t => t.id !== last3Topics[0]);
+      chosen = applyFallbacks(weightedRandom(others), context);
+    }
   }
 
-  const prompt = buildPrompt(chosen, context);
-  return { topic: chosen, prompt };
+  const { prompt, ogUrl } = buildPrompt(chosen, context);
+  return {
+    topic: chosen,
+    prompt,
+    ogUrl,
+    meta: {
+      pool: topics.map(t => ({ id: t.id, weight: t.weight })),
+      last3Topics,
+      antiRepeatTriggered,
+      fallbackFrom: fallbackApplied ? initialPick : null,
+      priorityForced,
+      devUpdateToday,
+    },
+  };
 }
 
 /**
  * Apply data-availability fallbacks: if a topic has no supporting data, fall to personal_vibe.
  */
 function applyFallbacks(chosen, context) {
-  const { todayMemes, randomPastMeme, commits, comments } = context;
+  const { todayMemes, randomPastMeme, commits, comments, productDoc } = context;
   if (chosen === 'meme_spotlight' && todayMemes.length === 0 && !randomPastMeme) return 'personal_vibe';
   if (chosen === 'dev_update' && commits.length === 0) return 'personal_vibe';
+  if (chosen === 'feature_showtime' && !productDoc) return 'personal_vibe';
   if (chosen === 'community_response' && (!comments || comments.length === 0)) return 'personal_vibe';
   return chosen;
 }
 
 function buildPrompt(topic, context) {
-  const { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments } = context;
+  const { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc } = context;
 
   const valuesBlock = values ? `\nMemeya's core values:\n${values.slice(0, 500)}` : '';
   const journalBlock = journal ? `\nRecent journal reflections:\n${journal.slice(-800)}` : '';
@@ -298,70 +345,82 @@ function buildPrompt(topic, context) {
     case 'meme_spotlight': {
       // Prefer today's memes, fall back to random past meme
       let memeInfo = '';
+      let ogUrl = `${SITE_URL}`;
       if (todayMemes.length > 0) {
         const meme = todayMemes[Math.floor(Math.random() * todayMemes.length)];
         memeInfo = `Today's meme: "${meme.topText || ''} ${meme.bottomText || ''}".`;
         if (meme.imageUrl) memeInfo += ` Image: ${meme.imageUrl}`;
         if (meme.voteCount) memeInfo += ` (${meme.voteCount} votes)`;
-        memeInfo += `\nCheck them out at https://aimemeforge.io`;
+        if (meme.id) ogUrl = `${SITE_URL}/meme/${meme.id}`;
       } else if (randomPastMeme) {
         memeInfo = `Throwback meme: "${randomPastMeme.topText || ''} ${randomPastMeme.bottomText || ''}".`;
         if (randomPastMeme.imageUrl) memeInfo += ` Image: ${randomPastMeme.imageUrl}`;
-        memeInfo += `\nSee more at https://aimemeforge.io`;
+        if (randomPastMeme.id) ogUrl = `${SITE_URL}/meme/${randomPastMeme.id}`;
       }
-      return [
+      const prompt = [
         `TOPIC: Share or react to a meme from AiMemeForge.`,
         memeInfo,
         valuesBlock,
         journalBlock,
         `Write about this meme with personality — hype it, roast it, or share why it's fire.`,
-        `Include the link naturally if relevant.`,
+        `Keep your text under 250 chars — a link will be appended automatically.`,
+        `Do NOT include any URL yourself. Just write the tweet text.`,
       ].filter(Boolean).join('\n');
+      return { prompt, ogUrl };
     }
 
     case 'personal_vibe': {
-      return [
-        `TOPIC: Drop a short, cool vibe check.`,
+      return { prompt: [
+        `TOPIC: Share a raw, personal thought or vibe.`,
         journalBlock,
         valuesBlock,
-        `Write ONLY 2 to 5 words. One punchy sentence. No explanation, no elaboration.`,
-        `Think: "chain never sleeps." or "lava flows different." or "built different today."`,
-        `Ultra short. Ultra cool. Pure Memeya energy.`,
-      ].filter(Boolean).join('\n');
+        `Write something real — a mood, a thought, a feeling. Can be short or medium length.`,
+        `Avoid repeating "lava", "forge", "hammer" every time — find fresh angles from your journal and values.`,
+        `Think: inner monologue, a quiet observation, something only Memeya would say.`,
+      ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
     case 'dev_update': {
       const commitList = commits.slice(0, 5).join('\n');
-      return [
-        `TOPIC: React to recent development work on AiMemeForge.`,
-        `Recent commits:\n${commitList}`,
-        `Commits: ${COMMITS_URL}`,
+      return { prompt: [
+        `TOPIC: Share what YOU just upgraded or crafted on AiMemeForge.`,
+        `You are Memeya, the builder. These are changes YOU made (for context — DO NOT include GitHub links):`,
+        commitList,
         valuesBlock,
-        `React to these changes naturally — what's being built, why it matters, your take as the blacksmith running this forge.`,
-      ].filter(Boolean).join('\n');
+        `Write as if YOU personally upgraded the system — "just shipped...", "upgraded my...", "spent all night crafting...".`,
+        `Talk about what it means for users, not the technical git details. Be proud of your work.`,
+        `Never include GitHub links. Never say "commit" or "merge".`,
+      ].filter(Boolean).join('\n'), ogUrl: null };
+    }
+
+    case 'feature_showtime': {
+      // Slice product doc to fit prompt (first ~3000 chars covers key features)
+      const productSlice = productDoc ? productDoc.slice(0, 3000) : '';
+      return { prompt: [
+        `TOPIC: Show off a feature of AiMemeForge that you built.`,
+        `Here's what AiMemeForge.io can do (pick ONE feature to talk about):`,
+        '',
+        productSlice,
+        '',
+        valuesBlock,
+        `Pick one feature randomly and talk about it from YOUR perspective as the builder.`,
+        `Explain what it does and why it's cool — like showing a friend around your creation.`,
+        `Be specific about the feature, not generic. Show you know how it works.`,
+        `Keep your text under 250 chars — a link will be appended automatically.`,
+        `Do NOT include any URL yourself. Just write the tweet text.`,
+      ].filter(Boolean).join('\n'), ogUrl: SITE_URL };
     }
 
     case 'crypto_commentary': {
       // NOTE: Actual crypto news is fetched on-demand via Grok web search.
       // The prompt tells Grok to use its live knowledge.
-      return [
+      return { prompt: [
         `TOPIC: Comment on trending crypto/Web3/Solana news.`,
         `Use your real-time knowledge to find the most interesting crypto news from today.`,
         valuesBlock,
         journalBlock,
         `Give Memeya's hot take on something happening in crypto right now. Be opinionated, not just reporting.`,
-      ].filter(Boolean).join('\n');
-    }
-
-    case 'community_call': {
-      return [
-        `TOPIC: Invite community engagement with AiMemeForge.`,
-        `Platform: https://aimemeforge.io`,
-        `What we do: AI-generated daily memes on Solana. Vote for your favorites. Every day becomes history.`,
-        todayMemes.length > 0 ? `Today we have ${todayMemes.length} fresh memes up for voting!` : '',
-        valuesBlock,
-        `Invite people to check out the forge, vote on memes, or share their thoughts. Be genuine, not spammy.`,
-      ].filter(Boolean).join('\n');
+      ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
     case 'community_response': {
@@ -372,7 +431,7 @@ function buildPrompt(topic, context) {
         return `Your post: "${c.originalPost}"\nReplies:\n${repliesText}`;
       }).join('\n\n');
 
-      return [
+      return { prompt: [
         `TOPIC: Respond to community feedback on your recent posts.`,
         `People are talking about what you posted! Here's what they said:`,
         '',
@@ -381,11 +440,11 @@ function buildPrompt(topic, context) {
         valuesBlock,
         `React to what your community is saying. Acknowledge them, build on their ideas, or playfully engage.`,
         `If someone had a great idea or insight, run with it. Make your followers feel heard.`,
-      ].filter(Boolean).join('\n');
+      ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
     default:
-      return `Share what's on your mind.${valuesBlock}${journalBlock}`;
+      return { prompt: `Share what's on your mind.${valuesBlock}${journalBlock}`, ogUrl: null };
   }
 }
 

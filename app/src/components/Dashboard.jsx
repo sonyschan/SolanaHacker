@@ -93,8 +93,7 @@ const Dashboard = ({
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
     { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
-    { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' },
-    { id: 'market', label: 'Market', icon: '🛒', desc: 'NFT auctions (Coming Soon)', comingSoon: true }
+    { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' }
   ];
 
   // Enhanced Tickets Tab
@@ -238,8 +237,6 @@ const Dashboard = ({
         return <GalleryTab />;
       case 'tickets':
         return <TicketsTabContent />;
-      case 'market':
-        return (<div className="text-center py-20"><div className="text-6xl mb-4">🛒</div><h2 className="text-2xl font-bold mb-2">NFT Market Coming Soon</h2><p className="text-gray-400">NFT minting and auctions will be available in Beta</p></div>);
       default:
         return <ForgeTab walletAddress={walletAddress} 
           userTickets={userTickets}

@@ -205,6 +205,8 @@
     margin-top: 4px;
     font-size: 0.92em;
     color: var(--text);
+    word-break: break-word;
+    white-space: pre-wrap;
   }
   .timeline-tweet a { color: var(--cyan); text-decoration: none; }
   .timeline-tweet a:hover { text-decoration: underline; }
@@ -299,6 +301,104 @@
   }
   .nav-link:hover { text-decoration: underline; }
 
+  /* Pipeline flow styles */
+  .pipe-step {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .pipe-step-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(48,54,61,0.3);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+  .pipe-step-header:hover { background: rgba(88,166,255,0.06); }
+  .pipe-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 0.75em;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .pipe-step-num.ok { background: rgba(63,185,80,0.2); color: var(--green); }
+  .pipe-step-num.warn { background: rgba(210,153,34,0.2); color: var(--orange); }
+  .pipe-step-num.fail { background: rgba(248,81,73,0.2); color: var(--red); }
+  .pipe-step-title { flex: 1; color: var(--text); }
+  .pipe-step-badge {
+    font-size: 0.75em;
+    padding: 1px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .pipe-step.collapsed .pipe-step-body { display: none; }
+  .pipe-step-body {
+    padding: 10px 12px;
+    font-size: 0.82em;
+    line-height: 1.7;
+  }
+  .pipe-step-body .kv { display: flex; gap: 6px; margin-bottom: 3px; }
+  .pipe-step-body .kv .k { color: var(--text-dim); min-width: 120px; flex-shrink: 0; }
+  .pipe-step-body .kv .v { color: var(--text); word-break: break-word; }
+  .pipe-step-body .kv .v.ok { color: var(--green); }
+  .pipe-step-body .kv .v.warn { color: var(--orange); }
+  .pipe-step-body .kv .v.fail { color: var(--red); }
+  .pipe-weight-bar {
+    display: inline-block;
+    height: 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .pipe-final-tweet {
+    background: var(--bg);
+    border: 2px solid var(--green);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: var(--text);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .pipe-final-tweet.bored { border-color: var(--orange); }
+
+  /* Toggle switch */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+  }
+  .toggle {
+    position: relative;
+    width: 40px; height: 22px;
+    border-radius: 11px;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 20px; }
+
   @media (max-width: 700px) {
     body { padding: 12px; }
     table { font-size: 0.8em; }
@@ -314,7 +414,14 @@
     <span id="status-text">Checking...</span>
     <code id="status-uptime" style="font-size:0.85em;color:var(--text-dim);"></code>
   </div>
-  <a href="/dashboard.html" class="nav-link">Agent Dashboard &rarr;</a>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="toggle-wrap">
+      <span style="color:var(--text-dim);">Heartbeat X Post:</span>
+      <div class="toggle" id="xpost-toggle" onclick="toggleXPost()"></div>
+      <span id="xpost-label" style="font-weight:600;">...</span>
+    </div>
+    <a href="/dashboard.html" class="nav-link">Agent Dashboard &rarr;</a>
+  </div>
 </div>
 
 <h1>Memeya <span>Agent Dashboard</span></h1>
@@ -363,22 +470,7 @@
   </div>
 </div>
 
-<!-- Section 2: Recent Journals -->
-<div class="section" id="s-journals">
-  <div class="section-header" onclick="toggle('s-journals')">
-    <span class="icon">&#128214;</span>
-    <h2>Recent Memeya Journals</h2>
-    <span class="badge">Info</span>
-    <span class="chevron">&#9660;</span>
-  </div>
-  <div class="section-body">
-    <div id="journals-loading" class="loading-text"><span class="spinner"></span>Loading journals...</div>
-    <div id="journals-content" style="display:none;"></div>
-    <div id="journals-error" class="error-text" style="display:none;"></div>
-  </div>
-</div>
-
-<!-- Section 3: Current Values -->
+<!-- Section 2: Current Values -->
 <div class="section" id="s-values">
   <div class="section-header" onclick="toggle('s-values')">
     <span class="icon">&#128161;</span>
@@ -408,35 +500,25 @@
   </div>
 </div>
 
-<!-- Section 5: Test Generate Post -->
+<!-- Section 5: Generate Post -->
 <div class="section" id="s-testgen">
   <div class="section-header" onclick="toggle('s-testgen')">
     <span class="icon">&#9889;</span>
-    <h2>Test Generate Post</h2>
+    <h2>Generate Post</h2>
     <span class="badge" style="background:rgba(63,185,80,0.2);color:var(--green);">Function</span>
     <span class="chevron">&#9660;</span>
   </div>
   <div class="section-body">
     <p style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
-      Runs the full autonomous posting pipeline: gathers context (memes, commits, journal, values), picks a weighted-random topic, and generates a draft tweet via Grok. Does NOT actually post.
+      Generate a tweet using the full pipeline. Optionally specify a purpose for manual content. Click Send to post.
     </p>
-    <button class="analyze-btn" id="testgen-btn" onclick="runTestGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Test Generate</button>
-    <span id="testgen-status" style="margin-left:8px;font-size:0.85em;"></span>
-    <div id="testgen-result" style="display:none;margin-top:12px;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-        <span class="tag tag-green" id="testgen-topic"></span>
-        <span class="tag tag-cyan" id="testgen-memes"></span>
-        <span class="tag tag-purple" id="testgen-commits"></span>
-        <span class="tag tag-orange" id="testgen-journal"></span>
-        <span class="tag tag-pink" id="testgen-comments"></span>
-      </div>
-      <div id="testgen-draft" class="timeline-tweet" style="margin-bottom:8px;"></div>
-      <div id="testgen-bored" style="display:none;color:var(--orange);font-size:0.9em;margin-bottom:8px;"></div>
-      <details style="font-size:0.82em;color:var(--text-dim);">
-        <summary style="cursor:pointer;color:var(--cyan);">View assembled prompt</summary>
-        <pre class="prompt-block" id="testgen-prompt" style="margin-top:8px;"></pre>
-      </details>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Purpose <span style="color:var(--purple);">(optional)</span> — overrides auto topic, no char limit:</label>
+      <textarea id="purpose-input" rows="2" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;resize:vertical;" placeholder="e.g. Announce the new voting feature on AiMemeForge"></textarea>
     </div>
+    <button class="analyze-btn" id="testgen-btn" onclick="runTestGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Generate</button>
+    <span id="testgen-status" style="margin-left:8px;font-size:0.85em;"></span>
+    <div id="testgen-result" style="display:none;margin-top:16px;"></div>
   </div>
 </div>
 
@@ -539,36 +621,39 @@ async function loadPrompt() {
   }
 }
 
-// ─── Load journals ───────────────────────────────────────────
-async function loadJournals() {
+// ─── X Post Toggle ───────────────────────────────────────────
+async function loadXPostStatus() {
   try {
-    const res = await fetch('/api/memeya/journals');
+    const res = await fetch('/api/memeya/x-post-status');
+    const data = await res.json();
+    updateXPostUI(data.enabled);
+  } catch {
+    document.getElementById('xpost-label').textContent = '?';
+  }
+}
+
+function updateXPostUI(enabled) {
+  const toggle = document.getElementById('xpost-toggle');
+  const label = document.getElementById('xpost-label');
+  if (enabled) {
+    toggle.className = 'toggle on';
+    label.textContent = 'ON';
+    label.style.color = 'var(--green)';
+  } else {
+    toggle.className = 'toggle';
+    label.textContent = 'OFF';
+    label.style.color = 'var(--text-dim)';
+  }
+}
+
+async function toggleXPost() {
+  try {
+    const res = await fetch('/api/memeya/x-post-toggle', { method: 'POST' });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    const container = document.getElementById('journals-content');
-    if (!data.journals || data.journals.length === 0) {
-      container.innerHTML = '<div class="placeholder">No Memeya journal entries found. Entries are created when Memeya posts tweets.</div>';
-    } else {
-      container.innerHTML = data.journals.map((j, i) =>
-        `<div class="journal-day${i > 0 ? ' collapsed' : ''}">
-          <div class="journal-day-header" onclick="toggleJournal(this)">
-            <span class="chevron" style="font-size:0.7em;">&#9660;</span>
-            ${escHtml(j.date)}
-            <span style="color:var(--text-dim);font-weight:normal;font-size:0.85em;margin-left:auto;">${j.content.split('\n').filter(l => l.startsWith('## ')).length} entries</span>
-          </div>
-          <div class="journal-day-body">${renderJournalContent(j.content)}</div>
-        </div>`
-      ).join('');
-    }
-
-    document.getElementById('journals-loading').style.display = 'none';
-    container.style.display = 'block';
+    updateXPostUI(data.enabled);
   } catch (err) {
-    document.getElementById('journals-loading').style.display = 'none';
-    const el = document.getElementById('journals-error');
-    el.textContent = 'Error loading journals: ' + err.message;
-    el.style.display = 'block';
+    alert('Toggle failed: ' + err.message);
   }
 }
 
@@ -665,51 +750,189 @@ async function loadActivity() {
   }
 }
 
-// ─── Test Generate ───────────────────────────────────────────
+// ─── Test Generate (Pipeline Flow) ───────────────────────────
+function togglePipe(el) { el.closest('.pipe-step').classList.toggle('collapsed'); }
+
+function kv(key, val, cls) {
+  return `<div class="kv"><span class="k">${escHtml(key)}</span><span class="v${cls ? ' ' + cls : ''}">${val}</span></div>`;
+}
+
+function weightBar(topics, chosen) {
+  const total = topics.reduce((s, t) => s + t.weight, 0);
+  const colors = {
+    meme_spotlight: '#3fb950', personal_vibe: '#bc8cff', dev_update: '#58a6ff',
+    crypto_commentary: '#d29922', feature_showtime: '#f778ba', community_response: '#f778ba',
+  };
+  return topics.map(t => {
+    const pct = ((t.weight / total) * 100).toFixed(0);
+    const c = colors[t.id] || '#8b949e';
+    const sel = t.id === chosen ? ' style="outline:2px solid #fff;outline-offset:1px;"' : '';
+    return `<span class="pipe-weight-bar" style="width:${Math.max(pct * 1.5, 12)}px;background:${c};"${sel} title="${t.id}: ${t.weight} (${pct}%)"></span><span style="font-size:0.78em;color:${c};margin-right:10px;">${t.id.replace('_', ' ')} ${pct}%${t.id === chosen ? ' ★' : ''}</span>`;
+  }).join('');
+}
+
+function pipeStep(num, title, badge, badgeCls, bodyHtml, collapsed) {
+  return `<div class="pipe-step${collapsed ? ' collapsed' : ''}">
+    <div class="pipe-step-header" onclick="togglePipe(this)">
+      <span class="pipe-step-num ${badgeCls}">${num}</span>
+      <span class="pipe-step-title">${escHtml(title)}</span>
+      <span class="pipe-step-badge" style="background:rgba(${badgeCls === 'ok' ? '63,185,80' : badgeCls === 'warn' ? '210,153,34' : '248,81,73'},0.15);color:var(--${badgeCls === 'ok' ? 'green' : badgeCls === 'warn' ? 'orange' : 'red'});">${badge}</span>
+      <span class="chevron" style="font-size:0.7em;">&#9660;</span>
+    </div>
+    <div class="pipe-step-body">${bodyHtml}</div>
+  </div>`;
+}
+
+// Store last generated post for Send functionality
+window._lastGenerated = null;
+
 async function runTestGenerate() {
   const btn = document.getElementById('testgen-btn');
   const status = document.getElementById('testgen-status');
   const result = document.getElementById('testgen-result');
+  const purpose = document.getElementById('purpose-input').value.trim();
 
   btn.disabled = true;
   btn.textContent = 'Generating...';
-  status.innerHTML = '<span class="spinner"></span>Gathering context + calling Grok...';
+  status.innerHTML = '<span class="spinner"></span>Running ' + (purpose ? 'purpose-based' : 'full') + ' pipeline...';
   status.style.color = 'var(--text-dim)';
   result.style.display = 'none';
+  window._lastGenerated = null;
 
   try {
-    const res = await fetch('/api/memeya/test-generate', { method: 'POST' });
+    const res = await fetch('/api/memeya/test-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purpose }),
+    });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    const topicColors = {
-      meme_spotlight: 'tag-green', personal_vibe: 'tag-purple',
-      dev_update: 'tag-cyan', crypto_commentary: 'tag-orange',
-      community_call: 'tag-pink', community_response: 'tag-pink',
-    };
-    const topicEl = document.getElementById('testgen-topic');
-    topicEl.textContent = data.topic || 'unknown';
-    topicEl.className = `tag ${topicColors[data.topic] || 'tag-green'}`;
-    document.getElementById('testgen-memes').textContent = `${data.context?.todayMemes || 0} memes today`;
-    document.getElementById('testgen-commits').textContent = `${data.context?.commits || 0} commits`;
-    document.getElementById('testgen-journal').textContent = `${data.context?.journalChars || 0} chars journal`;
-    const commentCount = data.context?.commentReplies || 0;
-    document.getElementById('testgen-comments').textContent = commentCount > 0 ? `${commentCount} replies found` : 'no replies';
-    document.getElementById('testgen-prompt').textContent = data.prompt || '(empty)';
+    const f = data.flow || {};
+    const ctx = f.context || {};
+    const sel = f.topicSelection || {};
+    const gen = f.generation || {};
+    const gate = f.qualityGate || {};
+    const isManual = !!data.purpose;
+    let html = '';
 
-    const draftEl = document.getElementById('testgen-draft');
-    const boredEl = document.getElementById('testgen-bored');
-
-    draftEl.textContent = data.draft || '(no draft)';
-    if (data.isBored) {
-      draftEl.style.borderColor = 'var(--orange)';
-      boredEl.textContent = '^ bored vibe — would still be posted';
-      boredEl.style.display = 'block';
+    // ── Step 1: Context Gathering ──
+    if (isManual) {
+      const manualLines = [
+        kv('Mode', '<strong style="color:var(--purple);">Manual Purpose</strong>'),
+        kv('Purpose', `<span style="color:var(--text);">${escHtml(data.purpose)}</span>`),
+        kv('Char limit', '<span style="color:var(--purple);">None (X Premium)</span>'),
+      ].join('');
+      html += pipeStep('1', 'Context: Manual Purpose', 'manual', 'ok', manualLines, false);
     } else {
-      draftEl.style.borderColor = 'var(--border)';
-      boredEl.style.display = 'none';
+      const ctxLines = [
+        kv('Today memes', `${ctx.todayMemes || 0} memes`, ctx.todayMemes > 0 ? 'ok' : ''),
+        kv('Hall of memes', ctx.randomPastMeme ? `1 random pick: ${escHtml(ctx.randomPastMeme)}` : 'none available'),
+        kv('Recent commits', (ctx.commits || []).length > 0
+          ? (ctx.commits || []).map(c => `<code style="font-size:0.9em;">${escHtml(c)}</code>`).join('<br>')
+          : '<span style="color:var(--text-dim);">none in last 12h</span>'),
+        kv('Journal', `${ctx.journalChars || 0} chars`, ctx.journalChars > 0 ? 'ok' : ''),
+        kv('Values', `${ctx.valuesChars || 0} chars`, ctx.valuesChars > 0 ? 'ok' : ''),
+        kv('Recent posts', `${(ctx.recentPosts || []).length} posts`
+          + ((ctx.recentPosts || []).length > 0
+            ? '<br>' + (ctx.recentPosts || []).map((p, i) =>
+                `<span style="color:var(--text-dim);font-size:0.9em;">${i+1}. ${p.topic ? '<code>' + escHtml(p.topic) + '</code> ' : ''}${escHtml(p.text)}</span>`
+              ).join('<br>')
+            : '')),
+        kv('Comments', ctx.comments > 0 ? `${ctx.comments} posts with ${ctx.commentReplies} replies` : 'no replies found'),
+        kv('Product doc', ctx.productDocChars > 0 ? `${ctx.productDocChars} chars (for feature_showtime)` : 'not found'),
+      ].join('');
+      html += pipeStep('1', 'Context Gathering', `${ctx.todayMemes || 0} memes, ${(ctx.commits||[]).length} commits`, 'ok', ctxLines, false);
     }
 
+    // ── Step 2: Topic Selection ──
+    if (isManual) {
+      const manualSelLines = [
+        kv('Mode', '<span style="color:var(--purple);">Skipped — using manual purpose</span>'),
+        kv('Selected', '<strong style="color:var(--purple);">manual_purpose</strong>'),
+      ].join('');
+      html += pipeStep('2', 'Topic Selection', 'manual_purpose', 'ok', manualSelLines, true);
+    } else {
+      const pool = sel.pool || [];
+      const selLines = [
+        kv('Topic pool', pool.length > 0 ? weightBar(pool, data.topic) : '(unknown)'),
+        kv('Last 3 topics', (sel.last3Topics || []).length > 0
+          ? (sel.last3Topics || []).map(t => `<code>${escHtml(t)}</code>`).join(', ')
+          : '<span style="color:var(--text-dim);">(fewer than 3 posts)</span>'),
+        sel.priorityForced
+          ? kv('Priority', `<strong style="color:var(--cyan);">${escHtml(sel.priorityForced)}</strong> — fresh commits + not posted today`)
+          : kv('Priority', '<span style="color:var(--text-dim);">none (normal random)</span>'),
+        kv('dev_update today', sel.devUpdateToday ? '<span style="color:var(--orange);">already posted</span>' : '<span style="color:var(--text-dim);">not yet</span>'),
+        kv('Anti-repeat', sel.antiRepeatTriggered
+          ? '<span style="color:var(--orange);">Triggered — forced different topic</span>'
+          : '<span style="color:var(--green);">Not triggered</span>'),
+        sel.fallbackFrom
+          ? kv('Fallback', `<span style="color:var(--orange);">${escHtml(sel.fallbackFrom)} → personal_vibe (no data)</span>`)
+          : '',
+        kv('Selected', `<strong style="color:var(--green);">${escHtml(data.topic)}</strong>`),
+        data.ogUrl ? kv('OG URL', `<code>${escHtml(data.ogUrl)}</code>`) : '',
+      ].join('');
+      html += pipeStep('2', 'Topic Selection', data.topic, 'ok', selLines, false);
+    }
+
+    // ── Step 3: Prompt Assembly ──
+    const charLimitDisplay = data.noCharLimit
+      ? '<span style="color:var(--purple);">None (X Premium)</span>'
+      : (gen.ogUrl ? `${gen.charLimit} (280 − ${(gen.ogUrl||'').length + 1} for OG link)` : '280');
+    const genLines = [
+      kv('Model', `<code>${escHtml(gen.model || 'grok-4-1-fast-reasoning')}</code>`),
+      kv('Char limit', charLimitDisplay),
+      `<details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--cyan);font-size:0.9em;">System prompt (MEMEYA_PROMPT)</summary><pre class="prompt-block" style="margin-top:6px;max-height:200px;">${escHtml(gen.systemPrompt || '(not available)')}</pre></details>`,
+      `<details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--purple);font-size:0.9em;">User prompt (assembled)</summary><pre class="prompt-block" style="margin-top:6px;max-height:300px;">${escHtml(gen.userPrompt || data.prompt || '(not available)')}</pre></details>`,
+    ].join('');
+    html += pipeStep('3', 'Prompt Assembly → Grok', gen.model || 'grok', 'ok', genLines, true);
+
+    // ── Step 4: Generation Output ──
+    const rawOut = gen.rawOutput || '';
+    const cleanedOut = gen.cleaned || '';
+    const beforeGate = gen.finalBeforeGate || '';
+    const lenDisplay = data.noCharLimit ? `${beforeGate.length} chars (no limit)` : `${beforeGate.length}/280 chars`;
+    const genOutLines = [
+      kv('Raw Grok output', `<div class="timeline-tweet" style="margin:4px 0;">${escHtml(rawOut)}</div>`),
+      rawOut !== cleanedOut ? kv('After URL strip', `<div class="timeline-tweet" style="margin:4px 0;border-color:var(--cyan);">${escHtml(cleanedOut)}</div>`) : '',
+      gen.ogUrl ? kv('OG link appended', `<code>${escHtml(gen.ogUrl)}</code>`) : '',
+      kv('Before quality gate', `<div class="timeline-tweet" style="margin:4px 0;">${escHtml(beforeGate)}</div>`),
+      kv('Length', lenDisplay),
+    ].join('');
+    html += pipeStep('4', 'Generation Output', `${beforeGate.length} chars`, 'ok', genOutLines, true);
+
+    // ── Step 5: Quality Gate ──
+    const verdictOk = !data.isBored;
+    const gateLines = [
+      kv('Judge model', '<code>grok-3-mini</code>'),
+      kv('Verdict', verdictOk
+        ? `<strong style="color:var(--green);">${escHtml(gate.verdict || 'OK')}</strong>`
+        : `<strong style="color:var(--red);">${escHtml(gate.verdict || 'BORING')}</strong>`),
+      data.isBored ? kv('Original draft', `<div class="timeline-tweet" style="margin:4px 0;border-color:var(--red);opacity:0.7;text-decoration:line-through;">${escHtml(data.originalDraft || '')}</div>`) : '',
+      data.isBored ? kv('Bored replacement', `<div class="timeline-tweet" style="margin:4px 0;border-color:var(--orange);">${escHtml(gate.boredReplacement || '')}</div>`) : '',
+      `<details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--text-dim);font-size:0.9em;">Quality gate prompt</summary><pre class="prompt-block" style="margin-top:6px;max-height:200px;">${escHtml(gate.checkPrompt || '(not available)')}</pre></details>`,
+    ].join('');
+    html += pipeStep('5', 'Quality Gate', verdictOk ? 'PASS' : 'BORING → replaced', verdictOk ? 'ok' : 'warn', gateLines, verdictOk);
+
+    // ── Step 6: Final Output + Send Button ──
+    const finalTweet = data.draft || '(no output)';
+    window._lastGenerated = { text: finalTweet, topic: data.topic };
+
+    const charInfo = data.noCharLimit ? `${finalTweet.length} chars (no limit)` : `${finalTweet.length}/280 chars`;
+    const finalHtml = `
+      <div class="pipe-final-tweet${data.isBored ? ' bored' : ''}">${escHtml(finalTweet)}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:0.82em;color:var(--text-dim);align-items:center;flex-wrap:wrap;">
+        <span>${charInfo}</span>
+        ${data.ogUrl ? '<span>OG preview: <code>' + escHtml(data.ogUrl) + '</code></span>' : '<span>No OG link</span>'}
+        ${data.isBored ? '<span style="color:var(--orange);">bored vibe — would still be posted</span>' : ''}
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:10px;">
+        <button class="analyze-btn" onclick="sendPost()" id="send-btn" style="border-color:var(--cyan);color:var(--cyan);background:rgba(88,166,255,0.12);">Send to X</button>
+        <span id="send-status" style="font-size:0.85em;"></span>
+      </div>`;
+    html += pipeStep('6', 'Final Tweet', data.isBored ? 'bored vibe' : 'ready to send', data.isBored ? 'warn' : 'ok', finalHtml, false);
+
+    result.innerHTML = html;
     result.style.display = 'block';
     status.textContent = data.isBored ? 'Done (bored vibe)' : 'Done';
     status.style.color = data.isBored ? 'var(--orange)' : 'var(--green)';
@@ -719,7 +942,49 @@ async function runTestGenerate() {
   }
 
   btn.disabled = false;
-  btn.textContent = 'Test Generate';
+  btn.textContent = 'Generate';
+}
+
+// ─── Send Post to X ─────────────────────────────────────────
+async function sendPost() {
+  if (!window._lastGenerated) {
+    alert('No generated post to send. Generate one first.');
+    return;
+  }
+
+  const { text, topic } = window._lastGenerated;
+  if (!confirm(`Send this post to @AiMemeForgeIO?\n\n${text.slice(0, 200)}${text.length > 200 ? '...' : ''}`)) return;
+
+  const btn = document.getElementById('send-btn');
+  const status = document.getElementById('send-status');
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  status.innerHTML = '<span class="spinner"></span>Posting to X...';
+  status.style.color = 'var(--text-dim)';
+
+  try {
+    const res = await fetch('/api/memeya/send-post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, topic }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    status.innerHTML = `Posted! <a href="${escHtml(data.url)}" target="_blank" rel="noopener" style="color:var(--cyan);">${escHtml(data.url)}</a>`;
+    status.style.color = 'var(--green)';
+    btn.textContent = 'Sent';
+    window._lastGenerated = null;
+
+    // Refresh activity timeline
+    loadActivity();
+  } catch (err) {
+    status.textContent = 'Send failed: ' + err.message;
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+    btn.textContent = 'Send to X';
+  }
 }
 
 // ─── Grok analysis ───────────────────────────────────────────
@@ -756,9 +1021,9 @@ async function runAnalysis() {
 
 // ─── Load all data on page load ──────────────────────────────
 loadPrompt();
-loadJournals();
 loadValues();
 loadActivity();
+loadXPostStatus();
 </script>
 </body>
 </html>

@@ -25,10 +25,9 @@ RULES:
 - ALWAYS write in English. Never output Chinese or any other language.
 - Write an X (Twitter) post, <280 chars, from Memeya's perspective.
 - NEVER use hashtags. Zero hashtags. They are outdated and cringe.
+- NEVER include GitHub links, commit URLs, or technical/developer links. Only aimemeforge.io is OK.
 - Let your attitude come from your personality — derive your emotional tone from the journal and values context provided.
 - Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.`;
-
-const COMMITS_URL = 'https://github.com/sonyschan/SolanaHacker/commits/main/';
 
 // ─── Tool Definitions ───────────────────────────────────────────
 export const tools = [
@@ -190,10 +189,12 @@ export function createExecutors(deps) {
    * @param {string|{topic: string, prompt: string}} contextInput
    *   - String: legacy behavior (loads journal/values/recentPosts internally)
    *   - Object { topic, prompt }: structured context from x-context.js (already has journal/values embedded)
+   * @param {{ detailed?: boolean }} opts
+   *   - detailed: if true, return { text, originalDraft, verdict, isBored } instead of string
    */
-  async function generateTweet(contextInput) {
+  async function generateTweet(contextInput, { detailed = false, noCharLimit = false } = {}) {
     const apiKey = process.env.XAI_API_KEY;
-    if (!apiKey) return `[Grok unavailable] Memeya says: ${typeof contextInput === 'string' ? contextInput : contextInput.prompt}`;
+    if (!apiKey) throw new Error('XAI_API_KEY not configured — cannot generate tweet');
 
     const isStructured = contextInput && typeof contextInput === 'object' && contextInput.prompt;
 
@@ -213,7 +214,9 @@ export function createExecutors(deps) {
         `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
         recentPostsSummary,
         '',
-        `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+        noCharLimit
+          ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
+          : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
       ].join('\n');
     } else {
       // Legacy string context — load journal/values internally
@@ -237,15 +240,8 @@ export function createExecutors(deps) {
         ).slice(0, 300);
       } catch { /* ignore */ }
 
-      // If context mentions git/commit, append commits link
-      let contextWithLink = context;
-      const mentionsGit = /\b(git|commit|push|merge|pr|pull request)\b/i.test(context);
-      if (mentionsGit && !context.includes(COMMITS_URL)) {
-        contextWithLink += `\nCommits: ${COMMITS_URL}`;
-      }
-
       userPrompt = [
-        `Topic/Context: ${contextWithLink}`,
+        `Topic/Context: ${context}`,
         '',
         `Recent journal: ${journalSnippet}`,
         `Memeya's values: ${valuesSnippet}`,
@@ -253,7 +249,9 @@ export function createExecutors(deps) {
         `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
         recentPostsSummary,
         '',
-        `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+        noCharLimit
+          ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
+          : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
       ].join('\n');
     }
 
@@ -274,7 +272,7 @@ export function createExecutors(deps) {
           instructions: MEMEYA_PROMPT,
           input: [{ role: 'user', content: userPrompt }],
           tools: [{ type: 'web_search' }],
-          max_output_tokens: 200,
+          max_output_tokens: noCharLimit ? 1000 : 200,
           temperature: 0.9,
         }),
       });
@@ -285,17 +283,64 @@ export function createExecutors(deps) {
       text = await callGrok(apiKey, [
         { role: 'system', content: MEMEYA_PROMPT },
         { role: 'user', content: userPrompt },
-      ]);
+      ], noCharLimit ? { maxTokens: 1000 } : {});
     }
     if (!text) throw new Error('Grok returned empty content');
 
-    // Trim to 280 chars
-    const tweet = text.length > 280 ? text.slice(0, 277) + '...' : text;
+    const rawGrokOutput = text;
+    const genModel = useLiveSearch ? 'grok-4-1-fast-non-reasoning + web_search' : 'grok-4-1-fast-reasoning';
+
+    // Strip any URLs Grok may have included (we append the canonical one ourselves for OG preview)
+    let cleaned = text.replace(/https?:\/\/aimemeforge\.io\S*/gi, '').replace(/aimemeforge\.io/gi, '').trim();
+
+    // Trim to 280 chars (leaving room for OG link if needed) — skip for noCharLimit
+    const ogUrl = isStructured ? contextInput.ogUrl : null;
+    let tweet;
+    let maxLen;
+    if (noCharLimit) {
+      maxLen = null; // no limit
+      tweet = ogUrl ? `${cleaned}\n${ogUrl}` : cleaned;
+    } else {
+      maxLen = ogUrl ? 280 - ogUrl.length - 1 : 280; // -1 for newline
+      const trimmed = cleaned.length > maxLen ? cleaned.slice(0, maxLen - 3) + '...' : cleaned;
+      tweet = ogUrl ? `${trimmed}\n${ogUrl}` : (text.length > 280 ? text.slice(0, 277) + '...' : text);
+    }
+
+    // Skip boring check for meme_spotlight when featuring a meme not in recent posts
+    const isMemeSpotlight = isStructured && contextInput.topic === 'meme_spotlight';
+    const memeAlreadyPosted = isMemeSpotlight && ogUrl
+      ? recentPosts.some(p => typeof p === 'string' ? p.includes(ogUrl) : false)
+      : false;
+    const skipBoringCheck = isMemeSpotlight && ogUrl && !memeAlreadyPosted;
+
+    if (skipBoringCheck) {
+      if (detailed) {
+        return {
+          text: tweet,
+          originalDraft: tweet,
+          verdict: 'SKIP (unique meme)',
+          isBored: false,
+          flow: {
+            generation: { model: genModel, systemPrompt: MEMEYA_PROMPT, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
+            qualityGate: { model: 'skipped', checkPrompt: '(skipped — meme_spotlight with unique meme OG)', verdict: 'SKIP (unique meme)', isBored: false, boredReplacement: null },
+          },
+        };
+      }
+      return tweet;
+    }
 
     // Boring/repetition check via second Grok call
     const checkPrompt = [
-      `You are a content quality judge. Given a NEW tweet and a list of RECENT tweets posted in the last 3 days, decide:`,
-      `Is this new tweet BORING (generic, no personality, could be any bot) or REPETITIVE (same theme/phrasing as a recent post)?`,
+      `You are a content quality judge for a 13-year-old digital blacksmith character called Memeya.`,
+      `Given a NEW tweet and a list of RECENT tweets, decide if the new tweet should be posted.`,
+      ``,
+      `ONLY flag as BORING if the tweet:`,
+      `- Sounds like a generic AI/bot with NO personality (e.g. "Check out our platform!")`,
+      `- Almost copy-pastes an earlier tweet's exact phrasing or theme`,
+      `- Is pure marketing/announcement with zero character voice`,
+      ``,
+      `Short tweets, low-energy vibes, or quirky one-liners are OK — those show personality.`,
+      `Memeya is allowed to be chill, weird, or minimal. That's not boring.`,
       ``,
       `NEW TWEET:`,
       tweet,
@@ -303,16 +348,45 @@ export function createExecutors(deps) {
       `RECENT POSTS (last 3 days):`,
       recentPostsSummary,
       ``,
-      `Reply with EXACTLY one of:`,
-      `- "OK" if the tweet is fresh and has personality`,
-      `- "BORING" if it's generic or repetitive`,
+      `Reply with EXACTLY one word:`,
+      `- "OK" if the tweet has personality or a unique angle`,
+      `- "BORING" if it's truly generic bot-speak or a near-duplicate`,
     ].join('\n');
 
     const verdict = await callGrok(apiKey, [
       { role: 'user', content: checkPrompt },
     ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
 
-    if (verdict.toUpperCase().includes('BORING')) {
+    const isBored = verdict.toUpperCase().includes('BORING');
+
+    // Build detailed flow object (only when detailed mode requested)
+    const buildFlow = (finalText, boredReplacement) => ({
+      text: finalText,
+      originalDraft: tweet,
+      verdict: verdict.trim(),
+      isBored,
+      flow: {
+        generation: {
+          model: genModel,
+          systemPrompt: MEMEYA_PROMPT,
+          userPrompt,
+          rawOutput: rawGrokOutput,
+          cleaned,
+          ogUrl,
+          charLimit: maxLen,
+          finalBeforeGate: tweet,
+        },
+        qualityGate: {
+          model: 'grok-3-mini',
+          checkPrompt,
+          verdict: verdict.trim(),
+          isBored,
+          boredReplacement,
+        },
+      },
+    });
+
+    if (isBored) {
       // Generate a bored Memeya moment — either an action or lazy speech — and post it instead
       const boredTweet = await callGrok(apiKey, [
         { role: 'system', content: MEMEYA_PROMPT },
@@ -335,9 +409,12 @@ export function createExecutors(deps) {
         },
       ], { model: 'grok-3-mini', maxTokens: 80, temperature: 1.0 });
 
-      return boredTweet || '(Memeya stares into the void)';
+      const finalText = boredTweet || '(Memeya stares into the void)';
+      if (detailed) return buildFlow(finalText, finalText);
+      return finalText;
     }
 
+    if (detailed) return buildFlow(tweet, null);
     return tweet;
   }
 
