@@ -445,9 +445,12 @@ const corsOptions = {
 ### 7.4 投票獎勵機制
 
 ```
-投票完成 → 隨機 8-15 tickets → 更新 weeklyTickets + totalTicketsAllTime
-                             → 計算 streakDays (連續+1 或重置為1)
-                             → 記錄 lastVoteDate
+投票完成 → base = 隨機 1-10 tickets
+         → streakBonus = min(streakDays, 10)
+         → ticketsEarned = base + streakBonus
+         → 更新 weeklyTickets + totalTicketsAllTime
+         → 計算 streakDays (連續+1 或重置為1)
+         → 記錄 lastVoteDate
 ```
 
 ---
@@ -861,8 +864,8 @@ async runDailyLottery() {
 - [x] 投票 API (POST /api/voting/vote)
 - [x] 防重複投票 (Firestore 查詢)
 - [x] 頻率限制 (Rate Limiting)
-- [x] Ticket 獎勵 (8-15 隨機)
-- [x] 連勝追蹤 (streakDays)
+- [x] Ticket 獎勵 (base 1-10 + streak bonus, max +10)
+- [x] 連勝追蹤 + 獎勵 (streakDays → bonus tickets)
 - [x] 投票統計即時更新
 - [x] 投票結算邏輯 (end_voting)
 - [x] 每日贏家選出 (最高票)

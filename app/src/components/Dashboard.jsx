@@ -113,7 +113,7 @@ const Dashboard = ({
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
     { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
-    { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' },
+    { id: 'tickets', label: 'Tickets', icon: '🎫', desc: 'Manage entries' },
     { id: 'wins', label: 'My Wins', icon: '🏆', desc: `${nftWins.length} meme${nftWins.length !== 1 ? 's' : ''} won` }
   ];
 
@@ -132,14 +132,14 @@ const Dashboard = ({
         {/* Ticket Earning Breakdown */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white/5 rounded-xl p-6">
-            <h4 className="font-bold mb-2 text-cyan-400">Daily Vote</h4>
-            <div className="text-2xl font-bold mb-2">8-15</div>
+            <h4 className="font-bold mb-2 text-cyan-400">Base Roll</h4>
+            <div className="text-2xl font-bold mb-2">1-10</div>
             <p className="text-sm text-gray-400">Random tickets per vote</p>
           </div>
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-green-400">Streak Bonus</h4>
             <div className="text-2xl font-bold mb-2">+{Math.min(votingStreak, 10)}</div>
-            <p className="text-sm text-gray-400">Extra tickets for consistency</p>
+            <p className="text-sm text-gray-400">{votingStreak} day{votingStreak !== 1 ? 's' : ''} consecutive (max +10)</p>
           </div>
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-purple-400">Lottery Status</h4>
@@ -484,7 +484,7 @@ const Dashboard = ({
               <div className="space-y-4">
                 {[
                   { step: "1", icon: "🤖", title: "AI Creates", desc: "Every day, AI generates 3 fresh memes from trending crypto news.", color: "from-cyan-400 to-blue-500" },
-                  { step: "2", icon: "🗳️", title: "You Vote", desc: "Pick your favorite meme. You earn 8-15 lottery tickets just for voting — free, no gas.", color: "from-purple-400 to-pink-500" },
+                  { step: "2", icon: "🗳️", title: "You Vote", desc: "Pick your favorite meme. You earn lottery tickets (1-10 base + streak bonus) just for voting — free, no gas.", color: "from-purple-400 to-pink-500" },
                   { step: "3", icon: "🏆", title: "Daily Winner", desc: "The most-voted meme wins. A weighted lottery picks one voter as the owner.", color: "from-yellow-400 to-orange-500" },
                   { step: "4", icon: "🎨", title: "Claim NFT", desc: "The winner can mint their meme as a Solana pNFT — true ownership, forever.", color: "from-green-400 to-emerald-500" }
                 ].map((item) => (
@@ -509,7 +509,7 @@ const Dashboard = ({
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-white/5 rounded-lg p-3">
                     <div className="font-bold text-cyan-400 mb-1">🎯 Daily Player</div>
-                    <p className="text-gray-500 text-xs">Enter every day with 8-15 tickets. Consistent small chances.</p>
+                    <p className="text-gray-500 text-xs">Enter every day with your daily tickets. Consistent small chances.</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3">
                     <div className="font-bold text-purple-400 mb-1">🧠 Accumulator</div>

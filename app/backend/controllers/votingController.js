@@ -4,21 +4,26 @@ const rarityService = require('../services/rarityService');
 
 /**
  * Award tickets to user after rarity vote
- * Returns number of tickets earned (8-15 random)
+ * Base: random 1-10, Streak bonus: +min(streakDays, 10)
+ * Total range: 2 (day 1 low) to 20 (day 10+ high)
  */
 async function awardVotingTickets(walletAddress) {
   try {
     const db = getFirestore();
     const userRef = db.collection(collections.USERS).doc(walletAddress);
-    const ticketsEarned = Math.floor(Math.random() * 8) + 8; // 8-15 tickets
+    const baseTickets = Math.floor(Math.random() * 10) + 1; // 1-10 tickets
 
     const today = new Date().toISOString().split('T')[0];
+    let ticketsEarned = baseTickets;
+    let streakBonus = 0;
 
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(userRef);
 
       if (!doc.exists) {
-        // Create user if not exists
+        // New user: streak starts at 1
+        streakBonus = Math.min(1, 10);
+        ticketsEarned = baseTickets + streakBonus;
         transaction.set(userRef, {
           id: walletAddress,
           walletAddress,
@@ -47,6 +52,9 @@ async function awardVotingTickets(walletAddress) {
         }
         // If lastVoteDate === today, keep same streak (already voted today)
 
+        streakBonus = Math.min(newStreak, 10);
+        ticketsEarned = baseTickets + streakBonus;
+
         transaction.update(userRef, {
           weeklyTickets: (userData.weeklyTickets || 0) + ticketsEarned,
           totalTicketsAllTime: (userData.totalTicketsAllTime || 0) + ticketsEarned,
@@ -62,6 +70,8 @@ async function awardVotingTickets(walletAddress) {
     const updatedUser = await userRef.get();
     return {
       ticketsEarned,
+      baseTickets,
+      streakBonus,
       user: updatedUser.exists ? { id: updatedUser.id, ...updatedUser.data() } : null
     };
   } catch (error) {
@@ -121,7 +131,9 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
       ticketsEarned = reward.ticketsEarned;
       updatedUser = reward.user;
       voteData.ticketsEarned = ticketsEarned; // Store in vote document for later retrieval
-      console.log(`🎫 Awarded ${ticketsEarned} tickets to ${walletAddress}`);
+      voteData.baseTickets = reward.baseTickets;
+      voteData.streakBonus = reward.streakBonus;
+      console.log(`🎫 Awarded ${ticketsEarned} tickets (base ${reward.baseTickets} + streak ${reward.streakBonus}) to ${walletAddress}`);
     }
 
     // Save vote to Firestore (now includes ticketsEarned for rarity votes)
