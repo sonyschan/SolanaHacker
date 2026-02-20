@@ -57,6 +57,34 @@ function readBody(req) {
   });
 }
 
+async function callGrok(apiKey, messages, { model = 'grok-4-1-fast-reasoning', maxTokens = 200, temperature = 0.9 } = {}) {
+  const r = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature }),
+  });
+  if (!r.ok) throw new Error(`Grok API: ${r.status} ${await r.text()}`);
+  const d = await r.json();
+  return d.choices?.[0]?.message?.content?.trim() || '';
+}
+
+function loadRecentMemeyaPosts(maxPosts = 15) {
+  const posts = [];
+  try {
+    const diaryDir = path.join(BASE_DIR, 'memory/journal/memeya');
+    if (!fs.existsSync(diaryDir)) return posts;
+    const files = fs.readdirSync(diaryDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).sort().slice(-3);
+    for (const file of files.reverse()) {
+      const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
+      for (const block of content.split(/^## /m).filter(Boolean)) {
+        const m = block.match(/- Posted: (.+)/);
+        if (m) { posts.push(m[1].trim()); if (posts.length >= maxPosts) return posts; }
+      }
+    }
+  } catch { /* ignore */ }
+  return posts;
+}
+
 function stampTimestamp() {
   const now = new Date();
   const gmt8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
@@ -302,6 +330,106 @@ const server = http.createServer((req, res) => {
         const data = await grokRes.json();
         const analysis = data.choices?.[0]?.message?.content?.trim() || '(empty response)';
         jsonRes(res, { analysis });
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
+  // ─── Memeya API: Test Generate (simulate x_post without posting) ──
+  if (req.method === 'POST' && req.url === '/api/memeya/test-generate') {
+    (async () => {
+      try {
+        const apiKey = process.env.XAI_API_KEY;
+        if (!apiKey) { jsonRes(res, { error: 'XAI_API_KEY not configured' }, 500); return; }
+
+        const body = JSON.parse(await readBody(req));
+        const context = body.context || 'Memeya vibes';
+
+        // Extract MEMEYA_PROMPT
+        const skillSrc = safeRead(path.join(__dirname, 'skills/x_twitter/index.js')) || '';
+        const promptMatch = skillSrc.match(/const MEMEYA_PROMPT\s*=\s*`([\s\S]*?)`;/);
+        const memeyaPrompt = promptMatch ? promptMatch[1] : '';
+
+        // Load journal snippet
+        let journalSnippet = '';
+        try {
+          const jDir = path.join(BASE_DIR, 'memory/journal');
+          const jFiles = fs.readdirSync(jDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).sort();
+          const latest = jFiles[jFiles.length - 1];
+          if (latest) journalSnippet = fs.readFileSync(path.join(jDir, latest), 'utf-8').slice(-500);
+        } catch { /* ignore */ }
+
+        // Load values
+        const valuesSnippet = (safeRead(path.join(BASE_DIR, 'memory/knowledge/memeya_values.md')) || '').slice(0, 300);
+
+        // Recent posts
+        const recentPosts = loadRecentMemeyaPosts(15);
+        const recentPostsSummary = recentPosts.length > 0
+          ? recentPosts.map((p, i) => `${i + 1}. ${p.slice(0, 100)}`).join('\n')
+          : '(no recent posts)';
+
+        // Git/commit link
+        const COMMITS_URL = 'https://github.com/sonyschan/SolanaHacker/commits/main/';
+        let contextWithLink = context;
+        if (/\b(git|commit|push|merge|pr|pull request)\b/i.test(context) && !context.includes(COMMITS_URL)) {
+          contextWithLink += `\nCommits: ${COMMITS_URL}`;
+        }
+
+        const userPrompt = [
+          `Topic/Context: ${contextWithLink}`,
+          '',
+          `Recent journal: ${journalSnippet}`,
+          `Memeya's values: ${valuesSnippet}`,
+          '',
+          `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
+          recentPostsSummary,
+          '',
+          `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+        ].join('\n');
+
+        // Step 1: Generate
+        const rawText = await callGrok(apiKey, [
+          { role: 'system', content: memeyaPrompt },
+          { role: 'user', content: userPrompt },
+        ]);
+        if (!rawText) { jsonRes(res, { error: 'Grok returned empty' }, 502); return; }
+        const tweet = rawText.length > 280 ? rawText.slice(0, 277) + '...' : rawText;
+
+        // Step 2: Boring check
+        const checkPrompt = [
+          `You are a content quality judge. Given a NEW tweet and a list of RECENT tweets posted in the last 3 days, decide:`,
+          `Is this new tweet BORING (generic, no personality, could be any bot) or REPETITIVE (same theme/phrasing as a recent post)?`,
+          ``, `NEW TWEET:`, tweet,
+          ``, `RECENT POSTS (last 3 days):`, recentPostsSummary,
+          ``, `Reply with EXACTLY one of:`,
+          `- "OK" if the tweet is fresh and has personality`,
+          `- "BORING" if it's generic or repetitive`,
+        ].join('\n');
+
+        const verdict = await callGrok(apiKey,
+          [{ role: 'user', content: checkPrompt }],
+          { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 }
+        );
+
+        const isBoring = verdict.toUpperCase().includes('BORING');
+        let boredAction = null;
+
+        if (isBoring) {
+          boredAction = await callGrok(apiKey, [{
+            role: 'user',
+            content: 'Memeya (a 13yo digital blacksmith girl) found her own tweet draft boring. Write a short, funny bored action or gesture she would do, in Chinese, like "Memeya 無聊的伸了個懶腰" or "Memeya 打了個大哈欠". Just the action, nothing else. Keep it under 30 chars.',
+          }], { model: 'grok-3-mini', maxTokens: 50, temperature: 1.0 });
+        }
+
+        jsonRes(res, {
+          tweet,
+          verdict: isBoring ? 'BORING' : 'OK',
+          boredAction: boredAction || null,
+          recentPostsCount: recentPosts.length,
+          contextUsed: contextWithLink,
+        });
       } catch (err) {
         jsonRes(res, { error: err.message }, 500);
       }
