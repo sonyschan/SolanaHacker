@@ -162,65 +162,6 @@ const Dashboard = ({
 
       </div>
 
-      {/* Market Stats - Preview Mode */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <div className="bg-white/5 rounded-xl p-6 text-center relative">
-          <div className="absolute top-2 right-2">
-            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Preview</span>
-          </div>
-          <div className="text-3xl text-cyan-400 font-bold mb-2">0</div>
-          <div className="text-gray-400 text-sm">Total NFTs</div>
-          <div className="text-xs text-gray-500 mt-1">Minting in Beta</div>
-        </div>
-        <div className="bg-white/5 rounded-xl p-6 text-center relative">
-          <div className="absolute top-2 right-2">
-            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Preview</span>
-          </div>
-          <div className="text-3xl text-green-400 font-bold mb-2">--</div>
-          <div className="text-gray-400 text-sm">Avg Price (SOL)</div>
-          <div className="text-xs text-gray-500 mt-1">Coming Soon</div>
-        </div>
-        <div className="bg-white/5 rounded-xl p-6 text-center relative">
-          <div className="absolute top-2 right-2">
-            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Preview</span>
-          </div>
-          <div className="text-3xl text-purple-400 font-bold mb-2">--</div>
-          <div className="text-gray-400 text-sm">Total Volume (SOL)</div>
-          <div className="text-xs text-gray-500 mt-1">Coming Soon</div>
-        </div>
-        <div className="bg-white/5 rounded-xl p-6 text-center relative">
-          <div className="absolute top-2 right-2">
-            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Preview</span>
-          </div>
-          <div className="text-3xl text-orange-400 font-bold mb-2">80%</div>
-          <div className="text-gray-400 text-sm">To Prize Pool</div>
-          <div className="text-xs text-gray-500 mt-1">Beta Feature</div>
-        </div>
-      </div>
-
-      {/* Beta Info Box */}
-      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-2xl p-8 text-center">
-        <div className="text-6xl mb-4">🚀</div>
-        <h3 className="text-2xl font-bold mb-4">NFT Marketplace Coming in Beta</h3>
-        <p className="text-gray-300 mb-6">
-          NFT minting, auctions, and real SOL rewards will be available in the Beta release. 
-          For now, enjoy voting and earning tickets!
-        </p>
-        <div className="grid md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-          <div className="bg-white/5 rounded-lg p-4">
-            <div className="text-2xl text-cyan-400 font-bold">🎨</div>
-            <div className="text-sm text-gray-400 mt-1">NFT Minting</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <div className="text-2xl text-green-400 font-bold">💰</div>
-            <div className="text-sm text-gray-400 mt-1">SOL Auctions</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <div className="text-2xl text-purple-400 font-bold">🏆</div>
-            <div className="text-sm text-gray-400 mt-1">Real Rewards</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
@@ -341,18 +282,13 @@ const Dashboard = ({
                   activeTab === tab.id
                     ? 'text-cyan-400 border-cyan-400 bg-cyan-500/10'
                     : 'text-gray-400 border-transparent hover:text-white hover:bg-white/5'
-                } ${tab.comingSoon ? 'opacity-60' : ''}`}
+                }`}
               >
                 <span className="flex items-center space-x-2 md:space-x-3 relative z-10">
                   <span className="text-lg md:text-xl">{tab.icon}</span>
                   <div className="text-left">
                     <div className="flex items-center space-x-1 md:space-x-2">
                       <span className="text-sm md:text-base whitespace-nowrap">{tab.label}</span>
-                      {tab.comingSoon && (
-                        <span className="text-xs bg-orange-500/20 text-orange-400 px-1 md:px-2 py-0.5 rounded">
-                          Soon
-                        </span>
-                      )}
                     </div>
                     <div className="hidden md:block text-xs opacity-60">{tab.desc}</div>
                   </div>
