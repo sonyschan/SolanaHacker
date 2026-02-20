@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memeya Agent Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --cyan: #58a6ff;
+    --purple: #bc8cff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.6em;
+    color: var(--pink);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  h1 span { color: var(--purple); }
+  .meta { color: var(--text-dim); font-size: 0.85em; margin-bottom: 24px; }
+  .meta code { background: var(--surface); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+  }
+  .section-header:hover { background: rgba(88,166,255,0.06); }
+  .section-header .icon { font-size: 1.1em; }
+  .section-header h2 {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .section-header .badge {
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(247,120,186,0.15);
+    color: var(--pink);
+  }
+  .chevron {
+    color: var(--text-dim);
+    transition: transform 0.2s;
+    font-size: 0.8em;
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .section-body { padding: 0 16px 16px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code {
+    background: rgba(88,166,255,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    color: var(--cyan);
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.75em;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin: 1px 2px;
+    white-space: nowrap;
+  }
+  .tag-cyan { background: rgba(88,166,255,0.15); color: var(--cyan); }
+  .tag-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .tag-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-orange { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .tag-pink { background: rgba(247,120,186,0.15); color: var(--pink); }
+
+  pre.prompt-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.82em;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+    margin-top: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .journal-day {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .journal-day-header {
+    padding: 8px 12px;
+    background: rgba(48,54,61,0.3);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .journal-day-header:hover { background: rgba(88,166,255,0.06); }
+  .journal-day-body {
+    padding: 10px 12px;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  .journal-day.collapsed .journal-day-body { display: none; }
+
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 12px;
+    font-size: 0.85em;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--pink);
+    background: var(--bg);
+  }
+  .timeline-item.posted::before { border-color: var(--green); background: var(--green); }
+  .timeline-time {
+    color: var(--text-dim);
+    font-size: 0.9em;
+    font-weight: 600;
+  }
+  .timeline-desc { color: var(--text); margin-top: 2px; }
+  .timeline-tweet {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    font-size: 0.92em;
+    color: var(--text);
+  }
+  .timeline-tweet a { color: var(--cyan); text-decoration: none; }
+  .timeline-tweet a:hover { text-decoration: underline; }
+
+  .note {
+    font-size: 0.8em;
+    color: var(--text-dim);
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(48,54,61,0.3);
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
+  }
+
+  .placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 16px;
+    text-align: center;
+    font-size: 0.9em;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.85em;
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-dot.alive { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.dead { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  .analyze-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid var(--pink);
+    background: rgba(247,120,186,0.12);
+    color: var(--pink);
+    cursor: pointer;
+    font-size: 0.95em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .analyze-btn:hover:not(:disabled) { background: rgba(247,120,186,0.25); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .analysis-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 0.88em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+  }
+  .analysis-card.visible { display: block; }
+  .analysis-card h3 { color: var(--pink); margin-bottom: 8px; font-size: 1em; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-text { color: var(--red); font-size: 0.85em; }
+  .loading-text { color: var(--text-dim); font-size: 0.85em; margin: 8px 0; }
+
+  .nav-link {
+    color: var(--cyan);
+    text-decoration: none;
+    font-size: 0.85em;
+  }
+  .nav-link:hover { text-decoration: underline; }
+
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    table { font-size: 0.8em; }
+    td, th { padding: 4px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="status-bar" id="status-bar">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Checking...</span>
+    <code id="status-uptime" style="font-size:0.85em;color:var(--text-dim);"></code>
+  </div>
+  <a href="/dashboard.html" class="nav-link">Agent Dashboard &rarr;</a>
+</div>
+
+<h1>Memeya <span>Agent Dashboard</span></h1>
+<div class="meta">
+  @AiMemeForgeIO &middot; Model: <code>grok-4-1-fast-reasoning</code> &middot; Character: <code>13yo Digital Blacksmith</code> &middot; Platform: <code>X (Twitter)</code>
+</div>
+
+<!-- Section 1: System Prompt -->
+<div class="section" id="s-prompt">
+  <div class="section-header" onclick="toggle('s-prompt')">
+    <span class="icon">&#128203;</span>
+    <h2>System Prompt Composition</h2>
+    <span class="badge">System</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div id="prompt-loading" class="loading-text"><span class="spinner"></span>Loading prompt data...</div>
+    <div id="prompt-content" style="display:none;">
+      <table>
+        <tr><th>Source</th><th>File</th><th>Limit</th><th>Preview</th></tr>
+        <tr>
+          <td><code>MEMEYA_PROMPT</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">skills/x_twitter/index.js</td>
+          <td><span class="tag tag-green">Full</span></td>
+          <td id="prompt-main-preview" style="font-size:0.85em;max-width:400px;"></td>
+        </tr>
+        <tr>
+          <td><code>values snippet</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">memory/knowledge/memeya_values.md</td>
+          <td><span class="tag tag-orange">300 chars</span></td>
+          <td id="prompt-values-preview" style="font-size:0.85em;max-width:400px;"></td>
+        </tr>
+        <tr>
+          <td><code>journal snippet</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">memory/journal/*.md (latest)</td>
+          <td><span class="tag tag-orange">500 chars</span></td>
+          <td id="prompt-journal-preview" style="font-size:0.85em;max-width:400px;"></td>
+        </tr>
+      </table>
+      <h3 style="font-size:0.9em;color:var(--pink);margin:16px 0 4px;">Composed System Prompt (what Grok receives)</h3>
+      <pre class="prompt-block" id="composed-system"></pre>
+      <h3 style="font-size:0.9em;color:var(--purple);margin:16px 0 4px;">Composed User Prompt (per tweet)</h3>
+      <pre class="prompt-block" id="composed-user"></pre>
+    </div>
+    <div id="prompt-error" class="error-text" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Section 2: Recent Journals -->
+<div class="section" id="s-journals">
+  <div class="section-header" onclick="toggle('s-journals')">
+    <span class="icon">&#128214;</span>
+    <h2>Recent Memeya Journals</h2>
+    <span class="badge">Info</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div id="journals-loading" class="loading-text"><span class="spinner"></span>Loading journals...</div>
+    <div id="journals-content" style="display:none;"></div>
+    <div id="journals-error" class="error-text" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Section 3: Current Values -->
+<div class="section" id="s-values">
+  <div class="section-header" onclick="toggle('s-values')">
+    <span class="icon">&#128161;</span>
+    <h2>Memeya Values</h2>
+    <span class="badge">Info</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div id="values-loading" class="loading-text"><span class="spinner"></span>Loading values...</div>
+    <div id="values-content" style="display:none;"></div>
+    <div id="values-error" class="error-text" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Section 4: Today's Activity -->
+<div class="section" id="s-activity">
+  <div class="section-header" onclick="toggle('s-activity')">
+    <span class="icon">&#128197;</span>
+    <h2>Today's Activity</h2>
+    <span class="badge" id="activity-badge">Info</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div id="activity-loading" class="loading-text"><span class="spinner"></span>Loading activity...</div>
+    <div id="activity-content" style="display:none;"></div>
+    <div id="activity-error" class="error-text" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Section 5: Grok Analysis -->
+<div class="section" id="s-analyze">
+  <div class="section-header" onclick="toggle('s-analyze')">
+    <span class="icon">&#129302;</span>
+    <h2>Grok Strategy Analysis</h2>
+    <span class="badge" style="background:rgba(247,120,186,0.2);">Function</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <p style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
+      Send Memeya's recent journals, values, and today's activity to Grok for a strategy analysis and tweet suggestions.
+    </p>
+    <button class="analyze-btn" id="analyze-btn" onclick="runAnalysis()">Analyze &amp; Suggest</button>
+    <span id="analyze-status" style="margin-left:8px;font-size:0.85em;"></span>
+    <div class="analysis-card" id="analysis-card">
+      <h3>Strategy Analysis</h3>
+      <div id="analysis-text"></div>
+    </div>
+  </div>
+</div>
+
+<div class="meta" style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+  <a href="/dashboard.html" class="nav-link">&larr; Back to Agent Dashboard</a>
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function toggleJournal(el) {
+  el.closest('.journal-day').classList.toggle('collapsed');
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function truncate(s, n) {
+  if (!s) return '(empty)';
+  return s.length > n ? s.slice(0, n) + '...' : s;
+}
+
+// Render journal content with basic formatting
+function renderJournalContent(text) {
+  return escHtml(text)
+    .replace(/^## (.+)$/gm, '<strong style="color:var(--cyan);">$1</strong>')
+    .replace(/^- (.+)$/gm, '&bull; $1');
+}
+
+// ─── Health check ────────────────────────────────────────────
+async function checkHealth() {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const uptime = document.getElementById('status-uptime');
+  try {
+    const res = await fetch('/health', { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    if (data.ok) {
+      dot.className = 'status-dot alive';
+      text.textContent = 'Server Online';
+      text.style.color = 'var(--green)';
+      uptime.textContent = 'uptime: ' + data.uptime;
+    }
+  } catch {
+    dot.className = 'status-dot dead';
+    text.textContent = 'Server Offline';
+    text.style.color = 'var(--red)';
+    uptime.textContent = '';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+// ─── Load prompt data ────────────────────────────────────────
+async function loadPrompt() {
+  try {
+    const res = await fetch('/api/memeya/prompt');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('prompt-main-preview').textContent = truncate(data.memeyaPrompt, 80);
+    document.getElementById('prompt-values-preview').textContent = data.valuesSnippet ? truncate(data.valuesSnippet, 80) : '(not yet created)';
+    document.getElementById('prompt-journal-preview').textContent = data.journalSnippet ? truncate(data.journalSnippet, 80) : '(no journal)';
+    document.getElementById('composed-system').textContent = data.composedSystem || '(empty)';
+    document.getElementById('composed-user').textContent = data.composedUser || '(empty)';
+
+    document.getElementById('prompt-loading').style.display = 'none';
+    document.getElementById('prompt-content').style.display = 'block';
+  } catch (err) {
+    document.getElementById('prompt-loading').style.display = 'none';
+    const el = document.getElementById('prompt-error');
+    el.textContent = 'Error loading prompt: ' + err.message;
+    el.style.display = 'block';
+  }
+}
+
+// ─── Load journals ───────────────────────────────────────────
+async function loadJournals() {
+  try {
+    const res = await fetch('/api/memeya/journals');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const container = document.getElementById('journals-content');
+    if (!data.journals || data.journals.length === 0) {
+      container.innerHTML = '<div class="placeholder">No Memeya journal entries found. Entries are created when Memeya posts tweets.</div>';
+    } else {
+      container.innerHTML = data.journals.map((j, i) =>
+        `<div class="journal-day${i > 0 ? ' collapsed' : ''}">
+          <div class="journal-day-header" onclick="toggleJournal(this)">
+            <span class="chevron" style="font-size:0.7em;">&#9660;</span>
+            ${escHtml(j.date)}
+            <span style="color:var(--text-dim);font-weight:normal;font-size:0.85em;margin-left:auto;">${j.content.split('\n').filter(l => l.startsWith('## ')).length} entries</span>
+          </div>
+          <div class="journal-day-body">${renderJournalContent(j.content)}</div>
+        </div>`
+      ).join('');
+    }
+
+    document.getElementById('journals-loading').style.display = 'none';
+    container.style.display = 'block';
+  } catch (err) {
+    document.getElementById('journals-loading').style.display = 'none';
+    const el = document.getElementById('journals-error');
+    el.textContent = 'Error loading journals: ' + err.message;
+    el.style.display = 'block';
+  }
+}
+
+// ─── Load values ─────────────────────────────────────────────
+async function loadValues() {
+  try {
+    const res = await fetch('/api/memeya/values');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const container = document.getElementById('values-content');
+    if (!data.content) {
+      container.innerHTML = '<div class="placeholder">No values defined yet. The agent will create <code>memory/knowledge/memeya_values.md</code> when it learns about Memeya\'s preferences.</div>';
+    } else {
+      container.innerHTML = `<pre class="prompt-block" style="max-height:300px;">${escHtml(data.content)}</pre>`;
+    }
+
+    document.getElementById('values-loading').style.display = 'none';
+    container.style.display = 'block';
+  } catch (err) {
+    document.getElementById('values-loading').style.display = 'none';
+    const el = document.getElementById('values-error');
+    el.textContent = 'Error loading values: ' + err.message;
+    el.style.display = 'block';
+  }
+}
+
+// ─── Load today's activity ───────────────────────────────────
+async function loadActivity() {
+  try {
+    const res = await fetch('/api/memeya/activity');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const container = document.getElementById('activity-content');
+    const badge = document.getElementById('activity-badge');
+
+    if (!data.entries || data.entries.length === 0) {
+      container.innerHTML = `<div class="placeholder">No Memeya activity today (${escHtml(data.date)}). Activity is logged when tweets are posted.</div>`;
+      badge.textContent = data.date;
+    } else {
+      badge.textContent = `${data.entries.length} entries`;
+
+      let html = `<div class="note" style="margin-bottom:12px;border-left-color:var(--pink);">Date: ${escHtml(data.date)}</div>`;
+      html += '<div class="timeline">';
+
+      for (const entry of data.entries) {
+        const isPost = entry.description.includes('Posted:') || entry.description.includes('URL:');
+        const lines = entry.description.split('\n').filter(Boolean);
+
+        let descHtml = '';
+        let tweetText = '';
+        let tweetUrl = '';
+
+        for (const line of lines) {
+          const trimmed = line.replace(/^- /, '');
+          if (trimmed.startsWith('Posted:')) {
+            tweetText = trimmed.replace('Posted: ', '');
+          } else if (trimmed.startsWith('URL:')) {
+            tweetUrl = trimmed.replace('URL: ', '').trim();
+          } else {
+            descHtml += escHtml(trimmed) + '<br>';
+          }
+        }
+
+        html += `<div class="timeline-item${isPost ? ' posted' : ''}">`;
+        html += `<div class="timeline-time">${escHtml(entry.time)}</div>`;
+
+        if (tweetText) {
+          html += '<div class="timeline-tweet">';
+          html += escHtml(tweetText);
+          if (tweetUrl) {
+            html += `<br><a href="${escHtml(tweetUrl)}" target="_blank" rel="noopener">${escHtml(tweetUrl)}</a>`;
+          }
+          html += '</div>';
+        } else {
+          html += `<div class="timeline-desc">${descHtml || escHtml(entry.description)}</div>`;
+        }
+
+        html += '</div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    document.getElementById('activity-loading').style.display = 'none';
+    container.style.display = 'block';
+  } catch (err) {
+    document.getElementById('activity-loading').style.display = 'none';
+    const el = document.getElementById('activity-error');
+    el.textContent = 'Error loading activity: ' + err.message;
+    el.style.display = 'block';
+  }
+}
+
+// ─── Grok analysis ───────────────────────────────────────────
+async function runAnalysis() {
+  const btn = document.getElementById('analyze-btn');
+  const status = document.getElementById('analyze-status');
+  const card = document.getElementById('analysis-card');
+  const text = document.getElementById('analysis-text');
+
+  btn.disabled = true;
+  btn.textContent = 'Analyzing...';
+  status.innerHTML = '<span class="spinner"></span>Calling Grok API...';
+  status.style.color = 'var(--text-dim)';
+  card.classList.remove('visible');
+
+  try {
+    const res = await fetch('/api/memeya/analyze', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    text.textContent = data.analysis;
+    card.classList.add('visible');
+    status.textContent = 'Done';
+    status.style.color = 'var(--green)';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = 'var(--red)';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Analyze & Suggest';
+}
+
+// ─── Load all data on page load ──────────────────────────────
+loadPrompt();
+loadJournals();
+loadValues();
+loadActivity();
+</script>
+</body>
+</html>

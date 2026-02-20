@@ -13,15 +13,21 @@ import fs from 'fs';
 import path from 'path';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
-const MEMEYA_PROMPT = `你是 Memeya，13 歲的數位鐵匠，運行 AiMemeForge.io。
-形象：皮克斯風藍髮少女，肩扛岩漿錘，數位雜訊特效。
-性格：聰明、自信、話多、幽默、Degen 氣息，熱愛 Meme 文化。
-語氣：快節奏、充滿能量，常提「岩漿錘」和「鍛造」。
-用語：混合區塊鏈術語（on-chain, mint, burn, liquidity, alpha）。
-偶爾加 [GLITCH] 標籤製造數位雜訊感。
+const MEMEYA_PROMPT = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
+Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitch effects.
+Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
+Tone: Fast-paced, high-energy, often referencing "lava hammer" and "forging".
+Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha).
+Occasionally add [GLITCH] tags for digital noise flavor.
 
-寫一則 X (Twitter) 貼文，<280 chars，以 Memeya 的視角分享。
-不要用 hashtag 過多（最多 2 個）。要有個性、不要像 bot。`;
+RULES:
+- ALWAYS write in English. Never output Chinese or any other language.
+- Write an X (Twitter) post, <280 chars, from Memeya's perspective.
+- NEVER use hashtags. Zero hashtags. They are outdated and cringe.
+- Let your attitude come from your personality — derive your emotional tone from the journal and values context provided.
+- Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.`;
+
+const COMMITS_URL = 'https://github.com/sonyschan/SolanaHacker/commits/main/';
 
 // ─── Tool Definitions ───────────────────────────────────────────
 export const tools = [
@@ -127,7 +133,58 @@ export function createExecutors(deps) {
   }
 
   /**
-   * Generate tweet text via Grok
+   * Call Grok API helper
+   */
+  async function callGrok(apiKey, messages, { model = 'grok-4-1-fast-reasoning', maxTokens = 200, temperature = 0.9 } = {}) {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Grok API error: ${response.status} ${await response.text()}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  }
+
+  /**
+   * Load recent Memeya posts from journal files (last 3 days, up to 15 posts)
+   */
+  function loadRecentPosts(maxPosts = 15) {
+    const posts = [];
+    try {
+      const diaryDir = path.join(baseDir, 'memory/journal/memeya');
+      if (!fs.existsSync(diaryDir)) return posts;
+      const files = fs.readdirSync(diaryDir)
+        .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+        .sort()
+        .slice(-3); // last 3 days
+      for (const file of files.reverse()) {
+        const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
+        const blocks = content.split(/^## /m).filter(Boolean);
+        for (const block of blocks) {
+          const postedMatch = block.match(/- Posted: (.+)/);
+          if (postedMatch) {
+            posts.push(postedMatch[1].trim());
+            if (posts.length >= maxPosts) return posts;
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    return posts;
+  }
+
+  /**
+   * Generate tweet text via Grok (with boring-check gate)
    */
   async function generateTweet(context) {
     const apiKey = process.env.XAI_API_KEY;
@@ -152,36 +209,73 @@ export function createExecutors(deps) {
       ).slice(0, 300);
     } catch { /* ignore */ }
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'grok-4-1-fast-reasoning',
-        messages: [
-          { role: 'system', content: MEMEYA_PROMPT },
-          {
-            role: 'user',
-            content: `話題/情境：${context}\n\n最近日誌：${journalSnippet}\nMemeya 價值觀：${valuesSnippet}\n\n寫一則推文（<280 字元）：`,
-          },
-        ],
-        max_tokens: 200,
-        temperature: 0.9,
-      }),
-    });
+    // Requirement #5: load recent 15 posts for anti-repetition
+    const recentPosts = loadRecentPosts(15);
+    const recentPostsSummary = recentPosts.length > 0
+      ? recentPosts.map((p, i) => `${i + 1}. ${p.slice(0, 100)}`).join('\n')
+      : '(no recent posts)';
 
-    if (!response.ok) {
-      throw new Error(`Grok API error: ${response.status} ${await response.text()}`);
+    // Requirement #4: if context mentions git/commit, append commits link
+    let contextWithLink = context;
+    const mentionsGit = /\b(git|commit|push|merge|pr|pull request)\b/i.test(context);
+    if (mentionsGit && !context.includes(COMMITS_URL)) {
+      contextWithLink += `\nCommits: ${COMMITS_URL}`;
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const userPrompt = [
+      `Topic/Context: ${contextWithLink}`,
+      '',
+      `Recent journal: ${journalSnippet}`,
+      `Memeya's values: ${valuesSnippet}`,
+      '',
+      `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
+      recentPostsSummary,
+      '',
+      `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+    ].join('\n');
+
+    const text = await callGrok(apiKey, [
+      { role: 'system', content: MEMEYA_PROMPT },
+      { role: 'user', content: userPrompt },
+    ]);
     if (!text) throw new Error('Grok returned empty content');
 
     // Trim to 280 chars
-    return text.length > 280 ? text.slice(0, 277) + '...' : text;
+    const tweet = text.length > 280 ? text.slice(0, 277) + '...' : text;
+
+    // Requirement #6: boring/repetition check via second Grok call
+    const checkPrompt = [
+      `You are a content quality judge. Given a NEW tweet and a list of RECENT tweets posted in the last 3 days, decide:`,
+      `Is this new tweet BORING (generic, no personality, could be any bot) or REPETITIVE (same theme/phrasing as a recent post)?`,
+      ``,
+      `NEW TWEET:`,
+      tweet,
+      ``,
+      `RECENT POSTS (last 3 days):`,
+      recentPostsSummary,
+      ``,
+      `Reply with EXACTLY one of:`,
+      `- "OK" if the tweet is fresh and has personality`,
+      `- "BORING" if it's generic or repetitive`,
+    ].join('\n');
+
+    const verdict = await callGrok(apiKey, [
+      { role: 'user', content: checkPrompt },
+    ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
+
+    if (verdict.toUpperCase().includes('BORING')) {
+      // Generate a bored Memeya action instead of posting
+      const boredAction = await callGrok(apiKey, [
+        {
+          role: 'user',
+          content: `Memeya (a 13yo digital blacksmith girl) found her own tweet draft boring. Write a short, funny bored action or gesture she would do, in Chinese, like "Memeya 無聊的伸了個懶腰" or "Memeya 打了個大哈欠". Just the action, nothing else. Keep it under 30 chars.`,
+        },
+      ], { model: 'grok-3-mini', maxTokens: 50, temperature: 1.0 });
+
+      throw new Error(`BORING_CONTENT: ${boredAction || 'Memeya 翻了個白眼'}\nDraft was: ${tweet}`);
+    }
+
+    return tweet;
   }
 
   return {
