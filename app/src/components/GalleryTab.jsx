@@ -182,6 +182,13 @@ const GalleryTab = () => {
                       {formatDate(meme.generatedAt)}
                     </div>
 
+                    {/* NFT Owner Badge */}
+                    {meme.nftOwner && (
+                      <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+                        Owned: {meme.nftOwner.walletAddress.slice(0, 4)}...{meme.nftOwner.walletAddress.slice(-4)}
+                      </div>
+                    )}
+
                     {/* Image - Square aspect ratio */}
                     <div className="relative aspect-square bg-gray-800 overflow-hidden">
                       <img
@@ -246,6 +253,13 @@ const GalleryTab = () => {
                           {meme.isWinner && (
                             <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                               🏆 WINNER
+                            </div>
+                          )}
+
+                          {/* NFT Owner Badge */}
+                          {meme.nftOwner && (
+                            <div className="absolute bottom-2 left-2 z-10 bg-purple-600/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm">
+                              Owned: {meme.nftOwner.walletAddress.slice(0, 4)}...{meme.nftOwner.walletAddress.slice(-4)}
                             </div>
                           )}
 
@@ -359,6 +373,21 @@ const GalleryTab = () => {
                   <div className="text-xs md:text-sm text-gray-400">Rarity Level</div>
                 </div>
               </div>
+
+              {/* NFT Owner Info */}
+              {selectedMeme.nftOwner && (
+                <div className="mt-4 bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-purple-400 font-bold text-sm">NFT Owner</span>
+                  </div>
+                  <div className="text-white text-sm font-mono break-all">
+                    {selectedMeme.nftOwner.walletAddress}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Won on {new Date(selectedMeme.nftOwner.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+              )}
 
               {/* News Source */}
               {selectedMeme.newsSource && (

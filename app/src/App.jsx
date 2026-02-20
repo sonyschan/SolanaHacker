@@ -13,6 +13,7 @@ function App() {
   const [currentView, setCurrentView] = useState("home");
   const [userTickets, setUserTickets] = useState(0);
   const [votingStreak, setVotingStreak] = useState(0);
+  const [lotteryOptIn, setLotteryOptIn] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
   // Fetch user data from API when wallet connects - v2 fix
@@ -36,9 +37,11 @@ function App() {
         if (data.success && data.user) {
           setUserTickets(data.user.weeklyTickets || 0);
           setVotingStreak(data.user.streakDays || 0);
+          setLotteryOptIn(data.user.lotteryOptIn !== false);
           console.log("✅ 用戶數據:", {
             tickets: data.user.weeklyTickets,
-            streak: data.user.streakDays
+            streak: data.user.streakDays,
+            lotteryOptIn: data.user.lotteryOptIn
           });
         }
       } catch (error) {
@@ -105,6 +108,8 @@ function App() {
           <Dashboard
             userTickets={userTickets}
             votingStreak={votingStreak}
+            lotteryOptIn={lotteryOptIn}
+            setLotteryOptIn={setLotteryOptIn}
             onDisconnectWallet={disconnectWallet}
             setUserTickets={setUserTickets}
             setVotingStreak={setVotingStreak}

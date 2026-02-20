@@ -9,7 +9,7 @@
  * - daily_memes:    0:00 UTC (8AM UTC+8) - Generate daily memes
  * - start_voting:   0:30 UTC (8:30AM UTC+8) - Start voting period
  * - end_voting:     12:00 UTC (8PM UTC+8) - End voting & calculate rarity
- * - lottery_draw:   Sunday 12:00 UTC (8PM UTC+8) - Weekly lottery
+ * - lottery_draw:   23:56 UTC daily - Daily lottery (1 min after end_voting)
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -168,27 +168,20 @@ class SchedulerService {
   }
 
   /**
-   * Run weekly lottery
+   * Run daily lottery (23:56 UTC)
    */
-  async runWeeklyLottery() {
-    console.log('🎰 Running weekly lottery draw...');
+  async runDailyLottery() {
+    console.log('🎰 Running daily lottery draw...');
 
     try {
-      const req = { body: {} };
-      let result = null;
-      const res = {
-        json: (data) => { result = data; return data; },
-        status: (code) => ({ json: (data) => { result = data; return { ...data, statusCode: code }; } })
-      };
-
-      await lotteryController.drawLottery(req, res);
-      console.log('✅ Weekly lottery completed:', result);
+      const result = await lotteryController.runDailyLottery();
+      console.log('✅ Daily lottery completed:', result);
 
       await this.logTaskExecution('lottery_draw', 'success');
       return result;
 
     } catch (error) {
-      console.error('❌ Weekly lottery failed:', error);
+      console.error('❌ Daily lottery failed:', error);
       await this.logTaskExecution('lottery_draw', 'failed', error.message);
       throw error;
     }
@@ -405,7 +398,7 @@ class SchedulerService {
       case 'end_voting':
         return await this.endDailyVotingPeriod();
       case 'lottery_draw':
-        return await this.runWeeklyLottery();
+        return await this.runDailyLottery();
       case 'cleanup':
         return await this.weeklyCleanup();
       case 'voting_progress':

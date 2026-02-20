@@ -1,26 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { getCurrentLottery, getLotteryHistory, drawLottery, getLotteryStats } = require('../controllers/lotteryController');
-const { authenticateUser, rateLimiter } = require('../middleware/auth');
+const {
+  runDailyLottery,
+  toggleLotteryOptIn,
+  getCurrentLottery,
+  getLotteryHistory,
+  getLotteryStats,
+  getNextDrawTime,
+  getUserLotteryData
+} = require('../controllers/lotteryController');
+const { getFirestore, collections } = require('../config/firebase');
+const { rateLimiter } = require('../middleware/auth');
 
 /**
- * GET /api/lottery/current - Get current week's lottery information
+ * GET /api/lottery/current - Get today's lottery status
  */
 router.get('/current', async (req, res) => {
   try {
-    const currentLottery = await getCurrentLottery();
-    
-    res.json({
-      success: true,
-      data: currentLottery
-    });
+    const data = await getCurrentLottery();
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get current lottery error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch current lottery',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch current lottery', message: error.message });
   }
 });
 
@@ -30,65 +31,29 @@ router.get('/current', async (req, res) => {
 router.get('/history', async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    
-    const history = await getLotteryHistory({
-      page: parseInt(page),
-      limit: parseInt(limit)
-    });
-    
-    res.json({
-      success: true,
-      data: history,
-      meta: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: history.length
-      }
-    });
+    const data = await getLotteryHistory({ page: parseInt(page), limit: parseInt(limit) });
+    res.json({ success: true, data, meta: { page: parseInt(page), limit: parseInt(limit), total: data.length } });
   } catch (error) {
     console.error('Get lottery history error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch lottery history',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch lottery history', message: error.message });
   }
 });
 
 /**
- * POST /api/lottery/draw - Execute weekly lottery draw (Admin/Cron only)
+ * POST /api/lottery/draw - Execute daily lottery draw (Cron/Admin only)
  */
 router.post('/draw', rateLimiter, async (req, res) => {
   try {
-    // Verify this is a legitimate draw request (from Cloud Scheduler)
     const { authorization } = req.headers;
-    const { drawDate, forceExecute = false } = req.body;
-    
     if (!authorization || authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized: Invalid cron token'
-      });
+      return res.status(401).json({ success: false, error: 'Unauthorized: Invalid cron token' });
     }
-    
-    // Execute lottery draw
-    const drawResult = await drawLottery({
-      drawDate: drawDate || new Date().toISOString(),
-      forceExecute
-    });
-    
-    res.json({
-      success: true,
-      data: drawResult,
-      message: `Weekly lottery draw completed! 🎊 ${drawResult.winnersCount} winners selected.`
-    });
+
+    const result = await runDailyLottery();
+    res.json({ success: true, data: result, message: `Daily lottery draw: ${result.status || 'done'}` });
   } catch (error) {
     console.error('Execute lottery draw error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to execute lottery draw',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to execute lottery draw', message: error.message });
   }
 });
 
@@ -97,72 +62,44 @@ router.post('/draw', rateLimiter, async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
   try {
-    const { timeframe = '90d' } = req.query; // 30d, 90d, 6m, 1y, all
-    
-    const stats = await getLotteryStats(timeframe);
-    
-    res.json({
-      success: true,
-      data: stats
-    });
+    const data = await getLotteryStats();
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get lottery stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch lottery statistics',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch lottery statistics', message: error.message });
   }
 });
 
 /**
- * GET /api/lottery/pool - Get current prize pool information
+ * GET /api/lottery/pool - Get current prize pool / participant info
  */
 router.get('/pool', async (req, res) => {
   try {
-    const poolInfo = await getPrizePoolInfo();
-    
-    res.json({
-      success: true,
-      data: poolInfo
-    });
+    const data = await getLotteryStats();
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get prize pool error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch prize pool information',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch prize pool information', message: error.message });
   }
 });
 
 /**
- * GET /api/lottery/winners/:drawId - Get winners for specific draw
+ * GET /api/lottery/winners/:drawId - Get draw result by date (YYYY-MM-DD)
  */
 router.get('/winners/:drawId', async (req, res) => {
   try {
     const { drawId } = req.params;
-    
-    const winners = await getLotteryWinners(drawId);
-    
-    if (!winners) {
-      return res.status(404).json({
-        success: false,
-        error: 'Draw not found'
-      });
+    const db = getFirestore();
+    const doc = await db.collection(collections.LOTTERY_DRAWS).doc(drawId).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Draw not found' });
     }
-    
-    res.json({
-      success: true,
-      data: winners
-    });
+
+    res.json({ success: true, data: { id: doc.id, ...doc.data() } });
   } catch (error) {
     console.error('Get lottery winners error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch lottery winners',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch lottery winners', message: error.message });
   }
 });
 
@@ -172,72 +109,57 @@ router.get('/winners/:drawId', async (req, res) => {
 router.get('/user/:wallet', async (req, res) => {
   try {
     const { wallet } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-    
-    const userLottery = await getUserLotteryData(wallet, {
-      page: parseInt(page),
-      limit: parseInt(limit)
-    });
-    
-    res.json({
-      success: true,
-      data: userLottery,
-      meta: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: userLottery.participations?.length || 0
-      }
-    });
+    const data = await getUserLotteryData(wallet);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get user lottery data error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch user lottery data',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch user lottery data', message: error.message });
   }
 });
 
 /**
- * GET /api/lottery/countdown - Get countdown to next draw
+ * GET /api/lottery/countdown - Countdown to next daily draw (23:56 UTC)
  */
 router.get('/countdown', async (req, res) => {
   try {
+    const nextDraw = new Date(getNextDrawTime());
     const now = new Date();
-    const nextSunday = new Date(now);
-    
-    // Calculate next Sunday at 23:59 UTC
-    const daysUntilSunday = (7 - now.getUTCDay()) % 7;
-    nextSunday.setUTCDate(now.getUTCDate() + (daysUntilSunday === 0 ? 7 : daysUntilSunday));
-    nextSunday.setUTCHours(23, 59, 59, 999);
-    
-    const timeRemaining = nextSunday.getTime() - now.getTime();
-    const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const timeRemaining = nextDraw.getTime() - now.getTime();
+
+    const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
     const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-    
+
     res.json({
       success: true,
       data: {
-        nextDrawDate: nextSunday.toISOString(),
-        timeRemaining: {
-          total: timeRemaining,
-          days,
-          hours,
-          minutes,
-          seconds
-        },
-        formatted: `${days}d ${hours}h ${minutes}m ${seconds}s`
+        nextDrawDate: nextDraw.toISOString(),
+        timeRemaining: { total: timeRemaining, hours, minutes, seconds },
+        formatted: `${hours}h ${minutes}m ${seconds}s`
       }
     });
   } catch (error) {
     console.error('Get lottery countdown error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to calculate countdown',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to calculate countdown', message: error.message });
+  }
+});
+
+/**
+ * POST /api/lottery/toggle-opt-in - Toggle lottery participation
+ * Body: { walletAddress: string, optIn: boolean }
+ */
+router.post('/toggle-opt-in', async (req, res) => {
+  try {
+    const { walletAddress, optIn } = req.body;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: 'walletAddress required' });
+    }
+
+    const result = await toggleLotteryOptIn(walletAddress, optIn);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Toggle lottery opt-in error:', error);
+    res.status(500).json({ success: false, error: 'Failed to toggle lottery opt-in', message: error.message });
   }
 });
 

@@ -4,9 +4,13 @@ import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
 import GalleryTab from './GalleryTab';
 
-const Dashboard = ({ 
-  userTickets, 
-  votingStreak, 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
+
+const Dashboard = ({
+  userTickets,
+  votingStreak,
+  lotteryOptIn,
+  setLotteryOptIn,
   onDisconnectWallet,
   setUserTickets,
   setVotingStreak,
@@ -32,7 +36,7 @@ const Dashboard = ({
         <div className="text-6xl text-yellow-400 font-bold mb-4">{userTickets}</div>
         <h3 className="text-2xl font-bold mb-4">Your Lottery Tickets</h3>
         <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-          Each ticket gives you one entry in the weekly SOL lottery. 
+          Each ticket gives you one weighted entry in the daily meme lottery.
           Tickets are earned by voting on memes - no purchase necessary!
         </p>
 
@@ -49,10 +53,43 @@ const Dashboard = ({
             <p className="text-sm text-gray-400">Extra tickets for consistency</p>
           </div>
           <div className="bg-white/5 rounded-xl p-6">
-            <h4 className="font-bold mb-2 text-purple-400">Weekly Prize</h4>
-            <div className="text-2xl font-bold mb-2">Coming Soon</div>
-            <p className="text-sm text-gray-400">Simulation mode</p>
+            <h4 className="font-bold mb-2 text-purple-400">Lottery Status</h4>
+            <button
+              onClick={async () => {
+                const newOptIn = !lotteryOptIn;
+                try {
+                  const resp = await fetch(`${API_BASE_URL}/api/lottery/toggle-opt-in`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ walletAddress, optIn: newOptIn })
+                  });
+                  const data = await resp.json();
+                  if (data.success) setLotteryOptIn(newOptIn);
+                } catch (e) { console.error('Toggle failed:', e); }
+              }}
+              className={`text-lg font-bold mb-2 px-4 py-1 rounded-lg transition-all ${
+                lotteryOptIn
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+              }`}
+            >
+              {lotteryOptIn ? 'Participating' : 'Accumulating'}
+            </button>
+            <p className="text-sm text-gray-400 mt-1">
+              {lotteryOptIn ? 'Tickets reset after draw' : 'Saving tickets'}
+            </p>
           </div>
+        </div>
+
+        {/* Strategy Tip */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left max-w-2xl mx-auto">
+          <h4 className="font-bold text-lg mb-2">Strategy Tip</h4>
+          <p className="text-sm text-gray-400">
+            <span className="text-green-400 font-medium">Participating:</span> Your tickets enter today's draw — if you win, you own the meme NFT. Tickets reset to 0 after the draw.
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            <span className="text-orange-400 font-medium">Accumulating:</span> Your tickets carry over each day. Enter later with better odds when you see a meme you love.
+          </p>
         </div>
 
       </div>
@@ -203,8 +240,8 @@ const Dashboard = ({
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
-                  <div className="text-sm text-gray-400">Prize Pool</div>
-                  <div className="font-bold text-orange-400 text-lg">Coming Soon</div>
+                  <div className="text-sm text-gray-400">Next Draw</div>
+                  <div className="font-bold text-orange-400 text-lg">Daily 23:56 UTC</div>
                 </div>
               </div>
 
