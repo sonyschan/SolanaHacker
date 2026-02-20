@@ -20,26 +20,75 @@ const Dashboard = ({
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  // 3-phase countdown: counting → drawing → result → next day
   const [countdown, setCountdown] = useState('');
+  const [drawPhase, setDrawPhase] = useState('counting'); // 'counting' | 'drawing' | 'result'
+  const [drawResult, setDrawResult] = useState(null);
 
   useEffect(() => {
-    const getNextDraw = () => {
+    let tickId, pollId;
+
+    const getDrawTime = () => {
       const now = new Date();
-      const draw = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 55, 0));
-      if (now >= draw) draw.setUTCDate(draw.getUTCDate() + 1);
-      return draw;
+      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 55, 0));
     };
+
+    const pollResult = async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/lottery/current`);
+        const data = await resp.json();
+        if (data.success && data.data.drawCompleted) {
+          setDrawResult(data.data.result);
+          setDrawPhase('result');
+          clearInterval(pollId);
+          // Show result for 8 seconds, then flip to next day
+          setTimeout(() => {
+            setDrawPhase('counting');
+            setDrawResult(null);
+          }, 8000);
+        }
+      } catch (e) { /* keep polling */ }
+    };
+
     const tick = () => {
-      const diff = getNextDraw() - new Date();
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setCountdown(`${h}h ${m}m ${s}s`);
+      const now = new Date();
+      const todayDraw = getDrawTime();
+      const diff = todayDraw - now;
+
+      if (drawPhase === 'result') return; // frozen during result display
+
+      if (diff > 0) {
+        // Phase 1: counting down
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setCountdown(`${h}h ${m}m ${s}s`);
+        if (drawPhase !== 'counting') setDrawPhase('counting');
+      } else if (diff > -180000) {
+        // Phase 2: 0 to 3 min after draw time — drawing in progress
+        if (drawPhase !== 'drawing') {
+          setDrawPhase('drawing');
+          // Start polling every 5s
+          pollResult();
+          pollId = setInterval(pollResult, 5000);
+        }
+      } else {
+        // >3 min past draw, no result fetched — show next day
+        const tomorrow = new Date(todayDraw);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        const nextDiff = tomorrow - now;
+        const h = Math.floor(nextDiff / 3600000);
+        const m = Math.floor((nextDiff % 3600000) / 60000);
+        const s = Math.floor((nextDiff % 60000) / 1000);
+        setCountdown(`${h}h ${m}m ${s}s`);
+        if (drawPhase !== 'counting') setDrawPhase('counting');
+      }
     };
+
     tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
+    tickId = setInterval(tick, 1000);
+    return () => { clearInterval(tickId); clearInterval(pollId); };
+  }, [drawPhase]);
 
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
@@ -260,8 +309,20 @@ const Dashboard = ({
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
-                  <div className="text-sm text-gray-400">Next Draw</div>
-                  <div className="font-bold text-orange-400 text-lg font-mono">{countdown}</div>
+                  <div className="text-sm text-gray-400">
+                    {drawPhase === 'result' ? 'Winner' : drawPhase === 'drawing' ? 'Lottery' : 'Next Draw'}
+                  </div>
+                  {drawPhase === 'drawing' ? (
+                    <div className="font-bold text-yellow-400 text-lg animate-pulse">Drawing...</div>
+                  ) : drawPhase === 'result' && drawResult ? (
+                    <div className="font-bold text-green-400 text-lg">
+                      {drawResult.winnerWallet
+                        ? `${drawResult.winnerWallet.slice(0, 4)}...${drawResult.winnerWallet.slice(-4)}`
+                        : 'No winner'}
+                    </div>
+                  ) : (
+                    <div className="font-bold text-orange-400 text-lg font-mono">{countdown}</div>
+                  )}
                 </div>
               </div>
 
