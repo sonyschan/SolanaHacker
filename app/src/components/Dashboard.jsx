@@ -113,7 +113,8 @@ const Dashboard = ({
   const tabs = [
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
     { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
-    { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' }
+    { id: 'tickets', label: 'My Tickets', icon: '🎫', desc: 'Lottery entries' },
+    { id: 'wins', label: 'My Wins', icon: '🏆', desc: `${nftWins.length} meme${nftWins.length !== 1 ? 's' : ''} won` }
   ];
 
   // Enhanced Tickets Tab
@@ -182,80 +183,130 @@ const Dashboard = ({
 
       </div>
 
-      {/* My Wins Section */}
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-3xl">🏆</span>
-          <h3 className="text-2xl font-bold">My Wins</h3>
-          <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">{nftWins.length}</span>
+    </div>
+  );
+
+  // My Wins Tab with filter
+  const [winsFilter, setWinsFilter] = useState('all'); // 'all' | 'unclaimed' | 'minted'
+
+  const MyWinsTabContent = () => {
+    const filters = [
+      { id: 'all', label: 'All', count: nftWins.length },
+      { id: 'unclaimed', label: 'Unclaimed', count: nftWins.filter(w => !w.claimed).length },
+      { id: 'minted', label: 'Minted', count: nftWins.filter(w => w.claimed).length }
+    ];
+
+    const filteredWins = nftWins
+      .filter(w => {
+        if (winsFilter === 'unclaimed') return !w.claimed;
+        if (winsFilter === 'minted') return w.claimed;
+        return true;
+      })
+      .sort((a, b) => (b.selectedAt || '').localeCompare(a.selectedAt || ''));
+
+    return (
+      <div className="space-y-6">
+        {/* Header + Filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🏆</span>
+            <h3 className="text-2xl font-bold">My Wins</h3>
+            <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">{nftWins.length}</span>
+          </div>
+          <div className="flex gap-2">
+            {filters.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setWinsFilter(f.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  winsFilter === f.id
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Empty State */}
         {nftWins.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-4 opacity-50">🎯</div>
-            <p className="text-gray-400">No wins yet. Keep voting to earn tickets!</p>
-            <p className="text-gray-500 text-sm mt-2">Win the daily draw to own a meme and mint it as an NFT.</p>
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+            <div className="text-6xl mb-4 opacity-50">🎯</div>
+            <h4 className="text-xl font-bold mb-2">No wins yet</h4>
+            <p className="text-gray-400 max-w-md mx-auto">Keep voting to earn tickets! Win the daily draw to own a meme and mint it as an NFT.</p>
+          </div>
+        ) : filteredWins.length === 0 ? (
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+            <div className="text-5xl mb-4 opacity-50">{winsFilter === 'minted' ? '🎨' : '📭'}</div>
+            <p className="text-gray-400">No {winsFilter} memes yet.</p>
           </div>
         ) : (
+          /* Wins Grid */
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nftWins
-              .sort((a, b) => (b.selectedAt || '').localeCompare(a.selectedAt || ''))
-              .map((win, i) => {
-                const meme = winMemes[win.memeId];
-                return (
-                  <div key={win.memeId + i} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/30 transition-all">
-                    {/* Meme Image */}
-                    <div className="aspect-square bg-gray-800 relative">
-                      {meme ? (
-                        <img
-                          src={meme.imageUrl || meme.image}
-                          alt={meme.title || 'Winning Meme'}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🎨</div>
-                      )}
-                      {/* Status badge */}
-                      <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
-                        win.claimed
-                          ? 'bg-green-500/80 text-white'
-                          : 'bg-yellow-500/80 text-white'
-                      }`}>
-                        {win.claimed ? 'Minted' : 'Claimable'}
-                      </div>
-                    </div>
-                    {/* Info */}
-                    <div className="p-3">
-                      <h4 className="font-bold text-sm text-white truncate">
-                        {meme?.title || `Meme ${win.memeId.slice(-6)}`}
-                      </h4>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Won {new Date(win.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </div>
-                      {!win.claimed && (
-                        <button
-                          className="mt-2 w-full text-sm font-bold py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
-                          disabled
-                          title="NFT minting coming soon"
-                        >
-                          Claim NFT (Soon)
-                        </button>
-                      )}
+            {filteredWins.map((win, i) => {
+              const meme = winMemes[win.memeId];
+              return (
+                <div key={win.memeId + i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/30 transition-all group">
+                  {/* Meme Image */}
+                  <div className="aspect-square bg-gray-800 relative">
+                    {meme ? (
+                      <img
+                        src={meme.imageUrl || meme.image}
+                        alt={meme.title || 'Winning Meme'}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🎨</div>
+                    )}
+                    {/* Status badge */}
+                    <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
+                      win.claimed
+                        ? 'bg-green-500/80 text-white'
+                        : 'bg-yellow-500/80 text-white'
+                    }`}>
+                      {win.claimed ? 'Minted' : 'Claimable'}
                     </div>
                   </div>
-                );
-              })}
+                  {/* Info */}
+                  <div className="p-4">
+                    <h4 className="font-bold text-white truncate">
+                      {meme?.title || `Meme ${win.memeId.slice(-6)}`}
+                    </h4>
+                    <div className="text-xs text-gray-400 mt-1">
+                      Won {new Date(win.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    {win.drawId && (
+                      <div className="text-xs text-gray-500 mt-0.5">Draw #{win.drawId}</div>
+                    )}
+                    {!win.claimed ? (
+                      <button
+                        className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
+                        disabled
+                        title="NFT minting coming soon"
+                      >
+                        Claim NFT (Soon)
+                      </button>
+                    ) : (
+                      <div className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
+                        Minted
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-
-    </div>
-  );
+    );
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'forge':
-        return <ForgeTab walletAddress={walletAddress} 
+        return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
@@ -265,8 +316,10 @@ const Dashboard = ({
         return <GalleryTab />;
       case 'tickets':
         return <TicketsTabContent />;
+      case 'wins':
+        return <MyWinsTabContent />;
       default:
-        return <ForgeTab walletAddress={walletAddress} 
+        return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
