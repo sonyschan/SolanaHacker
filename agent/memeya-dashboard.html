@@ -413,55 +413,28 @@
   <div class="section-header" onclick="toggle('s-testgen')">
     <span class="icon">&#9889;</span>
     <h2>Test Generate Post</h2>
-    <span class="badge" style="background:rgba(63,185,80,0.2);color:var(--green);">Simulate</span>
+    <span class="badge" style="background:rgba(63,185,80,0.2);color:var(--green);">Function</span>
     <span class="chevron">&#9660;</span>
   </div>
   <div class="section-body">
-    <p style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
-      Run the full tweet generation pipeline (Grok generate &rarr; boring check &rarr; verdict) without posting to X.
+    <p style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
+      Runs the full autonomous posting pipeline: gathers context (memes, commits, journal, values), picks a weighted-random topic, and generates a draft tweet via Grok. Does NOT actually post.
     </p>
-    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;">
-      <input type="text" id="gen-context" placeholder="Topic/context (e.g. 'just shipped a new feature')" style="
-        flex:1; min-width:200px; padding:8px 12px; border-radius:6px;
-        border:1px solid var(--border); background:var(--bg); color:var(--text);
-        font-size:0.9em; font-family:inherit; outline:none;
-      ">
-      <button class="analyze-btn" id="gen-btn" onclick="testGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">
-        Generate
-      </button>
-    </div>
-    <span id="gen-status" style="display:block;margin-top:6px;font-size:0.85em;"></span>
-
-    <div id="gen-result" style="display:none;margin-top:12px;">
-      <!-- Verdict badge -->
-      <div style="margin-bottom:8px;">
-        <span id="gen-verdict-badge" class="tag" style="font-size:0.85em;padding:3px 10px;"></span>
-        <span id="gen-posts-count" style="font-size:0.8em;color:var(--text-dim);margin-left:8px;"></span>
+    <button class="analyze-btn" id="testgen-btn" onclick="runTestGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Test Generate</button>
+    <span id="testgen-status" style="margin-left:8px;font-size:0.85em;"></span>
+    <div id="testgen-result" style="display:none;margin-top:12px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <span class="tag tag-green" id="testgen-topic"></span>
+        <span class="tag tag-cyan" id="testgen-memes"></span>
+        <span class="tag tag-purple" id="testgen-commits"></span>
+        <span class="tag tag-orange" id="testgen-journal"></span>
+        <span class="tag tag-pink" id="testgen-comments"></span>
       </div>
-
-      <!-- Generated tweet -->
-      <div id="gen-tweet-card" style="
-        background:var(--bg); border:1px solid var(--border); border-radius:8px;
-        padding:14px; font-size:0.95em; line-height:1.6;
-      ">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-          <strong style="color:var(--pink);">@AiMemeForgeIO</strong>
-          <span style="color:var(--text-dim);font-size:0.8em;">(draft)</span>
-          <span id="gen-char-count" style="margin-left:auto;font-size:0.8em;color:var(--text-dim);"></span>
-        </div>
-        <div id="gen-tweet-text" style="color:var(--text);"></div>
-      </div>
-
-      <!-- Bored action (shown only when BORING) -->
-      <div id="gen-bored" style="display:none;margin-top:10px;padding:12px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.3);border-radius:8px;text-align:center;">
-        <div style="font-size:1.2em;margin-bottom:4px;" id="gen-bored-action"></div>
-        <div style="font-size:0.8em;color:var(--text-dim);">This post would NOT be published.</div>
-      </div>
-
-      <!-- Context used -->
-      <details style="margin-top:10px;font-size:0.82em;color:var(--text-dim);">
-        <summary style="cursor:pointer;">Context sent to Grok</summary>
-        <pre class="prompt-block" id="gen-context-used" style="margin-top:6px;max-height:200px;"></pre>
+      <div id="testgen-draft" class="timeline-tweet" style="margin-bottom:8px;"></div>
+      <div id="testgen-bored" style="display:none;color:var(--orange);font-size:0.9em;margin-bottom:8px;"></div>
+      <details style="font-size:0.82em;color:var(--text-dim);">
+        <summary style="cursor:pointer;color:var(--cyan);">View assembled prompt</summary>
+        <pre class="prompt-block" id="testgen-prompt" style="margin-top:8px;"></pre>
       </details>
     </div>
   </div>
@@ -692,71 +665,55 @@ async function loadActivity() {
   }
 }
 
-// ─── Test generate post ──────────────────────────────────────
-async function testGenerate() {
-  const btn = document.getElementById('gen-btn');
-  const status = document.getElementById('gen-status');
-  const result = document.getElementById('gen-result');
-  const contextInput = document.getElementById('gen-context');
-  const context = contextInput.value.trim() || 'Memeya vibes';
+// ─── Test Generate ───────────────────────────────────────────
+async function runTestGenerate() {
+  const btn = document.getElementById('testgen-btn');
+  const status = document.getElementById('testgen-status');
+  const result = document.getElementById('testgen-result');
 
   btn.disabled = true;
   btn.textContent = 'Generating...';
-  status.innerHTML = '<span class="spinner"></span>Step 1/2: Generating tweet via Grok...';
+  status.innerHTML = '<span class="spinner"></span>Gathering context + calling Grok...';
   status.style.color = 'var(--text-dim)';
   result.style.display = 'none';
 
   try {
-    const res = await fetch('/api/memeya/test-generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context }),
-    });
+    const res = await fetch('/api/memeya/test-generate', { method: 'POST' });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    // Verdict badge
-    const badge = document.getElementById('gen-verdict-badge');
-    if (data.verdict === 'OK') {
-      badge.textContent = 'PASS';
-      badge.className = 'tag tag-green';
-    } else {
-      badge.textContent = 'BORING';
-      badge.className = 'tag tag-orange';
-    }
+    document.getElementById('testgen-topic').textContent = data.topic || 'unknown';
+    document.getElementById('testgen-memes').textContent = `${data.context?.todayMemes || 0} memes today`;
+    document.getElementById('testgen-commits').textContent = `${data.context?.commits || 0} commits`;
+    document.getElementById('testgen-journal').textContent = `${data.context?.journalChars || 0} chars journal`;
+    const commentCount = data.context?.commentReplies || 0;
+    document.getElementById('testgen-comments').textContent = commentCount > 0 ? `${commentCount} replies found` : 'no replies';
+    document.getElementById('testgen-prompt').textContent = data.prompt || '(empty)';
 
-    // Posts count
-    document.getElementById('gen-posts-count').textContent =
-      `checked against ${data.recentPostsCount} recent post(s)`;
+    const draftEl = document.getElementById('testgen-draft');
+    const boredEl = document.getElementById('testgen-bored');
 
-    // Tweet text
-    document.getElementById('gen-tweet-text').textContent = data.tweet;
-    document.getElementById('gen-char-count').textContent = `${data.tweet.length}/280`;
-
-    // Bored action
-    const boredEl = document.getElementById('gen-bored');
-    if (data.verdict === 'BORING' && data.boredAction) {
-      document.getElementById('gen-bored-action').textContent = data.boredAction;
+    if (data.boredAction) {
+      draftEl.textContent = data.draft || '(no draft)';
+      draftEl.style.opacity = '0.5';
+      boredEl.textContent = data.boredAction;
       boredEl.style.display = 'block';
     } else {
+      draftEl.textContent = data.draft || '(no draft)';
+      draftEl.style.opacity = '1';
       boredEl.style.display = 'none';
     }
 
-    // Context used
-    document.getElementById('gen-context-used').textContent = data.contextUsed;
-
     result.style.display = 'block';
-    status.textContent = data.verdict === 'OK'
-      ? 'Tweet passed quality check'
-      : 'Tweet rejected — boring/repetitive';
-    status.style.color = data.verdict === 'OK' ? 'var(--green)' : 'var(--orange)';
+    status.textContent = data.boredAction ? 'Boring (rejected)' : 'Done';
+    status.style.color = data.boredAction ? 'var(--orange)' : 'var(--green)';
   } catch (err) {
     status.textContent = 'Error: ' + err.message;
     status.style.color = 'var(--red)';
   }
 
   btn.disabled = false;
-  btn.textContent = 'Generate';
+  btn.textContent = 'Test Generate';
 }
 
 // ─── Grok analysis ───────────────────────────────────────────

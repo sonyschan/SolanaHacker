@@ -11,6 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { gatherContext, chooseTopic, logPost } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
 const MEMEYA_PROMPT = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
@@ -184,66 +185,114 @@ export function createExecutors(deps) {
   }
 
   /**
-   * Generate tweet text via Grok (with boring-check gate)
+   * Generate tweet text via Grok (with boring-check gate).
+   *
+   * @param {string|{topic: string, prompt: string}} contextInput
+   *   - String: legacy behavior (loads journal/values/recentPosts internally)
+   *   - Object { topic, prompt }: structured context from x-context.js (already has journal/values embedded)
    */
-  async function generateTweet(context) {
+  async function generateTweet(contextInput) {
     const apiKey = process.env.XAI_API_KEY;
-    if (!apiKey) return `[Grok unavailable] Memeya says: ${context}`;
+    if (!apiKey) return `[Grok unavailable] Memeya says: ${typeof contextInput === 'string' ? contextInput : contextInput.prompt}`;
 
-    // Load recent context for richer posts
-    let journalSnippet = '';
-    try {
-      const journalDir = path.join(baseDir, 'memory/journal');
-      const files = fs.readdirSync(journalDir).filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/)).sort();
-      const latest = files[files.length - 1];
-      if (latest) {
-        const content = fs.readFileSync(path.join(journalDir, latest), 'utf-8');
-        journalSnippet = content.slice(-500);
-      }
-    } catch { /* ignore */ }
+    const isStructured = contextInput && typeof contextInput === 'object' && contextInput.prompt;
 
-    let valuesSnippet = '';
-    try {
-      valuesSnippet = fs.readFileSync(
-        path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8'
-      ).slice(0, 300);
-    } catch { /* ignore */ }
-
-    // Requirement #5: load recent 15 posts for anti-repetition
+    // Always load recent 15 posts for anti-repetition
     const recentPosts = loadRecentPosts(15);
     const recentPostsSummary = recentPosts.length > 0
       ? recentPosts.map((p, i) => `${i + 1}. ${p.slice(0, 100)}`).join('\n')
       : '(no recent posts)';
 
-    // Requirement #4: if context mentions git/commit, append commits link
-    let contextWithLink = context;
-    const mentionsGit = /\b(git|commit|push|merge|pr|pull request)\b/i.test(context);
-    if (mentionsGit && !context.includes(COMMITS_URL)) {
-      contextWithLink += `\nCommits: ${COMMITS_URL}`;
+    let userPrompt;
+
+    if (isStructured) {
+      // Structured context from x-context.js — journal/values already in prompt
+      userPrompt = [
+        contextInput.prompt,
+        '',
+        `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
+        recentPostsSummary,
+        '',
+        `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+      ].join('\n');
+    } else {
+      // Legacy string context — load journal/values internally
+      const context = contextInput;
+
+      let journalSnippet = '';
+      try {
+        const journalDir = path.join(baseDir, 'memory/journal');
+        const files = fs.readdirSync(journalDir).filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/)).sort();
+        const latest = files[files.length - 1];
+        if (latest) {
+          const content = fs.readFileSync(path.join(journalDir, latest), 'utf-8');
+          journalSnippet = content.slice(-500);
+        }
+      } catch { /* ignore */ }
+
+      let valuesSnippet = '';
+      try {
+        valuesSnippet = fs.readFileSync(
+          path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8'
+        ).slice(0, 300);
+      } catch { /* ignore */ }
+
+      // If context mentions git/commit, append commits link
+      let contextWithLink = context;
+      const mentionsGit = /\b(git|commit|push|merge|pr|pull request)\b/i.test(context);
+      if (mentionsGit && !context.includes(COMMITS_URL)) {
+        contextWithLink += `\nCommits: ${COMMITS_URL}`;
+      }
+
+      userPrompt = [
+        `Topic/Context: ${contextWithLink}`,
+        '',
+        `Recent journal: ${journalSnippet}`,
+        `Memeya's values: ${valuesSnippet}`,
+        '',
+        `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
+        recentPostsSummary,
+        '',
+        `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+      ].join('\n');
     }
 
-    const userPrompt = [
-      `Topic/Context: ${contextWithLink}`,
-      '',
-      `Recent journal: ${journalSnippet}`,
-      `Memeya's values: ${valuesSnippet}`,
-      '',
-      `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
-      recentPostsSummary,
-      '',
-      `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
-    ].join('\n');
+    // Use web search model for crypto_commentary to get live news
+    const useLiveSearch = isStructured && contextInput.topic === 'crypto_commentary';
 
-    const text = await callGrok(apiKey, [
-      { role: 'system', content: MEMEYA_PROMPT },
-      { role: 'user', content: userPrompt },
-    ]);
+    let text;
+    if (useLiveSearch) {
+      // Use Grok /responses endpoint with web_search tool for live crypto news
+      const grokRes = await fetch('https://api.x.ai/v1/responses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-4-1-fast-non-reasoning',
+          instructions: MEMEYA_PROMPT,
+          input: [{ role: 'user', content: userPrompt }],
+          tools: [{ type: 'web_search' }],
+          max_output_tokens: 200,
+          temperature: 0.9,
+        }),
+      });
+      if (!grokRes.ok) throw new Error(`Grok API error: ${grokRes.status} ${await grokRes.text()}`);
+      const data = await grokRes.json();
+      text = data.output?.find(o => o.type === 'message')?.content?.[0]?.text?.trim() || '';
+    } else {
+      text = await callGrok(apiKey, [
+        { role: 'system', content: MEMEYA_PROMPT },
+        { role: 'user', content: userPrompt },
+      ]);
+    }
     if (!text) throw new Error('Grok returned empty content');
 
     // Trim to 280 chars
     const tweet = text.length > 280 ? text.slice(0, 277) + '...' : text;
 
-    // Requirement #6: boring/repetition check via second Grok call
+    // Boring/repetition check via second Grok call
     const checkPrompt = [
       `You are a content quality judge. Given a NEW tweet and a list of RECENT tweets posted in the last 3 days, decide:`,
       `Is this new tweet BORING (generic, no personality, could be any bot) or REPETITIVE (same theme/phrasing as a recent post)?`,
@@ -297,12 +346,7 @@ export function createExecutors(deps) {
 
         // Log to Memeya diary
         try {
-          const dateStr = new Date().toISOString().slice(0, 10);
-          const diaryDir = path.join(baseDir, 'memory/journal/memeya');
-          if (!fs.existsSync(diaryDir)) fs.mkdirSync(diaryDir, { recursive: true });
-          const diaryPath = path.join(diaryDir, `${dateStr}.md`);
-          const entry = `## ${new Date().toLocaleTimeString('en-US', { hour12: false })}\n- Posted: ${tweetText}\n- URL: ${url}\n\n`;
-          fs.appendFileSync(diaryPath, entry);
+          logPost(baseDir, 'manual', tweetText, url);
         } catch { /* diary write is best-effort */ }
 
         return `✅ Tweet posted!\nText: ${tweetText}\nURL: ${url}`;
@@ -367,5 +411,68 @@ export function createExecutors(deps) {
         return `Error reading mentions: ${err.message}`;
       }
     },
+
+    // Expose generateTweet for autoPost and dashboard test-generate
+    generateTweet,
   };
+}
+
+// ─── Autonomous Posting ──────────────────────────────────────
+
+/**
+ * Autonomous X post: gathers context, picks topic, generates tweet, posts it.
+ * @param {{ baseDir: string, grokApiKey: string }} deps
+ * @returns {{ success: boolean, url?: string, text?: string, topic?: string, reason?: string, draft?: string }}
+ */
+export async function autoPost({ baseDir, grokApiKey }) {
+  const context = await gatherContext(baseDir, { grokApiKey });
+  const topicChoice = chooseTopic(context);
+
+  console.log(`[autoPost] Topic: ${topicChoice.topic}`);
+
+  // Create a temporary executor to access generateTweet with the right baseDir
+  const executors = createExecutors({ workDir: path.join(baseDir, 'agent') });
+
+  let tweet;
+  try {
+    tweet = await executors.generateTweet(topicChoice);
+  } catch (err) {
+    // Let BORING_CONTENT propagate (callers expect this specific error)
+    if (err.message?.startsWith('BORING_CONTENT:')) throw err;
+    return { success: false, reason: `generate_failed: ${err.message}`, draft: null };
+  }
+
+  // Get Twitter client
+  let TwitterApi;
+  try {
+    const mod = await import('twitter-api-v2');
+    TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+  } catch {
+    return { success: false, reason: 'twitter-api-v2 not installed', draft: tweet };
+  }
+
+  const consumerKey = process.env.X_CONSUMER_KEY;
+  const consumerSecret = process.env.X_CONSUMER_SECRET;
+  const accessToken = process.env.X_ACCESS_TOKEN;
+  const accessSecret = process.env.X_ACCESS_SECRET;
+
+  if (!consumerKey || !consumerSecret || !accessToken || !accessSecret) {
+    return { success: false, reason: 'no_credentials', draft: tweet };
+  }
+
+  const userClient = new TwitterApi({
+    appKey: consumerKey,
+    appSecret: consumerSecret,
+    accessToken,
+    accessSecret,
+  });
+
+  try {
+    const { data } = await userClient.v2.tweet(tweet);
+    const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+    logPost(baseDir, topicChoice.topic, tweet, url);
+    return { success: true, url, text: tweet, topic: topicChoice.topic };
+  } catch (err) {
+    return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };
+  }
 }

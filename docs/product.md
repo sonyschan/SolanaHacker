@@ -261,6 +261,60 @@ NFT 二級市場交易 (Magic Eden 等)
 
 ---
 
+## Agent Memeya — 自主 X/Twitter 經營
+
+### 角色定位
+
+**Memeya** 是 AiMemeForge 的品牌化身 — 一位 13 歲的數位鍛造師。她不是一般的社群管理機器人，而是一個具備個性、記憶和成長能力的 AI Agent，自主經營 @AiMemeForgeIO 的 X (Twitter) 帳號。
+
+> **視覺形象**: Pixar 風格藍髮少女，攜帶熔岩鎚，帶有數位故障特效
+> **個性**: 聰明自信、話多幽默、degen 能量、沉迷 meme 文化
+
+### 自主發文系統
+
+Memeya 每 2-4 小時自動發一篇推文（全天候，面向全球用戶），基於 6 種話題類型的加權隨機選擇：
+
+| 話題 | 基礎權重 | 說明 |
+|------|---------|------|
+| meme_spotlight | 30% | 分享/評論今日或歷史梗圖 |
+| personal_vibe | 25% | 2-5 個字的酷酷短句 (如 "chain never sleeps.") |
+| dev_update | 15% | 對近期 git commits 的反應 |
+| crypto_commentary | 15% | 對即時加密貨幣新聞的熱評 (Grok 即時搜尋) |
+| community_call | 15% | 邀請社群參與投票/互動 |
+| community_response | 動態 | 回應粉絲留言 (有留言時才出現，有互動時權重提升至 35%) |
+
+### 品質控制
+
+每篇推文經過雙重 Grok 審核：
+1. **生成**: Grok 根據 Memeya 人設 + 上下文生成推文 (<280 字元)
+2. **審核**: 第二個 Grok 判定是否「無聊/重複」→ 若是則丟棄，Memeya 做個無聊的小動作
+
+### 反重複機制
+
+- 載入最近 15 篇推文，Grok 生成時避免重複主題/措辭
+- 話題層級檢查：若最近 3 篇同主題，強制切換
+- `community_response` 只在有粉絲留言時啟動
+
+### 社群互動循環
+
+Memeya 會自動讀取最近 3 篇推文的留言，分析粉絲情感和想法：
+
+```
+發文 → 粉絲留言 → 下次 context 收集時讀取留言
+  → 分析互動情感 → 寫入日記
+  → 若有 "eureka" 洞見 → 提升 community_response 權重
+  → Memeya 回應社群對話 → 重複循環
+```
+
+### Memeya 如何「學習」
+
+1. **日記累積**: 每次發文和讀取留言都記錄到 `memory/journal/memeya/`，Grok 在生成時看到 Memeya 的演化語氣
+2. **反重複**: 最近 15 篇 + 話題層級檢查自然推動多樣性
+3. **價值觀演化**: `memory/knowledge/memeya_values.md` 可由 H2Crypto 或 agent 更新以引導個性
+4. **社群回饋**: 留言洞見記錄到日記，影響未來話題選擇
+
+---
+
 ## 功能狀態
 
 | 功能 | 狀態 | 說明 |
@@ -272,6 +326,8 @@ NFT 二級市場交易 (Magic Eden 等)
 | Hall of Memes | ✅ 已上線 | 歷史贏家展示 |
 | OG Card 分享 | ✅ 已上線 | Twitter/X 分享預覽卡 |
 | 每日贏家選出 | ✅ 已上線 | Cloud Scheduler 自動化 |
+| Agent Memeya 自主發文 | ✅ 已上線 | 6 種話題 + 品質審核 + 社群互動 |
+| Memeya Dashboard | ✅ 已上線 | 即時監控 + 測試生成 |
 | 每日抽獎 | 🚧 開發中 | 每日加權隨機抽選擁有者 |
 | Ticket 累積策略 | 🚧 開發中 | 參與/不參與 toggle |
 | NFT Claim & 鑄造 | 🚧 開發中 | Metaplex + Arweave |
@@ -315,4 +371,4 @@ NFT 二級市場交易 (Magic Eden 等)
 
 ---
 
-*最後更新: 2026-02-18*
+*最後更新: 2026-02-20*

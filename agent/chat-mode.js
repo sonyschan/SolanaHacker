@@ -42,6 +42,10 @@ export class ChatMode {
     this.lastHeartbeat = 0;
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
 
+    // Autonomous X posting timer (2-4 hours randomized)
+    this.lastXPost = 0;
+    this.xPostInterval = this._randomXInterval();
+
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
     this.maxChatHistory = 50; // Keep last 50 messages (sliding window)
@@ -1770,6 +1774,62 @@ ${recentMemory.slice(-1500)}
 
 
   /**
+   * Random interval for X posting: 2-4 hours in ms
+   */
+  _randomXInterval() {
+    return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+  }
+
+  /**
+   * Autonomous X posting — runs independently on its own 2-4 hour timer.
+   * No active window — Memeya serves global users, not just GMT+8.
+   */
+  async maybePostToX() {
+    const now = Date.now();
+    if (now - this.lastXPost < this.xPostInterval) return; // Not time yet
+
+    this.lastXPost = now;
+    this.xPostInterval = this._randomXInterval(); // Randomize next interval
+
+    console.log('[ChatMode] maybePostToX: attempting autonomous X post...');
+
+    try {
+      const { autoPost } = await import('./skills/x_twitter/index.js');
+      const result = await autoPost({
+        baseDir: this.baseDir,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.success) {
+        console.log(`[ChatMode] X post success: ${result.topic} → ${result.url}`);
+        await this.telegram.sendDevlog(
+          `🐦 <b>Memeya posted to X!</b>\n` +
+          `Topic: <code>${result.topic}</code>\n` +
+          `${result.text}\n` +
+          `<a href="${result.url}">View tweet</a>`
+        );
+      } else {
+        console.log(`[ChatMode] X post skipped: ${result.reason}`);
+        if (result.draft) {
+          await this.telegram.sendDevlog(
+            `🐦 <b>X draft (not posted)</b>\n` +
+            `Reason: ${result.reason}\n` +
+            `Draft: ${result.draft}`
+          );
+        }
+      }
+    } catch (err) {
+      if (err.message?.startsWith('BORING_CONTENT:')) {
+        const boredAction = err.message.split('BORING_CONTENT: ')[1]?.split('\n')[0] || 'Memeya 翻了個白眼';
+        console.log(`[ChatMode] X post boring: ${boredAction}`);
+        await this.telegram.sendDevlog(`🥱 ${boredAction}`);
+      } else {
+        console.error('[ChatMode] maybePostToX error:', err.message);
+      }
+    }
+  }
+
+  /**
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
@@ -1810,6 +1870,9 @@ ${recentMemory.slice(-1500)}
     } else if (action === 'news') {
       await this.doNewsSearch();
     }
+
+    // Autonomous X posting (independent timer, runs every heartbeat check)
+    await this.maybePostToX();
   }
 
   /**

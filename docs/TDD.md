@@ -2,7 +2,7 @@
 
 > 系統架構、API 規格、資料模型、部署配置、實作規劃與開發進度追蹤
 
-*最後更新: 2026-02-18*
+*最後更新: 2026-02-20*
 
 ---
 
@@ -94,7 +94,16 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 ```
 /home/projects/solanahacker/
 ├── agent/                    # Agent 程式碼
-│   └── .env                  # Agent 環境變數 (Grok, Gemini)
+│   ├── .env                  # Agent 環境變數 (Grok, Gemini, X API)
+│   ├── main.js               # Agent 主入口 (heartbeat, mode switching)
+│   ├── chat-mode.js           # Chat mode (heartbeat, news, reflection, X posting)
+│   ├── dashboard-server.js    # Dashboard HTTP server (port 8090)
+│   ├── dashboard.html         # Agent 主 dashboard
+│   ├── memeya-dashboard.html  # Memeya X 經營 dashboard
+│   └── skills/
+│       └── x_twitter/
+│           ├── index.js       # X posting skill (tools + generateTweet + autoPost)
+│           └── x-context.js   # Context gathering + topic rotation
 ├── app/
 │   ├── src/                  # Frontend (React + Vite)
 │   │   ├── components/       # UI 組件
@@ -528,7 +537,183 @@ curl https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today
 
 ---
 
-## 9. 實作規劃
+## 9. Agent Memeya — 自主 X 發文系統
+
+### 9.1 架構總覽
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    chat-mode.js (Heartbeat)                      │
+│                    doHeartbeat() → maybePostToX()                 │
+│                    Timer: 2-4 hours (randomized)                 │
+│                    No active window (global users)               │
+└──────────────────────────────┬────────────────────────────────────┘
+                               │ dynamic import
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    index.js → autoPost()                          │
+│                                                                   │
+│  1. gatherContext()    ←── x-context.js                           │
+│  2. chooseTopic()      ←── weighted random + anti-repetition     │
+│  3. generateTweet()    ←── Grok API (+ web search for crypto)    │
+│  4. boring-check       ←── Grok quality gate                     │
+│  5. tweet via Twitter API                                        │
+│  6. logPost()          ←── diary entry with topic/text/url       │
+└──────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌──────────────┐  ┌────────────────────┐  ┌──────────────────┐
+│ Grok API     │  │ Twitter API v2     │  │ MemeForge API    │
+│ /chat/compl  │  │ POST tweet         │  │ /api/memes/today │
+│ /responses   │  │ GET search/recent  │  │ /hall-of-memes   │
+│ (web search) │  │ (comment fetching) │  │                  │
+└──────────────┘  └────────────────────┘  └──────────────────┘
+```
+
+### 9.2 Context 資料來源
+
+`gatherContext(baseDir)` 並行收集所有資料來源：
+
+| 資料來源 | API/File | 逾時 | Fallback |
+|---------|----------|------|----------|
+| 今日梗圖 | `GET /api/memes/today` | 5s | `[]` |
+| 歷史梗圖 (隨機 1) | `GET /api/memes/hall-of-memes?days=30&limit=30` | 5s | `null` |
+| 近期 commits | `git log --since="12 hours ago"` | 5s | `[]` |
+| Memeya 日記 | `memory/journal/memeya/` (最近 2 天, 2000 chars) | — | `''` |
+| Memeya 價值觀 | `memory/knowledge/memeya_values.md` | — | `''` |
+| 最近 15 篇推文 | `memory/journal/memeya/` (最近 3 天) | — | `[]` |
+| 粉絲留言 | Twitter API v2 `conversation_id` search (最近 3 篇, 各 top 3) | 5s/篇 | `[]` |
+
+留言抓取依賴 `X_BEARER_TOKEN` (需 Basic tier)。Free tier 會收到 403，graceful 降級為空陣列。
+
+### 9.3 話題選擇演算法
+
+```javascript
+BASE_TOPICS = [
+  { id: 'meme_spotlight',    weight: 30 },
+  { id: 'personal_vibe',     weight: 25 },
+  { id: 'dev_update',        weight: 15 },
+  { id: 'crypto_commentary', weight: 15 },
+  { id: 'community_call',    weight: 15 },
+];
+
+// community_response: 動態加入
+// 有留言 → weight 20 (加入 pool)
+// 留言 likes > 3 → weight 35 (eureka boost, 最高優先)
+// 無留言 → 不加入 pool
+```
+
+**Fallback 規則:**
+- `meme_spotlight` 無梗圖 → `personal_vibe`
+- `dev_update` 無 commits → `personal_vibe`
+- `community_response` 無留言 → `personal_vibe`
+
+**反重複:** 最近 3 篇若同話題，強制選不同話題。
+
+### 9.4 推文生成流程
+
+```
+contextInput (string | {topic, prompt})
+        │
+        ▼
+  ┌─────────────────────────────┐
+  │ generateTweet()              │
+  │                              │
+  │ Structured? → 用 prompt 直接 │ (journal/values 已嵌入)
+  │ String?    → 載入 journal +  │ (legacy 相容)
+  │              values 後組裝   │
+  │                              │
+  │ + 載入最近 15 篇 (反重複)    │
+  │                              │
+  │ crypto_commentary?           │
+  │   → Grok /responses + web_search │
+  │ 其他?                        │
+  │   → Grok /chat/completions   │
+  └──────────────┬──────────────┘
+                 │
+                 ▼
+  ┌─────────────────────────────┐
+  │ Boring Check (Grok grok-3-mini) │
+  │                              │
+  │ OK → return tweet            │
+  │ BORING → throw BORING_CONTENT│
+  │   → generate bored action    │
+  │   → Telegram: 🥱 {action}   │
+  └─────────────────────────────┘
+```
+
+### 9.5 社群互動循環
+
+每次 `gatherContext()` 執行時：
+
+1. 從日記讀取最近 3 篇有 URL 的推文
+2. 從 URL 提取 tweet ID
+3. 用 Twitter API v2 search `conversation_id:{tweetId} -from:AiMemeForgeIO` 抓取回覆
+4. 依 likes 排序取 top 3
+5. 寫入 Memeya 日記 (`## HH:MM:SS — Comment Review`)
+6. 加入 context → 影響 `chooseTopic()` 權重
+
+**日記格式:**
+```markdown
+## 14:30:00 — Comment Review
+- On post: "lava hammer never stops forging..."
+  - Reply (5 likes): this is so cool, love the meme forge concept
+  - Reply (2 likes): when new memes dropping?
+```
+
+### 9.6 關鍵檔案
+
+| 檔案 | 用途 |
+|------|------|
+| `agent/skills/x_twitter/x-context.js` | Context 收集 + 話題輪轉 + 留言抓取 + 日記記錄 |
+| `agent/skills/x_twitter/index.js` | X posting skill: tools, generateTweet, autoPost |
+| `agent/chat-mode.js` | Heartbeat → maybePostToX() (2-4hr timer, 無時區限制) |
+| `agent/dashboard-server.js` | `/api/memeya/test-generate` 端點 |
+| `agent/memeya-dashboard.html` | Test Generate UI + context info display |
+| `memory/journal/memeya/*.md` | Memeya 日記 (推文/留言記錄) |
+| `memory/knowledge/memeya_values.md` | Memeya 核心價值觀 |
+
+### 9.7 環境變數 (Agent)
+
+| 變數 | 用途 |
+|------|------|
+| `XAI_API_KEY` | Grok API (推文生成 + 品質審核) |
+| `X_CONSUMER_KEY` | Twitter OAuth 1.0a App Key |
+| `X_CONSUMER_SECRET` | Twitter OAuth 1.0a App Secret |
+| `X_ACCESS_TOKEN` | Twitter User Access Token (發推) |
+| `X_ACCESS_SECRET` | Twitter User Access Secret |
+| `X_BEARER_TOKEN` | Twitter App Bearer Token (搜尋/留言讀取) |
+
+### 9.8 Dashboard 端點
+
+| 端點 | 方法 | 說明 |
+|------|------|------|
+| `/api/memeya/prompt` | GET | 查看組裝的 system + user prompt |
+| `/api/memeya/journals` | GET | 最近 3 天 Memeya 日記 |
+| `/api/memeya/values` | GET | Memeya 價值觀內容 |
+| `/api/memeya/activity` | GET | 今日活動時間軸 |
+| `/api/memeya/test-generate` | POST | 完整 pipeline 測試 (不實際發推) |
+| `/api/memeya/analyze` | POST | Grok 策略分析 |
+
+---
+
+## 10. 實作規劃
+
+### Agent Memeya
+
+- [x] X posting skill (`x_post`, `x_search`, `x_read_mentions`)
+- [x] Memeya 人設 system prompt (MEMEYA_PROMPT)
+- [x] Grok 生成推文 + boring-check 品質審核
+- [x] 最近 15 篇推文反重複
+- [x] Context 收集: 梗圖 API + git commits + journal + values
+- [x] 6 種話題加權隨機選擇 (含 community_response)
+- [x] 自主發文 heartbeat (2-4hr, 全天候)
+- [x] `crypto_commentary` 用 Grok web search 即時新聞
+- [x] 粉絲留言抓取 (Twitter API v2 conversation_id search)
+- [x] 留言洞見寫入日記 + eureka boost 話題權重
+- [x] Memeya Dashboard (prompt 查看 + test-generate + 策略分析)
+- [x] `personal_vibe` 2-5 字酷酷短句
+- [ ] Phase 2: 發文後 30 分鐘檢查互動指標，記錄到日記 → Grok 學習哪些話題有效
 
 ### Phase 1: 每日抽獎 (Daily Lottery)
 
@@ -618,7 +803,7 @@ async runDailyLottery() {
 
 ---
 
-## 10. 開發進度 Roadmap
+## 11. 開發進度 Roadmap
 
 ### 基礎設施
 
@@ -718,4 +903,4 @@ async runDailyLottery() {
 
 ---
 
-*最後更新: 2026-02-18*
+*最後更新: 2026-02-20*
