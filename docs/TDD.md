@@ -903,7 +903,7 @@ async runDailyLottery() {
 - [x] `nftWins` 陣列更新 user document
 - [x] lottery_draw Cloud Scheduler job 建立 (每日 23:55 UTC)
 - [x] Frontend: opt-in/opt-out toggle
-- [ ] Frontend: 「My Wins」Dashboard 區域 (中獎紀錄 + Claim 入口)
+- [x] Frontend: 「My Wins」Dashboard 區域 (中獎紀錄 + Claim 入口)
 - [x] Frontend: Gallery 贏家 Owner badge
 - [x] 邊界處理: 0 參與者、1 參與者、0 投票
 
