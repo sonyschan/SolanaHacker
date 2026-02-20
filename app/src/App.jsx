@@ -14,6 +14,7 @@ function App() {
   const [userTickets, setUserTickets] = useState(0);
   const [votingStreak, setVotingStreak] = useState(0);
   const [lotteryOptIn, setLotteryOptIn] = useState(true);
+  const [nftWins, setNftWins] = useState([]);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
   // Fetch user data from API when wallet connects - v2 fix
@@ -38,10 +39,12 @@ function App() {
           setUserTickets(data.user.weeklyTickets || 0);
           setVotingStreak(data.user.streakDays || 0);
           setLotteryOptIn(data.user.lotteryOptIn !== false);
+          setNftWins(data.user.nftWins || []);
           console.log("✅ 用戶數據:", {
             tickets: data.user.weeklyTickets,
             streak: data.user.streakDays,
-            lotteryOptIn: data.user.lotteryOptIn
+            lotteryOptIn: data.user.lotteryOptIn,
+            nftWins: (data.user.nftWins || []).length
           });
         }
       } catch (error) {
@@ -110,6 +113,7 @@ function App() {
             votingStreak={votingStreak}
             lotteryOptIn={lotteryOptIn}
             setLotteryOptIn={setLotteryOptIn}
+            nftWins={nftWins}
             onDisconnectWallet={disconnectWallet}
             setUserTickets={setUserTickets}
             setVotingStreak={setVotingStreak}
