@@ -41,6 +41,7 @@ export class ChatMode {
     this.sleepToday = false;
     this.lastHeartbeat = 0;
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
+    this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
     // Autonomous X posting timer (2-4 hours randomized)
     this.lastXPost = 0;
@@ -1917,29 +1918,44 @@ ${recentMemory}
   }
 
   /**
-   * Search latest news
+   * Search latest news (cooldown: 4 hours between searches)
    */
   async doNewsSearch() {
+    // Skip if news was sent within the last 4 hours
+    const FOUR_HOURS = 4 * 60 * 60 * 1000;
+    if (this.lastNewsSentAt && Date.now() - this.lastNewsSentAt < FOUR_HOURS) {
+      console.log('[ChatMode] News cooldown active, skipping (last sent ' +
+        Math.round((Date.now() - this.lastNewsSentAt) / 60000) + 'm ago)');
+      return null;
+    }
+
     console.log('[ChatMode] Searching latest news...');
 
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      const prompt = `現在是 ${today}。請搜尋今天 Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的、有 meme 潛力的。
+      const prompt = `現在是 ${today}。請搜尋「過去 4 小時內」Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的、有 meme 潛力的。
 
-重要：只要 2026 年的新聞，不要舊新聞！
+重要：只要最近 4 小時內的新聞，不要更早的！
 
-用中文簡短分享，包含日期和來源。`;
+用中文簡短分享，包含日期和來源。如果過去 4 小時確實沒有重大新聞，請說「過去 4 小時暫無重大新聞」。`;
       // Use search-enabled Grok for real-time news
       const news = await this.callGrokWithSearch(prompt, 400);
 
       // Handle empty or invalid response
       if (!news || news.trim() === '' || news === '{}' || news === '[]') {
-        await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n最近 1 小時暫無重大新聞，稍後再看看！`);
+        console.log('[ChatMode] News search returned empty, skipping TG message');
+        return null;
+      }
+
+      // If Grok says no news, don't send to TG
+      if (news.includes('暫無重大新聞') || news.includes('沒有重大新聞')) {
+        console.log('[ChatMode] No significant news found, skipping TG message');
         return null;
       }
 
       await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n${news}`);
+      this.lastNewsSentAt = Date.now();
 
       // Save to memory
       this.saveToJournal('news', news);
@@ -1947,7 +1963,6 @@ ${recentMemory}
       return news;
     } catch (err) {
       console.error('[ChatMode] News search error:', err.message);
-      await this.telegram.sendDevlog(`📰 <b>新聞搜尋</b>\n\n搜尋時發生錯誤，稍後再試。`);
       return null;
     }
   }
