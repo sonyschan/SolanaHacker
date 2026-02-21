@@ -423,7 +423,7 @@ export class ChatMode {
     if (Array.isArray(content)) {
       // Extract text from content blocks
       return content
-        .filter(block => block.type === 'text' || typeof block === 'string')
+        .filter(block => block.type === 'text' || block.type === 'output_text' || typeof block === 'string')
         .map(block => typeof block === 'string' ? block : block.text)
         .join('\n');
     }
@@ -1925,11 +1925,11 @@ ${recentMemory}
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      const prompt = `現在是 ${today}。請搜尋「過去 1 小時內」Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的。
+      const prompt = `現在是 ${today}。請搜尋今天 Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的、有 meme 潛力的。
 
-重要：只要 2026 年 2 月的新聞，不要舊新聞！
+重要：只要 2026 年的新聞，不要舊新聞！
 
-用中文簡短分享，包含日期。如果過去 1 小時沒有新聞，請說「最近 1 小時暫無重大新聞」。`;
+用中文簡短分享，包含日期和來源。`;
       // Use search-enabled Grok for real-time news
       const news = await this.callGrokWithSearch(prompt, 400);
 
