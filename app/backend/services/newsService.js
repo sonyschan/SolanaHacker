@@ -25,7 +25,7 @@ class NewsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'grok-beta',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             {
               role: 'user',
@@ -121,7 +121,7 @@ class NewsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'grok-beta',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.8,
           max_tokens: 800
@@ -151,7 +151,7 @@ class NewsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'grok-beta',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [{ role: 'user', content: 'Hello' }],
           max_tokens: 10
         })
