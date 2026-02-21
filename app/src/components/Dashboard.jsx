@@ -537,6 +537,17 @@ const Dashboard = ({
               <span className="text-sm font-bold">?</span>
             </button>
 
+            {/* Memeya X link */}
+            <a
+              href="https://x.com/AiMemeForgeIO"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_rgba(34,211,238,0.2)] transition-all duration-200 flex-shrink-0"
+              title="@AiMemeForgeIO on X"
+            >
+              <img src="/images/memeya-avatar.png" alt="Memeya" className="w-full h-full object-cover" />
+            </a>
+
             {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
             <div className="flex items-center space-x-2 md:space-x-6">
               <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
