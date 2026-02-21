@@ -148,7 +148,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
           <div className="flex flex-wrap gap-1 mb-2">
             {meme.metadata?.imageGenerated && (
               <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
-                Gemini Model
+                Gemini
               </span>
             )}
             {meme.style && (
