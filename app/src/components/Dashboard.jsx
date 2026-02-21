@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
@@ -17,11 +18,22 @@ const Dashboard = ({
   setVotingStreak,
   walletAddress
 }) => {
+  const { disconnect, publicKey, wallet } = useWallet();
   const [activeTab, setActiveTab] = useState('forge');
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [winMemes, setWinMemes] = useState({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close hamburger menu on ESC
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleEsc = (e) => { if (e.key === 'Escape') setIsMenuOpen(false); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isMenuOpen]);
 
   // Fetch meme details for wins
   useEffect(() => {
@@ -528,20 +540,33 @@ const Dashboard = ({
               </div>
             </button>
 
-            {/* How It Works icon */}
+            {/* How It Works icon - hidden on mobile, in hamburger menu */}
             <button
               onClick={() => setShowHowItWorks(true)}
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200 ml-2"
+              className="hidden md:flex w-9 h-9 rounded-full bg-white/10 border border-white/20 items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200 ml-2"
               title="How It Works"
             >
               <span className="text-sm font-bold">?</span>
             </button>
 
-            {/* Memeya X link */}
+            {/* Memeya X link - deep links to X app on mobile */}
             <a
               href="https://x.com/AiMemeForgeIO"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (!isMobile) return; // desktop: normal link behavior
+                e.preventDefault();
+                const webUrl = 'https://x.com/AiMemeForgeIO';
+                const appUrl = 'twitter://user?screen_name=AiMemeForgeIO';
+                const start = Date.now();
+                window.location.href = appUrl;
+                setTimeout(() => {
+                  // If still here after 1.5s, app didn't open — fall back to web
+                  if (Date.now() - start < 2000) window.open(webUrl, '_blank');
+                }, 1500);
+              }}
               className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_rgba(34,211,238,0.2)] transition-all duration-200 flex-shrink-0"
               title="@AiMemeForgeIO on X"
             >
@@ -549,7 +574,7 @@ const Dashboard = ({
             </a>
 
             {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
-            <div className="flex items-center space-x-2 md:space-x-6">
+            <div className="hidden md:flex items-center space-x-2 md:space-x-6">
               <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                 <div className="text-center">
                   <div className="text-sm text-gray-400">Tickets</div>
@@ -589,8 +614,108 @@ const Dashboard = ({
 
               <WalletConnection variant="secondary" showAddress={true} />
             </div>
+
+            {/* Hamburger menu button - mobile only */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200"
+              aria-label="Menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile hamburger menu dropdown */}
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsMenuOpen(false)} />
+            {/* Menu panel */}
+            <div
+              ref={menuRef}
+              className="absolute left-0 right-0 z-50 md:hidden bg-gray-900/95 backdrop-blur-md border-b border-white/10 shadow-2xl animate-slide-down"
+            >
+              <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
+                {/* Wallet address */}
+                {walletAddress && (
+                  <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-cyan-300 font-mono text-sm">
+                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                    </span>
+                    {wallet && (
+                      <img src={wallet.adapter.icon} alt={wallet.adapter.name} className="w-5 h-5 rounded" />
+                    )}
+                  </div>
+                )}
+
+                {/* How It Works */}
+                <button
+                  onClick={() => { setShowHowItWorks(true); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">?</span>
+                  <span className="text-sm font-medium">How It Works</span>
+                </button>
+
+                {/* Vote on Colosseum */}
+                <a
+                  href="https://www.colosseum.org/projects/explore/ai-memeforge"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">🏛️</span>
+                  <span className="text-sm font-medium">Vote on Colosseum</span>
+                  <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+
+                {/* GitHub */}
+                <a
+                  href="https://github.com/sonyschan/SolanaHacker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
+                  </span>
+                  <span className="text-sm font-medium">GitHub</span>
+                  <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+
+                {/* Divider */}
+                <div className="border-t border-white/10 my-1" />
+
+                {/* Disconnect */}
+                <button
+                  onClick={() => { disconnect(); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium">Disconnect</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </header>
 
       {/* Enhanced Tab Navigation - Mobile Responsive */}
