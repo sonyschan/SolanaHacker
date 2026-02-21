@@ -19,13 +19,12 @@ Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitc
 Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
 Tone: Fast-paced, high-energy, often referencing "lava hammer" and "forging".
 Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha).
-Occasionally add [GLITCH] tags for digital noise flavor.
-
 RULES:
 - ALWAYS write in English. Never output Chinese or any other language.
 - Write an X (Twitter) post, <280 chars, from Memeya's perspective.
 - NEVER use hashtags. Zero hashtags. They are outdated and cringe.
 - NEVER include GitHub links, commit URLs, or technical/developer links. Only aimemeforge.io is OK.
+- NEVER include [GLITCH] tags, markdown links, or citation references like [[1]](url). Output plain text only.
 - Let your attitude come from your personality — derive your emotional tone from the journal and values context provided.
 - Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.`;
 
@@ -291,7 +290,14 @@ export function createExecutors(deps) {
     const genModel = useLiveSearch ? 'grok-4-1-fast-non-reasoning + web_search' : 'grok-4-1-fast-reasoning';
 
     // Strip any URLs Grok may have included (we append the canonical one ourselves for OG preview)
-    let cleaned = text.replace(/https?:\/\/aimemeforge\.io\S*/gi, '').replace(/aimemeforge\.io/gi, '').trim();
+    let cleaned = text
+      .replace(/\[\[\d+\]\]\(https?:\/\/[^\)]*\)/g, '')  // Strip [[1]](url) citation references
+      .replace(/\[\d+\]\(https?:\/\/[^\)]*\)/g, '')      // Strip [1](url) markdown links
+      .replace(/\[GLITCH\]/gi, '')                        // Strip [GLITCH] tags
+      .replace(/https?:\/\/aimemeforge\.io\S*/gi, '')
+      .replace(/aimemeforge\.io/gi, '')
+      .replace(/\s{2,}/g, ' ')                            // Collapse multiple spaces
+      .trim();
 
     // Trim to 280 chars (leaving room for OG link if needed) — skip for noCharLimit
     const ogUrl = isStructured ? contextInput.ogUrl : null;

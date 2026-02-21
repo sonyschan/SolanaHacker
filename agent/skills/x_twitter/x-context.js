@@ -348,12 +348,17 @@ function buildPrompt(topic, context) {
       let ogUrl = `${SITE_URL}`;
       if (todayMemes.length > 0) {
         const meme = todayMemes[Math.floor(Math.random() * todayMemes.length)];
-        memeInfo = `Today's meme: "${meme.topText || ''} ${meme.bottomText || ''}".`;
+        const memeTitle = meme.title || meme.topText || 'Untitled';
+        const memeDesc = meme.description || meme.bottomText || '';
+        memeInfo = `Today's meme: "${memeTitle}". ${memeDesc}`;
+        if (meme.newsSource) memeInfo += ` News angle: ${meme.newsSource}.`;
+        if (meme.style) memeInfo += ` Art style: ${meme.style}.`;
         if (meme.imageUrl) memeInfo += ` Image: ${meme.imageUrl}`;
-        if (meme.voteCount) memeInfo += ` (${meme.voteCount} votes)`;
         if (meme.id) ogUrl = `${SITE_URL}/meme/${meme.id}`;
       } else if (randomPastMeme) {
-        memeInfo = `Throwback meme: "${randomPastMeme.topText || ''} ${randomPastMeme.bottomText || ''}".`;
+        const pastTitle = randomPastMeme.title || randomPastMeme.topText || 'Untitled';
+        const pastDesc = randomPastMeme.description || randomPastMeme.bottomText || '';
+        memeInfo = `Throwback meme: "${pastTitle}". ${pastDesc}`;
         if (randomPastMeme.imageUrl) memeInfo += ` Image: ${randomPastMeme.imageUrl}`;
         if (randomPastMeme.id) ogUrl = `${SITE_URL}/meme/${randomPastMeme.id}`;
       }
