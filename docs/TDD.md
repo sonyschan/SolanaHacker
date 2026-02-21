@@ -82,7 +82,7 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 | Backend | Node.js + Express | API 服務，Cloud Run 部署 |
 | Database | Firebase/Firestore | 即時資料庫 |
 | Storage | Google Cloud Storage | 梗圖圖片 (Uniform Bucket-Level Access) |
-| AI | Gemini 3 Pro Image | 梗圖生成 |
+| AI | Gemini 3 Pro Image | 梗圖生成 (目前主要模型，未來支援 Grok/ChatGPT 多模型) |
 | AI | Grok API (xAI) | 新聞分析 |
 | Scheduler | GCP Cloud Scheduler | 外部 cron 排程 |
 | CDN | Vercel Edge | 前端快速分發 |
@@ -286,7 +286,7 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
   tags: ['solana', 'price', 'moon'],
   style: 'Classic Oil Painting',
   votes: { selection: { yes: 42, no: 10 } },
-  metadata: { imageGenerated: true, model: 'gemini-3-pro' },
+  metadata: { imageGenerated: true, aiModel: 'gemini-3-pro-image-preview' },  // UI 顯示為 "Gemini Model"
   nftOwner: {                  // lottery_draw 設定
     walletAddress: 'ABC123...xyz',
     selectedAt: '2026-02-19T00:00:00Z',
@@ -851,9 +851,10 @@ async runDailyLottery() {
 
 ### AI 梗圖生成
 
-- [x] Gemini 3 Pro Image 整合
+- [x] Gemini 3 Pro Image 整合 (標記為 "Gemini Model")
 - [x] Grok API 新聞分析
 - [x] 每日自動生成 3 張梗圖
+- [ ] 多模型支援 (Grok Image, ChatGPT/DALL-E) — 每張梗圖標記生成模型
 - [x] GCS 圖片上傳 (修復 Uniform Access 衝突)
 - [x] 梗圖品質篩選 (幽默度、病毒潛力)
 - [x] 內容來源: Twitter/X, CoinDesk, Reddit

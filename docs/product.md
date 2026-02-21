@@ -52,8 +52,9 @@
 
 - **內容來源**: Twitter/X 趨勢、CoinDesk 新聞、Reddit r/CryptoCurrency
 - **AI 分析**: Grok API 分析新聞情緒和關鍵詞
-- **圖像生成**: Gemini 將分析結果轉化為梗圖
+- **圖像生成**: 目前使用 Gemini 3 Pro Image，未來支援多模型 (Grok, ChatGPT 等)
 - **品質篩選**: 幽默度和病毒傳播潛力
+- **模型標籤**: 每張梗圖標記生成模型 (如 "Gemini Model")，方便用戶識別來源
 
 生成後梗圖立即上架投票。
 
