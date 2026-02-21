@@ -305,7 +305,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     <div className="flex flex-wrap gap-1 mb-2">
                       {meme.metadata?.imageGenerated && (
                         <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
-                          Gemini
+                          {meme.metadata?.aiModel?.includes('grok') ? 'Grok' : 'Gemini'}
                         </span>
                       )}
                       {meme.style && (
@@ -416,7 +416,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   <div className="flex flex-wrap justify-center gap-1 mt-3">
                     {selectedMeme.metadata?.imageGenerated && (
                       <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
-                        AI Generated
+                        {selectedMeme.metadata?.aiModel?.includes('grok') ? 'Grok' : 'Gemini'}
                       </span>
                     )}
                     {selectedMeme.style && (

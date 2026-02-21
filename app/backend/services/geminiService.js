@@ -312,7 +312,7 @@ Technical requirements:
     }
   }
 
-  async generateDailyMemes(newsData, count = 3) {
+  async generateDailyMemes(newsData, count = 3, imageGenerators = null) {
     try {
       const memes = [];
 
@@ -325,7 +325,16 @@ Technical requirements:
         const style = todaysStyles[i];
 
         const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem);
-        const imageData = await this.generateMemeImage(memePrompt, style);
+
+        // Use external image generator if provided, otherwise default to Gemini
+        let imageData;
+        let aiModelName = 'gemini-3-pro-image-preview';
+        if (imageGenerators && imageGenerators[i]) {
+          imageData = await imageGenerators[i].service.generateMemeImage(memePrompt, style);
+          aiModelName = imageGenerators[i].modelName;
+        } else {
+          imageData = await this.generateMemeImage(memePrompt, style);
+        }
 
         // Generate title, description, and tags
         const title = await this.generateMemeTitle(memePrompt);
@@ -350,7 +359,7 @@ Technical requirements:
           },
           metadata: {
             originalNews: newsItem.title || newsItem,
-            aiModel: 'gemini-3-pro-image-preview',
+            aiModel: aiModelName,
             artStyle: style,
             imageGenerated: imageData.success,
             fileSize: imageData.fileSize || 0,

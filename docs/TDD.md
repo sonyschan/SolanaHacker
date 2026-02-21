@@ -82,7 +82,9 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 | Backend | Node.js + Express | API 服務，Cloud Run 部署 |
 | Database | Firebase/Firestore | 即時資料庫 |
 | Storage | Google Cloud Storage | 梗圖圖片 (Uniform Bucket-Level Access) |
-| AI | Gemini 3 Pro Image | 梗圖生成 (目前主要模型，未來支援 Grok/ChatGPT 多模型) |
+| AI | Gemini 3 Pro Image | 梗圖圖片生成 (多模型之一) |
+| AI | Grok Imagine Image Pro | 梗圖圖片生成 (多模型之一, xAI API) |
+| AI | Gemini 2.5 Flash | 梗圖文字生成 (prompt, title, tags, description) |
 | AI | Grok API (xAI) | 新聞分析 |
 | Scheduler | GCP Cloud Scheduler | 外部 cron 排程 |
 | CDN | Vercel Edge | 前端快速分發 |
@@ -142,7 +144,8 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 |------|------|
 | `backend/server.js` | Express 主入口、路由註冊 |
 | `backend/services/schedulerService.js` | 排程任務核心邏輯 (end_voting, daily_cycle, lottery) |
-| `backend/controllers/memeController.js` | 梗圖 CRUD (getTodaysMemes, generateDailyMemes) |
+| `backend/controllers/memeController.js` | 梗圖 CRUD (getTodaysMemes, generateDailyMemes, 多模型隨機選擇) |
+| `backend/services/grokImageService.js` | Grok 圖片生成 (xAI Images API, b64_json → GCS) |
 | `backend/routes/scheduler.js` | 排程 API 路由 (/api/scheduler/trigger/*) |
 | `backend/routes/og.js` | OG Card 動態圖片生成 |
 | `backend/routes/voting.js` | 投票 API 路由 |
@@ -286,7 +289,7 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
   tags: ['solana', 'price', 'moon'],
   style: 'Classic Oil Painting',
   votes: { selection: { yes: 42, no: 10 } },
-  metadata: { imageGenerated: true, aiModel: 'gemini-3-pro-image-preview' },  // UI 顯示為 "Gemini Model"
+  metadata: { imageGenerated: true, aiModel: 'gemini-3-pro-image-preview' | 'grok-imagine-image-pro' },  // UI 動態顯示 "Gemini" 或 "Grok"
   nftOwner: {                  // lottery_draw 設定
     walletAddress: 'ABC123...xyz',
     selectedAt: '2026-02-19T00:00:00Z',
@@ -470,7 +473,7 @@ const corsOptions = {
 ```bash
 NODE_ENV=production
 GEMINI_API_KEY=<gemini-api-key>
-XAI_API_KEY=<xai-api-key>
+XAI_API_KEY=<xai-api-key>            # Grok image generation + news analysis
 FIREBASE_PROJECT_ID=web3ai-469609
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@web3ai-469609.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY=<firebase-private-key-pem-format>
@@ -851,10 +854,12 @@ async runDailyLottery() {
 
 ### AI 梗圖生成
 
-- [x] Gemini 3 Pro Image 整合 (標記為 "Gemini Model")
+- [x] Gemini 3 Pro Image 整合
+- [x] Grok Imagine Image Pro 整合 (xAI Images API)
+- [x] 多模型隨機選擇 — 每張梗圖隨機分配 Gemini 或 Grok，metadata.aiModel 標記
 - [x] Grok API 新聞分析
 - [x] 每日自動生成 3 張梗圖
-- [ ] 多模型支援 (Grok Image, ChatGPT/DALL-E) — 每張梗圖標記生成模型
+- [ ] 更多模型支援 (ChatGPT/DALL-E)
 - [x] GCS 圖片上傳 (修復 Uniform Access 衝突)
 - [x] 梗圖品質篩選 (幽默度、病毒潛力)
 - [x] 內容來源: Twitter/X, CoinDesk, Reddit

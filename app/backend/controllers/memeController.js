@@ -1,8 +1,15 @@
 const { v4: uuidv4 } = require('uuid');
 const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const geminiService = require('../services/geminiService');
+const grokImageService = require('../services/grokImageService');
 const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
+
+// Multi-model image generation pool
+const AI_IMAGE_MODELS = [
+  { service: geminiService, modelName: 'gemini-3-pro-image-preview' },
+  { service: grokImageService, modelName: 'grok-imagine-image-pro' },
+];
 
 // Helper to convert relative imageUrl to absolute
 const BASE_URL = process.env.NODE_ENV === 'production'
@@ -102,9 +109,15 @@ async function generateDailyMemes(req, res) {
     
     // Get crypto news
     const newsData = await newsService.getCryptoNews();
-    
-    // Generate 3 memes based on news
-    const dailyMemes = await geminiService.generateDailyMemes(newsData, 3);
+
+    // Random model selection per meme
+    const imageGenerators = Array.from({ length: 3 }, () =>
+      AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)]
+    );
+    console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
+
+    // Generate 3 memes based on news (with random image model per meme)
+    const dailyMemes = await geminiService.generateDailyMemes(newsData, 3, imageGenerators);
     
     // Save each meme to Firestore
     const savedMemes = [];
