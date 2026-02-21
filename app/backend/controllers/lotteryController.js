@@ -52,11 +52,14 @@ async function runDailyLottery() {
   const today = getTodayId();
   console.log(`🎰 Running daily lottery for ${today}...`);
 
-  // 1. Idempotency — skip if draw already exists
+  // 1. Idempotency — skip only if draw was actually completed
   const existing = await dbUtils.getDocument(collections.LOTTERY_DRAWS, today);
-  if (existing) {
+  if (existing && existing.status === 'completed') {
     console.log(`⏭️ Draw already completed for ${today}`);
     return { skipped: true, drawId: today, reason: 'already_completed' };
+  }
+  if (existing) {
+    console.log(`🔄 Previous incomplete draw found (${existing.status}), retrying...`);
   }
 
   // 2. Find today's winning meme
