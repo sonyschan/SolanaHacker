@@ -640,7 +640,7 @@ const Dashboard = ({
             {/* Menu panel */}
             <div
               ref={menuRef}
-              className="absolute left-0 right-0 z-50 md:hidden bg-gray-900/95 backdrop-blur-md border-b border-white/10 shadow-2xl animate-slide-down"
+              className="absolute left-0 right-0 z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
             >
               <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
                 {/* Wallet address */}
