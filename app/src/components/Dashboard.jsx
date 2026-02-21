@@ -632,91 +632,92 @@ const Dashboard = ({
           </div>
         </div>
 
-        {/* Mobile hamburger menu dropdown */}
-        {isMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsMenuOpen(false)} />
-            {/* Menu panel */}
-            <div
-              ref={menuRef}
-              className="absolute left-0 right-0 z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
-            >
-              <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-                {/* Wallet address */}
-                {walletAddress && (
-                  <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-cyan-300 font-mono text-sm">
-                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                    </span>
-                    {wallet && (
-                      <img src={wallet.adapter.icon} alt={wallet.adapter.name} className="w-5 h-5 rounded" />
-                    )}
-                  </div>
-                )}
-
-                {/* How It Works */}
-                <button
-                  onClick={() => { setShowHowItWorks(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">?</span>
-                  <span className="text-sm font-medium">How It Works</span>
-                </button>
-
-                {/* Vote on Colosseum */}
-                <a
-                  href="https://www.colosseum.org/projects/explore/ai-memeforge"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">🏛️</span>
-                  <span className="text-sm font-medium">Vote on Colosseum</span>
-                  <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-
-                {/* GitHub */}
-                <a
-                  href="https://github.com/sonyschan/SolanaHacker"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
-                  </span>
-                  <span className="text-sm font-medium">GitHub</span>
-                  <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-
-                {/* Divider */}
-                <div className="border-t border-white/10 my-1" />
-
-                {/* Disconnect */}
-                <button
-                  onClick={() => { disconnect(); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                  </span>
-                  <span className="text-sm font-medium">Disconnect</span>
-                </button>
-              </div>
-            </div>
-          </>
-        )}
       </header>
+
+      {/* Mobile hamburger menu — rendered outside header to avoid z-index stacking */}
+      {isMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsMenuOpen(false)} />
+          {/* Menu panel */}
+          <div
+            ref={menuRef}
+            className="fixed left-0 right-0 top-[57px] z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
+              {/* Wallet address */}
+              {walletAddress && (
+                <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-cyan-300 font-mono text-sm">
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                  </span>
+                  {wallet && (
+                    <img src={wallet.adapter.icon} alt={wallet.adapter.name} className="w-5 h-5 rounded" />
+                  )}
+                </div>
+              )}
+
+              {/* How It Works */}
+              <button
+                onClick={() => { setShowHowItWorks(true); setIsMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">?</span>
+                <span className="text-sm font-medium">How It Works</span>
+              </button>
+
+              {/* Vote on Colosseum */}
+              <a
+                href="https://www.colosseum.org/projects/explore/ai-memeforge"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">🏛️</span>
+                <span className="text-sm font-medium">Vote on Colosseum</span>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+
+              {/* GitHub */}
+              <a
+                href="https://github.com/sonyschan/SolanaHacker"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
+                </span>
+                <span className="text-sm font-medium">GitHub</span>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+
+              {/* Divider */}
+              <div className="border-t border-white/10 my-1" />
+
+              {/* Disconnect */}
+              <button
+                onClick={() => { disconnect(); setIsMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+              >
+                <span className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </span>
+                <span className="text-sm font-medium">Disconnect</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Enhanced Tab Navigation - Mobile Responsive */}
       <nav className="relative z-10 backdrop-blur-sm border-b border-white/10">
