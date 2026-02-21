@@ -130,7 +130,7 @@ const Dashboard = ({
         </p>
 
         {/* Ticket Earning Breakdown */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-xl mx-auto">
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-cyan-400">Base Roll</h4>
             <div className="text-2xl font-bold mb-2">1-10</div>
@@ -141,32 +141,77 @@ const Dashboard = ({
             <div className="text-2xl font-bold mb-2">+{Math.min(votingStreak, 10)}</div>
             <p className="text-sm text-gray-400">{votingStreak} day{votingStreak !== 1 ? 's' : ''} consecutive (max +10)</p>
           </div>
-          <div className="bg-white/5 rounded-xl p-6">
-            <h4 className="font-bold mb-2 text-purple-400">Lottery Status</h4>
+        </div>
+
+        {/* Lottery Strategy - Side by side cards */}
+        <div className="mb-8 max-w-2xl mx-auto">
+          <h4 className="font-bold text-lg mb-4 text-purple-400">Lottery Strategy</h4>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Enter Tonight */}
             <button
               onClick={async () => {
-                const newOptIn = !lotteryOptIn;
+                if (lotteryOptIn) return;
                 try {
                   const resp = await fetch(`${API_BASE_URL}/api/lottery/toggle-opt-in`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ walletAddress, optIn: newOptIn })
+                    body: JSON.stringify({ walletAddress, optIn: true })
                   });
                   const data = await resp.json();
-                  if (data.success) setLotteryOptIn(newOptIn);
+                  if (data.success) setLotteryOptIn(true);
                 } catch (e) { console.error('Toggle failed:', e); }
               }}
-              className={`text-lg font-bold mb-2 px-4 py-1 rounded-lg transition-all ${
+              className={`relative rounded-xl p-5 text-left transition-all duration-300 ${
                 lotteryOptIn
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                  ? 'bg-green-500/10 border-2 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.15)]'
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 cursor-pointer'
               }`}
             >
-              {lotteryOptIn ? 'Participating' : 'Accumulating'}
+              {lotteryOptIn && <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-green-400 animate-pulse" />}
+              <div className="text-2xl mb-2">🎰</div>
+              <div className={`font-bold text-lg mb-1 ${lotteryOptIn ? 'text-green-400' : 'text-gray-300'}`}>Enter Tonight</div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Use all your tickets in tonight's draw. Win = you own the meme. Tickets reset to 0 after draw.
+              </p>
             </button>
-            <p className="text-sm text-gray-400 mt-1">
-              {lotteryOptIn ? 'Tickets reset after draw' : 'Saving tickets'}
-            </p>
+            {/* Save Tickets */}
+            <button
+              onClick={async () => {
+                if (!lotteryOptIn) return;
+                try {
+                  const resp = await fetch(`${API_BASE_URL}/api/lottery/toggle-opt-in`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ walletAddress, optIn: false })
+                  });
+                  const data = await resp.json();
+                  if (data.success) setLotteryOptIn(false);
+                } catch (e) { console.error('Toggle failed:', e); }
+              }}
+              className={`relative rounded-xl p-5 text-left transition-all duration-300 ${
+                !lotteryOptIn
+                  ? 'bg-orange-500/10 border-2 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.15)]'
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 cursor-pointer'
+              }`}
+            >
+              {!lotteryOptIn && <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-orange-400 animate-pulse" />}
+              <div className="text-2xl mb-2">🧠</div>
+              <div className={`font-bold text-lg mb-1 ${!lotteryOptIn ? 'text-orange-400' : 'text-gray-300'}`}>Save Tickets</div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Carry tickets over each day. Enter later with better odds when you see a meme you love.
+              </p>
+            </button>
+          </div>
+          {/* Status message */}
+          <div className={`mt-4 text-sm font-medium text-center py-2 rounded-lg ${
+            lotteryOptIn
+              ? 'text-green-400 bg-green-500/10'
+              : 'text-orange-400 bg-orange-500/10'
+          }`}>
+            {lotteryOptIn
+              ? `${userTickets} ticket${userTickets !== 1 ? 's' : ''} entering tonight's draw`
+              : `Saving ${userTickets} ticket${userTickets !== 1 ? 's' : ''} for a future draw`
+            }
           </div>
         </div>
 
@@ -177,17 +222,6 @@ const Dashboard = ({
             alt="Streak Bonus System: Base 1-10 tickets + streak bonus up to +10. Vote daily to earn more. Miss a day and streak resets to Day 1."
             className="w-full max-w-3xl mx-auto rounded-xl border border-white/10"
           />
-        </div>
-
-        {/* Strategy Tip */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left max-w-2xl mx-auto">
-          <h4 className="font-bold text-lg mb-2">Strategy Tip</h4>
-          <p className="text-sm text-gray-400">
-            <span className="text-green-400 font-medium">Participating:</span> Your tickets enter today's draw — if you win, you own the meme. Tickets reset to 0 after the draw.
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            <span className="text-orange-400 font-medium">Accumulating:</span> Your tickets carry over each day. Enter later with better odds when you see a meme you love.
-          </p>
         </div>
 
       </div>
