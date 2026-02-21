@@ -317,7 +317,8 @@ export function createExecutors(deps) {
     const memeAlreadyPosted = isMemeSpotlight && ogUrl
       ? recentPosts.some(p => typeof p === 'string' ? p.includes(ogUrl) : false)
       : false;
-    const skipBoringCheck = isMemeSpotlight && ogUrl && !memeAlreadyPosted;
+    const isCommentaryReply = isStructured && contextInput.topic === 'x_commentary_reply';
+    const skipBoringCheck = (isMemeSpotlight && ogUrl && !memeAlreadyPosted) || isCommentaryReply;
 
     if (skipBoringCheck) {
       if (detailed) {
@@ -565,7 +566,41 @@ export async function autoPost({ baseDir, grokApiKey }) {
   try {
     const { data } = await userClient.v2.tweet(tweet);
     const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
-    logPost(baseDir, topicChoice.topic, tweet, url);
+
+    // x_commentary: reply to the KOL's original tweet
+    let replyText = null;
+    if (topicChoice.kolPost && data.id) {
+      try {
+        replyText = await executors.generateTweet({
+          topic: 'x_commentary_reply',
+          prompt: [
+            `You just saw this post by @${topicChoice.kolPost.authorUsername}:`,
+            `"${topicChoice.kolPost.text.slice(0, 300)}"`,
+            ``,
+            `Write a VERY SHORT reply (2-8 words max). Examples:`,
+            `- "You got AiMemeForge's support!"`,
+            `- "This is the way"`,
+            `- "Memeya approves this message"`,
+            `- "Based take honestly"`,
+            `- "The forge is watching"`,
+            `ONLY output the reply text, nothing else. 2-8 words.`,
+          ].join('\n'),
+        }, { noCharLimit: false });
+
+        await userClient.v2.tweet(replyText, {
+          reply: { in_reply_to_tweet_id: topicChoice.kolPost.tweetId },
+        });
+        console.log(`[autoPost] Replied to @${topicChoice.kolPost.authorUsername}: ${replyText}`);
+      } catch (replyErr) {
+        console.error(`[autoPost] Reply failed (non-fatal): ${replyErr.message}`);
+      }
+    }
+
+    const logExtra = topicChoice.kolPost
+      ? { replyTo: topicChoice.kolPost.authorUsername, replyText }
+      : {};
+    logPost(baseDir, topicChoice.topic, tweet, url, logExtra);
+
     return { success: true, url, text: tweet, topic: topicChoice.topic };
   } catch (err) {
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };

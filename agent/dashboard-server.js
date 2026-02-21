@@ -115,6 +115,15 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Reboot — exit and let systemd Restart=always bring us back
+  if (req.method === 'POST' && req.url === '/api/reboot') {
+    console.log('[dashboard-server] Reboot requested — exiting for systemd restart');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, message: 'Rebooting — systemd will restart in ~3s' }));
+    setTimeout(() => process.exit(0), 300);
+    return;
+  }
+
   // ─── Memeya X Post Toggle ────────────────────────────────────
   if (req.method === 'GET' && req.url === '/api/memeya/x-post-status') {
     const enabled = fs.existsSync(X_POST_FLAG);

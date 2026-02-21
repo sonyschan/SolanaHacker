@@ -21,7 +21,7 @@ const SITE_URL = 'https://aimemeforge.io';
  * @param {{ grokApiKey?: string }} opts
  */
 export async function gatherContext(baseDir, opts = {}) {
-  const [todayMemes, hallMemes, commits, journal, values, recentPosts, productDoc] = await Promise.all([
+  const [todayMemes, hallMemes, commits, journal, values, recentPosts, productDoc, kolPost] = await Promise.all([
     fetchTodayMemes(),
     fetchHallOfMemes(),
     getRecentCommits(baseDir),
@@ -29,6 +29,7 @@ export async function gatherContext(baseDir, opts = {}) {
     loadMemeyaValues(baseDir),
     loadRecentPosts(baseDir, 15),
     loadProductDoc(baseDir),
+    searchKOLPost(opts.grokApiKey),
   ]);
 
   // Pick one random past meme from hall of memes
@@ -44,7 +45,7 @@ export async function gatherContext(baseDir, opts = {}) {
     logCommentInsights(baseDir, comments);
   }
 
-  return { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc };
+  return { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc, kolPost };
 }
 
 async function fetchTodayMemes() {
@@ -69,6 +70,92 @@ async function fetchHallOfMemes() {
     const data = await res.json();
     return data.memes || [];
   } catch { return []; }
+}
+
+/**
+ * Minimal Grok call to generate a search query string.
+ */
+async function callGrokForQuery(apiKey, prompt) {
+  try {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 30,
+        temperature: 0.9,
+      }),
+    });
+    if (!res.ok) return 'crypto Solana news';
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || 'crypto Solana news';
+  } catch { return 'crypto Solana news'; }
+}
+
+/**
+ * Search X for a crypto KOL/influencer post worth commenting on.
+ * Returns { tweetId, authorUsername, authorName, text, likes, retweets } or null.
+ */
+async function searchKOLPost(grokApiKey) {
+  const bearerToken = process.env.X_BEARER_TOKEN;
+  if (!bearerToken || !grokApiKey) return null;
+
+  try {
+    // Step 1: Ask Grok for a trending crypto search query
+    const queryPrompt = `Generate ONE short X/Twitter search query (2-4 words) to find a popular crypto/Web3/Solana tweet from a well-known account posted today.
+Examples: "Solana ecosystem", "Bitcoin ETF", "memecoin season", "crypto regulation"
+Return ONLY the search query, nothing else.`;
+
+    const searchQuery = await callGrokForQuery(grokApiKey, queryPrompt);
+
+    // Step 2: Search X with expansions to get author usernames
+    const { TwitterApi } = await import('twitter-api-v2');
+    const appClient = new TwitterApi(bearerToken);
+
+    const result = await appClient.v2.search(searchQuery, {
+      max_results: 10,
+      'tweet.fields': 'created_at,public_metrics,author_id',
+      'user.fields': 'username,name,public_metrics',
+      expansions: 'author_id',
+      sort_order: 'relevancy',
+    });
+
+    if (!result.data?.data?.length) return null;
+
+    // Build user lookup map from expansions
+    const users = {};
+    for (const u of (result.data?.includes?.users || [])) {
+      users[u.id] = { username: u.username, name: u.name, followers: u.public_metrics?.followers_count || 0 };
+    }
+
+    // Pick tweet with highest engagement, skip own tweets and low engagement
+    const candidates = result.data.data
+      .filter(t => {
+        const user = users[t.author_id];
+        if (!user) return false;
+        if (user.username.toLowerCase() === 'aimemeforgeio') return false;
+        if ((t.public_metrics?.like_count || 0) < 5) return false;
+        return true;
+      })
+      .sort((a, b) => (b.public_metrics?.like_count || 0) - (a.public_metrics?.like_count || 0));
+
+    if (candidates.length === 0) return null;
+    const tweet = candidates[0];
+    const author = users[tweet.author_id];
+
+    return {
+      tweetId: tweet.id,
+      authorUsername: author.username,
+      authorName: author.name,
+      text: tweet.text,
+      likes: tweet.public_metrics?.like_count || 0,
+      retweets: tweet.public_metrics?.retweet_count || 0,
+    };
+  } catch (err) {
+    console.error('[x-context] searchKOLPost error:', err.message);
+    return null;
+  }
 }
 
 function getRecentCommits(baseDir) {
@@ -231,9 +318,10 @@ function logCommentInsights(baseDir, comments) {
 const BASE_TOPICS = [
   { id: 'meme_spotlight',     weight: 30 },
   { id: 'personal_vibe',      weight: 25 },
+  { id: 'x_commentary',       weight: 20 },
   { id: 'feature_showtime',   weight: 15 },
-  { id: 'crypto_commentary',  weight: 15 },
-  { id: 'dev_update',         weight: 15 },
+  { id: 'dev_update',         weight: 10 },
+  { id: 'crypto_commentary',  weight: 0 },   // fallback-only (x_commentary falls here when no KOL post found)
   // community_call disabled — no community yet
 ];
 
@@ -307,11 +395,12 @@ export function chooseTopic(context) {
     }
   }
 
-  const { prompt, ogUrl } = buildPrompt(chosen, context);
+  const { prompt, ogUrl, ...extra } = buildPrompt(chosen, context);
   return {
     topic: chosen,
     prompt,
     ogUrl,
+    ...extra,
     meta: {
       pool: topics.map(t => ({ id: t.id, weight: t.weight })),
       last3Topics,
@@ -327,16 +416,17 @@ export function chooseTopic(context) {
  * Apply data-availability fallbacks: if a topic has no supporting data, fall to personal_vibe.
  */
 function applyFallbacks(chosen, context) {
-  const { todayMemes, randomPastMeme, commits, comments, productDoc } = context;
+  const { todayMemes, randomPastMeme, commits, comments, productDoc, kolPost } = context;
   if (chosen === 'meme_spotlight' && todayMemes.length === 0 && !randomPastMeme) return 'personal_vibe';
   if (chosen === 'dev_update' && commits.length === 0) return 'personal_vibe';
   if (chosen === 'feature_showtime' && !productDoc) return 'personal_vibe';
   if (chosen === 'community_response' && (!comments || comments.length === 0)) return 'personal_vibe';
+  if (chosen === 'x_commentary' && !kolPost) return 'crypto_commentary';
   return chosen;
 }
 
 function buildPrompt(topic, context) {
-  const { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc } = context;
+  const { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc, kolPost } = context;
 
   const valuesBlock = values ? `\nMemeya's core values:\n${values.slice(0, 500)}` : '';
   const journalBlock = journal ? `\nRecent journal reflections:\n${journal.slice(-800)}` : '';
@@ -428,6 +518,28 @@ function buildPrompt(topic, context) {
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
+    case 'x_commentary': {
+      const kol = kolPost;
+      return {
+        prompt: [
+          `TOPIC: React to a crypto influencer's post on X.`,
+          ``,
+          `Original post by @${kol.authorUsername} (${kol.authorName}):`,
+          `"${kol.text.slice(0, 500)}"`,
+          `(${kol.likes} likes, ${kol.retweets} retweets)`,
+          ``,
+          valuesBlock,
+          journalBlock,
+          `Write Memeya's hot take on what @${kol.authorUsername} said.`,
+          `Tag them with @${kol.authorUsername} naturally in your tweet.`,
+          `Be opinionated, witty, and in-character. Agree, disagree, or riff on their point.`,
+          `Do NOT just praise them — have a real opinion.`,
+        ].filter(Boolean).join('\n'),
+        ogUrl: null,
+        kolPost: kol,
+      };
+    }
+
     case 'community_response': {
       const commentsBlock = (comments || []).map(c => {
         const repliesText = c.replies.map(r =>
@@ -458,14 +570,17 @@ function buildPrompt(topic, context) {
 /**
  * Append a post entry to Memeya's daily diary.
  */
-export function logPost(baseDir, topic, text, url) {
+export function logPost(baseDir, topic, text, url, extra = {}) {
   try {
     const dateStr = new Date().toISOString().slice(0, 10);
     const diaryDir = path.join(baseDir, 'memory/journal/memeya');
     if (!fs.existsSync(diaryDir)) fs.mkdirSync(diaryDir, { recursive: true });
     const diaryPath = path.join(diaryDir, `${dateStr}.md`);
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const entry = `## ${time}\n- Topic: ${topic}\n- Posted: ${text}\n- URL: ${url}\n\n`;
+    let entry = `## ${time}\n- Topic: ${topic}\n- Posted: ${text}\n- URL: ${url}\n`;
+    if (extra.replyTo) entry += `- Replied to: @${extra.replyTo}\n`;
+    if (extra.replyText) entry += `- Reply: ${extra.replyText}\n`;
+    entry += '\n';
     fs.appendFileSync(diaryPath, entry);
   } catch (err) {
     console.error('[x-context] logPost error:', err.message);

@@ -264,6 +264,21 @@
   .analyze-btn:hover:not(:disabled) { background: rgba(247,120,186,0.25); }
   .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  .reboot-btn {
+    padding: 4px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--orange);
+    background: rgba(210,153,34,0.12);
+    color: var(--orange);
+    cursor: pointer;
+    font-size: 0.82em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .reboot-btn:hover:not(:disabled) { background: rgba(210,153,34,0.3); }
+  .reboot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   .analysis-card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -420,6 +435,7 @@
       <div class="toggle" id="xpost-toggle" onclick="toggleXPost()"></div>
       <span id="xpost-label" style="font-weight:600;">...</span>
     </div>
+    <button class="reboot-btn" id="reboot-btn" onclick="rebootServer()">Reboot Server</button>
     <a href="/dashboard.html" class="nav-link">Agent Dashboard &rarr;</a>
   </div>
 </div>
@@ -427,6 +443,70 @@
 <h1>Memeya <span>Agent Dashboard</span></h1>
 <div class="meta">
   @AiMemeForgeIO &middot; Model: <code>grok-4-1-fast-reasoning</code> + <code>grok-3-mini</code> (quality gate) &middot; Character: <code>13yo Digital Blacksmith</code> &middot; Platform: <code>X (Twitter)</code>
+</div>
+
+<!-- Section 0: Heartbeat Actions -->
+<div class="section" id="s-heartbeat">
+  <div class="section-header" onclick="toggle('s-heartbeat')">
+    <span class="icon">&#128147;</span>
+    <h2>Heartbeat Actions</h2>
+    <span class="badge">Schedule</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <h3 style="font-size:0.9em;color:var(--pink);margin-bottom:8px;">Autonomous X Posting (maybePostToX)</h3>
+    <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
+      Every <strong style="color:var(--text);">2&ndash;4 hours</strong> (random) &mdash; runs 24/7, no active window.
+      Kill switch: <code>.memeya-x-enabled</code> flag file.
+    </div>
+    <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
+      Flow: <code>gatherContext()</code> &rarr; <code>chooseTopic()</code> (weighted random) &rarr; <code>generateTweet()</code> via Grok &rarr; boring check &rarr; post to X
+    </div>
+    <table>
+      <tr><th>Topic</th><th>Weight</th><th>Description</th></tr>
+      <tr>
+        <td><code>meme_spotlight</code></td>
+        <td><span class="tag tag-pink">30%</span></td>
+        <td>Share/react to a meme from AiMemeForge (today or throwback). Appends OG link.</td>
+      </tr>
+      <tr>
+        <td><code>personal_vibe</code></td>
+        <td><span class="tag tag-purple">25%</span></td>
+        <td>Raw personal thought, mood, or inner monologue from journal + values.</td>
+      </tr>
+      <tr>
+        <td><code style="color:var(--green);">x_commentary</code></td>
+        <td><span class="tag tag-green">20%</span></td>
+        <td>Find a crypto KOL post on X &rarr; post Memeya's take (with @mention) + short 2-8 word reply on their tweet.</td>
+      </tr>
+      <tr>
+        <td><code>feature_showtime</code></td>
+        <td><span class="tag tag-cyan">15%</span></td>
+        <td>Show off an AiMemeForge feature from product.md. Appends site link.</td>
+      </tr>
+      <tr>
+        <td><code>dev_update</code></td>
+        <td><span class="tag tag-orange">10%</span></td>
+        <td>Share recent git commits as builder updates. Priority-forced if fresh commits + not posted today.</td>
+      </tr>
+      <tr>
+        <td><code style="color:var(--text-dim);">crypto_commentary</code></td>
+        <td><span class="tag" style="background:rgba(139,148,158,0.15);color:var(--text-dim);">fallback</span></td>
+        <td style="color:var(--text-dim);">Hot take on crypto news via Grok web search. Only triggered as fallback when <code>x_commentary</code> has no KOL post.</td>
+      </tr>
+      <tr>
+        <td><code>community_response</code></td>
+        <td><span class="tag tag-purple">dynamic</span></td>
+        <td>Reply to community feedback on recent posts. Added dynamically when comments found (weight 20&ndash;35).</td>
+      </tr>
+    </table>
+    <div style="font-size:0.82em;color:var(--text-dim);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
+      <strong style="color:var(--text);">Safeguards:</strong>
+      Anti-repetition (last 3 posts can't all be same topic) &middot;
+      Boring check via <code>grok-3-mini</code> gates all posts (skipped for <code>meme_spotlight</code> with unique OG and <code>x_commentary</code> replies) &middot;
+      Data-availability fallbacks (e.g. <code>x_commentary</code> &rarr; <code>crypto_commentary</code> if no KOL post found)
+    </div>
+  </div>
 </div>
 
 <!-- Section 1: System Prompt -->
@@ -655,6 +735,35 @@ async function toggleXPost() {
   } catch (err) {
     alert('Toggle failed: ' + err.message);
   }
+}
+
+// ─── Reboot server ──────────────────────────────────────────
+async function rebootServer() {
+  if (!confirm('Reboot dashboard server to apply new code changes?')) return;
+  const btn = document.getElementById('reboot-btn');
+  btn.disabled = true;
+  btn.textContent = 'Rebooting...';
+  try {
+    await fetch('/api/reboot', { method: 'POST' });
+  } catch { /* expected — server exits */ }
+  // Wait for systemd to restart, then reload page
+  let attempts = 0;
+  const check = setInterval(async () => {
+    attempts++;
+    try {
+      const res = await fetch('/health');
+      if (res.ok) {
+        clearInterval(check);
+        location.reload();
+      }
+    } catch { /* still restarting */ }
+    if (attempts > 20) {
+      clearInterval(check);
+      btn.textContent = 'Retry';
+      btn.disabled = false;
+      alert('Server did not come back after 10s — check systemd status.');
+    }
+  }, 500);
 }
 
 // ─── Load values ─────────────────────────────────────────────
