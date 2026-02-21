@@ -80,15 +80,14 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
           </div>
 
-          <h2 className="text-5xl md:text-6xl lg:text-8xl font-bold mb-8 leading-tight">
+          <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-4 leading-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
               Historical AI Memes.
             </span>
-            <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Vote Free. Earn Daily. Own Forever.
-            </span>
           </h2>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 tracking-wide bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Vote Free. Earn Daily. Own Forever.
+          </p>
 
           <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
             Vote on AI-generated memes every day. Win the daily lottery and claim your meme as a
