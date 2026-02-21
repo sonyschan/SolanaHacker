@@ -386,68 +386,8 @@
   </div>
 </div>
 
-<!-- Section 3: Scheduled Tasks -->
-<div class="section" id="s-scheduler">
-  <div class="section-header" onclick="toggle('s-scheduler')">
-    <span class="icon">⏰</span>
-    <h2>Scheduled Tasks (MemeForge Backend)</h2>
-    <span class="badge">7 tasks</span>
-    <span class="chevron">&#9660;</span>
-  </div>
-  <div class="section-body">
-    <table>
-      <tr><th>Task</th><th>Schedule</th><th>Endpoint</th><th>Description</th></tr>
-      <tr>
-        <td><code>daily_cycle</code></td>
-        <td><span class="tag tag-cyan">00:00 UTC</span></td>
-        <td class="path">POST /api/scheduler/trigger/daily_cycle</td>
-        <td>Full daily cycle (generate memes + start voting)</td>
-      </tr>
-      <tr>
-        <td><code>daily_memes</code></td>
-        <td><span class="tag tag-cyan">08:00 UTC</span></td>
-        <td class="path">POST /api/scheduler/trigger/daily_memes</td>
-        <td>Generate daily memes via Gemini</td>
-      </tr>
-      <tr>
-        <td><code>start_voting</code></td>
-        <td><span class="tag tag-cyan">08:30 UTC</span></td>
-        <td class="path">POST /api/scheduler/trigger/start_voting</td>
-        <td>Open voting period for generated memes</td>
-      </tr>
-      <tr>
-        <td><code>end_voting</code></td>
-        <td><span class="tag tag-cyan">20:00 UTC</span></td>
-        <td class="path">POST /api/scheduler/trigger/end_voting</td>
-        <td>Close voting &amp; calculate rarity scores</td>
-      </tr>
-      <tr>
-        <td><code>lottery_draw</code></td>
-        <td><span class="tag tag-orange">Daily 20:00 UTC</span></td>
-        <td class="path">POST /api/scheduler/trigger/lottery_draw</td>
-        <td>Daily lottery draw (tickets accumulate)</td>
-      </tr>
-      <tr>
-        <td><code>cleanup</code></td>
-        <td><span class="tag tag-purple">On demand</span></td>
-        <td class="path">POST /api/scheduler/trigger/cleanup</td>
-        <td>Clean up stale data</td>
-      </tr>
-      <tr>
-        <td><code>voting_progress</code></td>
-        <td><span class="tag tag-purple">On demand</span></td>
-        <td class="path">POST /api/scheduler/trigger/voting_progress</td>
-        <td>Check voting progress for current period</td>
-      </tr>
-    </table>
-    <div class="note">
-      Backend: <code>https://memeforge-api-836651762884.asia-southeast1.run.app</code><br>
-      Scheduler status: <code>GET /api/scheduler/status</code> &middot; Health: <code>GET /api/scheduler/health</code>
-    </div>
-  </div>
-</div>
 
-<!-- Section 4: Skills & Tools -->
+<!-- Section 3: Skills & Tools -->
 <div class="section" id="s-tools">
   <div class="section-header" onclick="toggle('s-tools')">
     <span class="icon">🔧</span>
@@ -534,7 +474,7 @@
   </div>
 </div>
 
-<!-- Section 5: Chat Mode vs Dev Mode -->
+<!-- Section 4: Chat Mode vs Dev Mode -->
 <div class="section" id="s-compare">
   <div class="section-header" onclick="toggle('s-compare')">
     <span class="icon">⚖️</span>
@@ -594,7 +534,7 @@
 </div>
 
 <div class="meta" style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
-  Generated: <code id="gen-time">2026-02-19 10:46:42 GMT+8</code> &middot; Source: <code>main.js</code> <code>chat-mode.js</code> <code>agent-tools.js</code> <code>scheduler.js</code> <code>skill-loader.js</code>
+  Generated: <code id="gen-time">2026-02-19 10:46:42 GMT+8</code> &middot; Source: <code>main.js</code> <code>chat-mode.js</code> <code>agent-tools.js</code> <code>skill-loader.js</code>
   <br><button id="regen-btn" onclick="regen()" style="
     margin-top:8px;
     padding:5px 16px;
