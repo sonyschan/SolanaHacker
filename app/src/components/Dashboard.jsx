@@ -170,6 +170,15 @@ const Dashboard = ({
           </div>
         </div>
 
+        {/* Streak Bonus Infographic */}
+        <div className="mb-8">
+          <img
+            src="/images/streak-bonus-chart.png"
+            alt="Streak Bonus System: Base 1-10 tickets + streak bonus up to +10. Vote daily to earn more. Miss a day and streak resets to Day 1."
+            className="w-full max-w-3xl mx-auto rounded-xl border border-white/10"
+          />
+        </div>
+
         {/* Strategy Tip */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left max-w-2xl mx-auto">
           <h4 className="font-bold text-lg mb-2">Strategy Tip</h4>
