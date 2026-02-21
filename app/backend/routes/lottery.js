@@ -7,10 +7,25 @@ const {
   getLotteryHistory,
   getLotteryStats,
   getNextDrawTime,
-  getUserLotteryData
+  getUserLotteryData,
+  getRecentWinners
 } = require('../controllers/lotteryController');
 const { getFirestore, collections } = require('../config/firebase');
 const { rateLimiter } = require('../middleware/auth');
+
+/**
+ * GET /api/lottery/recent-winners - Get recent completed draws with meme details
+ */
+router.get('/recent-winners', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const data = await getRecentWinners(parseInt(limit));
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Get recent winners error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch recent winners', message: error.message });
+  }
+});
 
 /**
  * GET /api/lottery/current - Get today's lottery status

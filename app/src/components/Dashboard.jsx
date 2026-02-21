@@ -114,7 +114,7 @@ const Dashboard = ({
     { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
     { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
     { id: 'tickets', label: 'Tickets', icon: '🎫', desc: 'Manage entries' },
-    { id: 'wins', label: 'My Wins', icon: '🏆', desc: `${nftWins.length} meme${nftWins.length !== 1 ? 's' : ''} won` }
+    { id: 'wins', label: 'Winners', icon: '🏆', desc: 'Check who won' }
   ];
 
   // Enhanced Tickets Tab
@@ -195,16 +195,30 @@ const Dashboard = ({
     </div>
   );
 
-  // My Wins Tab with filter
+  // Winners Tab
+  const [winnersView, setWinnersView] = useState('all_winners'); // 'all_winners' | 'my_wins'
+  const [recentWinners, setRecentWinners] = useState([]);
+  const [winnersLoading, setWinnersLoading] = useState(false);
   const [winsFilter, setWinsFilter] = useState('all'); // 'all' | 'unclaimed' | 'minted'
 
-  const MyWinsTabContent = () => {
-    const filters = [
-      { id: 'all', label: 'All', count: nftWins.length },
-      { id: 'unclaimed', label: 'Unclaimed', count: nftWins.filter(w => !w.claimed).length },
-      { id: 'minted', label: 'Minted', count: nftWins.filter(w => w.claimed).length }
-    ];
+  // Fetch recent winners when switching to wins tab
+  useEffect(() => {
+    if (activeTab !== 'wins') return;
+    const fetchRecentWinners = async () => {
+      setWinnersLoading(true);
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/lottery/recent-winners?limit=10`);
+        const data = await resp.json();
+        if (data.success) setRecentWinners(data.data);
+      } catch (e) { console.error('Failed to fetch recent winners:', e); }
+      setWinnersLoading(false);
+    };
+    fetchRecentWinners();
+  }, [activeTab]);
 
+  const privateWallet = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : '—';
+
+  const WinnersTabContent = () => {
     const filteredWins = nftWins
       .filter(w => {
         if (winsFilter === 'unclaimed') return !w.claimed;
@@ -213,99 +227,214 @@ const Dashboard = ({
       })
       .sort((a, b) => (b.selectedAt || '').localeCompare(a.selectedAt || ''));
 
+    const myWinsFilters = [
+      { id: 'all', label: 'All', count: nftWins.length },
+      { id: 'unclaimed', label: 'Unclaimed', count: nftWins.filter(w => !w.claimed).length },
+      { id: 'minted', label: 'Minted', count: nftWins.filter(w => w.claimed).length }
+    ];
+
     return (
       <div className="space-y-6">
-        {/* Header + Filters */}
+        {/* Top-level view toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🏆</span>
-            <h3 className="text-2xl font-bold">My Wins</h3>
-            <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">{nftWins.length}</span>
+            <h3 className="text-2xl font-bold">Winners</h3>
           </div>
           <div className="flex gap-2">
-            {filters.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setWinsFilter(f.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  winsFilter === f.id
-                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                    : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
-                }`}
-              >
-                {f.label} ({f.count})
-              </button>
-            ))}
+            <button
+              onClick={() => setWinnersView('all_winners')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                winnersView === 'all_winners'
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              All Winners
+            </button>
+            <button
+              onClick={() => setWinnersView('my_wins')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                winnersView === 'my_wins'
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              My Wins ({nftWins.length})
+            </button>
           </div>
         </div>
 
-        {/* Empty State */}
-        {nftWins.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-            <div className="text-6xl mb-4 opacity-50">🎯</div>
-            <h4 className="text-xl font-bold mb-2">No wins yet</h4>
-            <p className="text-gray-400 max-w-md mx-auto">Keep voting to earn tickets! Win the daily draw to own a meme and mint it as an NFT.</p>
-          </div>
-        ) : filteredWins.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-            <div className="text-5xl mb-4 opacity-50">{winsFilter === 'minted' ? '🎨' : '📭'}</div>
-            <p className="text-gray-400">No {winsFilter} memes yet.</p>
-          </div>
-        ) : (
-          /* Wins Grid */
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredWins.map((win, i) => {
-              const meme = winMemes[win.memeId];
-              return (
-                <div key={win.memeId + i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/30 transition-all group">
-                  {/* Meme Image */}
-                  <div className="aspect-square bg-gray-800 relative">
-                    {meme ? (
-                      <img
-                        src={meme.imageUrl || meme.image}
-                        alt={meme.title || 'Winning Meme'}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🎨</div>
-                    )}
-                    {/* Status badge */}
-                    <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
-                      win.claimed
-                        ? 'bg-green-500/80 text-white'
-                        : 'bg-yellow-500/80 text-white'
-                    }`}>
-                      {win.claimed ? 'Minted' : 'Claimable'}
+        {/* All Winners View */}
+        {winnersView === 'all_winners' && (
+          winnersLoading ? (
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+              <div className="text-4xl mb-4 animate-spin">🎰</div>
+              <p className="text-gray-400">Loading winners...</p>
+            </div>
+          ) : recentWinners.length === 0 ? (
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+              <div className="text-6xl mb-4 opacity-50">🎯</div>
+              <h4 className="text-xl font-bold mb-2">No draws yet</h4>
+              <p className="text-gray-400">Lottery runs daily at 23:55 UTC</p>
+            </div>
+          ) : (
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
+              {/* Table header */}
+              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-white/5 text-sm font-medium text-gray-400 border-b border-white/10">
+                <div className="col-span-2">Date</div>
+                <div className="col-span-3">Meme</div>
+                <div className="col-span-3">Winner</div>
+                <div className="col-span-2">Votes</div>
+                <div className="col-span-2">Win Rate</div>
+              </div>
+              {/* Table rows */}
+              {recentWinners.map((w) => {
+                const isYou = walletAddress && w.winnerWallet === walletAddress;
+                const winRate = w.totalTickets > 0 ? (w.winnerTickets / w.totalTickets * 100).toFixed(1) : '0.0';
+                const dateStr = new Date(w.drawId + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                  <div
+                    key={w.drawId}
+                    className={`grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-4 border-b border-white/5 hover:bg-white/5 transition-colors ${isYou ? 'bg-green-500/5' : ''}`}
+                  >
+                    {/* Date */}
+                    <div className="md:col-span-2 text-sm text-gray-300">
+                      <span className="md:hidden text-gray-500 mr-2">Date:</span>{dateStr}
                     </div>
-                  </div>
-                  {/* Info */}
-                  <div className="p-4">
-                    <h4 className="font-bold text-white truncate">
-                      {meme?.title || `Meme ${win.memeId.slice(-6)}`}
-                    </h4>
-                    <div className="text-xs text-gray-400 mt-1">
-                      Won {new Date(win.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    {win.drawId && (
-                      <div className="text-xs text-gray-500 mt-0.5">Draw #{win.drawId}</div>
-                    )}
-                    {!win.claimed ? (
+                    {/* Meme */}
+                    <div className="md:col-span-3">
                       <button
-                        className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
-                        disabled
-                        title="NFT minting coming soon"
+                        onClick={() => {
+                          if (w.memeId) {
+                            setModalMeme({ id: w.memeId, title: w.memeTitle, imageUrl: w.memeImageUrl });
+                            setIsModalOpen(true);
+                          }
+                        }}
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left"
                       >
-                        Claim NFT (Soon)
+                        {w.memeImageUrl ? (
+                          <img src={w.memeImageUrl} alt={w.memeTitle || 'Meme'} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-lg flex-shrink-0">🎨</div>
+                        )}
+                        <span className="text-sm text-cyan-400 truncate">{w.memeTitle || `Meme ${w.memeId?.slice(-6) || '?'}`}</span>
                       </button>
-                    ) : (
-                      <div className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
-                        Minted
-                      </div>
-                    )}
+                    </div>
+                    {/* Winner */}
+                    <div className="md:col-span-3 flex items-center gap-2">
+                      <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
+                      <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
+                      {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
+                    </div>
+                    {/* Votes */}
+                    <div className="md:col-span-2 text-sm text-gray-300">
+                      <span className="md:hidden text-gray-500 mr-2">Votes:</span>
+                      {w.winnerTickets} / {w.totalTickets}
+                    </div>
+                    {/* Win Rate */}
+                    <div className="md:col-span-2 text-sm">
+                      <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
+                      <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                        {winRate}%
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )
+        )}
+
+        {/* My Wins View */}
+        {winnersView === 'my_wins' && (
+          <div className="space-y-6">
+            {/* Sub-filters */}
+            <div className="flex gap-2">
+              {myWinsFilters.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setWinsFilter(f.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    winsFilter === f.id
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  {f.label} ({f.count})
+                </button>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {nftWins.length === 0 ? (
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+                <div className="text-6xl mb-4 opacity-50">🎯</div>
+                <h4 className="text-xl font-bold mb-2">No wins yet</h4>
+                <p className="text-gray-400 max-w-md mx-auto">Keep voting to earn tickets! Win the daily draw to own a meme and mint it as an NFT.</p>
+              </div>
+            ) : filteredWins.length === 0 ? (
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
+                <div className="text-5xl mb-4 opacity-50">{winsFilter === 'minted' ? '🎨' : '📭'}</div>
+                <p className="text-gray-400">No {winsFilter} memes yet.</p>
+              </div>
+            ) : (
+              /* Wins Grid */
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredWins.map((win, i) => {
+                  const meme = winMemes[win.memeId];
+                  return (
+                    <div key={win.memeId + i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/30 transition-all group">
+                      {/* Meme Image */}
+                      <div className="aspect-square bg-gray-800 relative">
+                        {meme ? (
+                          <img
+                            src={meme.imageUrl || meme.image}
+                            alt={meme.title || 'Winning Meme'}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🎨</div>
+                        )}
+                        {/* Status badge */}
+                        <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
+                          win.claimed
+                            ? 'bg-green-500/80 text-white'
+                            : 'bg-yellow-500/80 text-white'
+                        }`}>
+                          {win.claimed ? 'Minted' : 'Claimable'}
+                        </div>
+                      </div>
+                      {/* Info */}
+                      <div className="p-4">
+                        <h4 className="font-bold text-white truncate">
+                          {meme?.title || `Meme ${win.memeId.slice(-6)}`}
+                        </h4>
+                        <div className="text-xs text-gray-400 mt-1">
+                          Won {new Date(win.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                        {win.drawId && (
+                          <div className="text-xs text-gray-500 mt-0.5">Draw #{win.drawId}</div>
+                        )}
+                        {!win.claimed ? (
+                          <button
+                            className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
+                            disabled
+                            title="NFT minting coming soon"
+                          >
+                            Claim NFT (Soon)
+                          </button>
+                        ) : (
+                          <div className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
+                            Minted
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -326,7 +455,7 @@ const Dashboard = ({
       case 'tickets':
         return <TicketsTabContent />;
       case 'wins':
-        return <MyWinsTabContent />;
+        return <WinnersTabContent />;
       default:
         return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}

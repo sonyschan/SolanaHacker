@@ -329,6 +329,38 @@ async function getUserLotteryData(wallet) {
   };
 }
 
+/**
+ * Get recent completed lottery draws with meme details (for Winners tab)
+ */
+async function getRecentWinners(limit = 10) {
+  const db = getFirestore();
+  const snap = await db.collection(collections.LOTTERY_DRAWS)
+    .where('status', '==', 'completed')
+    .orderBy('date', 'desc')
+    .limit(limit)
+    .get();
+
+  const draws = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Batch fetch meme details
+  const memeIds = [...new Set(draws.map(d => d.winningMemeId).filter(Boolean))];
+  const memes = {};
+  await Promise.all(memeIds.map(async id => {
+    const meme = await dbUtils.getDocument(collections.MEMES, id);
+    if (meme) memes[id] = meme;
+  }));
+
+  return draws.map(d => ({
+    drawId: d.date,
+    winnerWallet: d.winnerWallet,
+    winnerTickets: d.winnerTickets || 0,
+    totalTickets: d.totalTickets || 0,
+    memeId: d.winningMemeId,
+    memeTitle: memes[d.winningMemeId]?.title || null,
+    memeImageUrl: memes[d.winningMemeId]?.imageUrl || null,
+  }));
+}
+
 module.exports = {
   runDailyLottery,
   toggleLotteryOptIn,
@@ -336,5 +368,6 @@ module.exports = {
   getLotteryHistory,
   getLotteryStats,
   getNextDrawTime,
-  getUserLotteryData
+  getUserLotteryData,
+  getRecentWinners
 };
