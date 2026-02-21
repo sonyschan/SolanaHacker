@@ -1,7 +1,7 @@
 class NewsService {
   constructor() {
     // Using Grok API for news analysis and trends
-    this.grokApiKey = process.env.GROK_API_KEY;
+    this.grokApiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     this.grokBaseUrl = 'https://api.x.ai/v1';
   }
 
