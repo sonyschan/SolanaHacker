@@ -244,8 +244,32 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
       </ModalOverlay>
 
-      {/* Phase 1: Meme Selection (also shows skeleton during initialization) */}
-      {(isInitializing || currentPhase === 'selection') && (
+      {/* Loading skeleton — shown during initialization (no phase-specific header to avoid flash) */}
+      {isInitializing && (
+        <div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="placeholder-card card-shimmer bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
+                <div className="placeholder-image w-full h-64 bg-gray-600/30 rounded-t-2xl"></div>
+                <div className="p-6">
+                  <div className="placeholder-text placeholder-line w-3/4 h-6 bg-gray-600/30 rounded mb-4"></div>
+                  <div className="space-y-2 mb-4">
+                    <div className="placeholder-text placeholder-line w-full h-4 bg-gray-600/20 rounded"></div>
+                    <div className="placeholder-text placeholder-line w-2/3 h-4 bg-gray-600/20 rounded"></div>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="placeholder-text placeholder-line w-24 h-4 bg-gray-600/20 rounded"></div>
+                  </div>
+                  <div className="placeholder-button w-full h-12 bg-purple-600/30 rounded-lg"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1: Meme Selection */}
+      {!isInitializing && currentPhase === 'selection' && (
         <div>
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
@@ -263,7 +287,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             )}
           </div>
 
-          {(loading || isInitializing) ? (
+          {loading ? (
             <div className="grid md:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="placeholder-card card-shimmer bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20">
