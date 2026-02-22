@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
 const rarityService = require('../services/rarityService');
+const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 
 /**
  * Award tickets to user after rarity vote
@@ -17,13 +18,26 @@ async function awardVotingTickets(walletAddress) {
     let ticketsEarned = baseTickets;
     let streakBonus = 0;
 
+    // Token holding bonus (read-only RPC call, outside transaction)
+    let tokenBonus = 0;
+    try {
+      const tokenAmount = await getMemeyaBalance(walletAddress);
+      tokenBonus = calculateTokenBonus(tokenAmount);
+      if (tokenBonus > 0) {
+        console.log(`🪙 $Memeya bonus: ${tokenBonus} (holding ${tokenAmount.toLocaleString()} tokens) for ${walletAddress}`);
+      }
+    } catch (e) {
+      // Graceful: no bonus if RPC fails
+      console.error('Token bonus check failed:', e.message);
+    }
+
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(userRef);
 
       if (!doc.exists) {
         // New user: streak starts at 1
         streakBonus = Math.min(1, 10);
-        ticketsEarned = baseTickets + streakBonus;
+        ticketsEarned = baseTickets + streakBonus + tokenBonus;
         transaction.set(userRef, {
           id: walletAddress,
           walletAddress,
@@ -53,7 +67,7 @@ async function awardVotingTickets(walletAddress) {
         // If lastVoteDate === today, keep same streak (already voted today)
 
         streakBonus = Math.min(newStreak, 10);
-        ticketsEarned = baseTickets + streakBonus;
+        ticketsEarned = baseTickets + streakBonus + tokenBonus;
 
         transaction.update(userRef, {
           weeklyTickets: (userData.weeklyTickets || 0) + ticketsEarned,
@@ -72,11 +86,12 @@ async function awardVotingTickets(walletAddress) {
       ticketsEarned,
       baseTickets,
       streakBonus,
+      tokenBonus,
       user: updatedUser.exists ? { id: updatedUser.id, ...updatedUser.data() } : null
     };
   } catch (error) {
     console.error('Error awarding tickets:', error);
-    return { ticketsEarned: 0, user: null };
+    return { ticketsEarned: 0, tokenBonus: 0, user: null };
   }
 }
 
@@ -133,7 +148,8 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
       voteData.ticketsEarned = ticketsEarned; // Store in vote document for later retrieval
       voteData.baseTickets = reward.baseTickets;
       voteData.streakBonus = reward.streakBonus;
-      console.log(`🎫 Awarded ${ticketsEarned} tickets (base ${reward.baseTickets} + streak ${reward.streakBonus}) to ${walletAddress}`);
+      voteData.tokenBonus = reward.tokenBonus || 0;
+      console.log(`🎫 Awarded ${ticketsEarned} tickets (base ${reward.baseTickets} + streak ${reward.streakBonus} + $Memeya ${reward.tokenBonus || 0}) to ${walletAddress}`);
     }
 
     // Save vote to Firestore (now includes ticketsEarned for rarity votes)
@@ -152,6 +168,7 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
     return {
       ...voteData,
       ticketsEarned,
+      tokenBonus: voteData.tokenBonus || 0,
       user: updatedUser
     };
     

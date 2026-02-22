@@ -11,6 +11,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [rarityScore, setRarityScore] = useState(5); // NEW: Score-based rating (1-10)
   const [showReward, setShowReward] = useState(false);
   const [earnedTickets, setEarnedTickets] = useState(0);
+  const [baseTickets, setBaseTickets] = useState(0);
+  const [streakBonusEarned, setStreakBonusEarned] = useState(0);
+  const [tokenBonus, setTokenBonus] = useState(0);
   const [dailyMemes, setDailyMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -111,6 +114,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               // Restore ticketsEarned from vote record
               if (rarityVote.ticketsEarned) {
                 setEarnedTickets(rarityVote.ticketsEarned);
+                if (rarityVote.baseTickets) setBaseTickets(rarityVote.baseTickets);
+                if (rarityVote.streakBonus) setStreakBonusEarned(rarityVote.streakBonus);
+                if (rarityVote.tokenBonus) setTokenBonus(rarityVote.tokenBonus);
                 console.log('🎫 Restored ticketsEarned:', rarityVote.ticketsEarned);
               }
             } else if (selectionVote) {
@@ -186,6 +192,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           if (result.ticketsEarned) {
             setEarnedTickets(result.ticketsEarned);
           }
+          if (result.baseTickets) setBaseTickets(result.baseTickets);
+          if (result.streakBonus) setStreakBonusEarned(result.streakBonus);
+          if (result.tokenBonus) setTokenBonus(result.tokenBonus);
           if (result.user) {
             setUserTickets(result.user.weeklyTickets || 0);
             setVotingStreak(result.user.streakDays || 0);
@@ -227,6 +236,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         <div className="text-6xl mb-4">🎉</div>
         <h3 className="text-2xl font-bold mb-2">Vote Successful!</h3>
         <p className="text-lg">You earned <span className="font-bold text-yellow-300">{earnedTickets} tickets</span>!</p>
+        {(baseTickets > 0 || streakBonusEarned > 0 || tokenBonus > 0) && (
+          <p className="text-sm text-purple-200 mt-1">
+            (Base: {baseTickets}{streakBonusEarned > 0 ? ` + Streak: ${streakBonusEarned}` : ''}{tokenBonus > 0 ? ` + $Memeya: ${tokenBonus}` : ''})
+          </p>
+        )}
         <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
       </ModalOverlay>
 
@@ -538,7 +552,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className={`grid ${tokenBonus > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-6`}>
               <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-4">
                 <div className="text-2xl mb-1">🎫</div>
                 <h3 className="font-bold text-sm mb-1">Tickets Earned</h3>
@@ -552,6 +566,14 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 <h3 className="font-bold text-sm mb-1">Voting Streak</h3>
                 <div className="text-xl text-purple-300">{votingStreak} day{votingStreak !== 1 ? 's' : ''}</div>
               </div>
+
+              {tokenBonus > 0 && (
+                <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-4">
+                  <div className="text-2xl mb-1">&#129689;</div>
+                  <h3 className="font-bold text-sm mb-1">$Memeya Bonus</h3>
+                  <div className="text-xl text-yellow-300">+{tokenBonus}</div>
+                </div>
+              )}
             </div>
 
             {/* Next Step - Prominent CTA */}

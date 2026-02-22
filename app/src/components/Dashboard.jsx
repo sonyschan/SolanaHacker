@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
 import GalleryTab from './GalleryTab';
@@ -18,22 +17,50 @@ const Dashboard = ({
   setVotingStreak,
   walletAddress
 }) => {
-  const { logout, walletName } = useAuth();
+  const { logout, walletName, shortAddress, hasEmbeddedWallet, exportWallet } = useAuth();
   const [activeTab, setActiveTab] = useState('forge');
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [winMemes, setWinMemes] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
+  const settingsRef = useRef(null);
 
-  // Close hamburger menu on ESC
+  // Close hamburger menu or settings dropdown on ESC
   useEffect(() => {
-    if (!isMenuOpen) return;
-    const handleEsc = (e) => { if (e.key === 'Escape') setIsMenuOpen(false); };
+    if (!isMenuOpen && !isSettingsOpen) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setIsMenuOpen(false);
+        setIsSettingsOpen(false);
+      }
+    };
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isSettingsOpen]);
+
+  // Close settings dropdown on click outside
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const handleClickOutside = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSettingsOpen]);
+
+  const copyAddress = () => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Fetch meme details for wins
   useEffect(() => {
@@ -142,7 +169,7 @@ const Dashboard = ({
         </p>
 
         {/* Ticket Earning Breakdown */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 mb-8 max-w-3xl mx-auto">
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-cyan-400">Base Roll</h4>
             <div className="text-2xl font-bold mb-2">1-10</div>
@@ -152,6 +179,53 @@ const Dashboard = ({
             <h4 className="font-bold mb-2 text-green-400">Streak Bonus</h4>
             <div className="text-2xl font-bold mb-2">+{Math.min(votingStreak, 10)}</div>
             <p className="text-sm text-gray-400">{votingStreak} day{votingStreak !== 1 ? 's' : ''} consecutive (max +10)</p>
+          </div>
+          <div className="bg-white/5 rounded-xl p-6">
+            <h4 className="font-bold mb-2 text-yellow-400">$Memeya Bonus</h4>
+            <div className="text-2xl font-bold mb-2">+log&#8321;&#8320;</div>
+            <p className="text-sm text-gray-400">Hold tokens for bonus tickets</p>
+          </div>
+        </div>
+
+        {/* $Memeya Token Info */}
+        <div className="mb-8 max-w-2xl mx-auto">
+          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-5">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <span className="text-xl">&#129689;</span>
+              <h4 className="font-bold text-yellow-400">$Memeya Token</h4>
+            </div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <code className="text-xs font-mono text-yellow-300 bg-black/30 px-3 py-1.5 rounded-lg border border-yellow-500/20 truncate max-w-[240px] md:max-w-none">
+                983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump');
+                }}
+                className="px-2 py-1.5 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-xs font-medium flex-shrink-0"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400 mb-3">
+              <span className="px-2 py-1 bg-white/5 rounded-full">10 = +1 ticket</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">1K = +3</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">10K = +4</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">100K = +5</span>
+            </div>
+            <div className="text-center">
+              <a
+                href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
+              >
+                Buy on PumpFun
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -540,15 +614,6 @@ const Dashboard = ({
               </div>
             </button>
 
-            {/* How It Works icon - hidden on mobile, in hamburger menu */}
-            <button
-              onClick={() => setShowHowItWorks(true)}
-              className="hidden md:flex w-9 h-9 rounded-full bg-white/10 border border-white/20 items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200 ml-2"
-              title="How It Works"
-            >
-              <span className="text-sm font-bold">?</span>
-            </button>
-
             {/* Memeya X link - deep links to X app on mobile */}
             <a
               href="https://x.com/AiMemeForgeIO"
@@ -573,7 +638,7 @@ const Dashboard = ({
               <img src="/images/memeya-avatar.png" alt="Memeya" className="w-full h-full object-cover" />
             </a>
 
-            {/* Enhanced User Info - Hidden on mobile, shown in tabs area instead */}
+            {/* Desktop User Info + Settings */}
             <div className="hidden md:flex items-center space-x-2 md:space-x-6">
               <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                 <div className="text-center">
@@ -612,7 +677,133 @@ const Dashboard = ({
                 </div>
               </div>
 
-              <WalletConnection variant="secondary" showAddress={true} />
+              {/* Address + Settings Gear */}
+              <div className="relative" ref={settingsRef}>
+                <div className="flex items-center gap-2">
+                  {walletAddress && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      <span className="text-cyan-300 font-mono text-sm">{shortAddress}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                    className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200"
+                    title="Settings"
+                  >
+                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Settings Dropdown */}
+                {isSettingsOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                    <div className="py-1">
+                      {/* Wallet address with copy */}
+                      {walletAddress && (
+                        <button
+                          onClick={copyAddress}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            {copied ? (
+                              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                          </span>
+                          <div className="text-left">
+                            <div className="text-sm font-mono text-cyan-300">{shortAddress}</div>
+                            <div className="text-xs text-gray-500">{copied ? 'Copied!' : 'Copy address'}</div>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Export Private Key — only for embedded wallet users */}
+                      {hasEmbeddedWallet && (
+                        <button
+                          onClick={() => { exportWallet(); setIsSettingsOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                          </span>
+                          <span className="text-sm">Export Private Key</span>
+                        </button>
+                      )}
+
+                      {/* Divider */}
+                      <div className="border-t border-white/10 my-1" />
+
+                      {/* How It Works */}
+                      <button
+                        onClick={() => { setShowHowItWorks(true); setIsSettingsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 text-sm font-bold">?</span>
+                        <span className="text-sm">How It Works</span>
+                      </button>
+
+                      {/* Vote on Colosseum */}
+                      <a
+                        href="https://www.colosseum.org/projects/explore/ai-memeforge"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">🏛️</span>
+                        <span className="text-sm">Vote on Colosseum</span>
+                        <svg className="w-3.5 h-3.5 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+
+                      {/* GitHub */}
+                      <a
+                        href="https://github.com/sonyschan/SolanaHacker"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
+                        </span>
+                        <span className="text-sm">GitHub</span>
+                        <svg className="w-3.5 h-3.5 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+
+                      {/* Divider */}
+                      <div className="border-t border-white/10 my-1" />
+
+                      {/* Sign Out */}
+                      <button
+                        onClick={() => { logout(); setIsSettingsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </span>
+                        <span className="text-sm">Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Hamburger menu button - mobile only */}
@@ -645,9 +836,12 @@ const Dashboard = ({
             className="fixed left-0 right-0 top-[57px] z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
           >
             <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-              {/* Wallet address */}
+              {/* Wallet address with copy */}
               {walletAddress && (
-                <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5">
+                <button
+                  onClick={copyAddress}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5"
+                >
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   <span className="text-cyan-300 font-mono text-sm">
                     {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
@@ -655,7 +849,23 @@ const Dashboard = ({
                   {walletName && (
                     <span className="text-xs text-gray-500">{walletName}</span>
                   )}
-                </div>
+                  <span className="ml-auto text-xs text-gray-500">{copied ? 'Copied!' : 'Copy'}</span>
+                </button>
+              )}
+
+              {/* Export Private Key — only for embedded wallet users */}
+              {hasEmbeddedWallet && (
+                <button
+                  onClick={() => { exportWallet(); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium">Export Private Key</span>
+                </button>
               )}
 
               {/* How It Works */}

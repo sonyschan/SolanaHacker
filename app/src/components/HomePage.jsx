@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import WalletConnection from './WalletConnection';
+
+const MEMEYA_TOKEN_CA = '983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump';
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   const [weeklyVoters, setWeeklyVoters] = useState(0);
   const [totalMemes, setTotalMemes] = useState(0);
+  const [caCopied, setCaCopied] = useState(false);
+
+  const copyCA = useCallback(() => {
+    navigator.clipboard.writeText(MEMEYA_TOKEN_CA);
+    setCaCopied(true);
+    setTimeout(() => setCaCopied(false), 2000);
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -198,6 +207,56 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
               className="md:hidden w-full max-w-sm mx-auto rounded-2xl"
               loading="lazy"
             />
+          </div>
+        </div>
+
+        {/* $Memeya Token Banner */}
+        <div className="mb-20 md:mb-28">
+          <div className="max-w-3xl mx-auto bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border border-yellow-500/30 rounded-2xl p-8 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 animate-pulse" />
+            <div className="relative z-10">
+              <div className="text-4xl mb-3">&#129689;</div>
+              <h3 className="text-2xl md:text-3xl font-bold mb-2">
+                <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">$Memeya</span>
+                <span className="text-white"> — Official Token</span>
+              </h3>
+              <p className="text-gray-400 mb-6 max-w-xl mx-auto">
+                Hold $Memeya tokens to boost your daily ticket earnings! Bonus = floor(log<sub>10</sub>(tokens held)).
+              </p>
+
+              {/* CA Display */}
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <code className="text-sm md:text-base font-mono text-yellow-300 bg-black/30 px-4 py-2 rounded-lg border border-yellow-500/20 truncate max-w-[280px] md:max-w-none">
+                  {MEMEYA_TOKEN_CA}
+                </code>
+                <button
+                  onClick={copyCA}
+                  className="px-3 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium flex-shrink-0"
+                >
+                  {caCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              {/* Bonus Examples */}
+              <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10 tokens = +1</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">1K = +3</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10K = +4</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">100K = +5</span>
+              </div>
+
+              <a
+                href={`https://pump.fun/coin/${MEMEYA_TOKEN_CA}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl transition-all duration-200"
+              >
+                Buy on PumpFun
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
 
