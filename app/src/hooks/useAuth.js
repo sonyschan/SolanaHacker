@@ -1,4 +1,5 @@
-import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useExportWallet } from '@privy-io/react-auth/solana';
 
 export function useAuth() {
   const { ready, authenticated, user, login, logout } = usePrivy();
