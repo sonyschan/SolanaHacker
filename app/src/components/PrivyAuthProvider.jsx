@@ -17,7 +17,7 @@ export const PrivyAuthProvider = ({ children }) => {
           accentColor: '#06B6D4',
           logo: '/images/logo-48.png',
           walletChainType: 'solana-only',
-          walletList: ['phantom', 'solflare', 'detected_solana_wallets'],
+          walletList: ['detected_solana_wallets', 'phantom', 'solflare'],
         },
         loginMethods: ['google', 'twitter', 'wallet'],
         embeddedWallets: {
