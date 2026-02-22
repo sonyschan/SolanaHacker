@@ -790,7 +790,10 @@ const Dashboard = ({
                       {/* Export Private Key — only for embedded wallet users */}
                       {hasEmbeddedWallet && (
                         <button
-                          onClick={() => { exportWallet(); setIsSettingsOpen(false); }}
+                          onClick={async () => {
+                            setIsSettingsOpen(false);
+                            try { await exportWallet(); } catch (e) { console.error('Export wallet error:', e); }
+                          }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
                         >
                           <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
@@ -917,7 +920,10 @@ const Dashboard = ({
               {/* Export Private Key — only for embedded wallet users */}
               {hasEmbeddedWallet && (
                 <button
-                  onClick={() => { exportWallet(); setIsMenuOpen(false); }}
+                  onClick={async () => {
+                    setIsMenuOpen(false);
+                    try { await exportWallet(); } catch (e) { console.error('Export wallet error:', e); }
+                  }}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
                 >
                   <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
