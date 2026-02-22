@@ -25,6 +25,7 @@ const Dashboard = ({
   const [winMemes, setWinMemes] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
@@ -175,7 +176,14 @@ const Dashboard = ({
             <div className="text-2xl font-bold mb-2">1-10</div>
             <p className="text-sm text-gray-400">Random tickets per vote</p>
           </div>
-          <div className="bg-white/5 rounded-xl p-6">
+          <div className="bg-white/5 rounded-xl p-6 relative">
+            <button
+              onClick={() => setShowStreakInfo(true)}
+              className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-colors text-xs font-bold"
+              title="How streak bonus works"
+            >
+              !
+            </button>
             <h4 className="font-bold mb-2 text-green-400">Streak Bonus</h4>
             <div className="text-2xl font-bold mb-2">+{Math.min(votingStreak, 10)}</div>
             <p className="text-sm text-gray-400">{votingStreak} day{votingStreak !== 1 ? 's' : ''} consecutive (max +10)</p>
@@ -231,7 +239,7 @@ const Dashboard = ({
 
         {/* Lottery Strategy - Side by side cards */}
         <div className="mb-8 max-w-2xl mx-auto">
-          <h4 className="font-bold text-lg mb-4 text-purple-400">Lottery Strategy</h4>
+          <h4 className="font-bold text-xl md:text-2xl mb-4 text-purple-400">Your Lottery Strategy</h4>
           <div className="grid grid-cols-2 gap-4">
             {/* Enter Tonight */}
             <button
@@ -301,16 +309,58 @@ const Dashboard = ({
           </div>
         </div>
 
-        {/* Streak Bonus Infographic */}
-        <div className="mb-8">
-          <img
-            src="/images/streak-bonus-chart.png"
-            alt="Streak Bonus System: Base 1-10 tickets + streak bonus up to +10. Vote daily to earn more. Miss a day and streak resets to Day 1."
-            className="w-full max-w-3xl mx-auto rounded-xl border border-white/10"
-          />
-        </div>
-
       </div>
+
+      {/* Streak Bonus Info Modal */}
+      {showStreakInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowStreakInfo(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div
+            className="relative bg-gray-900 border border-white/10 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowStreakInfo(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all z-10"
+            >
+              &#10005;
+            </button>
+            <div className="p-6 md:p-8">
+              <h3 className="text-xl font-bold mb-4 text-green-400">Streak Bonus System</h3>
+              <p className="text-gray-400 text-sm mb-6">Vote daily to build your streak. Each consecutive day adds bonus tickets, up to +10.</p>
+
+              <div className="space-y-2 mb-6">
+                {[1,2,3,4,5,6,7,8,9,10].map(day => (
+                  <div key={day} className="flex items-center gap-3">
+                    <span className={`text-sm font-mono w-14 ${votingStreak >= day ? 'text-green-400' : 'text-gray-500'}`}>Day {day}</span>
+                    <div className="flex-1 bg-white/5 rounded-full h-4 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${votingStreak >= day ? 'bg-green-500/60' : 'bg-white/10'}`}
+                        style={{ width: `${day * 10}%` }}
+                      />
+                    </div>
+                    <span className={`text-sm font-bold w-8 text-right ${votingStreak >= day ? 'text-green-400' : 'text-gray-500'}`}>+{day}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-gray-400">
+                <p className="mb-2"><strong className="text-white">How it works:</strong></p>
+                <p>Vote every day to increase your streak. Miss a day and it resets to Day 1. The streak bonus stacks with your base roll (1-10) and $Memeya token bonus.</p>
+              </div>
+
+              <div className="text-center mt-6">
+                <button
+                  onClick={() => setShowStreakInfo(false)}
+                  className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl transition-all duration-200"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
