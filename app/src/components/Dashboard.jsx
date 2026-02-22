@@ -182,7 +182,7 @@ const Dashboard = ({
           </div>
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-yellow-400">$Memeya Bonus</h4>
-            <div className="text-2xl font-bold mb-2">+log&#8321;&#8320;</div>
+            <div className="text-2xl font-bold mb-2">+0</div>
             <p className="text-sm text-gray-400">Hold tokens for bonus tickets</p>
           </div>
         </div>
