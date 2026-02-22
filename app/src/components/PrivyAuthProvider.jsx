@@ -1,6 +1,11 @@
 import { PrivyProvider } from '@privy-io/react-auth';
+import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'cmlx57eat01ao0cjlud2vorx8';
+
+const solanaConnectors = toSolanaWalletConnectors({
+  shouldAutoConnect: true,
+});
 
 export const PrivyAuthProvider = ({ children }) => {
   return (
@@ -11,6 +16,8 @@ export const PrivyAuthProvider = ({ children }) => {
           theme: 'dark',
           accentColor: '#06B6D4',
           logo: '/images/logo-48.png',
+          walletChainType: 'solana-only',
+          walletList: ['phantom', 'solflare', 'detected_solana_wallets'],
         },
         loginMethods: ['google', 'twitter', 'wallet'],
         embeddedWallets: {
@@ -19,6 +26,11 @@ export const PrivyAuthProvider = ({ children }) => {
         solanaClusters: [
           { name: 'devnet', rpcUrl: 'https://api.devnet.solana.com' },
         ],
+        externalWallets: {
+          solana: {
+            connectors: solanaConnectors,
+          },
+        },
       }}
     >
       {children}
