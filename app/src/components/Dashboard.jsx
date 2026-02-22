@@ -814,16 +814,16 @@ const Dashboard = ({
                         <span className="text-sm">How It Works</span>
                       </button>
 
-                      {/* Vote on Colosseum */}
+                      {/* Buy $Memeya */}
                       <a
-                        href="https://www.colosseum.org/projects/explore/ai-memeforge"
+                        href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsSettingsOpen(false)}
                         className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
                       >
-                        <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">🏛️</span>
-                        <span className="text-sm">Vote on Colosseum</span>
+                        <span className="w-7 h-7 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0 text-sm">&#129689;</span>
+                        <span className="text-sm text-yellow-400">Buy $Memeya</span>
                         <svg className="w-3.5 h-3.5 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -938,16 +938,16 @@ const Dashboard = ({
                 <span className="text-sm font-medium">How It Works</span>
               </button>
 
-              {/* Vote on Colosseum */}
+              {/* Buy $Memeya */}
               <a
-                href="https://www.colosseum.org/projects/explore/ai-memeforge"
+                href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsMenuOpen(false)}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
               >
-                <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">🏛️</span>
-                <span className="text-sm font-medium">Vote on Colosseum</span>
+                <span className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-sm">&#129689;</span>
+                <span className="text-sm font-medium text-yellow-400">Buy $Memeya</span>
                 <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
