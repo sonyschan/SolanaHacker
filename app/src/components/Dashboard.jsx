@@ -792,7 +792,7 @@ const Dashboard = ({
                         <button
                           onClick={async () => {
                             setIsSettingsOpen(false);
-                            try { await exportWallet(); } catch (e) { console.error('Export wallet error:', e); }
+                            try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
                         >
@@ -922,7 +922,7 @@ const Dashboard = ({
                 <button
                   onClick={async () => {
                     setIsMenuOpen(false);
-                    try { await exportWallet(); } catch (e) { console.error('Export wallet error:', e); }
+                    try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
                 >

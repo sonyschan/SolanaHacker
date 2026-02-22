@@ -37,10 +37,9 @@ export function useAuth() {
 
   const isGoogleUser = user?.linkedAccounts?.some((a) => a.type === 'google_oauth') || false;
 
+  // Check linkedAccounts only (wallets array can give false positives)
   const hasEmbeddedWallet = user?.linkedAccounts?.some(
-    (a) => a.type === 'wallet' && (a.walletClientType === 'privy' || a.walletClient === 'privy')
-  ) || wallets.some(
-    (w) => w.walletClientType === 'privy'
+    (a) => a.type === 'wallet' && a.walletClientType === 'privy'
   ) || false;
 
   return {
