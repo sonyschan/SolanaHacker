@@ -1,8 +1,9 @@
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
 
 export function useAuth() {
   const { ready, authenticated, user, login, logout } = usePrivy();
   const { wallets } = useWallets();
+  const { exportWallet } = useExportWallet();
 
   // Derive walletAddress: prefer external Solana wallet, fall back to embedded/linked
   let walletAddress = null;
@@ -36,6 +37,12 @@ export function useAuth() {
 
   const isGoogleUser = user?.linkedAccounts?.some((a) => a.type === 'google_oauth') || false;
 
+  const hasEmbeddedWallet = user?.linkedAccounts?.some(
+    (a) => a.type === 'wallet' && (a.walletClientType === 'privy' || a.walletClient === 'privy')
+  ) || wallets.some(
+    (w) => w.walletClientType === 'privy'
+  ) || false;
+
   return {
     ready,
     authenticated,
@@ -43,6 +50,8 @@ export function useAuth() {
     walletName,
     shortAddress,
     isGoogleUser,
+    hasEmbeddedWallet,
+    exportWallet,
     login,
     logout,
     user,
