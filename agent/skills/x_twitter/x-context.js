@@ -210,17 +210,21 @@ export function loadRecentPosts(baseDir, maxPosts = 15) {
       .sort()
       .slice(-3);
     for (const file of files.reverse()) {
+      const date = file.replace('.md', '');
       const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
       const blocks = content.split(/^## /m).filter(Boolean);
-      for (const block of blocks) {
+      for (const block of blocks.reverse()) {
+        const timeMatch = block.match(/^(\d{2}:\d{2}:\d{2})/);
         const postedMatch = block.match(/- Posted: (.+)/);
         const topicMatch = block.match(/- Topic: (.+)/);
         const urlMatch = block.match(/- URL: (.+)/);
         if (postedMatch) {
+          const time = timeMatch ? timeMatch[1] : '';
           posts.push({
             text: postedMatch[1].trim(),
             topic: topicMatch ? topicMatch[1].trim() : null,
             url: urlMatch ? urlMatch[1].trim() : null,
+            timestamp: time ? `${date} ${time}` : date,
           });
           if (posts.length >= maxPosts) return posts;
         }

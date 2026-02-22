@@ -170,7 +170,7 @@ export function createExecutors(deps) {
       for (const file of files.reverse()) {
         const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
         const blocks = content.split(/^## /m).filter(Boolean);
-        for (const block of blocks) {
+        for (const block of blocks.reverse()) {
           const postedMatch = block.match(/- Posted: (.+)/);
           if (postedMatch) {
             posts.push(postedMatch[1].trim());

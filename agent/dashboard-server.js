@@ -194,28 +194,31 @@ const server = http.createServer((req, res) => {
         journalSnippet = text.slice(-500);
       } catch { /* ignore */ }
 
-      // Load recent posts summary with topic (mirrors x-context.js:loadRecentPosts)
+      // Load recent posts summary with topic, ordered by publish time desc
       let recentPostsSummary = '(no recent posts)';
       try {
         const diaryDir = path.join(BASE_DIR, 'memory/journal/memeya');
         const dFiles = fs.readdirSync(diaryDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)).sort().slice(-3);
         const posts = [];
         for (const f of dFiles.reverse()) {
+          const date = f.replace('.md', '');
           const c = fs.readFileSync(path.join(diaryDir, f), 'utf-8');
           const blocks = c.split(/^## /m).filter(Boolean);
-          for (const b of blocks) {
+          for (const b of blocks.reverse()) {
+            const timeMatch = b.match(/^(\d{2}:\d{2}:\d{2})/);
             const postedMatch = b.match(/- Posted: (.+)/);
             const topicMatch = b.match(/- Topic: (.+)/);
             if (postedMatch) {
               const text = postedMatch[1].trim();
               const topic = topicMatch ? topicMatch[1].trim() : '';
-              posts.push(topic ? `[${topic}] ${text}` : text);
+              const ts = timeMatch ? `${date} ${timeMatch[1]}` : date;
+              posts.push(topic ? `(${ts}) [${topic}] ${text}` : `(${ts}) ${text}`);
               if (posts.length >= 15) break;
             }
           }
           if (posts.length >= 15) break;
         }
-        if (posts.length) recentPostsSummary = posts.map((p, i) => `${i + 1}. ${p.slice(0, 120)}`).join('\n');
+        if (posts.length) recentPostsSummary = posts.map((p, i) => `${i + 1}. ${p.slice(0, 140)}`).join('\n');
       } catch { /* ignore */ }
 
       const composedSystem = memeyaPrompt;
