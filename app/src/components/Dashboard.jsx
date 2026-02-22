@@ -597,7 +597,7 @@ const Dashboard = ({
       </div>
 
       {/* Enhanced Header - Mobile Responsive */}
-      <header className="relative z-10 backdrop-blur-sm border-b border-white/10">
+      <header className="relative z-20 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
           <div className="flex justify-between items-center">
             <button onClick={() => setActiveTab('forge')} className="flex items-center space-x-2 md:space-x-4 cursor-pointer hover:opacity-80 transition-opacity">
@@ -700,7 +700,7 @@ const Dashboard = ({
 
                 {/* Settings Dropdown */}
                 {isSettingsOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] isolate">
                     <div className="py-1">
                       {/* Wallet address with copy */}
                       {walletAddress && (
