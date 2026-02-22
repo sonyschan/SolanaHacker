@@ -763,51 +763,6 @@ const Dashboard = ({
                 {isSettingsOpen && (
                   <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] isolate">
                     <div className="py-1">
-                      {/* Wallet address with copy */}
-                      {walletAddress && (
-                        <button
-                          onClick={copyAddress}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
-                        >
-                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                            {copied ? (
-                              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                          </span>
-                          <div className="text-left">
-                            <div className="text-sm font-mono text-cyan-300">{shortAddress}</div>
-                            <div className="text-xs text-gray-500">{copied ? 'Copied!' : 'Copy address'}</div>
-                          </div>
-                        </button>
-                      )}
-
-                      {/* Export Private Key — only for embedded wallet users */}
-                      {hasEmbeddedWallet && (
-                        <button
-                          onClick={async () => {
-                            setIsSettingsOpen(false);
-                            try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
-                        >
-                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                            </svg>
-                          </span>
-                          <span className="text-sm">Export Private Key</span>
-                        </button>
-                      )}
-
-                      {/* Divider */}
-                      <div className="border-t border-white/10 my-1" />
-
                       {/* How It Works */}
                       <button
                         onClick={() => { setShowHowItWorks(true); setIsSettingsOpen(false); }}
@@ -851,6 +806,48 @@ const Dashboard = ({
 
                       {/* Divider */}
                       <div className="border-t border-white/10 my-1" />
+
+                      {/* Wallet address with copy */}
+                      {walletAddress && (
+                        <button
+                          onClick={copyAddress}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            {copied ? (
+                              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                          </span>
+                          <div className="text-left">
+                            <div className="text-sm font-mono text-cyan-300">{shortAddress}</div>
+                            <div className="text-xs text-gray-500">{copied ? 'Copied!' : 'Copy address'}</div>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Export Private Key — only for embedded wallet users */}
+                      {hasEmbeddedWallet && (
+                        <button
+                          onClick={async () => {
+                            setIsSettingsOpen(false);
+                            try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                          </span>
+                          <span className="text-sm">Export Private Key</span>
+                        </button>
+                      )}
 
                       {/* Sign Out */}
                       <button
@@ -900,41 +897,6 @@ const Dashboard = ({
             className="fixed left-0 right-0 top-[57px] z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
           >
             <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-              {/* Wallet address with copy */}
-              {walletAddress && (
-                <button
-                  onClick={copyAddress}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5"
-                >
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-cyan-300 font-mono text-sm">
-                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                  </span>
-                  {walletName && (
-                    <span className="text-xs text-gray-500">{walletName}</span>
-                  )}
-                  <span className="ml-auto text-xs text-gray-500">{copied ? 'Copied!' : 'Copy'}</span>
-                </button>
-              )}
-
-              {/* Export Private Key — only for embedded wallet users */}
-              {hasEmbeddedWallet && (
-                <button
-                  onClick={async () => {
-                    setIsMenuOpen(false);
-                    try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </span>
-                  <span className="text-sm font-medium">Export Private Key</span>
-                </button>
-              )}
-
               {/* How It Works */}
               <button
                 onClick={() => { setShowHowItWorks(true); setIsMenuOpen(false); }}
@@ -979,7 +941,42 @@ const Dashboard = ({
               {/* Divider */}
               <div className="border-t border-white/10 my-1" />
 
-              {/* Disconnect */}
+              {/* Wallet address with copy */}
+              {walletAddress && (
+                <button
+                  onClick={copyAddress}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-white/5"
+                >
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-cyan-300 font-mono text-sm">
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                  </span>
+                  {walletName && (
+                    <span className="text-xs text-gray-500">{walletName}</span>
+                  )}
+                  <span className="ml-auto text-xs text-gray-500">{copied ? 'Copied!' : 'Copy'}</span>
+                </button>
+              )}
+
+              {/* Export Private Key — only for embedded wallet users */}
+              {hasEmbeddedWallet && (
+                <button
+                  onClick={async () => {
+                    setIsMenuOpen(false);
+                    try { await exportWallet(); } catch (e) { alert('Unable to export wallet. Your wallet may not support key export.'); }
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium">Export Private Key</span>
+                </button>
+              )}
+
+              {/* Sign Out */}
               <button
                 onClick={() => { logout(); setIsMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
@@ -989,7 +986,7 @@ const Dashboard = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                 </span>
-                <span className="text-sm font-medium">Disconnect</span>
+                <span className="text-sm font-medium">Sign Out</span>
               </button>
             </div>
           </div>
