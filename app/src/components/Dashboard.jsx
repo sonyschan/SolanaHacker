@@ -664,28 +664,39 @@ const Dashboard = ({
               </div>
             </button>
 
-            {/* Memeya X link - deep links to X app on mobile */}
+            {/* Memeya X link with speech bubble */}
             <a
               href="https://x.com/AiMemeForgeIO"
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                if (!isMobile) return; // desktop: normal link behavior
+                if (!isMobile) return;
                 e.preventDefault();
                 const webUrl = 'https://x.com/AiMemeForgeIO';
                 const appUrl = 'twitter://user?screen_name=AiMemeForgeIO';
                 const start = Date.now();
                 window.location.href = appUrl;
                 setTimeout(() => {
-                  // If still here after 1.5s, app didn't open — fall back to web
                   if (Date.now() - start < 2000) window.open(webUrl, '_blank');
                 }, 1500);
               }}
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_rgba(34,211,238,0.2)] transition-all duration-200 flex-shrink-0"
+              className="group relative flex items-center gap-2 flex-shrink-0"
               title="@AiMemeForgeIO on X"
             >
-              <img src="/images/memeya-avatar.png" alt="Memeya" className="w-full h-full object-cover" />
+              {/* Speech bubble */}
+              <div className="hidden md:flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
+                <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
+              </div>
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden border-2 border-cyan-400/40 group-hover:border-cyan-400/80 group-hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all duration-300">
+                  <img src="/images/memeya-avatar.png" alt="Memeya" className="w-full h-full object-cover" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-black rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </div>
+              </div>
             </a>
 
             {/* Desktop User Info + Settings */}
