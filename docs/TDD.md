@@ -2,7 +2,7 @@
 
 > 系統架構、API 規格、資料模型、部署配置、實作規劃與開發進度追蹤
 
-*最後更新: 2026-02-20*
+*最後更新: 2026-02-22*
 
 ---
 
@@ -32,7 +32,7 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 │                     Frontend (Vercel)                           │
 │                https://solana-hacker.vercel.app                 │
 │                                                                 │
-│  React + Vite + Tailwind CSS + Solana Web3.js                   │
+│  React + Vite + Tailwind CSS + Privy SDK + Solana Web3.js        │
 │                                                                 │
 │  READ: Firebase SDK 直連 (即時同步 onSnapshot)                   │
 │  WRITE: Cloud Run API (驗證 + 防刷)                              │
@@ -78,7 +78,7 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 |------|------|------|
 | Frontend | React + Vite | SPA，Vercel 部署 |
 | Styling | Tailwind CSS | 響應式設計 |
-| Wallet | Solana Web3.js | Phantom, Solflare 等 |
+| Auth & Wallet | Privy SDK (`@privy-io/react-auth`) | Google 登入 (embedded wallet) + Phantom/Solflare 連接 |
 | Backend | Node.js + Express | API 服務，Cloud Run 部署 |
 | Database | Firebase/Firestore | 即時資料庫 |
 | Storage | Google Cloud Storage | 梗圖圖片 (Uniform Bucket-Level Access) |
@@ -130,11 +130,14 @@ AI 生成梗圖 → 社群投票 → 選出每日贏家 → 每日抽獎選出�
 
 | 檔案 | 用途 |
 |------|------|
+| `src/components/PrivyAuthProvider.jsx` | Privy SDK 初始化 + 認證 Provider |
+| `src/hooks/useAuth.js` | 統一認證 Hook (Privy login/logout, wallet, exportWallet) |
 | `src/services/firebase.js` | Firebase Client SDK + 即時監聽 |
 | `src/services/memeService.js` | API 服務層 (Cloud Run 呼叫) |
 | `src/hooks/useFirebase.js` | useTodayMemes, useVoteStats 等 Hooks |
+| `src/components/Dashboard.jsx` | 主 Dashboard (設定選單, 私鑰匯出, tabs) |
 | `src/components/ForgeTab.jsx` | 主投票頁面 |
-| `src/components/GalleryTab.jsx` | Hall of Memes 歷史展示 |
+| `src/components/GalleryTab.jsx` | Hall of Memes 歷史展示 (Top Voted 篩選 + #1 badge) |
 | `src/components/MemeModal.jsx` | 梗圖大圖 + 投票 + 分享按鈕 |
 | `src/components/ModalOverlay.jsx` | Modal 基礎組件 (React Portal) |
 
@@ -381,28 +384,46 @@ gcloud scheduler jobs create http memeforge-lottery-draw \
 
 ## 7. 認證與安全
 
-### 7.1 錢包簽名驗證
+### 7.1 Privy 認證系統
 
+MemeForge 使用 **Privy SDK** (`@privy-io/react-auth`) 處理用戶認證，支援多種登入方式：
+
+**登入方式:**
+| 方式 | 錢包類型 | 說明 |
+|------|---------|------|
+| Google OAuth | Embedded wallet (Privy 管理) | 零門檻，自動建立 Solana 錢包 |
+| Phantom | External wallet | 直接連接用戶既有錢包 |
+| Solflare | External wallet | 直接連接用戶既有錢包 |
+
+**Embedded Wallet 私鑰匯出:**
+- Google 登入用戶的 embedded wallet 由 Privy 管理
+- 用戶可從 Dashboard 設定選單點擊「Export Private Key」
+- 調用 `useExportWallet()` hook，開啟 Privy 安全 modal 讓用戶查看/複製私鑰
+- 僅 embedded wallet 用戶可見此選項（外部錢包用戶不顯示）
+
+**Frontend 認證 Hook (`useAuth.js`):**
 ```javascript
-// Frontend: 錢包簽名
-const authenticateWallet = async (wallet) => {
-  const nonce = Date.now().toString() + Math.random().toString(36);
-  const message = `MemeForge Login\nNonce: ${nonce}\nTimestamp: ${new Date().toISOString()}`;
-  const encodedMessage = new TextEncoder().encode(message);
-  const signature = await wallet.signMessage(encodedMessage);
-  // 發送 walletAddress + message + signature 到後端驗證
-};
+import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
 
-// Backend: 驗證簽名
-const verifyWalletSignature = async (walletAddress, message, signature) => {
-  const { PublicKey } = require('@solana/web3.js');
-  const nacl = require('tweetnacl');
-  const publicKey = new PublicKey(walletAddress);
-  const messageBytes = new TextEncoder().encode(message);
-  const signatureBytes = new Uint8Array(signature);
-  return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKey.toBytes());
-};
+export function useAuth() {
+  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { wallets } = useWallets();
+  const { exportWallet } = useExportWallet();
+
+  // Wallet address: 優先外部 Solana 錢包，fallback embedded wallet
+  // hasEmbeddedWallet: 檢測 linkedAccounts 中 walletClientType === 'privy'
+  // isGoogleUser: 檢測 linkedAccounts 中 type === 'google_oauth'
+
+  return { ready, authenticated, walletAddress, shortAddress, walletName,
+           isGoogleUser, hasEmbeddedWallet, exportWallet, login, logout, user };
+}
 ```
+
+**Privy 設定 (`PrivyAuthProvider.jsx`):**
+- App ID: 環境變數 `VITE_PRIVY_APP_ID`
+- 支援 Solana chain
+- Login methods: `['google', 'wallet']`
+- Embedded wallet: `createOnLogin: 'users-without-wallets'` (Google 用戶自動建立)
 
 ### 7.2 防刷機制
 
@@ -482,6 +503,7 @@ FIREBASE_PRIVATE_KEY=<firebase-private-key-pem-format>
 **Frontend (Vercel)**
 ```bash
 VITE_API_BASE_URL=https://memeforge-api-836651762884.asia-southeast1.run.app
+VITE_PRIVY_APP_ID=<privy-app-id>
 VITE_FIREBASE_API_KEY=<firebase-web-api-key>
 VITE_FIREBASE_PROJECT_ID=web3ai-469609
 VITE_FIREBASE_AUTH_DOMAIN=web3ai-469609.firebaseapp.com
@@ -879,7 +901,9 @@ async runDailyLottery() {
 
 ### 前端 UI
 
-- [x] 錢包連接 (Phantom, Solflare)
+- [x] Privy 認證整合 (Google 登入 + Phantom/Solflare 錢包連接)
+- [x] Embedded wallet 私鑰匯出 (useExportWallet, 設定選單)
+- [x] Dashboard 設定選單 (gear icon dropdown: 地址複製、私鑰匯出、How It Works、外部連結、Sign Out)
 - [x] 每日梗圖展示 (ForgeTab)
 - [x] 投票界面 + 即時統計
 - [x] 梗圖大圖 Modal (MemeModal)
@@ -913,7 +937,7 @@ async runDailyLottery() {
 - [x] lottery_draw Cloud Scheduler job 建立 (每日 23:55 UTC)
 - [x] Frontend: opt-in/opt-out toggle
 - [x] Frontend: 「My Wins」Dashboard 區域 (中獎紀錄 + Claim 入口)
-- [x] Frontend: Gallery 贏家 Owner badge
+- [x] Frontend: Gallery #1 最高票 badge + Top Voted 篩選 (區別於 Winners tab 抽獎人類贏家)
 - [x] 邊界處理: 0 參與者、1 參與者、0 投票
 
 ### Phase 2: NFT Claim & 鑄造
@@ -939,4 +963,4 @@ async runDailyLottery() {
 
 ---
 
-*最後更新: 2026-02-20*
+*最後更新: 2026-02-22*

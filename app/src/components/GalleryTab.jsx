@@ -112,7 +112,7 @@ const GalleryTab = () => {
                 : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
             }`}
           >
-            🏆 Winners Only
+            #1 Top Voted
           </button>
         </div>
       </div>
@@ -252,7 +252,7 @@ const GalleryTab = () => {
                           {/* Winner Badge */}
                           {meme.isWinner && (
                             <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                              🏆 WINNER
+                              #1
                             </div>
                           )}
 
@@ -323,7 +323,7 @@ const GalleryTab = () => {
               <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                 {selectedMeme.isWinner && (
                   <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 md:px-3 py-1 rounded-full">
-                    🏆 DAILY WINNER
+                    #1 MOST VOTED
                   </span>
                 )}
                 <span className="text-gray-400 text-sm">
