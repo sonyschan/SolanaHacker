@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useAuth } from '../hooks/useAuth';
 import WalletConnection from './WalletConnection';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
@@ -18,7 +18,7 @@ const Dashboard = ({
   setVotingStreak,
   walletAddress
 }) => {
-  const { disconnect, publicKey, wallet } = useWallet();
+  const { logout, walletName } = useAuth();
   const [activeTab, setActiveTab] = useState('forge');
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -652,8 +652,8 @@ const Dashboard = ({
                   <span className="text-cyan-300 font-mono text-sm">
                     {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                   </span>
-                  {wallet && (
-                    <img src={wallet.adapter.icon} alt={wallet.adapter.name} className="w-5 h-5 rounded" />
+                  {walletName && (
+                    <span className="text-xs text-gray-500">{walletName}</span>
                   )}
                 </div>
               )}
@@ -704,7 +704,7 @@ const Dashboard = ({
 
               {/* Disconnect */}
               <button
-                onClick={() => { disconnect(); setIsMenuOpen(false); }}
+                onClick={() => { logout(); setIsMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
               >
                 <span className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">

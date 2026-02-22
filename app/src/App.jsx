@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useAuth } from "./hooks/useAuth";
 import HomePage from "./components/HomePage";
 import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
@@ -9,7 +9,7 @@ import "./styles/placeholders.css";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://memeforge-api-836651762884.asia-southeast1.run.app";
 
 function App() {
-  const { connected, connecting, publicKey } = useWallet();
+  const { authenticated, ready, walletAddress } = useAuth();
   const [currentView, setCurrentView] = useState("home");
   const [userTickets, setUserTickets] = useState(0);
   const [votingStreak, setVotingStreak] = useState(0);
@@ -17,21 +17,20 @@ function App() {
   const [nftWins, setNftWins] = useState([]);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
-  // Fetch user data from API when wallet connects - v2 fix
+  // Fetch user data from API when wallet connects
   useEffect(() => {
-    console.log("🔍 App useEffect: connected=", connected, "publicKey=", publicKey?.toBase58());
+    console.log("App useEffect: authenticated=", authenticated, "walletAddress=", walletAddress);
 
     const fetchUserData = async () => {
-      if (!connected || !publicKey) {
-        console.log("⏭️ Skipping user fetch: not connected");
+      if (!authenticated || !walletAddress) {
+        console.log("Skipping user fetch: not authenticated");
         return;
       }
 
-      const walletAddress = publicKey.toBase58();
       setUserDataLoading(true);
 
       try {
-        console.log("📊 獲取用戶數據:", walletAddress);
+        console.log("Fetching user data:", walletAddress);
         const response = await fetch(`${API_BASE_URL}/api/users/${walletAddress}`);
         const data = await response.json();
 
@@ -40,31 +39,22 @@ function App() {
           setVotingStreak(data.user.streakDays || 0);
           setLotteryOptIn(data.user.lotteryOptIn !== false);
           setNftWins(data.user.nftWins || []);
-          console.log("✅ 用戶數據:", {
-            tickets: data.user.weeklyTickets,
-            streak: data.user.streakDays,
-            lotteryOptIn: data.user.lotteryOptIn,
-            nftWins: (data.user.nftWins || []).length
-          });
         }
       } catch (error) {
-        console.error("❌ 獲取用戶數據失敗:", error);
-        // Keep default values (0) on error
+        console.error("Failed to fetch user data:", error);
       } finally {
         setUserDataLoading(false);
       }
     };
 
     fetchUserData();
-  }, [connected, publicKey]);
+  }, [authenticated, walletAddress]);
 
-  // Auto-switch to dashboard when wallet connects
+  // Auto-switch to dashboard when authenticated
   useEffect(() => {
-    if (connected && publicKey) {
+    if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else {
-      // For testing: Allow dashboard view without wallet connection
-      // In production, remove this and only show dashboard when connected
       const urlHash = window.location.hash;
       if (urlHash === "#dashboard") {
         setCurrentView("dashboard");
@@ -72,7 +62,7 @@ function App() {
         setCurrentView("home");
       }
     }
-  }, [connected, publicKey]);
+  }, [authenticated, walletAddress]);
 
   // Listen for hash changes to support direct dashboard navigation
   useEffect(() => {
@@ -87,25 +77,17 @@ function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  // Mock wallet connection (for backward compatibility)
-  const connectWallet = () => {
-    // This will be handled by the real wallet connection now
-    console.log("Use WalletConnection component instead");
-  };
-
-  const disconnectWallet = () => {
-    // This will be handled by the real wallet disconnection now
-    console.log("Use WalletConnection component instead");
-  };
+  // Show nothing until Privy is ready
+  if (!ready) {
+    return null;
+  }
 
   return (
     <div className="app min-h-screen flex flex-col">
       <div className="flex-grow">
         {currentView === "home" ? (
-          <HomePage 
-            onConnectWallet={connectWallet}
-            walletConnected={connected}
-            connecting={connecting}
+          <HomePage
+            walletConnected={authenticated}
           />
         ) : (
           <Dashboard
@@ -114,10 +96,9 @@ function App() {
             lotteryOptIn={lotteryOptIn}
             setLotteryOptIn={setLotteryOptIn}
             nftWins={nftWins}
-            onDisconnectWallet={disconnectWallet}
             setUserTickets={setUserTickets}
             setVotingStreak={setVotingStreak}
-            walletAddress={publicKey?.toBase58()}
+            walletAddress={walletAddress}
             userDataLoading={userDataLoading}
           />
         )}

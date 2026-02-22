@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { SolanaWalletProvider } from './components/SolanaWalletProvider'
+import { PrivyAuthProvider } from './components/PrivyAuthProvider'
 import ErrorBoundary from './ErrorBoundary'
 
 console.log('AI MemeForge: main.jsx loaded');
@@ -13,9 +13,9 @@ document.documentElement.classList.add('app-loaded');
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <SolanaWalletProvider>
+      <PrivyAuthProvider>
         <App />
-      </SolanaWalletProvider>
+      </PrivyAuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 )
