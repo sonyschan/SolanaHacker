@@ -19,11 +19,6 @@ export const PrivyAuthProvider = ({ children }) => {
         solanaClusters: [
           { name: 'devnet', rpcUrl: 'https://api.devnet.solana.com' },
         ],
-        externalWallets: {
-          solana: {
-            connectors: ['phantom', 'solflare'],
-          },
-        },
       }}
     >
       {children}
