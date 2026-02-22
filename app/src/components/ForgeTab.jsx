@@ -614,7 +614,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             {/* Info lines */}
             <div className="text-sm text-gray-400 space-y-1 mb-6">
               <p>📅 Daily lottery draw at 23:55 UTC</p>
-              <p>🚀 NFT minting & SOL rewards coming soon!</p>
+              <p>🚀 NFT minting coming soon!</p>
             </div>
 
             <button
