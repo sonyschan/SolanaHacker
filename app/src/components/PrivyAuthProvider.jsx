@@ -21,7 +21,7 @@ export const PrivyAuthProvider = ({ children }) => {
         },
         loginMethods: ['google', 'twitter', 'wallet'],
         embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
+          createOnLogin: 'all-users',
         },
         solanaClusters: [
           { name: 'devnet', rpcUrl: 'https://api.devnet.solana.com' },
