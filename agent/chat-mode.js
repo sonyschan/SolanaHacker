@@ -1900,12 +1900,11 @@ ${recentMemory.slice(-1500)}
     const now = new Date();
     const hk = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Hong_Kong' }));
     if (hk.getDay() !== 0) return false; // Sunday only
-    if (hk.getHours() !== 9) return false; // 9am only
-    // Biweekly: use ISO week number, even weeks
-    const start = new Date(hk.getFullYear(), 0, 1);
-    const dayOfYear = Math.floor((hk - start) / 86400000);
-    const weekNum = Math.floor(dayOfYear / 7);
-    return weekNum % 2 === 0;
+    if (hk.getHours() < 9 || hk.getHours() > 10) return false; // 9-10am window (catches 60min heartbeat)
+    // Biweekly: count weeks since a fixed epoch (Jan 5 2026, a known Sunday)
+    const epoch = new Date(2026, 0, 5);
+    const weeksSinceEpoch = Math.floor((hk - epoch) / (7 * 86400000));
+    return weeksSinceEpoch % 2 === 0;
   }
 
   /**

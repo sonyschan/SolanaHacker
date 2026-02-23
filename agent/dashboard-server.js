@@ -178,8 +178,8 @@ const server = http.createServer((req, res) => {
     try {
       const skillSrc = safeRead(path.join(__dirname, 'skills/x_twitter/index.js')) || '';
       // Extract MEMEYA_PROMPT from backtick template literal
-      const promptMatch = skillSrc.match(/const MEMEYA_PROMPT\s*=\s*`([\s\S]*?)`;/);
-      const memeyaPrompt = promptMatch ? promptMatch[1] : '(could not extract MEMEYA_PROMPT)';
+      const promptMatch = skillSrc.match(/const MEMEYA_PROMPT_BASE\s*=\s*`([\s\S]*?)`;/);
+      const memeyaPrompt = promptMatch ? promptMatch[1] : '(could not extract MEMEYA_PROMPT_BASE)';
 
       const valuesSnippet = (safeRead(path.join(BASE_DIR, 'memory/knowledge/memeya_values.md')) || '').slice(0, 300);
 
@@ -419,7 +419,7 @@ const server = http.createServer((req, res) => {
               randomPastMeme: context.randomPastMeme ? `"${context.randomPastMeme.topText || ''} ${context.randomPastMeme.bottomText || ''}"`.trim() : null,
               commits: context.commits.slice(0, 5),
               journalChars: context.journal.length,
-              valuesChars: context.values.length,
+              valuesChars: 0, // values now in buildSystemPrompt, not gatherContext
               recentPosts: context.recentPosts.map(p => ({
                 text: (p.text || p).slice(0, 80),
                 topic: p.topic || null,

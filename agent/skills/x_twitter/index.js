@@ -255,7 +255,7 @@ export function createExecutors(deps) {
 
       let journalSnippet = '';
       try {
-        const journalDir = path.join(baseDir, 'memory/journal');
+        const journalDir = path.join(baseDir, 'memory/journal/memeya');
         const files = fs.readdirSync(journalDir).filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/)).sort();
         const latest = files[files.length - 1];
         if (latest) {
@@ -423,7 +423,7 @@ export function createExecutors(deps) {
     if (isBored) {
       // Generate a bored Memeya moment — either an action or lazy speech — and post it instead
       const boredTweet = await callGrok(apiKey, [
-        { role: 'system', content: MEMEYA_PROMPT },
+        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: [
