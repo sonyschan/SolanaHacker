@@ -17,8 +17,8 @@ const { getFirestore, collections } = require('../config/firebase');
 router.get('/comments/:memeId', async (req, res) => {
   try {
     const { memeId } = req.params;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = parseInt(req.query.offset) || 0;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 20;
 
     // Look up tapestryContentId from Firestore
     const db = getFirestore();
@@ -33,15 +33,15 @@ router.get('/comments/:memeId', async (req, res) => {
       return res.json({ success: true, comments: [], total: 0 });
     }
 
-    const result = await tapestryService.getComments(contentId, limit, offset);
+    const result = await tapestryService.getComments(contentId, page, pageSize);
 
-    // Normalize response — Tapestry may return different shapes
-    const comments = (result.comments || result || []).map(c => ({
-      id: c.id || c.comment?.id,
-      text: c.text || c.comment?.text,
-      createdAt: c.createdAt || c.comment?.createdAt,
+    // Normalize Tapestry response: { comments: [{ comment: { id, text, created_at }, author: { id, username } }] }
+    const comments = (result.comments || []).map(c => ({
+      id: c.comment?.id,
+      text: c.comment?.text,
+      createdAt: c.comment?.created_at,
       author: {
-        id: c.author?.id || c.profileId,
+        id: c.author?.id,
         username: c.author?.username || 'anon',
       },
     }));
@@ -67,8 +67,8 @@ router.get('/comments/:memeId/count', async (req, res) => {
       return res.json({ success: true, count: 0 });
     }
 
-    const result = await tapestryService.getComments(memeDoc.data().tapestryContentId, 1, 0);
-    const count = result.total || (result.comments || result || []).length || 0;
+    const result = await tapestryService.getComments(memeDoc.data().tapestryContentId, 1, 100);
+    const count = (result.comments || []).length;
 
     res.json({ success: true, count });
   } catch (error) {

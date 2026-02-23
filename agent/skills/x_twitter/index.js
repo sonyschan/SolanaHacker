@@ -605,22 +605,20 @@ export async function autoPost({ baseDir, grokApiKey }) {
 
     // Mirror to Tapestry (non-fatal)
     try {
-      const tapestryApiUrl = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/v1';
+      const tapestryApiUrl = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/api/v1';
       const tapestryKey = process.env.TAPESTRY_API_KEY;
       const memeyaProfileId = process.env.MEMEYA_TAPESTRY_PROFILE_ID;
 
       if (tapestryKey && memeyaProfileId) {
-        await fetch(`${tapestryApiUrl}/contents/create?apiKey=${tapestryKey}`, {
+        await fetch(`${tapestryApiUrl}/contents/findOrCreate?apiKey=${tapestryKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            id: `memeya_x_${Date.now()}`,
             profileId: memeyaProfileId,
-            content: tweet,
-            contentType: 'text',
-            blockchain: 'SOLANA',
-            execution: 'FAST_UNCONFIRMED',
-            customProperties: [
+            properties: [
               { key: 'source', value: 'memeya_agent' },
+              { key: 'text', value: tweet },
               { key: 'topic', value: topicChoice.topic },
               { key: 'x_url', value: url },
             ],

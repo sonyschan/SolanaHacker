@@ -11,7 +11,7 @@
 
 const { getFirestore, collections } = require('../config/firebase');
 
-const TAPESTRY_API = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/v1';
+const TAPESTRY_API = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/api/v1';
 const TAPESTRY_KEY = process.env.TAPESTRY_API_KEY;
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -108,12 +108,10 @@ async function findOrCreateMemeContent(memeId, memeTitle) {
   const platformProfileId = process.env.MEMEYA_TAPESTRY_PROFILE_ID;
 
   const body = {
-    content: memeTitle || `Meme ${memeId}`,
-    contentType: 'text',
-    blockchain: 'SOLANA',
-    execution: 'FAST_UNCONFIRMED',
-    customProperties: [
+    id: `meme_${memeId}`,
+    properties: [
       { key: 'memeId', value: memeId },
+      { key: 'title', value: memeTitle || `Meme ${memeId}` },
       { key: 'source', value: 'aimemeforge' },
       { key: 'url', value: `https://aimemeforge.io/meme/${memeId}` },
     ],
@@ -123,7 +121,7 @@ async function findOrCreateMemeContent(memeId, memeTitle) {
     body.profileId = platformProfileId;
   }
 
-  const result = await tapestryFetch('/contents/create', {
+  const result = await tapestryFetch('/contents/findOrCreate', {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -149,16 +147,15 @@ async function findOrCreateMemeContent(memeId, memeTitle) {
  * @param {string} memeTitle - Meme title
  */
 async function createVoteContent(profileId, memeId, memeTitle) {
-  return tapestryFetch('/contents/create', {
+  const voteId = `vote_${profileId}_${memeId}_${Date.now()}`;
+  return tapestryFetch('/contents/findOrCreate', {
     method: 'POST',
     body: JSON.stringify({
+      id: voteId,
       profileId,
-      content: `Voted for "${memeTitle}" on AIMemeForge!`,
-      contentType: 'text',
-      blockchain: 'SOLANA',
-      execution: 'FAST_UNCONFIRMED',
-      customProperties: [
+      properties: [
         { key: 'memeId', value: memeId },
+        { key: 'title', value: `Voted for "${memeTitle}" on AIMemeForge!` },
         { key: 'action', value: 'vote' },
         { key: 'source', value: 'aimemeforge' },
       ],
@@ -172,12 +169,12 @@ async function createVoteContent(profileId, memeId, memeTitle) {
  * Get comments for a Tapestry content node.
  *
  * @param {string} contentId - Tapestry content ID
- * @param {number} limit - Max comments to return
- * @param {number} offset - Pagination offset
- * @returns {Promise<Object>} Comments array + pagination
+ * @param {number} page - Page number (1-indexed)
+ * @param {number} pageSize - Items per page
+ * @returns {Promise<Object>} { comments, page, pageSize }
  */
-async function getComments(contentId, limit = 20, offset = 0) {
-  return tapestryFetch(`/comments?contentId=${contentId}&limit=${limit}&offset=${offset}`);
+async function getComments(contentId, page = 1, pageSize = 20) {
+  return tapestryFetch(`/comments/?contentId=${contentId}&page=${page}&pageSize=${pageSize}`);
 }
 
 /**
@@ -189,14 +186,12 @@ async function getComments(contentId, limit = 20, offset = 0) {
  * @returns {Promise<Object>} Created comment
  */
 async function createComment(profileId, contentId, text) {
-  return tapestryFetch('/comments', {
+  return tapestryFetch('/comments/', {
     method: 'POST',
     body: JSON.stringify({
       profileId,
       contentId,
       text,
-      blockchain: 'SOLANA',
-      execution: 'FAST_UNCONFIRMED',
     }),
   });
 }
@@ -217,16 +212,15 @@ async function createAgentContent(text, customProperties = []) {
     throw new Error('MEMEYA_TAPESTRY_PROFILE_ID not configured');
   }
 
-  return tapestryFetch('/contents/create', {
+  const contentId = `memeya_${Date.now()}`;
+  return tapestryFetch('/contents/findOrCreate', {
     method: 'POST',
     body: JSON.stringify({
+      id: contentId,
       profileId,
-      content: text,
-      contentType: 'text',
-      blockchain: 'SOLANA',
-      execution: 'FAST_UNCONFIRMED',
-      customProperties: [
+      properties: [
         { key: 'source', value: 'memeya_agent' },
+        { key: 'text', value: text },
         ...customProperties,
       ],
     }),
