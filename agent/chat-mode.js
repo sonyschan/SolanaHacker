@@ -44,11 +44,12 @@ export class ChatMode {
     this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
     // Autonomous X posting timer (2-4 hours randomized)
-    this.lastXPost = 0;
+    // Initialize to now so first post waits full interval after boot
+    this.lastXPost = Date.now();
     this.xPostInterval = this._randomXInterval();
 
     // Community engagement timer (every 2-4 hours, offset from posting)
-    this.lastCommunityEngage = 0;
+    this.lastCommunityEngage = Date.now();
     this.communityEngageInterval = this._randomCommunityInterval();
 
     // Memory distillation flag (biweekly Sunday 9am GMT+8)
