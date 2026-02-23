@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { gatherContext, chooseTopic, logPost } from './x-context.js';
+import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTweetIds } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
 const MEMEYA_PROMPT = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
@@ -601,4 +601,191 @@ export async function autoPost({ baseDir, grokApiKey }) {
   } catch (err) {
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };
   }
+}
+
+// ─── Community Engagement ────────────────────────────────────
+
+/**
+ * Engage with meaningful comments in the AiMemeForge X community.
+ * Fetches latest community posts + replies, uses Grok to evaluate,
+ * and replies to up to 3 meaningful comments per run.
+ *
+ * @param {{ baseDir: string, grokApiKey: string }} deps
+ * @returns {{ success: boolean, replies: Array<{ tweetId: string, replyTo: string, text: string, url: string }>, reason?: string }}
+ */
+export async function communityEngage({ baseDir, grokApiKey }) {
+  if (!grokApiKey) return { success: false, replies: [], reason: 'no_grok_key' };
+
+  // 1. Fetch community posts + comments
+  const posts = await fetchCommunityPosts();
+  if (posts.length === 0) return { success: true, replies: [], reason: 'no_community_posts' };
+
+  // 2. Collect all candidate comments (exclude already-replied)
+  const alreadyReplied = loadRepliedTweetIds(baseDir);
+  const candidates = [];
+  for (const post of posts) {
+    for (const reply of post.replies) {
+      if (alreadyReplied.has(reply.tweetId)) continue;
+      candidates.push({
+        tweetId: reply.tweetId,
+        authorUsername: reply.authorUsername,
+        text: reply.text,
+        likes: reply.likes,
+        parentPost: post.text.slice(0, 200),
+        parentAuthor: post.authorUsername,
+      });
+    }
+  }
+
+  if (candidates.length === 0) return { success: true, replies: [], reason: 'no_new_comments' };
+
+  // 3. Ask Grok to evaluate which comments are meaningful and worth replying to
+  const candidateList = candidates.map((c, i) =>
+    `[${i}] @${c.authorUsername} (${c.likes} likes): "${c.text.slice(0, 200)}"\n    Context: reply to @${c.parentAuthor}'s post: "${c.parentPost.slice(0, 100)}"`
+  ).join('\n');
+
+  // Load Memeya values for context
+  let valuesSnippet = '';
+  try {
+    valuesSnippet = fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8').slice(0, 500);
+  } catch { /* ignore */ }
+
+  const evalPrompt = [
+    `You are Memeya, a 13-year-old digital blacksmith. You're reviewing comments in your X community.`,
+    `Pick which comments are MEANINGFUL and worth replying to. Meaningful means:`,
+    `- Asks a genuine question about AiMemeForge, memes, or crypto`,
+    `- Shares an interesting opinion or insight`,
+    `- Shows enthusiasm or engagement worth acknowledging`,
+    `- NOT just "gm", single emojis, spam, or low-effort one-word replies`,
+    ``,
+    `COMMENTS:`,
+    candidateList,
+    ``,
+    `Reply with ONLY the indices of meaningful comments (up to 3), comma-separated.`,
+    `Example: "0, 3, 5"`,
+    `If none are meaningful, reply: "NONE"`,
+  ].join('\n');
+
+  let selectedIndices;
+  try {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${grokApiKey}` },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: evalPrompt }],
+        max_tokens: 30,
+        temperature: 0.3,
+      }),
+    });
+    if (!res.ok) return { success: false, replies: [], reason: `grok_eval_error: ${res.status}` };
+    const data = await res.json();
+    const evalResult = data.choices?.[0]?.message?.content?.trim() || 'NONE';
+
+    if (evalResult.toUpperCase() === 'NONE') {
+      return { success: true, replies: [], reason: 'no_meaningful_comments' };
+    }
+
+    selectedIndices = evalResult.match(/\d+/g)?.map(Number).filter(n => n < candidates.length).slice(0, 3) || [];
+  } catch (err) {
+    return { success: false, replies: [], reason: `grok_eval_failed: ${err.message}` };
+  }
+
+  if (selectedIndices.length === 0) return { success: true, replies: [], reason: 'no_meaningful_comments' };
+
+  // 4. Generate and post replies
+  let TwitterApi;
+  try {
+    const mod = await import('twitter-api-v2');
+    TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+  } catch {
+    return { success: false, replies: [], reason: 'twitter-api-v2 not installed' };
+  }
+
+  const consumerKey = process.env.X_CONSUMER_KEY;
+  const consumerSecret = process.env.X_CONSUMER_SECRET;
+  const accessToken = process.env.X_ACCESS_TOKEN;
+  const accessSecret = process.env.X_ACCESS_SECRET;
+
+  if (!consumerKey || !consumerSecret || !accessToken || !accessSecret) {
+    return { success: false, replies: [], reason: 'no_credentials' };
+  }
+
+  const userClient = new TwitterApi({
+    appKey: consumerKey,
+    appSecret: consumerSecret,
+    accessToken,
+    accessSecret,
+  });
+
+  const posted = [];
+  for (const idx of selectedIndices) {
+    const comment = candidates[idx];
+
+    try {
+      // Generate reply via Grok
+      const replyPrompt = [
+        `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.`,
+        `You're replying to a community member's comment.`,
+        valuesSnippet ? `Your values: ${valuesSnippet}` : '',
+        ``,
+        `@${comment.authorUsername} said: "${comment.text.slice(0, 300)}"`,
+        `(In reply to @${comment.parentAuthor}'s post: "${comment.parentPost.slice(0, 150)}")`,
+        ``,
+        `Write a SHORT, in-character reply (1-2 sentences, <200 chars).`,
+        `Be genuine — engage with what they actually said.`,
+        `NEVER use hashtags. Output plain text only. No URLs.`,
+      ].filter(Boolean).join('\n');
+
+      const genRes = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${grokApiKey}` },
+        body: JSON.stringify({
+          model: 'grok-4-1-fast-reasoning',
+          messages: [
+            { role: 'system', content: MEMEYA_PROMPT },
+            { role: 'user', content: replyPrompt },
+          ],
+          max_tokens: 100,
+          temperature: 0.8,
+        }),
+      });
+
+      if (!genRes.ok) continue;
+      const genData = await genRes.json();
+      let replyText = genData.choices?.[0]?.message?.content?.trim();
+      if (!replyText) continue;
+
+      // Clean reply text
+      replyText = replyText
+        .replace(/\[\[\d+\]\]\(https?:\/\/[^\)]*\)/g, '')
+        .replace(/\[\d+\]\(https?:\/\/[^\)]*\)/g, '')
+        .replace(/\[GLITCH\]/gi, '')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      if (replyText.length > 280) replyText = replyText.slice(0, 277) + '...';
+
+      // Post reply
+      const { data } = await userClient.v2.tweet(replyText, {
+        reply: { in_reply_to_tweet_id: comment.tweetId },
+      });
+      const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+
+      posted.push({ tweetId: comment.tweetId, replyTo: comment.authorUsername, text: replyText, url });
+
+      // Log to journal
+      logPost(baseDir, 'community_engage', replyText, url, {
+        replyTo: comment.authorUsername,
+        replyToTweet: comment.tweetId,
+      });
+
+      console.log(`[communityEngage] Replied to @${comment.authorUsername}: ${replyText}`);
+    } catch (err) {
+      console.error(`[communityEngage] Reply to @${comment.authorUsername} failed: ${err.message}`);
+    }
+  }
+
+  return { success: true, replies: posted };
 }

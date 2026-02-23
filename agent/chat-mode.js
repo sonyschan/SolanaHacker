@@ -47,6 +47,10 @@ export class ChatMode {
     this.lastXPost = 0;
     this.xPostInterval = this._randomXInterval();
 
+    // Community engagement timer (every 2-4 hours, offset from posting)
+    this.lastCommunityEngage = 0;
+    this.communityEngageInterval = this._randomCommunityInterval();
+
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
     this.maxChatHistory = 50; // Keep last 50 messages (sliding window)
@@ -1781,6 +1785,10 @@ ${recentMemory.slice(-1500)}
     return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
   }
 
+  _randomCommunityInterval() {
+    return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+  }
+
   /**
    * Autonomous X posting — runs independently on its own 2-4 hour timer.
    * No active window — Memeya serves global users, not just GMT+8.
@@ -1837,11 +1845,60 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Community engagement — reply to meaningful comments in AiMemeForge X community.
+   * Runs on its own 2-4 hour timer. Up to 3 replies per run.
+   */
+  async maybeCommunityEngage() {
+    // Same kill switch as X posting
+    const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
+    if (!fs.existsSync(flagPath)) return;
+
+    const now = Date.now();
+    if (now - this.lastCommunityEngage < this.communityEngageInterval) return;
+
+    this.lastCommunityEngage = now;
+    this.communityEngageInterval = this._randomCommunityInterval();
+
+    console.log('[ChatMode] maybeCommunityEngage: checking community...');
+
+    try {
+      const { communityEngage } = await import('./skills/x_twitter/index.js');
+      const result = await communityEngage({
+        baseDir: this.baseDir,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.replies && result.replies.length > 0) {
+        const replyList = result.replies.map(r => `  @${r.replyTo}: ${r.text}`).join('\n');
+        console.log(`[ChatMode] Community engage: ${result.replies.length} replies posted`);
+        try {
+          await this.telegram.sendDevlog(
+            `🏛️ <b>Memeya community engagement</b>\n` +
+            `Replied to ${result.replies.length} comment(s):\n` +
+            result.replies.map(r =>
+              `• <a href="${r.url}">@${r.replyTo}</a>: ${r.text.slice(0, 100)}`
+            ).join('\n')
+          );
+        } catch (e) {
+          console.error('[ChatMode] Telegram notification failed:', e.message);
+        }
+      } else {
+        console.log(`[ChatMode] Community engage: ${result.reason || 'no replies needed'}`);
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybeCommunityEngage error:', err.message);
+    }
+  }
+
+  /**
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
     // Autonomous X posting runs on its own timer, independent of heartbeat logic
     await this.maybePostToX();
+
+    // Community engagement runs on its own timer
+    await this.maybeCommunityEngage();
 
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');

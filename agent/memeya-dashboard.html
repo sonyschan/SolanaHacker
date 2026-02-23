@@ -475,9 +475,9 @@
         <td>Raw personal thought, mood, or inner monologue from journal + values.</td>
       </tr>
       <tr>
-        <td><code style="color:var(--green);">x_commentary</code></td>
+        <td><code style="color:var(--green);">crypto_commentary</code></td>
         <td><span class="tag tag-green">20%</span></td>
-        <td>Find a crypto KOL post on X &rarr; post Memeya's take (with @mention) + short 2-8 word reply on their tweet.</td>
+        <td>Hot take on trending crypto/Web3/Solana news via Grok web search. General commentary, no @mentions.</td>
       </tr>
       <tr>
         <td><code>feature_showtime</code></td>
@@ -490,9 +490,9 @@
         <td>Share recent git commits as builder updates. Priority-forced if fresh commits + not posted today.</td>
       </tr>
       <tr>
-        <td><code style="color:var(--text-dim);">crypto_commentary</code></td>
-        <td><span class="tag" style="background:rgba(139,148,158,0.15);color:var(--text-dim);">fallback</span></td>
-        <td style="color:var(--text-dim);">Hot take on crypto news via Grok web search. Only triggered as fallback when <code>x_commentary</code> has no KOL post.</td>
+        <td><code style="color:var(--cyan);">x_community_engage</code></td>
+        <td><span class="tag tag-cyan">separate</span></td>
+        <td>Scan community posts + comments &rarr; Grok evaluates meaningfulness &rarr; reply to up to 3 comments per run (2&ndash;4hr timer). Never replies to own posts/comments.</td>
       </tr>
       <tr>
         <td><code>community_response</code></td>
@@ -503,8 +503,9 @@
     <div style="font-size:0.82em;color:var(--text-dim);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
       <strong style="color:var(--text);">Safeguards:</strong>
       Anti-repetition (last 3 posts can't all be same topic) &middot;
-      Boring check via <code>grok-3-mini</code> gates all posts (skipped for <code>meme_spotlight</code> with unique OG and <code>x_commentary</code> replies) &middot;
-      Data-availability fallbacks (e.g. <code>x_commentary</code> &rarr; <code>crypto_commentary</code> if no KOL post found)
+      Boring check via <code>grok-3-mini</code> gates all posts (skipped for <code>meme_spotlight</code> with unique OG) &middot;
+      Data-availability fallbacks (topics fall to <code>personal_vibe</code> when data unavailable) &middot;
+      Community replies deduped via journal (never re-replies to same tweet)
     </div>
   </div>
 </div>
