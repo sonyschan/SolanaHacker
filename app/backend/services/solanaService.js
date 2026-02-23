@@ -4,6 +4,7 @@ const MEMEYA_TOKEN_MINT = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const TOKEN_DECIMALS = 6;
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 
 let connection = null;
 
@@ -25,15 +26,20 @@ async function getMemeyaBalance(walletAddress) {
     const owner = new PublicKey(walletAddress);
     const mint = new PublicKey(MEMEYA_TOKEN_MINT);
 
-    const response = await conn.getTokenAccountsByOwner(owner, { mint }, { encoding: 'jsonParsed' });
+    // Query both legacy Token Program and Token-2022 ($Memeya uses Token-2022)
+    const [legacyRes, token2022Res] = await Promise.all([
+      conn.getTokenAccountsByOwner(owner, { mint, programId: TOKEN_PROGRAM_ID }, { encoding: 'jsonParsed' }),
+      conn.getTokenAccountsByOwner(owner, { mint, programId: TOKEN_2022_PROGRAM_ID }, { encoding: 'jsonParsed' })
+    ]);
 
-    if (!response.value || response.value.length === 0) {
+    const allAccounts = [...(legacyRes.value || []), ...(token2022Res.value || [])];
+    if (allAccounts.length === 0) {
       return 0;
     }
 
     // Sum balances across all token accounts for this mint
     let totalRaw = 0;
-    for (const account of response.value) {
+    for (const account of allAccounts) {
       const parsed = account.account.data.parsed;
       if (parsed && parsed.info && parsed.info.tokenAmount) {
         totalRaw += Number(parsed.info.tokenAmount.amount);
