@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getUserProfile, updateUserProfile, getUserTickets, getUserStats } = require('../controllers/userController');
+const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const Joi = require('joi');
 
@@ -249,6 +250,28 @@ router.get('/:wallet/achievements', async (req, res) => {
       success: false,
       error: 'Failed to fetch achievements',
       message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/users/:wallet/memeya-balance - Get $Memeya token balance and bonus
+ */
+router.get('/:wallet/memeya-balance', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const balance = await getMemeyaBalance(wallet);
+    const bonus = calculateTokenBonus(balance);
+
+    res.json({
+      success: true,
+      data: { balance, bonus }
+    });
+  } catch (error) {
+    console.error('Get $Memeya balance error:', error);
+    res.json({
+      success: true,
+      data: { balance: 0, bonus: 0 }
     });
   }
 });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { getMemeyaBalance, formatTokenAmount } from '../services/solanaService';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
 import GalleryTab from './GalleryTab';
@@ -27,6 +28,8 @@ const Dashboard = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [memeyaBalance, setMemeyaBalance] = useState(null);
+  const [memeyaBonus, setMemeyaBonus] = useState(0);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
 
@@ -54,6 +57,16 @@ const Dashboard = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isSettingsOpen]);
+
+  // Fetch $Memeya token balance
+  useEffect(() => {
+    if (!walletAddress) return;
+    (async () => {
+      const { balance, bonus } = await getMemeyaBalance(walletAddress);
+      setMemeyaBalance(balance);
+      setMemeyaBonus(bonus);
+    })();
+  }, [walletAddress]);
 
   const copyAddress = () => {
     if (walletAddress) {
@@ -190,8 +203,12 @@ const Dashboard = ({
           </div>
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-yellow-400">$Memeya Bonus</h4>
-            <div className="text-2xl font-bold mb-2">+0</div>
-            <p className="text-sm text-gray-400">Hold tokens for bonus tickets</p>
+            <div className="text-2xl font-bold mb-2">+{memeyaBonus}</div>
+            <p className="text-sm text-gray-400">
+              {memeyaBalance !== null && memeyaBalance > 0
+                ? `Holding ${formatTokenAmount(memeyaBalance)} tokens`
+                : 'Hold tokens for bonus tickets'}
+            </p>
           </div>
         </div>
 
@@ -747,6 +764,11 @@ const Dashboard = ({
                       <span className="text-cyan-300 font-mono text-sm">{shortAddress}</span>
                     </div>
                   )}
+                  {memeyaBalance !== null && memeyaBalance > 0 && (
+                    <div className="px-2 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <span className="text-yellow-400 text-xs font-medium">&#129689; {formatTokenAmount(memeyaBalance)} $Memeya</span>
+                    </div>
+                  )}
                   <button
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                     className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all duration-200"
@@ -953,6 +975,9 @@ const Dashboard = ({
                   </span>
                   {walletName && (
                     <span className="text-xs text-gray-500">{walletName}</span>
+                  )}
+                  {memeyaBalance !== null && memeyaBalance > 0 && (
+                    <span className="text-xs text-yellow-400 font-medium">&#129689; {formatTokenAmount(memeyaBalance)}</span>
                   )}
                   <span className="ml-auto text-xs text-gray-500">{copied ? 'Copied!' : 'Copy'}</span>
                 </button>
