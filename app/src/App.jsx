@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import HomePage from "./components/HomePage";
 import Dashboard from "./components/Dashboard";
+import AgentPage from "./components/AgentPage";
 import Footer from "./components/Footer";
 import "./index.css";
 import "./styles/placeholders.css";
@@ -50,17 +51,17 @@ function App() {
     fetchUserData();
   }, [authenticated, walletAddress]);
 
-  // Auto-switch to dashboard when authenticated
+  // Auto-switch to dashboard when authenticated, respect #agent route
   useEffect(() => {
-    if (authenticated && walletAddress) {
+    const urlHash = window.location.hash;
+    if (urlHash === "#agent") {
+      setCurrentView("agent");
+    } else if (authenticated && walletAddress) {
+      setCurrentView("dashboard");
+    } else if (urlHash === "#dashboard") {
       setCurrentView("dashboard");
     } else {
-      const urlHash = window.location.hash;
-      if (urlHash === "#dashboard") {
-        setCurrentView("dashboard");
-      } else {
-        setCurrentView("home");
-      }
+      setCurrentView("home");
     }
   }, [authenticated, walletAddress]);
 
@@ -68,14 +69,18 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const urlHash = window.location.hash;
-      if (urlHash === "#dashboard") {
+      if (urlHash === "#agent") {
+        setCurrentView("agent");
+      } else if (urlHash === "#dashboard") {
         setCurrentView("dashboard");
+      } else if (urlHash === "" || urlHash === "#") {
+        setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       }
     };
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [authenticated, walletAddress]);
 
   // Show nothing until Privy is ready
   if (!ready) {
@@ -85,7 +90,9 @@ function App() {
   return (
     <div className="app min-h-screen flex flex-col">
       <div className="flex-grow">
-        {currentView === "home" ? (
+        {currentView === "agent" ? (
+          <AgentPage />
+        ) : currentView === "home" ? (
           <HomePage
             walletConnected={authenticated}
           />

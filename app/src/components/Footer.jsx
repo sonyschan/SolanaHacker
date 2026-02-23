@@ -112,10 +112,13 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <span className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="text-lg">🤖</span>
-                  <span>Agent: SolanaHacker</span>
-                </span>
+                <a
+                  href="#agent"
+                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
+                >
+                  <span className="text-lg group-hover:scale-110 transition-transform">🤖</span>
+                  <span>Meet Memeya</span>
+                </a>
               </li>
             </ul>
           </div>

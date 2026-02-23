@@ -310,7 +310,7 @@ export function createExecutors(deps) {
     } else {
       maxLen = ogUrl ? 280 - ogUrl.length - 1 : 280; // -1 for newline
       const trimmed = cleaned.length > maxLen ? cleaned.slice(0, maxLen - 3) + '...' : cleaned;
-      tweet = ogUrl ? `${trimmed}\n${ogUrl}` : (text.length > 280 ? text.slice(0, 277) + '...' : text);
+      tweet = ogUrl ? `${trimmed}\n${ogUrl}` : (cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned);
     }
 
     // Skip boring check for meme_spotlight when featuring a meme not in recent posts
