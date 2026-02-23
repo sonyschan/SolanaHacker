@@ -1,48 +1,40 @@
-const { Connection, PublicKey } = require('@solana/web3.js');
-
 const MEMEYA_TOKEN_MINT = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const TOKEN_DECIMALS = 6;
-const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
-
-let connection = null;
-
-function getConnection() {
-  if (!connection) {
-    connection = new Connection(SOLANA_RPC, 'confirmed');
-  }
-  return connection;
-}
 
 /**
  * Get $Memeya token balance for a wallet address.
+ * Uses direct JSON-RPC call to avoid @solana/web3.js Token-2022 parsing bugs.
  * Returns human-readable amount (raw balance / 10^6).
  * Gracefully returns 0 on any error.
  */
 async function getMemeyaBalance(walletAddress) {
   try {
-    const conn = getConnection();
-    const owner = new PublicKey(walletAddress);
-    const mint = new PublicKey(MEMEYA_TOKEN_MINT);
+    const response = await fetch(SOLANA_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getTokenAccountsByOwner',
+        params: [
+          walletAddress,
+          { mint: MEMEYA_TOKEN_MINT },
+          { encoding: 'jsonParsed' }
+        ]
+      })
+    });
 
-    // Query both legacy Token Program and Token-2022 ($Memeya uses Token-2022)
-    const [legacyRes, token2022Res] = await Promise.all([
-      conn.getTokenAccountsByOwner(owner, { mint, programId: TOKEN_PROGRAM_ID }, { encoding: 'jsonParsed' }),
-      conn.getTokenAccountsByOwner(owner, { mint, programId: TOKEN_2022_PROGRAM_ID }, { encoding: 'jsonParsed' })
-    ]);
+    const data = await response.json();
+    const accounts = data?.result?.value || [];
 
-    const allAccounts = [...(legacyRes.value || []), ...(token2022Res.value || [])];
-    if (allAccounts.length === 0) {
-      return 0;
-    }
+    if (accounts.length === 0) return 0;
 
-    // Sum balances across all token accounts for this mint
     let totalRaw = 0;
-    for (const account of allAccounts) {
-      const parsed = account.account.data.parsed;
-      if (parsed && parsed.info && parsed.info.tokenAmount) {
-        totalRaw += Number(parsed.info.tokenAmount.amount);
+    for (const account of accounts) {
+      const tokenAmount = account?.account?.data?.parsed?.info?.tokenAmount;
+      if (tokenAmount) {
+        totalRaw += Number(tokenAmount.amount);
       }
     }
 
