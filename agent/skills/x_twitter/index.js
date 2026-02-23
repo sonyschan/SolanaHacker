@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTweetIds } from './x-context.js';
+import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTweetIds, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
 const MEMEYA_PROMPT_BASE = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
@@ -1014,4 +1014,157 @@ export async function communityEngage({ baseDir, grokApiKey }) {
   }
 
   return { success: true, replies: posted };
+}
+
+// ─── Owner Mention Handler ──────────────────────────────────────
+
+/**
+ * Detect mentions from trusted owner accounts, reply in-character,
+ * and extract TODO items if the mention contains a task/instruction.
+ */
+export async function ownerMentionHandler({ baseDir, grokApiKey }) {
+  if (!grokApiKey) return { success: false, processed: [], reason: 'no_grok_key' };
+
+  const consumerKey = process.env.X_CONSUMER_KEY;
+  const consumerSecret = process.env.X_CONSUMER_SECRET;
+  const accessToken = process.env.X_ACCESS_TOKEN;
+  const accessSecret = process.env.X_ACCESS_SECRET;
+  if (!consumerKey || !consumerSecret || !accessToken || !accessSecret) {
+    return { success: false, processed: [], reason: 'no_credentials' };
+  }
+
+  // 1. Fetch mentions from trusted accounts
+  const mentions = await fetchOwnerMentions();
+  if (mentions.length === 0) return { success: true, processed: [], reason: 'no_owner_mentions' };
+
+  // 2. Filter out already-processed mentions
+  const processedIds = loadProcessedMentionIds(baseDir);
+  const newMentions = mentions.filter(m => !processedIds.has(m.mentionTweetId));
+  if (newMentions.length === 0) return { success: true, processed: [], reason: 'all_already_processed' };
+
+  // 3. Set up user client for posting replies
+  let TwitterApi;
+  try {
+    const mod = await import('twitter-api-v2');
+    TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+  } catch {
+    return { success: false, processed: [], reason: 'twitter_api_unavailable' };
+  }
+
+  const userClient = new TwitterApi({
+    appKey: consumerKey,
+    appSecret: consumerSecret,
+    accessToken,
+    accessSecret,
+  });
+
+  // Load values for system prompt
+  const systemPrompt = buildSystemPrompt(baseDir);
+
+  const results = [];
+
+  // Process up to 5 mentions per run
+  for (const mention of newMentions.slice(0, 5)) {
+    try {
+      // Build context string
+      let contextBlock = `@${mention.authorUsername} mentioned you: "${mention.text}"`;
+      if (mention.parentTweet) {
+        contextBlock += `\n(Replying to @${mention.parentTweet.authorUsername}'s tweet: "${mention.parentTweet.text.slice(0, 300)}")`;
+      }
+
+      // Single Grok call: classify task + generate reply
+      const userPrompt = [
+        `Your owner @${mention.authorUsername} tagged you on X. Read their message and respond.`,
+        ``,
+        contextBlock,
+        ``,
+        `Instructions:`,
+        `1. Determine if this mention contains a TASK or instruction for you (something to do, build, change, investigate).`,
+        `2. Write an in-character reply (1-2 sentences, <250 chars, plain text, no hashtags, no URLs).`,
+        ``,
+        `Respond in EXACTLY this format (two lines):`,
+        `TASK: <"none" if no task, OR a concise task description>`,
+        `REPLY: <your in-character reply text>`,
+      ].join('\n');
+
+      const genRes = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${grokApiKey}` },
+        body: JSON.stringify({
+          model: 'grok-4-1-fast-reasoning',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          max_tokens: 200,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!genRes.ok) {
+        console.error(`[ownerMentionHandler] Grok error for mention ${mention.mentionTweetId}: ${genRes.status}`);
+        continue;
+      }
+
+      const genData = await genRes.json();
+      const output = genData.choices?.[0]?.message?.content?.trim();
+      if (!output) continue;
+
+      // Parse TASK and REPLY lines
+      const taskMatch = output.match(/^TASK:\s*(.+)$/m);
+      const replyMatch = output.match(/^REPLY:\s*(.+)$/m);
+
+      if (!replyMatch) {
+        console.error(`[ownerMentionHandler] Could not parse Grok output for mention ${mention.mentionTweetId}`);
+        continue;
+      }
+
+      let replyText = replyMatch[1].trim()
+        .replace(/\[\[\d+\]\]\(https?:\/\/[^\)]*\)/g, '')
+        .replace(/\[\d+\]\(https?:\/\/[^\)]*\)/g, '')
+        .replace(/\[GLITCH\]/gi, '')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      if (replyText.length > 280) replyText = replyText.slice(0, 277) + '...';
+
+      // Post reply
+      const { data } = await userClient.v2.tweet(replyText, {
+        reply: { in_reply_to_tweet_id: mention.mentionTweetId },
+      });
+      const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+
+      // Extract TODO if task detected
+      const taskText = taskMatch ? taskMatch[1].trim() : 'none';
+      let todo = null;
+      if (taskText.toLowerCase() !== 'none') {
+        const source = `@${mention.authorUsername} on X (tweet ${mention.mentionTweetId})`;
+        saveTodo(baseDir, taskText, source);
+        todo = taskText;
+      }
+
+      // Log to journal with ownerMentionId for duplicate prevention
+      logPost(baseDir, 'owner_mention_reply', replyText, url, {
+        replyTo: mention.authorUsername,
+        replyToTweet: mention.mentionTweetId,
+        ownerMentionId: mention.mentionTweetId,
+      });
+
+      results.push({
+        mentionId: mention.mentionTweetId,
+        author: mention.authorUsername,
+        mentionText: mention.text.slice(0, 150),
+        replyText,
+        replyUrl: url,
+        todo,
+      });
+
+      console.log(`[ownerMentionHandler] Replied to @${mention.authorUsername}: ${replyText}${todo ? ` [TODO: ${todo}]` : ''}`);
+    } catch (err) {
+      console.error(`[ownerMentionHandler] Error processing mention ${mention.mentionTweetId}: ${err.message}`);
+    }
+  }
+
+  return { success: true, processed: results };
 }

@@ -52,6 +52,10 @@ export class ChatMode {
     this.lastCommunityEngage = Date.now();
     this.communityEngageInterval = this._randomCommunityInterval();
 
+    // Owner mention check timer (every 15 minutes, check immediately on boot)
+    this.lastOwnerMentionCheck = 0;
+    this.ownerMentionInterval = 15 * 60 * 1000;
+
     // Memory distillation flag (biweekly Sunday 9am GMT+8)
     this.lastDistillDate = null;
 
@@ -1895,6 +1899,52 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Owner mention handler — check for @mentions from trusted accounts every 15 minutes.
+   * Auto-replies in character and extracts TODOs from task-like mentions.
+   */
+  async maybeCheckOwnerMentions() {
+    // Same kill switch as X posting
+    const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
+    if (!fs.existsSync(flagPath)) return;
+
+    const now = Date.now();
+    if (now - this.lastOwnerMentionCheck < this.ownerMentionInterval) return;
+
+    this.lastOwnerMentionCheck = now;
+
+    console.log('[ChatMode] maybeCheckOwnerMentions: checking for owner mentions...');
+
+    try {
+      const { ownerMentionHandler } = await import('./skills/x_twitter/index.js');
+      const result = await ownerMentionHandler({
+        baseDir: this.baseDir,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.processed && result.processed.length > 0) {
+        console.log(`[ChatMode] Owner mentions: ${result.processed.length} processed`);
+        try {
+          const lines = result.processed.map(r => {
+            let line = `\u2022 <a href="${r.replyUrl}">@${r.author}</a>: ${r.replyText.slice(0, 100)}`;
+            if (r.todo) line += `\n  \ud83d\udcdd TODO: ${r.todo}`;
+            return line;
+          });
+          await this.telegram.sendDevlog(
+            `\ud83d\udc41 <b>Owner mention reply</b>\n` +
+            lines.join('\n')
+          );
+        } catch (e) {
+          console.error('[ChatMode] Telegram notification failed:', e.message);
+        }
+      } else {
+        console.log(`[ChatMode] Owner mentions: ${result.reason || 'none found'}`);
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybeCheckOwnerMentions error:', err.message);
+    }
+  }
+
+  /**
    * Check if it's biweekly distillation time: every other Sunday at 9:00 AM GMT+8.
    */
   _isDistillTime() {
@@ -1951,6 +2001,9 @@ ${recentMemory.slice(-1500)}
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
+    // Owner mention check runs on its own 15-min timer
+    await this.maybeCheckOwnerMentions();
+
     // Autonomous X posting runs on its own timer, independent of heartbeat logic
     await this.maybePostToX();
 

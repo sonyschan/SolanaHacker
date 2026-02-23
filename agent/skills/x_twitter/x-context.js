@@ -13,6 +13,7 @@ const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app'
 const SITE_URL = 'https://aimemeforge.io';
 const COMMUNITY_ID = '2025765989582004365';
 const OWN_USERNAME = 'AiMemeForgeIO';
+export const TRUSTED_OWNER_USERNAMES = ['h2crypto_eth'];
 
 
 // ─── Data Gathering ─────────────────────────────────────────
@@ -600,6 +601,133 @@ export function loadRepliedTweetIds(baseDir, daysBack = 3) {
   return ids;
 }
 
+/**
+ * Fetch recent mentions of @AiMemeForgeIO from trusted owner accounts.
+ * Uses Twitter API v2 mention timeline with expansions to include parent tweets.
+ * @returns {Promise<Array<{ mentionTweetId, authorUsername, text, conversationId, parentTweet }>>}
+ */
+export async function fetchOwnerMentions() {
+  const consumerKey = process.env.X_CONSUMER_KEY;
+  const consumerSecret = process.env.X_CONSUMER_SECRET;
+  const accessToken = process.env.X_ACCESS_TOKEN;
+  const accessSecret = process.env.X_ACCESS_SECRET;
+  if (!consumerKey || !consumerSecret || !accessToken || !accessSecret) return [];
+
+  let TwitterApi;
+  try {
+    const mod = await import('twitter-api-v2');
+    TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+  } catch { return []; }
+
+  const userClient = new TwitterApi({
+    appKey: consumerKey,
+    appSecret: consumerSecret,
+    accessToken,
+    accessSecret,
+  });
+
+  try {
+    const me = await userClient.v2.me();
+    const ownUserId = me.data?.id;
+    if (!ownUserId) return [];
+
+    const result = await userClient.v2.userMentionTimeline(ownUserId, {
+      max_results: 20,
+      'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
+      'user.fields': 'username',
+      expansions: 'author_id,referenced_tweets.id',
+    });
+
+    if (!result.data?.data?.length) return [];
+
+    // Build user lookup from includes
+    const users = {};
+    for (const u of (result.data?.includes?.users || [])) {
+      users[u.id] = u.username;
+    }
+
+    // Build referenced tweet lookup from includes
+    const refTweets = {};
+    for (const t of (result.data?.includes?.tweets || [])) {
+      refTweets[t.id] = t;
+    }
+
+    // Filter to trusted usernames only
+    const trustedLower = TRUSTED_OWNER_USERNAMES.map(u => u.toLowerCase());
+    const mentions = [];
+    for (const tweet of result.data.data) {
+      const authorUsername = users[tweet.author_id] || '';
+      if (!trustedLower.includes(authorUsername.toLowerCase())) continue;
+
+      // Find parent tweet (the tweet being replied to)
+      let parentTweet = null;
+      const repliedRef = (tweet.referenced_tweets || []).find(r => r.type === 'replied_to');
+      if (repliedRef && refTweets[repliedRef.id]) {
+        const parent = refTweets[repliedRef.id];
+        parentTweet = {
+          id: parent.id,
+          text: parent.text,
+          authorUsername: users[parent.author_id] || 'unknown',
+        };
+      }
+
+      mentions.push({
+        mentionTweetId: tweet.id,
+        authorUsername,
+        text: tweet.text,
+        conversationId: tweet.conversation_id,
+        parentTweet,
+      });
+    }
+
+    return mentions;
+  } catch (err) {
+    console.error('[x-context] fetchOwnerMentions error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Load IDs of owner mentions already processed (from journal).
+ * Prevents duplicate processing across heartbeats.
+ */
+export function loadProcessedMentionIds(baseDir, daysBack = 3) {
+  const ids = new Set();
+  try {
+    const diaryDir = path.join(baseDir, 'memory/journal/memeya');
+    if (!fs.existsSync(diaryDir)) return ids;
+    const files = fs.readdirSync(diaryDir)
+      .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+      .sort()
+      .slice(-daysBack);
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
+      const matches = content.matchAll(/- Owner mention processed: (\d+)/g);
+      for (const m of matches) ids.add(m[1]);
+    }
+  } catch { /* ignore */ }
+  return ids;
+}
+
+/**
+ * Save a TODO item extracted from an owner mention.
+ * Creates memory/TODO.md if missing, appends task entry.
+ */
+export function saveTodo(baseDir, item, source) {
+  try {
+    const todoPath = path.join(baseDir, 'memory/TODO.md');
+    if (!fs.existsSync(todoPath)) {
+      fs.mkdirSync(path.dirname(todoPath), { recursive: true });
+      fs.writeFileSync(todoPath, '# Memeya TODO\n\n');
+    }
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const entry = `- [ ] ${item}\n  Source: ${source}\n  Added: ${timestamp}\n\n`;
+    fs.appendFileSync(todoPath, entry);
+  } catch (err) {
+    console.error('[x-context] saveTodo error:', err.message);
+  }
+}
+
 // ─── Post Logging ───────────────────────────────────────────
 
 /**
@@ -616,6 +744,7 @@ export function logPost(baseDir, topic, text, url, extra = {}) {
     if (extra.replyTo) entry += `- Replied to: @${extra.replyTo}\n`;
     if (extra.replyToTweet) entry += `- Replied to tweet: ${extra.replyToTweet}\n`;
     if (extra.replyText) entry += `- Reply: ${extra.replyText}\n`;
+    if (extra.ownerMentionId) entry += `- Owner mention processed: ${extra.ownerMentionId}\n`;
     entry += '\n';
     fs.appendFileSync(diaryPath, entry);
   } catch (err) {
