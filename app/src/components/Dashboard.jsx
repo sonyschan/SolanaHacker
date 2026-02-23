@@ -719,24 +719,15 @@ const Dashboard = ({
             {/* Desktop User Info + Settings */}
             <div className="hidden md:flex items-center space-x-2 md:space-x-6">
               <div className="hidden lg:flex items-center space-x-6 px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
-                <div className="text-center">
-                  <div className="text-sm text-gray-400">Tickets</div>
-                  {userTickets !== null ? (
-                    <div className="font-bold text-cyan-400 text-lg">{userTickets}</div>
-                  ) : (
-                    <div className="placeholder-text text-shimmer w-12 h-6 bg-cyan-400/30 rounded mx-auto"></div>
-                  )}
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div className="text-center">
-                  <div className="text-sm text-gray-400">Streak</div>
-                  {votingStreak !== null ? (
-                    <div className="font-bold text-green-400 text-lg">{votingStreak} days</div>
-                  ) : (
-                    <div className="placeholder-text text-shimmer w-16 h-6 bg-green-400/30 rounded mx-auto"></div>
-                  )}
-                </div>
-                <div className="w-px h-8 bg-white/10" />
+                {memeyaBalance !== null && memeyaBalance > 0 && (
+                  <>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-400">$Memeya</div>
+                      <div className="font-bold text-yellow-400 text-lg">{formatTokenAmount(memeyaBalance)}</div>
+                    </div>
+                    <div className="w-px h-8 bg-white/10" />
+                  </>
+                )}
                 <div className="text-center">
                   <div className="text-sm text-gray-400">
                     {drawPhase === 'result' ? 'Winner' : drawPhase === 'drawing' ? 'Lottery' : 'Next Draw'}
@@ -762,11 +753,6 @@ const Dashboard = ({
                     <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                       <span className="text-cyan-300 font-mono text-sm">{shortAddress}</span>
-                    </div>
-                  )}
-                  {memeyaBalance !== null && memeyaBalance > 0 && (
-                    <div className="px-2 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <span className="text-yellow-400 text-xs font-medium">&#129689; {formatTokenAmount(memeyaBalance)} $Memeya</span>
                     </div>
                   )}
                   <button
