@@ -1072,19 +1072,21 @@ export async function ownerMentionHandler({ baseDir, grokApiKey }) {
         contextBlock += `\n(Replying to @${mention.parentTweet.authorUsername}'s tweet: "${mention.parentTweet.text.slice(0, 300)}")`;
       }
 
-      // Single Grok call: classify task + generate reply
+      // Single Grok call: decide engagement + classify task + generate reply
       const userPrompt = [
-        `Your owner @${mention.authorUsername} tagged you on X. Read their message and respond.`,
+        `Your owner @${mention.authorUsername} tagged you on X. Read their message and decide if you want to engage.`,
         ``,
         contextBlock,
         ``,
         `Instructions:`,
-        `1. Determine if this mention contains a TASK or instruction for you (something to do, build, change, investigate).`,
-        `2. Write an in-character reply (1-2 sentences, <250 chars, plain text, no hashtags, no URLs).`,
+        `1. Decide if you want to ENGAGE. Say "yes" if the topic interests you, relates to AiMemeForge/memes/crypto, or you have a genuine reaction. Say "no" if it's generic, you have nothing meaningful to add, or you'd rather stay quiet. You are NOT obligated to reply to every mention — only engage when it feels natural.`,
+        `2. If engaging, determine if this mention contains a TASK or instruction for you (something to do, build, change, investigate).`,
+        `3. If engaging, write an in-character reply (1-2 sentences, <250 chars, plain text, no hashtags, no URLs).`,
         ``,
-        `Respond in EXACTLY this format (two lines):`,
-        `TASK: <"none" if no task, OR a concise task description>`,
-        `REPLY: <your in-character reply text>`,
+        `Respond in EXACTLY this format (three lines):`,
+        `ENGAGE: <yes or no>`,
+        `TASK: <"none" if no task or not engaging, OR a concise task description>`,
+        `REPLY: <your in-character reply text, or "—" if not engaging>`,
       ].join('\n');
 
       const genRes = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -1110,12 +1112,23 @@ export async function ownerMentionHandler({ baseDir, grokApiKey }) {
       const output = genData.choices?.[0]?.message?.content?.trim();
       if (!output) continue;
 
-      // Parse TASK and REPLY lines
+      // Parse ENGAGE, TASK and REPLY lines
+      const engageMatch = output.match(/^ENGAGE:\s*(.+)$/m);
       const taskMatch = output.match(/^TASK:\s*(.+)$/m);
       const replyMatch = output.match(/^REPLY:\s*(.+)$/m);
 
-      if (!replyMatch) {
+      if (!engageMatch || !replyMatch) {
         console.error(`[ownerMentionHandler] Could not parse Grok output for mention ${mention.mentionTweetId}`);
+        continue;
+      }
+
+      // Skip if Memeya chose not to engage
+      if (engageMatch[1].trim().toLowerCase() === 'no') {
+        console.log(`[ownerMentionHandler] Skipped mention from @${mention.authorUsername} (chose not to engage)`);
+        // Still log to journal so we don't re-process, but mark as skipped
+        logPost(baseDir, 'owner_mention_seen', `Saw @${mention.authorUsername}'s mention but chose not to engage`, null, {
+          ownerMentionId: mention.mentionTweetId,
+        });
         continue;
       }
 
