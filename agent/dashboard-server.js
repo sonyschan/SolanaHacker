@@ -222,12 +222,22 @@ const server = http.createServer((req, res) => {
         if (posts.length) recentPostsSummary = posts.map((p, i) => `${i + 1}. ${p.slice(0, 140)}`).join('\n');
       } catch { /* ignore */ }
 
-      const composedSystem = memeyaPrompt;
+      // System prompt = MEMEYA_PROMPT_BASE + core values + long-term memory (via buildSystemPrompt)
+      const longtermSnippet = (safeRead(path.join(BASE_DIR, 'memory/knowledge/memeya_longterm.md')) || '').slice(0, 300);
+      const composedSystem = [
+        memeyaPrompt,
+        '',
+        valuesSnippet ? `CORE VALUES (these define who you are):\n${valuesSnippet}` : '',
+        longtermSnippet ? `LONG-TERM MEMORY (lessons you\'ve internalized):\n${longtermSnippet}` : '',
+      ].filter(Boolean).join('\n\n');
+
+      // User prompt = topic prompt + journal + recent posts + anti-repetition (values NOT here)
       const composedUser = [
         'Topic/Context: {context} ← replaced by chooseTopic() prompt in autonomous mode',
         '',
         `Recent Memeya journal: ${journalSnippet}`,
-        `Memeya's values: ${valuesSnippet}`,
+        '',
+        'ANTI-REPETITION: {dynamically extracted banned openers/phrases from recent posts}',
         '',
         'RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):',
         recentPostsSummary,
@@ -235,7 +245,7 @@ const server = http.createServer((req, res) => {
         'Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.',
       ].join('\n');
 
-      jsonRes(res, { memeyaPrompt, valuesSnippet, journalSnippet, recentPostsSummary, composedSystem, composedUser });
+      jsonRes(res, { memeyaPrompt, valuesSnippet, longtermSnippet, journalSnippet, recentPostsSummary, composedSystem, composedUser });
     } catch (err) {
       jsonRes(res, { error: err.message }, 500);
     }
