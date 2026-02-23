@@ -204,11 +204,11 @@ const Dashboard = ({
             </div>
             <div className="flex items-center justify-center gap-2 mb-3">
               <code className="text-xs font-mono text-yellow-300 bg-black/30 px-3 py-1.5 rounded-lg border border-yellow-500/20 truncate max-w-[240px] md:max-w-none">
-                983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump
+                mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump
               </code>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText('983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump');
+                  navigator.clipboard.writeText('mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump');
                 }}
                 className="px-2 py-1.5 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-xs font-medium flex-shrink-0"
               >
@@ -223,7 +223,7 @@ const Dashboard = ({
             </div>
             <div className="text-center">
               <a
-                href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
+                href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-sm text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
@@ -774,7 +774,7 @@ const Dashboard = ({
 
                       {/* Buy $Memeya */}
                       <a
-                        href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
+                        href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsSettingsOpen(false)}
@@ -908,7 +908,7 @@ const Dashboard = ({
 
               {/* Buy $Memeya */}
               <a
-                href="https://pump.fun/coin/983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump"
+                href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsMenuOpen(false)}
@@ -1038,6 +1038,7 @@ const Dashboard = ({
           setModalMeme(null);
         }}
         meme={modalMeme}
+        walletAddress={walletAddress}
       />
 
       {/* How It Works Modal */}

@@ -1,6 +1,6 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
 
-const MEMEYA_TOKEN_MINT = '983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump';
+const MEMEYA_TOKEN_MINT = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const TOKEN_DECIMALS = 6;
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');

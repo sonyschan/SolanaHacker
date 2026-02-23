@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ModalOverlay from './ModalOverlay';
+import CommentSection from './CommentSection';
 
-const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavigate, votedMemeId, onVote }) => {
+const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavigate, votedMemeId, onVote, walletAddress }) => {
   const [copied, setCopied] = useState(false);
 
   const getShareUrl = () => {
@@ -206,6 +207,13 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
               Not Voted
             </button>
           )}
+        </div>
+      )}
+
+      {/* Comments Section (Tapestry) */}
+      {meme?.id && (
+        <div className="px-4 md:px-6 pb-3">
+          <CommentSection memeId={meme.id} walletAddress={walletAddress} />
         </div>
       )}
 

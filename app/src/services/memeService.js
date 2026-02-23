@@ -327,3 +327,36 @@ class MemeService {
 
 const memeService = new MemeService();
 export default memeService;
+
+// ─── Tapestry Comment API ───────────────────────────────────────
+
+export async function getMemeComments(memeId, limit = 20, offset = 0) {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/api/tapestry/comments/${memeId}?limit=${limit}&offset=${offset}`);
+    return resp.json();
+  } catch {
+    return { success: false, comments: [], total: 0 };
+  }
+}
+
+export async function postComment(memeId, walletAddress, text) {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/api/tapestry/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memeId, walletAddress, text }),
+    });
+    return resp.json();
+  } catch {
+    return { success: false, error: 'Network error' };
+  }
+}
+
+export async function getCommentCount(memeId) {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/api/tapestry/comments/${memeId}/count`);
+    return resp.json();
+  } catch {
+    return { success: false, count: 0 };
+  }
+}

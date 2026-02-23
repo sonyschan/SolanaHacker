@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
 const rarityService = require('../services/rarityService');
 const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
+const tapestryService = require('../services/tapestryService');
 
 /**
  * Award tickets to user after rarity vote
@@ -165,13 +166,28 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
     }
 
     console.log(`✅ Vote submitted: ${voteId} (${voteType}${score ? `, score=${score}` : ''})`);
+
+    // Non-blocking: post vote activity to Tapestry
+    (async () => {
+      try {
+        const profileId = await tapestryService.findOrCreateProfile(walletAddress);
+        // Look up meme title
+        const db = getFirestore();
+        const memeDoc = await db.collection(collections.MEMES).doc(memeId).get();
+        const memeTitle = memeDoc.exists ? memeDoc.data().title : `Meme ${memeId}`;
+        await tapestryService.createVoteContent(profileId, memeId, memeTitle);
+      } catch (e) {
+        console.warn('[tapestry] Vote content failed (non-fatal):', e.message);
+      }
+    })();
+
     return {
       ...voteData,
       ticketsEarned,
       tokenBonus: voteData.tokenBonus || 0,
       user: updatedUser
     };
-    
+
   } catch (error) {
     console.error('❌ Error submitting vote:', error);
     throw error;

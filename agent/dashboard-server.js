@@ -12,6 +12,7 @@
  *   systemctl stop dashboard-server
  */
 
+import 'dotenv/config';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -487,6 +488,32 @@ const server = http.createServer((req, res) => {
           const { logPost } = await import('./skills/x_twitter/x-context.js');
           logPost(BASE_DIR, topic, text, url);
         } catch { /* best-effort */ }
+
+        // Mirror to Tapestry (non-fatal)
+        try {
+          const tapestryApiUrl = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/v1';
+          const tapestryKey = process.env.TAPESTRY_API_KEY;
+          const memeyaProfileId = process.env.MEMEYA_TAPESTRY_PROFILE_ID;
+
+          if (tapestryKey && memeyaProfileId) {
+            await fetch(`${tapestryApiUrl}/contents/create?apiKey=${tapestryKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                profileId: memeyaProfileId,
+                content: text,
+                contentType: 'text',
+                blockchain: 'SOLANA',
+                execution: 'FAST_UNCONFIRMED',
+                customProperties: [
+                  { key: 'source', value: 'memeya_agent' },
+                  { key: 'topic', value: topic },
+                  { key: 'x_url', value: url },
+                ],
+              }),
+            });
+          }
+        } catch { /* Tapestry mirror is best-effort */ }
 
         jsonRes(res, { success: true, url, tweetId: data.id });
       } catch (err) {

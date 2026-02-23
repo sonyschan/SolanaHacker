@@ -647,6 +647,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           setModalMemeIndex(newIndex);
           setModalMeme(dailyMemes[newIndex]);
         }}
+        walletAddress={walletAddress}
       />
     </div>
   );

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import ModalOverlay from './ModalOverlay';
+import CommentSection from './CommentSection';
+import { useAuth } from '../hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
 const GalleryTab = () => {
+  const { walletAddress } = useAuth();
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -386,6 +389,13 @@ const GalleryTab = () => {
                   <div className="text-xs text-gray-400 mt-1">
                     Won on {new Date(selectedMeme.nftOwner.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
+                </div>
+              )}
+
+              {/* Comments Section (Tapestry) */}
+              {selectedMeme.id && (
+                <div className="mt-4">
+                  <CommentSection memeId={selectedMeme.id} walletAddress={walletAddress} />
                 </div>
               )}
 

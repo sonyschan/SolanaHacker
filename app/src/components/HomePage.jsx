@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import WalletConnection from './WalletConnection';
 
-const MEMEYA_TOKEN_CA = '983j5C4udenB89Wh8Z7ebcgtqeEAUp2uprnbrLvHpump';
+const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   const [weeklyVoters, setWeeklyVoters] = useState(0);

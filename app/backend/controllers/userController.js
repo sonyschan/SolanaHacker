@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
+const tapestryService = require('../services/tapestryService');
 
 /**
  * Get or create user profile
@@ -42,8 +43,14 @@ async function getOrCreateUser(walletAddress) {
     };
     
     await dbUtils.setDocument(collections.USERS, userId, userData);
-    
+
     console.log(`✅ New user created: ${userId}`);
+
+    // Non-blocking Tapestry profile creation
+    tapestryService.findOrCreateProfile(walletAddress).catch(e => {
+      console.warn('[tapestry] Profile creation failed (non-fatal):', e.message);
+    });
+
     return userData;
     
   } catch (error) {

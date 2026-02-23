@@ -603,6 +603,35 @@ export async function autoPost({ baseDir, grokApiKey }) {
       : {};
     logPost(baseDir, topicChoice.topic, tweet, url, logExtra);
 
+    // Mirror to Tapestry (non-fatal)
+    try {
+      const tapestryApiUrl = process.env.TAPESTRY_API_URL || 'https://api.usetapestry.dev/v1';
+      const tapestryKey = process.env.TAPESTRY_API_KEY;
+      const memeyaProfileId = process.env.MEMEYA_TAPESTRY_PROFILE_ID;
+
+      if (tapestryKey && memeyaProfileId) {
+        await fetch(`${tapestryApiUrl}/contents/create?apiKey=${tapestryKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profileId: memeyaProfileId,
+            content: tweet,
+            contentType: 'text',
+            blockchain: 'SOLANA',
+            execution: 'FAST_UNCONFIRMED',
+            customProperties: [
+              { key: 'source', value: 'memeya_agent' },
+              { key: 'topic', value: topicChoice.topic },
+              { key: 'x_url', value: url },
+            ],
+          }),
+        });
+        console.log('[autoPost] Mirrored to Tapestry');
+      }
+    } catch (tapErr) {
+      console.warn('[autoPost] Tapestry mirror failed (non-fatal):', tapErr.message);
+    }
+
     return { success: true, url, text: tweet, topic: topicChoice.topic };
   } catch (err) {
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };

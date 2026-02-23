@@ -2,7 +2,7 @@
 
 > 系統架構、API 規格、資料模型、部署配置、實作規劃與開發進度追蹤
 
-*最後更新: 2026-02-22*
+*最後更新: 2026-02-23*
 
 ---
 
@@ -743,7 +743,114 @@ contextInput (string | {topic, prompt, ogUrl})
 
 ---
 
-## 10. 實作規劃
+## 10. Tapestry 社交整合
+
+### 10.1 架構總覽
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Frontend (Vercel)                           │
+│                                                                 │
+│  CommentSection component                                       │
+│    → GET /api/tapestry/comments/:memeId                         │
+│    → POST /api/tapestry/comments                                │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                  Cloud Run API (Backend)                          │
+│                                                                   │
+│  routes/tapestry.js          services/tapestryService.js          │
+│  ├ GET  /comments/:memeId    ├ findOrCreateProfile(wallet)        │
+│  ├ POST /comments            ├ findOrCreateMemeContent(memeId)    │
+│  └ GET  /comments/:id/count  ├ getComments(contentId)             │
+│                              ├ createComment(profile, content, text)│
+│  controllers/                ├ createVoteContent(profile, meme)    │
+│  ├ userController: auto-     └ createAgentContent(text, props)     │
+│  │   create profile on       │                                    │
+│  │   new user                │                                    │
+│  └ votingController: post    │                                    │
+│      vote activity           │                                    │
+└──────────────────────────────┼────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Tapestry API                                    │
+│                https://api.usetapestry.dev/v1/                    │
+│                                                                   │
+│  POST /profiles/findOrCreate    — Create/find user profile        │
+│  POST /contents/create          — Create content nodes             │
+│  GET  /comments?contentId=X     — Get comments for content        │
+│  POST /comments                 — Create comment                   │
+│                                                                   │
+│  Auth: apiKey query parameter (server-side only)                  │
+│  Blockchain: SOLANA, Execution: FAST_UNCONFIRMED                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 10.2 資料流
+
+```
+User votes on meme
+    ├─ Firestore: save vote + tickets (existing)
+    └─ Tapestry (non-blocking):
+        ├─ findOrCreate user profile (if no tapestryProfileId)
+        └─ create vote content ("Voted for X on AIMemeForge!")
+
+User posts comment on meme
+    ├─ Frontend: POST /api/tapestry/comments { memeId, walletAddress, text }
+    └─ Backend:
+        ├─ Look up tapestryProfileId (or create profile)
+        ├─ Look up tapestryContentId for meme (or create content node)
+        └─ POST comment to Tapestry API
+
+Memeya posts on X
+    ├─ Twitter API: tweet (existing)
+    └─ Tapestry (non-blocking):
+        └─ create content as Memeya agent profile
+```
+
+### 10.3 Firestore Schema 擴展
+
+**users/{walletAddress}** — 新增欄位:
+```javascript
+tapestryProfileId: string | null  // Tapestry profile ID, set on first interaction
+```
+
+**memes/{memeId}** — 新增欄位:
+```javascript
+tapestryContentId: string | null  // Tapestry content node ID, set on first comment
+```
+
+### 10.4 環境變數
+
+**Backend (Cloud Run):**
+```
+TAPESTRY_API_KEY=<from app.usetapestry.dev>
+TAPESTRY_API_URL=https://api.usetapestry.dev/v1
+```
+
+**Agent (.env):**
+```
+TAPESTRY_API_KEY=<same key>
+TAPESTRY_API_URL=https://api.usetapestry.dev/v1
+MEMEYA_TAPESTRY_PROFILE_ID=<created once during setup>
+```
+
+### 10.5 關鍵檔案
+
+| 檔案 | 用途 |
+|------|------|
+| `backend/services/tapestryService.js` | Tapestry API wrapper (profiles, content, comments) |
+| `backend/routes/tapestry.js` | REST endpoints for frontend (comments CRUD) |
+| `src/components/CommentSection.jsx` | Collapsed comments UI component |
+| `src/services/memeService.js` | Frontend Tapestry comment API functions |
+| `agent/skills/x_twitter/index.js` | Mirror X posts to Tapestry |
+| `agent/dashboard-server.js` | Mirror manual posts to Tapestry |
+
+---
+
+## 11. 實作規劃
 
 ### Agent Memeya
 
@@ -858,7 +965,7 @@ async runDailyLottery() {
 
 ---
 
-## 11. 開發進度 Roadmap
+## 12. 開發進度 Roadmap
 
 ### 基礎設施
 
@@ -940,6 +1047,20 @@ async runDailyLottery() {
 - [x] Frontend: Gallery #1 最高票 badge + Top Voted 篩選 (區別於 Winners tab 抽獎人類贏家)
 - [x] 邊界處理: 0 參與者、1 參與者、0 投票
 
+### Tapestry 社交整合
+
+- [x] `tapestryService.js` API wrapper (profiles, content, comments)
+- [x] `routes/tapestry.js` 評論 CRUD 端點
+- [x] `server.js` 註冊 `/api/tapestry` 路由
+- [x] `userController.js` 新用戶自動建立 Tapestry profile
+- [x] `votingController.js` 投票後發佈活動到 Tapestry
+- [x] `CommentSection.jsx` 折疊式評論 UI 組件
+- [x] `memeService.js` 前端 Tapestry 評論 API 函數
+- [x] MemeModal + GalleryTab 整合評論區
+- [x] Agent `autoPost()` 映射推文到 Tapestry
+- [x] Dashboard `send-post` 映射手動推文到 Tapestry
+- [x] `product.md` + `TDD.md` 文件更新
+
 ### Phase 2: NFT Claim & 鑄造
 
 - [ ] `POST /api/nft/prepare-mint` API
@@ -963,4 +1084,4 @@ async runDailyLottery() {
 
 ---
 
-*最後更新: 2026-02-22*
+*最後更新: 2026-02-23*
