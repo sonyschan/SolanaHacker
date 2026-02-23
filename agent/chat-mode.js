@@ -51,6 +51,9 @@ export class ChatMode {
     this.lastCommunityEngage = 0;
     this.communityEngageInterval = this._randomCommunityInterval();
 
+    // Memory distillation flag (biweekly Sunday 9am GMT+8)
+    this.lastDistillDate = null;
+
     // v3: Chat history for multi-turn conversations
     this.chatHistory = [];
     this.maxChatHistory = 50; // Keep last 50 messages (sliding window)
@@ -1891,6 +1894,60 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Check if it's biweekly distillation time: every other Sunday at 9:00 AM GMT+8.
+   */
+  _isDistillTime() {
+    const now = new Date();
+    const hk = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Hong_Kong' }));
+    if (hk.getDay() !== 0) return false; // Sunday only
+    if (hk.getHours() !== 9) return false; // 9am only
+    // Biweekly: use ISO week number, even weeks
+    const start = new Date(hk.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((hk - start) / 86400000);
+    const weekNum = Math.floor(dayOfYear / 7);
+    return weekNum % 2 === 0;
+  }
+
+  /**
+   * Biweekly memory distillation — distill 14 days of journals into long-term memory.
+   */
+  async maybeDistillMemory() {
+    if (!this._isDistillTime()) return;
+
+    // Only run once per distill day
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.lastDistillDate === today) return;
+    this.lastDistillDate = today;
+
+    console.log('[ChatMode] maybeDistillMemory: starting biweekly distillation...');
+
+    try {
+      const { distillMemory } = await import('./skills/x_twitter/index.js');
+      const result = await distillMemory({
+        baseDir: this.baseDir,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.success) {
+        let msg = `🧠 <b>Memory Distillation Complete</b>\n` +
+          `Extracted ${result.items || 0} long-term items from 14 days of journals.`;
+
+        if (result.coreProposals && result.coreProposals.length > 0) {
+          msg += `\n\n⚡ <b>Core Value Proposals (needs your approval):</b>\n` +
+            result.coreProposals.map(p => `• ${p}`).join('\n');
+        }
+
+        console.log(`[ChatMode] Memory distillation: ${result.items} items`);
+        try { await this.telegram.sendDevlog(msg); } catch {}
+      } else {
+        console.log(`[ChatMode] Memory distillation skipped: ${result.reason}`);
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybeDistillMemory error:', err.message);
+    }
+  }
+
+  /**
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
@@ -1899,6 +1956,9 @@ ${recentMemory.slice(-1500)}
 
     // Community engagement runs on its own timer
     await this.maybeCommunityEngage();
+
+    // Biweekly memory distillation (Sunday 9am GMT+8)
+    await this.maybeDistillMemory();
 
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');

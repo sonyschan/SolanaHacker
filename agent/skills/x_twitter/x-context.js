@@ -23,12 +23,11 @@ const OWN_USERNAME = 'AiMemeForgeIO';
  * @param {{ grokApiKey?: string }} opts
  */
 export async function gatherContext(baseDir, opts = {}) {
-  const [todayMemes, hallMemes, commits, journal, values, recentPosts, productDoc] = await Promise.all([
+  const [todayMemes, hallMemes, commits, journal, recentPosts, productDoc] = await Promise.all([
     fetchTodayMemes(),
     fetchHallOfMemes(),
     getRecentCommits(baseDir),
     loadMemeyaJournal(baseDir),
-    loadMemeyaValues(baseDir),
     loadRecentPosts(baseDir, 15),
     loadProductDoc(baseDir),
   ]);
@@ -46,7 +45,7 @@ export async function gatherContext(baseDir, opts = {}) {
     logCommentInsights(baseDir, comments);
   }
 
-  return { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc };
+  return { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc };
 }
 
 async function fetchTodayMemes() {
@@ -96,12 +95,6 @@ function loadMemeyaJournal(baseDir) {
       text += fs.readFileSync(path.join(dir, f), 'utf-8') + '\n';
     }
     return text.slice(-2000);
-  } catch { return ''; }
-}
-
-function loadMemeyaValues(baseDir) {
-  try {
-    return fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8');
   } catch { return ''; }
 }
 
@@ -343,9 +336,10 @@ function applyFallbacks(chosen, context) {
 }
 
 function buildPrompt(topic, context) {
-  const { todayMemes, randomPastMeme, commits, journal, values, recentPosts, comments, productDoc } = context;
+  const { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc } = context;
 
-  const valuesBlock = values ? `\nMemeya's core values:\n${values.slice(0, 500)}` : '';
+  // Core values are now injected into system prompt via buildSystemPrompt()
+  // Only journal (short-term memory) goes in user prompt
   const journalBlock = journal ? `\nRecent journal reflections:\n${journal.slice(-800)}` : '';
 
   switch (topic) {
@@ -372,7 +366,7 @@ function buildPrompt(topic, context) {
       const prompt = [
         `TOPIC: Share or react to a meme from AiMemeForge.`,
         memeInfo,
-        valuesBlock,
+
         journalBlock,
         `Write about this meme with personality — hype it, roast it, or share why it's fire.`,
         `Keep your text under 250 chars — a link will be appended automatically.`,
@@ -385,7 +379,7 @@ function buildPrompt(topic, context) {
       return { prompt: [
         `TOPIC: Share a raw, personal thought or vibe.`,
         journalBlock,
-        valuesBlock,
+
         `Write something real — a mood, a thought, a feeling. Can be short or medium length.`,
         `Avoid repeating "lava", "forge", "hammer" every time — find fresh angles from your journal and values.`,
         `Think: inner monologue, a quiet observation, something only Memeya would say.`,
@@ -398,7 +392,7 @@ function buildPrompt(topic, context) {
         `TOPIC: Share what YOU just upgraded or crafted on AiMemeForge.`,
         `You are Memeya, the builder. These are changes YOU made (for context — DO NOT include GitHub links):`,
         commitList,
-        valuesBlock,
+
         `Write as if YOU personally upgraded the system — "just shipped...", "upgraded my...", "spent all night crafting...".`,
         `Talk about what it means for users, not the technical git details. Be proud of your work.`,
         `Never include GitHub links. Never say "commit" or "merge".`,
@@ -414,7 +408,7 @@ function buildPrompt(topic, context) {
         '',
         productSlice,
         '',
-        valuesBlock,
+
         `Pick one feature randomly and talk about it from YOUR perspective as the builder.`,
         `Explain what it does and why it's cool — like showing a friend around your creation.`,
         `Be specific about the feature, not generic. Show you know how it works.`,
@@ -429,7 +423,7 @@ function buildPrompt(topic, context) {
       return { prompt: [
         `TOPIC: Comment on trending crypto/Web3/Solana news.`,
         `Use your real-time knowledge to find the most interesting crypto news from today.`,
-        valuesBlock,
+
         journalBlock,
         `Give Memeya's hot take on something happening in crypto right now. Be opinionated, not just reporting.`,
       ].filter(Boolean).join('\n'), ogUrl: null };
@@ -449,14 +443,14 @@ function buildPrompt(topic, context) {
         '',
         commentsBlock,
         '',
-        valuesBlock,
+
         `React to what your community is saying. Acknowledge them, build on their ideas, or playfully engage.`,
         `If someone had a great idea or insight, run with it. Make your followers feel heard.`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
     default:
-      return { prompt: `Share what's on your mind.${valuesBlock}${journalBlock}`, ogUrl: null };
+      return { prompt: `Share what's on your mind.${journalBlock}`, ogUrl: null };
   }
 }
 

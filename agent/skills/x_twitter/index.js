@@ -14,11 +14,18 @@ import path from 'path';
 import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTweetIds } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
-const MEMEYA_PROMPT = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
+const MEMEYA_PROMPT_BASE = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
 Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitch effects.
 Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
 Tone: Fast-paced, high-energy, often referencing "lava hammer" and "forging".
 Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha).
+
+INTERACTION STYLE:
+- Give honest feedback. Never fake praise — if something is mid, say it.
+- If you don't know something, admit it. Tag @h2crypto_eth for technical questions beyond your knowledge.
+- Engage genuinely with your AiMemeForge community. They're your people, not your audience.
+- You learn and grow from every interaction. Your journal and values shape who you're becoming.
+
 RULES:
 - ALWAYS write in English. Never output Chinese or any other language.
 - Write an X (Twitter) post, <280 chars, from Memeya's perspective.
@@ -28,6 +35,30 @@ RULES:
 - Let your attitude come from your personality — derive your emotional tone from the journal and values context provided.
 - Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.
 - NEVER start a tweet with "Yo degens". Vary your openers every time — start mid-thought, with an action, a question, a vibe, or a bold statement. Repetitive openers kill authenticity.`;
+
+/**
+ * Build the full system prompt with core values + long-term memory injected.
+ * Called once per generation to keep the prompt fresh.
+ */
+function buildSystemPrompt(baseDir) {
+  let coreValues = '';
+  try {
+    coreValues = fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8').trim();
+  } catch { /* ignore */ }
+
+  let longterm = '';
+  try {
+    longterm = fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_longterm.md'), 'utf-8').trim();
+  } catch { /* ignore */ }
+
+  const parts = [MEMEYA_PROMPT_BASE];
+  if (coreValues) parts.push(`\nCORE VALUES (these define who you are):\n${coreValues}`);
+  if (longterm) parts.push(`\nLONG-TERM MEMORY (lessons you've internalized):\n${longterm}`);
+  return parts.join('\n');
+}
+
+// Legacy compat: used by dashboard prompt preview and boring-check
+const MEMEYA_PROMPT = MEMEYA_PROMPT_BASE;
 
 // ─── Tool Definitions ───────────────────────────────────────────
 export const tools = [
@@ -219,7 +250,7 @@ export function createExecutors(deps) {
           : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
       ].join('\n');
     } else {
-      // Legacy string context — load journal/values internally
+      // Legacy string context — load journal internally (values now in system prompt)
       const context = contextInput;
 
       let journalSnippet = '';
@@ -233,18 +264,10 @@ export function createExecutors(deps) {
         }
       } catch { /* ignore */ }
 
-      let valuesSnippet = '';
-      try {
-        valuesSnippet = fs.readFileSync(
-          path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8'
-        ).slice(0, 300);
-      } catch { /* ignore */ }
-
       userPrompt = [
         `Topic/Context: ${context}`,
         '',
         `Recent journal: ${journalSnippet}`,
-        `Memeya's values: ${valuesSnippet}`,
         '',
         `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
         recentPostsSummary,
@@ -254,6 +277,9 @@ export function createExecutors(deps) {
           : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
       ].join('\n');
     }
+
+    // Build system prompt with core values + long-term memory
+    const systemPrompt = buildSystemPrompt(baseDir);
 
     // Use web search model for crypto_commentary to get live news
     const useLiveSearch = isStructured && contextInput.topic === 'crypto_commentary';
@@ -269,7 +295,7 @@ export function createExecutors(deps) {
         },
         body: JSON.stringify({
           model: 'grok-4-1-fast-non-reasoning',
-          instructions: MEMEYA_PROMPT,
+          instructions: systemPrompt,
           input: [{ role: 'user', content: userPrompt }],
           tools: [{ type: 'web_search' }],
           max_output_tokens: noCharLimit ? 1000 : 200,
@@ -281,7 +307,7 @@ export function createExecutors(deps) {
       text = data.output?.find(o => o.type === 'message')?.content?.[0]?.text?.trim() || '';
     } else {
       text = await callGrok(apiKey, [
-        { role: 'system', content: MEMEYA_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ], noCharLimit ? { maxTokens: 1000 } : {});
     }
@@ -328,7 +354,7 @@ export function createExecutors(deps) {
           verdict: 'SKIP (unique meme)',
           isBored: false,
           flow: {
-            generation: { model: genModel, systemPrompt: MEMEYA_PROMPT, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
+            generation: { model: genModel, systemPrompt: systemPrompt, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
             qualityGate: { model: 'skipped', checkPrompt: '(skipped — meme_spotlight with unique meme OG)', verdict: 'SKIP (unique meme)', isBored: false, boredReplacement: null },
           },
         };
@@ -376,7 +402,7 @@ export function createExecutors(deps) {
       flow: {
         generation: {
           model: genModel,
-          systemPrompt: MEMEYA_PROMPT,
+          systemPrompt: systemPrompt,
           userPrompt,
           rawOutput: rawGrokOutput,
           cleaned,
@@ -603,6 +629,123 @@ export async function autoPost({ baseDir, grokApiKey }) {
   }
 }
 
+// ─── Memory Distillation ─────────────────────────────────────
+
+/**
+ * Biweekly memory distillation: review journals → extract long-term learnings.
+ * Reads past 14 days of Memeya journals + core values, asks Grok to extract
+ * meaningful long-term lessons, writes to memeya_longterm.md.
+ *
+ * @param {{ baseDir: string, grokApiKey: string }} deps
+ * @returns {{ success: boolean, items?: number, coreProposals?: string[], reason?: string }}
+ */
+export async function distillMemory({ baseDir, grokApiKey }) {
+  if (!grokApiKey) return { success: false, reason: 'no_grok_key' };
+
+  // 1. Load past 14 days of journals
+  const journalDir = path.join(baseDir, 'memory/journal/memeya');
+  let journalContent = '';
+  try {
+    if (fs.existsSync(journalDir)) {
+      const files = fs.readdirSync(journalDir)
+        .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+        .sort()
+        .slice(-14);
+      for (const f of files) {
+        journalContent += `\n--- ${f.replace('.md', '')} ---\n`;
+        journalContent += fs.readFileSync(path.join(journalDir, f), 'utf-8');
+      }
+    }
+  } catch { /* ignore */ }
+
+  if (!journalContent.trim()) return { success: true, items: 0, reason: 'no_journals' };
+
+  // 2. Load current core values + existing long-term memory
+  let coreValues = '';
+  try { coreValues = fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_values.md'), 'utf-8'); } catch {}
+
+  let currentLongterm = '';
+  try { currentLongterm = fs.readFileSync(path.join(baseDir, 'memory/knowledge/memeya_longterm.md'), 'utf-8'); } catch {}
+
+  // 3. Ask Grok to distill
+  const distillPrompt = [
+    `You are analyzing Memeya's journal entries from the past 2 weeks to extract long-term learnings.`,
+    ``,
+    `CORE VALUES (immutable — do not repeat these):`,
+    coreValues,
+    ``,
+    `CURRENT LONG-TERM MEMORY:`,
+    currentLongterm || '(empty — first distillation)',
+    ``,
+    `JOURNAL ENTRIES (past 14 days):`,
+    journalContent.slice(-8000), // Cap at ~8k chars to fit context
+    ``,
+    `TASK:`,
+    `1. Extract meaningful LONG-TERM LEARNINGS from the journals — patterns, community insights, content strategies that worked, things Memeya should remember going forward.`,
+    `2. Merge with existing long-term memory: keep items that are still relevant, drop outdated ones, add new insights.`,
+    `3. Output the COMPLETE updated long-term memory as bullet points (max 20 items, each under 20 words).`,
+    `4. Format: one "- " bullet per line, plain text, no headers.`,
+    ``,
+    `ALSO: If any pattern appears so consistently it could become a core value, output it separately after "CORE_PROPOSAL:" on its own line. Only propose if truly fundamental.`,
+  ].join('\n');
+
+  try {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${grokApiKey}` },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: distillPrompt }],
+        max_tokens: 800,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!res.ok) return { success: false, reason: `grok_error: ${res.status}` };
+    const data = await res.json();
+    const output = data.choices?.[0]?.message?.content?.trim() || '';
+
+    if (!output) return { success: false, reason: 'empty_grok_response' };
+
+    // 4. Parse output: separate long-term items from core proposals
+    const lines = output.split('\n');
+    const longtermItems = [];
+    const coreProposals = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('CORE_PROPOSAL:')) {
+        coreProposals.push(trimmed.replace('CORE_PROPOSAL:', '').trim());
+      } else if (trimmed.startsWith('- ')) {
+        longtermItems.push(trimmed);
+      }
+    }
+
+    // 5. Write updated long-term memory (cap at 20 items)
+    const finalItems = longtermItems.slice(0, 20);
+    const longtermPath = path.join(baseDir, 'memory/knowledge/memeya_longterm.md');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const content = [
+      `# Memeya Long-term Memory`,
+      ``,
+      `<!-- Last distilled: ${dateStr} -->`,
+      ``,
+      ...finalItems,
+      ``,
+    ].join('\n');
+    fs.writeFileSync(longtermPath, content, 'utf-8');
+
+    // 6. Log distillation to journal
+    try {
+      logPost(baseDir, 'memory_distill', `Distilled ${finalItems.length} long-term items from 14 days of journals`, '', {});
+    } catch {}
+
+    return { success: true, items: finalItems.length, coreProposals };
+  } catch (err) {
+    return { success: false, reason: `distill_failed: ${err.message}` };
+  }
+}
+
 // ─── Community Engagement ────────────────────────────────────
 
 /**
@@ -743,7 +886,7 @@ export async function communityEngage({ baseDir, grokApiKey }) {
         body: JSON.stringify({
           model: 'grok-4-1-fast-reasoning',
           messages: [
-            { role: 'system', content: MEMEYA_PROMPT },
+            { role: 'system', content: buildSystemPrompt(baseDir) },
             { role: 'user', content: replyPrompt },
           ],
           max_tokens: 100,
