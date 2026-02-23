@@ -625,6 +625,21 @@
   </div>
 </div>
 
+<!-- Section 4.5: TODOs -->
+<div class="section" id="s-todos">
+  <div class="section-header" onclick="toggle('s-todos')">
+    <span class="icon">&#128203;</span>
+    <h2>TODO List</h2>
+    <span class="badge" id="todo-badge" style="background:rgba(247,120,186,0.2);color:var(--pink);">Loading</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div id="todo-loading" class="loading-text"><span class="spinner"></span>Loading TODOs...</div>
+    <div id="todo-content" style="display:none;"></div>
+    <div id="todo-error" class="error-text" style="display:none;"></div>
+  </div>
+</div>
+
 <!-- Section 5: Generate Post -->
 <div class="section" id="s-testgen">
   <div class="section-header" onclick="toggle('s-testgen')">
@@ -836,6 +851,49 @@ async function loadValues() {
 }
 
 // ─── Load today's activity ───────────────────────────────────
+async function loadTodos() {
+  try {
+    const res = await fetch('/api/memeya/todos');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const container = document.getElementById('todo-content');
+    const badge = document.getElementById('todo-badge');
+    document.getElementById('todo-loading').style.display = 'none';
+    container.style.display = 'block';
+
+    if (!data.items || data.items.length === 0) {
+      container.innerHTML = '<div class="placeholder">No TODOs yet. Memeya will add items from community requests.</div>';
+      badge.textContent = '0';
+    } else {
+      const open = data.items.filter(i => !i.done).length;
+      badge.textContent = open + ' open';
+      badge.style.background = open > 0 ? 'rgba(247,120,186,0.2)' : 'rgba(63,185,80,0.2)';
+      badge.style.color = open > 0 ? 'var(--pink)' : 'var(--green)';
+
+      let html = '<div style="font-size:0.9em;">';
+      for (const item of data.items) {
+        const icon = item.done ? '&#9989;' : '&#11036;';
+        const style = item.done ? 'text-decoration:line-through;color:var(--text-dim);' : 'color:var(--text);';
+        const lines = item.text.split('\n');
+        const main = lines[0];
+        const meta = lines.slice(1).filter(Boolean).map(l => '<div style="font-size:0.8em;color:var(--text-dim);margin-left:24px;">' + escHtml(l) + '</div>').join('');
+        html += '<div style="padding:8px 0;border-bottom:1px solid var(--border);">';
+        html += '<span>' + icon + ' </span><span style="' + style + '">' + escHtml(main) + '</span>';
+        html += meta;
+        html += '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+  } catch (err) {
+    document.getElementById('todo-loading').style.display = 'none';
+    const errEl = document.getElementById('todo-error');
+    errEl.style.display = 'block';
+    errEl.textContent = 'Failed to load TODOs: ' + err.message;
+  }
+}
+
 async function loadActivity() {
   try {
     const res = await fetch('/api/memeya/activity');
@@ -1177,6 +1235,7 @@ async function runAnalysis() {
 loadPrompt();
 loadValues();
 loadActivity();
+loadTodos();
 loadXPostStatus();
 </script>
 </body>

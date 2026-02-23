@@ -280,6 +280,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ─── Memeya API: TODOs ─────────────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/todos') {
+    try {
+      const content = safeRead(path.join(BASE_DIR, 'memory/TODO.md'));
+      const items = [];
+      if (content) {
+        const lines = content.split('\n');
+        for (const line of lines) {
+          const checked = line.match(/^- \[x\] (.+)/i);
+          const unchecked = line.match(/^- \[ \] (.+)/);
+          if (checked) items.push({ text: checked[1], done: true });
+          else if (unchecked) items.push({ text: unchecked[1], done: false });
+        }
+      }
+      jsonRes(res, { items });
+    } catch (err) {
+      jsonRes(res, { error: err.message }, 500);
+    }
+    return;
+  }
+
   // ─── Memeya API: Today's Activity ───────────────────────────
   if (req.method === 'GET' && req.url === '/api/memeya/activity') {
     try {

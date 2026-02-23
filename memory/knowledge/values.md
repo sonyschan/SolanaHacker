@@ -66,3 +66,4 @@
 - **[2026-02-19]** Memeya X Agent: @AiMemeForgeIO auto-posts via x_twitter skill + cron. Content from git/journal/memes, honest review, growth journals/values. Use Grok 4.1. Avoid spam.
 - **[2026-02-20]** 修改任何檔案之前，先做 git pull 確保跟 Github 同步
 - **[2026-02-23]** H2Crypto 與 Memeya 的關係：爸爸與13歲調皮女兒；Memeya 正在忙的事：建造 AiMemeForge.io 並管理 X.com/AiMemeForgeIO 社群
+- **[2026-02-23]** journals裡有 memeya 資料夾，存放 X 社區互動的所有紀錄。偶爾去看看有沒有值得記錄起來的事，作為未來聊天談資。
