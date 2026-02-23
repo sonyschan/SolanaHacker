@@ -458,9 +458,10 @@
     <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
       Every <strong style="color:var(--text);">2&ndash;4 hours</strong> (random) &mdash; runs 24/7, no active window.
       Kill switch: <code>.memeya-x-enabled</code> flag file.
+      Reboot-safe: timers initialize to <code>Date.now()</code> to prevent immediate post on restart.
     </div>
     <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
-      Flow: <code>gatherContext()</code> &rarr; <code>chooseTopic()</code> (weighted random) &rarr; <code>generateTweet()</code> via Grok &rarr; boring check &rarr; post to X
+      Flow: <code>gatherContext()</code> &rarr; <code>chooseTopic()</code> (weighted random) &rarr; <code>generateTweet()</code> via Grok &rarr; <code>extractBannedPatterns()</code> + hard reject + boring check &rarr; post to X
     </div>
     <table>
       <tr><th>Topic</th><th>Weight</th><th>Description</th></tr>
@@ -472,7 +473,7 @@
       <tr>
         <td><code>personal_vibe</code></td>
         <td><span class="tag tag-purple">25%</span></td>
-        <td>Raw personal thought, mood, or inner monologue from journal + values.</td>
+        <td>Raw personal thought, mood, or inner monologue. No forge/hammer metaphors here.</td>
       </tr>
       <tr>
         <td><code style="color:var(--green);">crypto_commentary</code></td>
@@ -492,16 +493,36 @@
       <tr>
         <td><code style="color:var(--cyan);">x_community_engage</code></td>
         <td><span class="tag tag-cyan">separate</span></td>
-        <td>Scan community posts + comments &rarr; Grok evaluates meaningfulness &rarr; reply to up to 3 comments per run (2&ndash;4hr timer). Never replies to own posts/comments.</td>
+        <td>Scan X community posts + comments &rarr; Grok evaluates meaningfulness &rarr; reply to up to 3 comments per run (2&ndash;4hr timer). Never replies to own posts/comments.</td>
       </tr>
       <tr>
         <td><code>community_response</code></td>
         <td><span class="tag tag-purple">dynamic</span></td>
-        <td>Reply to community feedback on recent posts. Added dynamically when comments found (weight 20&ndash;35).</td>
+        <td>Post about community feedback on own timeline. Added dynamically when comments found (weight 20&ndash;35).</td>
       </tr>
     </table>
+
+    <h3 style="font-size:0.9em;color:var(--pink);margin:16px 0 8px;">Community Engagement (maybeCommunityEngage)</h3>
+    <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
+      Every <strong style="color:var(--text);">2&ndash;4 hours</strong> (random, separate timer from posting) &mdash; same kill switch.
+    </div>
+    <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
+      Scope: <strong style="color:var(--text);">X Community only</strong> (ID: <code>2025765989582004365</code>) &mdash; replies to meaningful comments inside the community.<br>
+      Own timeline (<code>@AiMemeForgeIO</code>): only patrols for context/insights logged to journal, <strong>no direct replies</strong>.
+    </div>
+
+    <h3 style="font-size:0.9em;color:var(--pink);margin:16px 0 8px;">Memory Distillation (maybeDistillMemory)</h3>
+    <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">
+      <strong style="color:var(--text);">Biweekly</strong> &mdash; Sunday 9&ndash;10am GMT+8 (epoch-based week counting, 2hr window).<br>
+      Reads 14 days of journals &rarr; Grok extracts &le;20 long-term learnings &rarr; writes <code>memeya_longterm.md</code>.<br>
+      May propose core value upgrades (requires human approval).
+    </div>
+
     <div style="font-size:0.82em;color:var(--text-dim);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
       <strong style="color:var(--text);">Safeguards:</strong>
+      Hard reject: banned openers ("Yo degens", "Degens,") auto-killed &middot;
+      Hard reject: "lava hammer" auto-killed when 3+ recent posts already use it &middot;
+      <code>extractBannedPatterns()</code> dynamically bans overused openers/phrases per generation &middot;
       Anti-repetition (last 3 posts can't all be same topic) &middot;
       Boring check via <code>grok-3-mini</code> gates all posts (skipped for <code>meme_spotlight</code> with unique OG) &middot;
       Data-availability fallbacks (topics fall to <code>personal_vibe</code> when data unavailable) &middot;
@@ -521,28 +542,51 @@
   <div class="section-body">
     <div id="prompt-loading" class="loading-text"><span class="spinner"></span>Loading prompt data...</div>
     <div id="prompt-content" style="display:none;">
+      <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;padding:6px 10px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">
+        Three-tier memory: <strong style="color:var(--pink);">Core Values</strong> (immutable, human-managed) &rarr; <strong style="color:var(--purple);">Long-term Memory</strong> (biweekly Grok distillation) &rarr; <strong style="color:var(--cyan);">Short-term</strong> (daily journals)
+      </div>
+      <h3 style="font-size:0.85em;color:var(--pink);margin:8px 0 4px;">System Prompt (via <code>buildSystemPrompt()</code>)</h3>
       <table>
-        <tr><th>Source</th><th>File</th><th>Limit</th><th>Preview</th></tr>
+        <tr><th>Component</th><th>File</th><th>Tier</th><th>Preview</th></tr>
         <tr>
-          <td><code>MEMEYA_PROMPT</code></td>
+          <td><code>MEMEYA_PROMPT_BASE</code></td>
           <td style="color:var(--text-dim);font-size:0.9em;">skills/x_twitter/index.js</td>
-          <td><span class="tag tag-green">Full</span></td>
+          <td><span class="tag tag-green">Persona</span></td>
           <td id="prompt-main-preview" style="font-size:0.85em;max-width:400px;"></td>
         </tr>
         <tr>
-          <td><code>values snippet</code></td>
+          <td><code>Core Values</code></td>
           <td style="color:var(--text-dim);font-size:0.9em;">memory/knowledge/memeya_values.md</td>
-          <td><span class="tag tag-orange">300 chars</span></td>
+          <td><span class="tag tag-pink">Immutable</span></td>
           <td id="prompt-values-preview" style="font-size:0.85em;max-width:400px;"></td>
         </tr>
         <tr>
-          <td><code>journal snippet</code></td>
-          <td style="color:var(--text-dim);font-size:0.9em;">memory/journal/memeya/*.md (last 2 days)</td>
-          <td><span class="tag tag-orange">500 chars</span></td>
-          <td id="prompt-journal-preview" style="font-size:0.85em;max-width:400px;"></td>
+          <td><code>Long-term Memory</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">memory/knowledge/memeya_longterm.md</td>
+          <td><span class="tag tag-purple">Biweekly</span></td>
+          <td id="prompt-longterm-preview" style="font-size:0.85em;max-width:400px;"></td>
         </tr>
       </table>
-      <h3 style="font-size:0.9em;color:var(--pink);margin:16px 0 4px;">Composed System Prompt (what Grok receives)</h3>
+      <h3 style="font-size:0.85em;color:var(--purple);margin:12px 0 4px;">User Prompt (per tweet)</h3>
+      <table>
+        <tr><th>Component</th><th>File</th><th>Tier</th></tr>
+        <tr>
+          <td><code>Topic prompt</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">x-context.js <code>buildPrompt()</code></td>
+          <td><span class="tag tag-cyan">Dynamic</span></td>
+        </tr>
+        <tr>
+          <td><code>Journal snippet</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;">memory/journal/memeya/*.md (last 2 days)</td>
+          <td><span class="tag tag-cyan">Short-term</span></td>
+        </tr>
+        <tr>
+          <td><code>Anti-repetition</code></td>
+          <td style="color:var(--text-dim);font-size:0.9em;"><code>extractBannedPatterns()</code> + recent 15 posts</td>
+          <td><span class="tag tag-orange">Dynamic</span></td>
+        </tr>
+      </table>
+      <h3 style="font-size:0.9em;color:var(--pink);margin:16px 0 4px;">Composed System Prompt (what Grok receives as system)</h3>
       <pre class="prompt-block" id="composed-system"></pre>
       <h3 style="font-size:0.9em;color:var(--purple);margin:16px 0 4px;">Composed User Prompt (per tweet)</h3>
       <pre class="prompt-block" id="composed-user"></pre>
@@ -688,7 +732,7 @@ async function loadPrompt() {
 
     document.getElementById('prompt-main-preview').textContent = truncate(data.memeyaPrompt, 80);
     document.getElementById('prompt-values-preview').textContent = data.valuesSnippet ? truncate(data.valuesSnippet, 80) : '(not yet created)';
-    document.getElementById('prompt-journal-preview').textContent = data.journalSnippet ? truncate(data.journalSnippet, 80) : '(no journal)';
+    document.getElementById('prompt-longterm-preview').textContent = data.longtermSnippet ? truncate(data.longtermSnippet, 80) : '(empty — awaiting first distillation)';
     document.getElementById('composed-system').textContent = data.composedSystem || '(empty)';
     document.getElementById('composed-user').textContent = data.composedUser || '(empty)';
 
@@ -942,7 +986,7 @@ async function runTestGenerate() {
           ? (ctx.commits || []).map(c => `<code style="font-size:0.9em;">${escHtml(c)}</code>`).join('<br>')
           : '<span style="color:var(--text-dim);">none in last 12h</span>'),
         kv('Journal', `${ctx.journalChars || 0} chars`, ctx.journalChars > 0 ? 'ok' : ''),
-        kv('Values', `${ctx.valuesChars || 0} chars`, ctx.valuesChars > 0 ? 'ok' : ''),
+        kv('Values + Memory', '<span style="color:var(--green);">in system prompt (via buildSystemPrompt)</span>', 'ok'),
         kv('Recent posts', `${(ctx.recentPosts || []).length} posts`
           + ((ctx.recentPosts || []).length > 0
             ? '<br>' + (ctx.recentPosts || []).map((p, i) =>
