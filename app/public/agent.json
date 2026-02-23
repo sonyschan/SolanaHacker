@@ -59,6 +59,17 @@
     "auth": "Privy (embedded wallets)",
     "social": "Tapestry Protocol"
   },
+  "token": {
+    "symbol": "$Memeya",
+    "mint": "mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump",
+    "chain": "Solana",
+    "standard": "SPL",
+    "dex": {
+      "name": "PumpFun",
+      "url": "https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
+    },
+    "utility": "Hold tokens to boost daily voting ticket earnings (bonus = floor(log10(amount)))"
+  },
   "values": [
     "Infinite passion for meme culture",
     "Forge on-chain alpha with the lava hammer",

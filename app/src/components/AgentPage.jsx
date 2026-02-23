@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 
 const AGENT_JSON_URL = "https://aimemeforge.io/agent.json";
+const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
 const capabilities = [
   {
@@ -59,6 +60,13 @@ const agentJsonPreview = `{
 }`;
 
 const AgentPage = () => {
+  const [caCopied, setCaCopied] = useState(false);
+  const copyCA = useCallback(() => {
+    navigator.clipboard.writeText(MEMEYA_TOKEN_CA);
+    setCaCopied(true);
+    setTimeout(() => setCaCopied(false), 2000);
+  }, []);
+
   const navigateHome = () => {
     window.location.hash = "";
   };
@@ -202,6 +210,54 @@ const AgentPage = () => {
                 {tech}
               </span>
             ))}
+          </div>
+        </section>
+
+        {/* $Memeya Token */}
+        <section className="space-y-6">
+          <h3 className="text-2xl font-bold text-center">
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">$Memeya</span>
+            <span className="text-white"> Token</span>
+          </h3>
+          <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm space-y-5">
+            <p className="text-gray-300 text-center">
+              Hold <span className="text-yellow-400 font-semibold">$Memeya</span> to boost your daily voting tickets on AiMemeForge.
+            </p>
+
+            {/* CA Display + Copy */}
+            <div className="flex items-center justify-center gap-2">
+              <code className="text-sm md:text-base font-mono text-yellow-300 bg-black/30 px-4 py-2 rounded-lg border border-yellow-500/20 truncate max-w-[240px] md:max-w-none">
+                {MEMEYA_TOKEN_CA}
+              </code>
+              <button
+                onClick={copyCA}
+                className="px-3 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium flex-shrink-0"
+              >
+                {caCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            {/* Bonus Examples */}
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10 tokens = +1</span>
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">1K = +3</span>
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10K = +4</span>
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">100K = +5</span>
+            </div>
+
+            <div className="text-center">
+              <a
+                href={`https://pump.fun/coin/${MEMEYA_TOKEN_CA}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl transition-all duration-200"
+              >
+                Buy on PumpFun
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
           </div>
         </section>
 

@@ -266,14 +266,20 @@ export function chooseTopic(context) {
     topics.push({ id: 'community_response', weight });
   }
 
-  // ── Priority check: dev_update (max 1/day, only with fresh commits) ──
+  // ── Priority checks: dev_update + token_spotlight (each max 1/day) ──
   const todayTopics = recentPosts.map(p => p.topic).filter(Boolean);
   const devUpdateToday = todayTopics.includes('dev_update');
+  const tokenSpotlightToday = todayTopics.includes('token_spotlight');
   const hasCommits = commits.length > 0;
   let priorityForced = null;
 
   if (hasCommits && !devUpdateToday) {
     priorityForced = 'dev_update';
+  }
+
+  // token_spotlight: 20% chance if not posted about token today (max 1/day)
+  if (!priorityForced && !tokenSpotlightToday && Math.random() < 0.20) {
+    priorityForced = 'token_spotlight';
   }
 
   // Anti-same-topic: check last 3 posts
@@ -426,6 +432,23 @@ function buildPrompt(topic, context) {
         `Give Memeya's hot take on something happening in crypto right now. Be opinionated, not just reporting.`,
         `Write like a crypto-native teen with real opinions, not a "lava hammer" brand mascot.`,
       ].filter(Boolean).join('\n'), ogUrl: null };
+    }
+
+    case 'token_spotlight': {
+      return { prompt: [
+        'TOPIC: Naturally mention $Memeya token and AiMemeForge.',
+        'CA: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump',
+        'Facts you can use:',
+        '- $Memeya is on PumpFun (Solana SPL token)',
+        '- Holding tokens boosts daily voting ticket earnings on aimemeforge.io',
+        '- AiMemeForge = AI generates memes daily, community votes, winners get NFTs',
+        '- Agent profile: aimemeforge.io/#agent',
+        journalBlock,
+        'Write a natural, engaging tweet that makes people curious about AiMemeForge or $Memeya.',
+        'DO NOT write like an ad. Be yourself — excited, genuine, maybe a bit chaotic.',
+        'You can mention the CA, the platform, the voting, or your own experience forging memes.',
+        'Vary your angle each time. Sometimes hype the token, sometimes the platform, sometimes the community.',
+      ].filter(Boolean).join('\n'), ogUrl: 'https://aimemeforge.io' };
     }
 
     case 'community_response': {
