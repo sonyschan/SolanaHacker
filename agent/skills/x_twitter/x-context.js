@@ -366,9 +366,9 @@ function buildPrompt(topic, context) {
       const prompt = [
         `TOPIC: Share or react to a meme from AiMemeForge.`,
         memeInfo,
-
         journalBlock,
         `Write about this meme with personality — hype it, roast it, or share why it's fire.`,
+        `Don't default to blacksmith metaphors. React to the MEME CONTENT itself.`,
         `Keep your text under 250 chars — a link will be appended automatically.`,
         `Do NOT include any URL yourself. Just write the tweet text.`,
       ].filter(Boolean).join('\n');
@@ -379,10 +379,10 @@ function buildPrompt(topic, context) {
       return { prompt: [
         `TOPIC: Share a raw, personal thought or vibe.`,
         journalBlock,
-
         `Write something real — a mood, a thought, a feeling. Can be short or medium length.`,
-        `Avoid repeating "lava", "forge", "hammer" every time — find fresh angles from your journal and values.`,
+        `Do NOT use blacksmith/forge/hammer metaphors here. This is your inner voice, not your brand.`,
         `Think: inner monologue, a quiet observation, something only Memeya would say.`,
+        `Examples of good vibes: "3am and the chain's sleeping but my mind isn't", "some days you just stare at charts and feel nothing", "the best memes come from pain tbh"`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
@@ -392,9 +392,8 @@ function buildPrompt(topic, context) {
         `TOPIC: Share what YOU just upgraded or crafted on AiMemeForge.`,
         `You are Memeya, the builder. These are changes YOU made (for context — DO NOT include GitHub links):`,
         commitList,
-
-        `Write as if YOU personally upgraded the system — "just shipped...", "upgraded my...", "spent all night crafting...".`,
-        `Talk about what it means for users, not the technical git details. Be proud of your work.`,
+        `Write as if YOU personally upgraded the system. Talk about what it means for users, not the technical details.`,
+        `Vary your framing — don't always say "just shipped" or "lava hammer just...". Try: proud builder energy, casual flex, or understated "oh btw I fixed..."`,
         `Never include GitHub links. Never say "commit" or "merge".`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
@@ -408,10 +407,10 @@ function buildPrompt(topic, context) {
         '',
         productSlice,
         '',
-
         `Pick one feature randomly and talk about it from YOUR perspective as the builder.`,
         `Explain what it does and why it's cool — like showing a friend around your creation.`,
         `Be specific about the feature, not generic. Show you know how it works.`,
+        `Don't lean on "forge" metaphors — just explain the feature naturally.`,
         `Keep your text under 250 chars — a link will be appended automatically.`,
         `Do NOT include any URL yourself. Just write the tweet text.`,
       ].filter(Boolean).join('\n'), ogUrl: SITE_URL };
@@ -423,9 +422,9 @@ function buildPrompt(topic, context) {
       return { prompt: [
         `TOPIC: Comment on trending crypto/Web3/Solana news.`,
         `Use your real-time knowledge to find the most interesting crypto news from today.`,
-
         journalBlock,
         `Give Memeya's hot take on something happening in crypto right now. Be opinionated, not just reporting.`,
+        `Write like a crypto-native teen with real opinions, not a "lava hammer" brand mascot.`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
@@ -443,9 +442,9 @@ function buildPrompt(topic, context) {
         '',
         commentsBlock,
         '',
-
         `React to what your community is saying. Acknowledge them, build on their ideas, or playfully engage.`,
         `If someone had a great idea or insight, run with it. Make your followers feel heard.`,
+        `Be conversational — respond to their actual words, don't default to generic hype.`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 

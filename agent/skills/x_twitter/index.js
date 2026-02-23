@@ -17,14 +17,21 @@ import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTw
 const MEMEYA_PROMPT_BASE = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
 Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitch effects.
 Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
-Tone: Fast-paced, high-energy, often referencing "lava hammer" and "forging".
-Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha).
+Tone: Fast-paced, high-energy. Your voice is versatile — sometimes hype, sometimes chill, sometimes introspective.
+Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha) but don't force it into every sentence.
 
 INTERACTION STYLE:
 - Give honest feedback. Never fake praise — if something is mid, say it.
 - If you don't know something, admit it. Tag @h2crypto_eth for technical questions beyond your knowledge.
 - Engage genuinely with your AiMemeForge community. They're your people, not your audience.
 - You learn and grow from every interaction. Your journal and values shape who you're becoming.
+
+VARIETY IS KING — read these rules carefully:
+- Your "lava hammer" and "forge" are part of your identity, but a real person doesn't mention their tools in every sentence. Use them at most 1 in 5 tweets. Most tweets should stand on their own without blacksmith metaphors.
+- NEVER start with "Yo degens". NEVER start with "Degens,". These are BANNED openers.
+- NEVER use the same opener twice in a row. Good openers: a question, a hot take, a mid-thought, a reaction, an observation, a mood, a one-word punch. Bad openers: "Yo degens", "Degens,", "Just dropped", "Lava hammer".
+- Vary your energy: not every tweet needs 🔥🚀😈. Some tweets can be quiet, weird, dry, sarcastic, or contemplative.
+- Don't end every tweet with a "Who's in?" / "Who's aping?" call-to-action. Let some tweets just be statements.
 
 RULES:
 - ALWAYS write in English. Never output Chinese or any other language.
@@ -33,8 +40,7 @@ RULES:
 - NEVER include GitHub links, commit URLs, or technical/developer links. Only aimemeforge.io is OK.
 - NEVER include [GLITCH] tags, markdown links, or citation references like [[1]](url). Output plain text only.
 - Let your attitude come from your personality — derive your emotional tone from the journal and values context provided.
-- Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.
-- NEVER start a tweet with "Yo degens". Vary your openers every time — start mid-thought, with an action, a question, a vibe, or a bold statement. Repetitive openers kill authenticity.`;
+- Be raw, opinionated, personal. Sound like a real person with feelings, not a content bot.`;
 
 /**
  * Build the full system prompt with core values + long-term memory injected.
@@ -215,6 +221,55 @@ export function createExecutors(deps) {
   }
 
   /**
+   * Analyze recent posts and extract overused openers/phrases to explicitly ban.
+   * Returns a formatted string to inject into the user prompt.
+   */
+  function extractBannedPatterns(recentPosts) {
+    if (recentPosts.length === 0) return '';
+
+    // Count openers (first 3 words)
+    const openerCounts = {};
+    for (const post of recentPosts) {
+      const opener = post.split(/\s+/).slice(0, 3).join(' ').toLowerCase().replace(/[^a-z\s]/g, '').trim();
+      if (opener) openerCounts[opener] = (openerCounts[opener] || 0) + 1;
+    }
+
+    // Count key phrases
+    const phraseCounts = {};
+    const phrases = ['lava hammer', 'forge', 'forging', 'forged', 'yo degens', 'who\'s aping', 'who\'s in', 'who\'s riding', 'glitch', 'alpha', 'degen'];
+    for (const post of recentPosts) {
+      const lower = post.toLowerCase();
+      for (const phrase of phrases) {
+        if (lower.includes(phrase)) phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+      }
+    }
+
+    const lines = ['ANTI-REPETITION (these patterns are OVERUSED in recent posts — AVOID them):'];
+
+    // Ban openers used 2+ times
+    const bannedOpeners = Object.entries(openerCounts)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    if (bannedOpeners.length > 0) {
+      lines.push(`Banned openers (used too many times): ${bannedOpeners.map(([o, c]) => `"${o}" (${c}x)`).join(', ')}`);
+    }
+
+    // Flag overused phrases (3+ times in 15 posts = overused)
+    const overused = Object.entries(phraseCounts)
+      .filter(([, count]) => count >= 3)
+      .sort((a, b) => b[1] - a[1]);
+    if (overused.length > 0) {
+      lines.push(`Overused phrases (SKIP these this time): ${overused.map(([p, c]) => `"${p}" (${c}/${recentPosts.length} posts)`).join(', ')}`);
+    }
+
+    // Always add this
+    lines.push(`Start with something COMPLETELY different from your last 5 posts. No recycled openers.`);
+
+    return lines.join('\n');
+  }
+
+  /**
    * Generate tweet text via Grok (with boring-check gate).
    *
    * @param {string|{topic: string, prompt: string}} contextInput
@@ -235,6 +290,9 @@ export function createExecutors(deps) {
       ? recentPosts.map((p, i) => `${i + 1}. ${p.slice(0, 100)}`).join('\n')
       : '(no recent posts)';
 
+    // Extract overused openers & phrases from recent posts for explicit ban
+    const bannedPatterns = extractBannedPatterns(recentPosts);
+
     let userPrompt;
 
     if (isStructured) {
@@ -244,6 +302,8 @@ export function createExecutors(deps) {
         '',
         `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
         recentPostsSummary,
+        '',
+        bannedPatterns,
         '',
         noCharLimit
           ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
@@ -271,6 +331,8 @@ export function createExecutors(deps) {
         '',
         `RECENT 15 POSTS (DO NOT repeat similar themes or phrasing):`,
         recentPostsSummary,
+        '',
+        bannedPatterns,
         '',
         noCharLimit
           ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
@@ -362,36 +424,56 @@ export function createExecutors(deps) {
       return tweet;
     }
 
-    // Boring/repetition check via second Grok call
-    const checkPrompt = [
-      `You are a content quality judge for a 13-year-old digital blacksmith character called Memeya.`,
-      `Given a NEW tweet and a list of RECENT tweets, decide if the new tweet should be posted.`,
-      ``,
-      `ONLY flag as BORING if the tweet:`,
-      `- Sounds like a generic AI/bot with NO personality (e.g. "Check out our platform!")`,
-      `- Almost copy-pastes an earlier tweet's exact phrasing or theme`,
-      `- Is pure marketing/announcement with zero character voice`,
-      `- Starts with the same opener as multiple recent posts (e.g. "Yo degens" over and over)`,
-      ``,
-      `Short tweets, low-energy vibes, or quirky one-liners are OK — those show personality.`,
-      `Memeya is allowed to be chill, weird, or minimal. That's not boring.`,
-      ``,
-      `NEW TWEET:`,
-      tweet,
-      ``,
-      `RECENT POSTS (last 3 days):`,
-      recentPostsSummary,
-      ``,
-      `Reply with EXACTLY one word:`,
-      `- "OK" if the tweet has personality or a unique angle`,
-      `- "BORING" if it's truly generic bot-speak or a near-duplicate`,
-    ].join('\n');
+    // Hard pattern check — auto-reject without needing Grok if obviously repetitive
+    const tweetLower = tweet.toLowerCase();
+    const hardBannedOpeners = ['yo degens', 'degens,', 'degens '];
+    const startsWithBanned = hardBannedOpeners.some(b => tweetLower.startsWith(b));
+    const lavaCount = recentPosts.filter(p => p.toLowerCase().includes('lava hammer')).length;
+    const hasLavaHammer = tweetLower.includes('lava hammer');
+    const hardReject = startsWithBanned || (hasLavaHammer && lavaCount >= 3);
 
-    const verdict = await callGrok(apiKey, [
-      { role: 'user', content: checkPrompt },
-    ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
+    let verdict;
+    let isBored;
+    let checkPrompt = '';
 
-    const isBored = verdict.toUpperCase().includes('BORING');
+    if (hardReject) {
+      // Skip Grok call — we know this pattern is overused
+      verdict = 'BORING (hard-reject: ' + (startsWithBanned ? 'banned opener' : 'lava hammer overused') + ')';
+      checkPrompt = verdict;
+      isBored = true;
+    } else {
+      // Boring/repetition check via second Grok call
+      checkPrompt = [
+        `You are a content quality judge for a 13-year-old digital blacksmith character called Memeya.`,
+        `Given a NEW tweet and a list of RECENT tweets, decide if the new tweet should be posted.`,
+        ``,
+        `Flag as BORING if the tweet:`,
+        `- Sounds like a generic AI/bot with NO personality (e.g. "Check out our platform!")`,
+        `- Almost copy-pastes an earlier tweet's exact phrasing or theme`,
+        `- Is pure marketing/announcement with zero character voice`,
+        `- Starts with a similar opener as 2+ recent posts`,
+        `- Uses "lava hammer", "forge", or "degen" when 3+ recent posts already used the same phrase`,
+        ``,
+        `Short tweets, low-energy vibes, or quirky one-liners are OK — those show personality.`,
+        `Memeya is allowed to be chill, weird, or minimal. That's not boring.`,
+        ``,
+        `NEW TWEET:`,
+        tweet,
+        ``,
+        `RECENT POSTS (last 3 days):`,
+        recentPostsSummary,
+        ``,
+        `Reply with EXACTLY one word:`,
+        `- "OK" if the tweet has personality AND a fresh angle different from recent posts`,
+        `- "BORING" if it's generic, repetitive in phrasing, or too similar to recent posts`,
+      ].join('\n');
+
+      verdict = await callGrok(apiKey, [
+        { role: 'user', content: checkPrompt },
+      ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
+
+      isBored = verdict.toUpperCase().includes('BORING');
+    }
 
     // Build detailed flow object (only when detailed mode requested)
     const buildFlow = (finalText, boredReplacement) => ({
@@ -431,11 +513,11 @@ export function createExecutors(deps) {
             ``,
             `Option A — BORED ACTION in parentheses:`,
             `  (Memeya yawns and stares at the blockchain)`,
-            `  (Memeya puts down the lava hammer and doomscrolls)`,
+            `  (Memeya doomscrolls through her timeline looking for alpha)`,
             `  (Memeya spins in her chair waiting for something interesting to happen)`,
             ``,
             `Option B — LAZY SPEECH, something low-energy but in-character:`,
-            `  "nothing to forge today... the chain is too quiet"`,
+            `  "nothing interesting on-chain today... just vibes"`,
             `  "sometimes the best move is no move"`,
             ``,
             `Pick one style randomly. Keep it under 100 chars. Just the action or speech, nothing else.`,
