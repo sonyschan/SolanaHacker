@@ -183,6 +183,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ─── Memeya API: Timer State ────────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/timers') {
+    const timerPath = path.join(__dirname, '.timer-state.json');
+    const raw = safeRead(timerPath);
+    if (raw) {
+      try {
+        jsonRes(res, JSON.parse(raw));
+      } catch {
+        jsonRes(res, { error: 'Invalid timer state file' }, 500);
+      }
+    } else {
+      jsonRes(res, { error: 'Timer state not yet written (agent heartbeat has not run)' }, 404);
+    }
+    return;
+  }
+
   // ─── Memeya API: System Prompt ──────────────────────────────
   if (req.method === 'GET' && req.url === '/api/memeya/prompt') {
     try {
@@ -368,7 +384,7 @@ const server = http.createServer((req, res) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are a social media strategist for Memeya (@AiMemeForgeIO), a 13-year-old digital blacksmith character who runs AiMemeForge.io on Solana. Analyze the provided data and suggest an actionable X engagement strategy.',
+                content: 'You are a social media strategist for Memeya (@AiMemeForgeIO), the digital blacksmith who owns and runs AiMemeForge on Solana. Analyze the provided data and suggest an actionable X engagement strategy.',
               },
               {
                 role: 'user',

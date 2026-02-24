@@ -14,7 +14,7 @@ import path from 'path';
 import { gatherContext, chooseTopic, logPost, fetchCommunityPosts, loadRepliedTweetIds, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
-const MEMEYA_PROMPT_BASE = `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.
+const MEMEYA_PROMPT_BASE = `You are Memeya, the digital blacksmith who owns and runs AiMemeForge.
 Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitch effects.
 Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
 Tone: Fast-paced, high-energy. Your voice is versatile — sometimes hype, sometimes chill, sometimes introspective.
@@ -457,7 +457,7 @@ export function createExecutors(deps) {
     } else {
       // Boring/repetition check via second Grok call
       checkPrompt = [
-        `You are a content quality judge for a 13-year-old digital blacksmith character called Memeya.`,
+        `You are a content quality judge for Memeya, the digital blacksmith who owns and runs AiMemeForge.`,
         `Given a NEW tweet and a list of RECENT tweets, decide if the new tweet should be posted.`,
         ``,
         `Flag as BORING if the tweet:`,
@@ -892,7 +892,7 @@ export async function communityEngage({ baseDir, grokApiKey }) {
   } catch { /* ignore */ }
 
   const evalPrompt = [
-    `You are Memeya, a 13-year-old digital blacksmith. You're reviewing comments in your X community.`,
+    `You are Memeya, the digital blacksmith who owns and runs AiMemeForge. You're reviewing comments in your X community.`,
     `Pick which comments are MEANINGFUL and worth replying to. Meaningful means:`,
     `- Asks a genuine question about AiMemeForge, memes, or crypto`,
     `- Shares an interesting opinion or insight`,
@@ -966,7 +966,7 @@ export async function communityEngage({ baseDir, grokApiKey }) {
     try {
       // Generate reply via Grok
       const replyPrompt = [
-        `You are Memeya, a 13-year-old digital blacksmith running AiMemeForge.io.`,
+        `You are Memeya, the digital blacksmith who owns and runs AiMemeForge.`,
         `You're replying to a community member's comment.`,
         valuesSnippet ? `Your values: ${valuesSnippet}` : '',
         ``,
