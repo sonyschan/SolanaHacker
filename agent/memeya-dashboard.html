@@ -656,6 +656,11 @@
       <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Purpose <span style="color:var(--purple);">(optional)</span> — overrides auto topic, no char limit:</label>
       <textarea id="purpose-input" rows="2" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;resize:vertical;" placeholder="e.g. Announce the new voting feature on AiMemeForge"></textarea>
     </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Image <span style="color:var(--purple);">(optional)</span> — attached to the tweet:</label>
+      <input type="file" accept="image/*" id="image-input" onchange="previewImage(this)" style="font-size:0.85em;color:var(--text-dim);" />
+      <img id="image-preview" style="display:none;max-height:120px;margin-top:8px;border-radius:6px;border:1px solid var(--border);" />
+    </div>
     <button class="analyze-btn" id="testgen-btn" onclick="runTestGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Generate</button>
     <span id="testgen-status" style="margin-left:8px;font-size:0.85em;"></span>
     <div id="testgen-result" style="display:none;margin-top:16px;"></div>
@@ -1157,6 +1162,32 @@ async function runTestGenerate() {
   btn.textContent = 'Generate';
 }
 
+// ─── Image helpers ───────────────────────────────────────────
+function previewImage(input) {
+  const preview = document.getElementById('image-preview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.style.display = 'none';
+    preview.src = '';
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Strip the data URL prefix (e.g. "data:image/jpeg;base64,")
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── Send Post to X ─────────────────────────────────────────
 async function sendPost() {
   if (!window._lastGenerated) {
@@ -1176,10 +1207,28 @@ async function sendPost() {
   status.style.color = 'var(--text-dim)';
 
   try {
+    // Collect optional image
+    const imageInput = document.getElementById('image-input');
+    const imageFile = imageInput?.files?.[0];
+    let imageBase64 = null;
+    let imageMimeType = null;
+    if (imageFile) {
+      if (imageFile.size > 5 * 1024 * 1024) {
+        status.textContent = 'Image too large (max 5 MB)';
+        status.style.color = 'var(--red)';
+        btn.disabled = false;
+        btn.textContent = 'Send to X';
+        return;
+      }
+      imageBase64 = await fileToBase64(imageFile);
+      imageMimeType = imageFile.type || 'image/jpeg';
+      status.innerHTML = '<span class="spinner"></span>Uploading image + posting to X...';
+    }
+
     const res = await fetch('/api/memeya/send-post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, topic }),
+      body: JSON.stringify({ text, topic, imageBase64, imageMimeType }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -1188,6 +1237,9 @@ async function sendPost() {
     status.style.color = 'var(--green)';
     btn.textContent = 'Sent';
     window._lastGenerated = null;
+
+    // Clear image input
+    if (imageInput) { imageInput.value = ''; previewImage(imageInput); }
 
     // Refresh activity timeline
     loadActivity();

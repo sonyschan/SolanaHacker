@@ -147,6 +147,7 @@ class SolanaHackerAgent {
       const skill = await loadSkill(skill_name, {
         workDir: CONFIG.workDir,
         writer: this.writer,
+        onNewPost: (text, url) => this.tgCommunity?.shareXPost(text, url),
       });
 
       if (!skill) {

@@ -51,11 +51,21 @@ function jsonRes(res, data, status = 200) {
   res.end(JSON.stringify(data));
 }
 
-function readBody(req) {
-  return new Promise((resolve) => {
+function readBody(req, maxBytes = 10 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', c => chunks.push(c));
+    let totalLen = 0;
+    req.on('data', c => {
+      totalLen += c.length;
+      if (totalLen > maxBytes) {
+        req.destroy();
+        reject(new Error(`Request body too large (max ${maxBytes} bytes)`));
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    req.on('error', reject);
   });
 }
 
@@ -511,7 +521,28 @@ const server = http.createServer((req, res) => {
           accessSecret,
         });
 
-        const { data } = await userClient.v2.tweet(text);
+        // Handle optional image attachment
+        let mediaIds = undefined;
+        if (body.imageBase64) {
+          try {
+            const allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const mimeType = allowedMime.includes(body.imageMimeType) ? body.imageMimeType : 'image/jpeg';
+            const imgBuffer = Buffer.from(body.imageBase64, 'base64');
+            if (imgBuffer.length > 5 * 1024 * 1024) {
+              jsonRes(res, { error: 'Image too large (max 5 MB)' }, 400);
+              return;
+            }
+            const mediaId = await userClient.v1.uploadMedia(imgBuffer, { mimeType });
+            mediaIds = [mediaId];
+          } catch (imgErr) {
+            jsonRes(res, { error: `Image upload failed: ${imgErr.message}` }, 500);
+            return;
+          }
+        }
+
+        const tweetPayload = { text };
+        if (mediaIds) tweetPayload.media = { media_ids: mediaIds };
+        const { data } = await userClient.v2.tweet(tweetPayload);
         const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
         // Log to Memeya diary
@@ -519,6 +550,20 @@ const server = http.createServer((req, res) => {
           const { logPost } = await import('./skills/x_twitter/x-context.js');
           logPost(BASE_DIR, topic, text, url);
         } catch { /* best-effort */ }
+
+        // Share to TG community (raw HTTP API — no polling bot needed)
+        try {
+          const tgToken = process.env.TELEGRAM_COMMUNITY_BOT_TOKEN;
+          const tgChatId = process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity';
+          if (tgToken) {
+            const msg = `just dropped this on X 🔥\n\n${text}\n\n${url}`;
+            await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: tgChatId, text: msg }),
+            });
+          }
+        } catch { /* TG share is best-effort */ }
 
         // Mirror to Tapestry (non-fatal)
         try {
