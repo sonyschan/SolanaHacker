@@ -8,3 +8,7 @@
   Source: @h2crypto_eth on X (tweet 2026108499290362139)
   Added: 2026-02-24 01:44:10
 
+- [ ] "Use specific shortened URL format when mentioning Telegram group: https://t.co/uklwYysunK + {tg-handle-without-at}"
+  Source: @h2crypto_eth on X (tweet 2026226032341393794)
+  Added: 2026-02-24 09:28:36
+
