@@ -129,10 +129,13 @@ export function loadRecentPosts(baseDir, maxPosts = 15) {
         const urlMatch = block.match(/- URL: (.+)/);
         if (postedMatch) {
           const time = timeMatch ? timeMatch[1] : '';
+          // Extract OG URL (aimemeforge.io link) from block — may be on a separate line after Posted:
+          const ogMatch = block.match(/(https:\/\/aimemeforge\.io\/meme\/\S+)/);
           posts.push({
             text: postedMatch[1].trim(),
             topic: topicMatch ? topicMatch[1].trim() : null,
             url: urlMatch ? urlMatch[1].trim() : null,
+            ogUrl: ogMatch ? ogMatch[1].trim() : null,
             timestamp: time ? `${date} ${time}` : date,
           });
           if (posts.length >= maxPosts) return posts;
@@ -351,11 +354,23 @@ function buildPrompt(topic, context) {
 
   switch (topic) {
     case 'meme_spotlight': {
-      // Prefer today's memes, fall back to random past meme
+      // Collect OG URLs already promoted in recent posts to avoid repeats
+      const recentMemeOgUrls = new Set(
+        recentPosts
+          .filter(p => p.ogUrl)
+          .map(p => p.ogUrl)
+      );
+
+      // Prefer today's memes, excluding already-posted ones
       let memeInfo = '';
       let ogUrl = `${SITE_URL}`;
-      if (todayMemes.length > 0) {
-        const meme = todayMemes[Math.floor(Math.random() * todayMemes.length)];
+      const unpostedToday = todayMemes.filter(m => {
+        const url = m.id ? `${SITE_URL}/meme/${m.id}` : null;
+        return !url || !recentMemeOgUrls.has(url);
+      });
+
+      if (unpostedToday.length > 0) {
+        const meme = unpostedToday[Math.floor(Math.random() * unpostedToday.length)];
         const memeTitle = meme.title || meme.topText || 'Untitled';
         const memeDesc = meme.description || meme.bottomText || '';
         memeInfo = `Today's meme: "${memeTitle}". ${memeDesc}`;
@@ -364,11 +379,19 @@ function buildPrompt(topic, context) {
         if (meme.imageUrl) memeInfo += ` Image: ${meme.imageUrl}`;
         if (meme.id) ogUrl = `${SITE_URL}/meme/${meme.id}`;
       } else if (randomPastMeme) {
-        const pastTitle = randomPastMeme.title || randomPastMeme.topText || 'Untitled';
-        const pastDesc = randomPastMeme.description || randomPastMeme.bottomText || '';
-        memeInfo = `Throwback meme: "${pastTitle}". ${pastDesc}`;
-        if (randomPastMeme.imageUrl) memeInfo += ` Image: ${randomPastMeme.imageUrl}`;
-        if (randomPastMeme.id) ogUrl = `${SITE_URL}/meme/${randomPastMeme.id}`;
+        const pastUrl = randomPastMeme.id ? `${SITE_URL}/meme/${randomPastMeme.id}` : null;
+        if (!pastUrl || !recentMemeOgUrls.has(pastUrl)) {
+          const pastTitle = randomPastMeme.title || randomPastMeme.topText || 'Untitled';
+          const pastDesc = randomPastMeme.description || randomPastMeme.bottomText || '';
+          memeInfo = `Throwback meme: "${pastTitle}". ${pastDesc}`;
+          if (randomPastMeme.imageUrl) memeInfo += ` Image: ${randomPastMeme.imageUrl}`;
+          if (randomPastMeme.id) ogUrl = `${SITE_URL}/meme/${randomPastMeme.id}`;
+        }
+      }
+
+      // All memes already posted — fall through to personal_vibe
+      if (!memeInfo) {
+        return buildPrompt('personal_vibe', context);
       }
       const prompt = [
         `TOPIC: Share or react to a meme from AiMemeForge.`,
