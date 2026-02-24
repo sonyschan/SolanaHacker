@@ -124,8 +124,8 @@ const AgentPage = () => {
             <p className="text-lg text-gray-400 mt-2">Digital Forge Master</p>
           </div>
           <p className="text-gray-300 max-w-2xl mx-auto text-lg leading-relaxed">
-            A 13-year-old digital blacksmith with blue hair, a lava hammer, and infinite love for meme culture.
-            Running the world&apos;s first AI meme democracy on Solana.
+            The digital blacksmith with blue hair, a lava hammer, and infinite love for meme culture.
+            Owner of the world&apos;s first AI meme democracy on Solana.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <a
