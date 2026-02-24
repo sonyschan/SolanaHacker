@@ -33,6 +33,7 @@ export class ChatMode {
     this.reviewer = deps.reviewer; // UXReviewer for browse_url
     this.devServerPort = deps.devServerPort || 5173;
     this.docsDir = deps.docsDir || path.join(this.baseDir, 'docs');
+    this.tgCommunity = deps.tgCommunity || null;
     console.log(`[ChatMode] Initialized with baseDir: ${this.baseDir}`);
     this.valuesPath = path.join(this.memoryDir, 'knowledge', 'values.md');
     this.wipPath = path.join(this.memoryDir, 'journal', 'work_in_progress.md');
@@ -1833,6 +1834,14 @@ ${recentMemory.slice(-1500)}
         } catch (e) {
           console.error('[ChatMode] Telegram notification failed:', e.message);
         }
+        // Share to TG community group
+        if (this.tgCommunity) {
+          try {
+            await this.tgCommunity.shareXPost(result.text, result.url);
+          } catch (e) {
+            console.error('[ChatMode] TG community share failed:', e.message);
+          }
+        }
       } else {
         console.log(`[ChatMode] X post skipped: ${result.reason}`);
         if (result.draft) {
@@ -1998,6 +2007,18 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * TG Community murmur tick — called from heartbeat
+   */
+  async maybeTgCommunityTick() {
+    if (!this.tgCommunity) return;
+    try {
+      await this.tgCommunity.tick();
+    } catch (err) {
+      console.error('[ChatMode] TG community tick error:', err.message);
+    }
+  }
+
+  /**
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
@@ -2012,6 +2033,9 @@ ${recentMemory.slice(-1500)}
 
     // Biweekly memory distillation (Sunday 9am GMT+8)
     await this.maybeDistillMemory();
+
+    // TG Community murmur check
+    await this.maybeTgCommunityTick();
 
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');

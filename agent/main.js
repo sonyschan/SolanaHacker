@@ -24,6 +24,7 @@ import { ColosseumAPI } from './colosseum-api.js';
 import { TOOL_DEFINITIONS, createToolExecutors } from './agent-tools.js';
 import { SKILL_REGISTRY, LOAD_SKILL_TOOL, loadSkill, getSkillHints } from './skill-loader.js';
 import { ChatMode } from './chat-mode.js';
+import { TgCommunity } from './tg-community.js';
 import { createProvider } from './llm-provider.js';
 
 const execAsync = promisify(exec);
@@ -103,6 +104,21 @@ class SolanaHackerAgent {
       ? new ColosseumAPI(process.env.COLOSSEUM_API_KEY)
       : null;
 
+    // TG Community bot (Memeya in @MemeyaOfficialCommunity)
+    this.tgCommunity = null;
+    if (process.env.TELEGRAM_COMMUNITY_BOT_TOKEN) {
+      try {
+        this.tgCommunity = new TgCommunity({
+          token: process.env.TELEGRAM_COMMUNITY_BOT_TOKEN,
+          chatId: process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity',
+          grokApiKey: process.env.XAI_API_KEY,
+          baseDir: CONFIG.baseDir,
+        });
+      } catch (err) {
+        console.error('[Agent] TG Community bot init failed:', err.message);
+      }
+    }
+
     // Tool executors (core tools only)
     const tools = createToolExecutors({
       baseDir: CONFIG.baseDir,  // For git commands (project root)
@@ -170,6 +186,7 @@ class SolanaHackerAgent {
       reviewer: this.reviewer,
       devServerPort: CONFIG.devServerPort,
       docsDir: CONFIG.docsDir,
+      tgCommunity: this.tgCommunity,
     });
 
     // Build system prompt (with embedded knowledge base)
@@ -2232,6 +2249,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
     if (devServer) devServer.kill();
 
     await this.reviewer.close();
+    if (this.tgCommunity) this.tgCommunity.stop();
     this.telegram.stop();
   }
 }

@@ -2,7 +2,7 @@
 
 > AI 創作梗圖、人類投票、每日選出最佳、抽獎決定擁有者、Claim 鑄造為 NFT
 
-**Live**: [aimemeforge.io](https://solana-hacker.vercel.app) ｜ **GitHub**: [SolanaHacker](https://github.com/sonyschan/SolanaHacker) ｜ **Hackathon**: [Colosseum Agent Hackathon](https://arena.colosseum.org/)
+**Live**: [aimemeforge.io](https://solana-hacker.vercel.app) ｜ **GitHub**: [SolanaHacker](https://github.com/sonyschan/SolanaHacker) ｜ **Hackathon**: [Colosseum Agent Hackathon](https://arena.colosseum.org/) ｜ **TG Community**: [t.me/MemeyaOfficialCommunity](https://t.me/MemeyaOfficialCommunity)
 
 ---
 
