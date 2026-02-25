@@ -90,7 +90,7 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
+      "@type": "WebApplication",
       "name": "AI MemeForge",
       "description": "Daily AI meme voting platform — one meme, one NFT owner, every day",
       "url": "https://aimemeforge.io",
@@ -237,8 +237,9 @@
         cursor: pointer;
       }
       
-      /* Hide loading message once React loads */
-      .app-loaded #loading-message {
+      /* Hide loading message and SEO content once React loads */
+      .app-loaded #loading-message,
+      .app-loaded #seo-content {
         display: none;
       }
 
@@ -294,6 +295,37 @@
             <p style="margin: 0;">MemeForge requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p>
           </div>
         </noscript>
+
+        <!-- Static SEO content for crawlers — hidden when React loads -->
+        <div id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">What is AI MemeForge?</h2>
+          <p style="color: #ccc; line-height: 1.6;">AI MemeForge is the world's first AI meme democracy built on <a href="https://solana.com" style="color: #06b6d4;">Solana</a>. Every day, AI generates three unique crypto memes from real-time news. The community votes for free — no gas fees, no token purchases required. One winning meme is minted as a Solana NFT each day, and one lucky voter claims ownership forever.</p>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">How It Works</h2>
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 1: AI Creates 3 Memes Daily</h3>
+          <p style="color: #ccc; line-height: 1.6;">Every day, Memeya — our AI forge master — uses Gemini and Grok AI models to generate three memes inspired by the latest crypto news. Each meme captures the mood of the market in real time.</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 2: Community Votes for Free</h3>
+          <p style="color: #ccc; line-height: 1.6;">Connect your Solana wallet and vote on your favorite meme. Voting is completely free — no gas, no tokens, no cost. Every vote earns lottery tickets that accumulate toward the daily drawing.</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 3: Daily Winner Owns the NFT</h3>
+          <p style="color: #ccc; line-height: 1.6;">At the end of each day, a lottery determines the winner. The winning voter claims the day's top meme as a <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Solana pNFT</a> — permanently stored on Arweave. Only 365 memes become NFTs per year, making each one inherently scarce.</p>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Why AI MemeForge?</h2>
+          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
+            <li><strong>100% Free</strong> — No fees to vote, enter the lottery, or participate</li>
+            <li><strong>Daily NFT Drops</strong> — One unique AI meme minted as NFT every day</li>
+            <li><strong>Temporal Scarcity</strong> — Each day's meme can never be recreated; it captures a specific moment in crypto history</li>
+            <li><strong>Community Curated</strong> — The winning meme is chosen by community votes, not algorithms</li>
+            <li><strong>$Memeya Token</strong> — Hold tokens to boost daily ticket earnings</li>
+          </ul>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Meet Memeya</h2>
+          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates daily memes, posts on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (Twitter)</a>, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a>, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini, Grok, and Claude AI models.</p>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Start Collecting</h2>
+          <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off.</p>
+        </div>
       </div>
     </div>
 
