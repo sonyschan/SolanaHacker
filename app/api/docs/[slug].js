@@ -519,6 +519,58 @@ function renderIndex() {
     }
   };
 
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "AI MemeForge", "item": SITE_URL },
+      { "@type": "ListItem", "position": 2, "name": "Documentation", "item": canonicalUrl }
+    ]
+  };
+
+  const faqData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is AI MemeForge?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AI MemeForge is an AI-powered meme democracy on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I participate in AI MemeForge?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Connect any Solana wallet (Phantom, Solflare, or sign in with Google via Privy) and vote on daily memes — completely free, no gas fees. Each vote earns lottery tickets. Hold $Memeya tokens for bonus tickets. The more tickets you accumulate, the higher your chance of winning the daily NFT."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the $Memeya token?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "$Memeya is the SPL utility token on Solana (CA: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump). Holding $Memeya boosts daily lottery ticket earnings with a logarithmic bonus: 10 tokens = +1, 1K = +3, 100K = +5 extra tickets per vote. Available on PumpFun."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the daily reward system work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards: $3 to the meme winner (most-voted meme's lottery winner), $2 to a random lucky voter, and $1 to a second lucky voter. Total daily payout is $6 USDC, sent directly to winners' Solana wallets."
+        }
+      }
+    ]
+  };
+
+  const schemaJson = `<script type="application/ld+json">${JSON.stringify(schemaData)}</script>
+  <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>
+  <script type="application/ld+json">${JSON.stringify(faqData)}</script>`;
+
   const cards = [
     { slug: 'how-it-works', icon: '&#9881;', label: 'How It Works', desc: 'The complete daily cycle — meme generation, voting, lottery, and NFT minting explained step by step.' },
     { slug: 'tokenomics', icon: '&#128176;', label: '$Memeya Tokenomics', desc: 'Token contract details, bonus tier table, ticket mechanics, and strategic implications for holders.' },
@@ -526,13 +578,47 @@ function renderIndex() {
     { slug: 'memeya-agent', icon: '&#129302;', label: 'Memeya Agent', desc: 'Multi-model AI architecture, meme generation pipeline, social posting, and infrastructure stack.' }
   ];
 
-  return `${sharedHead(title, description, canonicalUrl, `<script type="application/ld+json">${JSON.stringify(schemaData)}</script>`)}
+  return `${sharedHead(title, description, canonicalUrl, schemaJson)}
 <body>
 ${sharedHeader('index')}
 
-    <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">Documentation</h1>
-    <p style="color: #9ca3af; font-size: 16px; margin-bottom: 32px;">Everything you need to know about AI MemeForge — the world's first AI meme democracy on Solana.</p>
+    <article class="article">
+      <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">Documentation</h1>
+      <p style="color: #9ca3af; font-size: 16px; margin-bottom: 24px;">Everything you need to know about AI MemeForge — the world's first AI meme democracy on Solana.</p>
 
+      <h2>What Is AI MemeForge?</h2>
+      <p>AI MemeForge is a fully autonomous AI meme platform on Solana. Every day at midnight UTC, an AI agent named Memeya generates <strong>3 unique crypto memes</strong> from real-time news. The community votes for free — no gas fees, no tokens required. At 23:55 UTC, a weighted lottery selects one winner who receives the top-voted meme as a <strong>Solana NFT</strong> plus <strong>$3 USDC</strong> in rewards. Two additional lucky voters receive $2 and $1 USDC respectively.</p>
+
+      <h2>Quick Reference</h2>
+      <table>
+        <thead><tr><th>Feature</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>Daily memes</td><td>3 AI-generated memes at 00:00 UTC from real-time crypto news</td></tr>
+          <tr><td>Voting</td><td>Free, unlimited wallet types (Phantom, Solflare, Google sign-in)</td></tr>
+          <tr><td>Lottery</td><td>Weighted random draw at 23:55 UTC — more tickets = higher odds</td></tr>
+          <tr><td>Daily rewards</td><td>$3 winner + $2 lucky voter + $1 lucky voter (USDC via Crossmint)</td></tr>
+          <tr><td>NFT standard</td><td>Metaplex pNFT on Solana, stored permanently on Arweave</td></tr>
+          <tr><td>Token</td><td>$Memeya (SPL) — hold for bonus lottery tickets</td></tr>
+          <tr><td>AI agent</td><td>Memeya — autonomous posting on X, Telegram, and Moltbook</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Frequently Asked Questions</h2>
+
+      <h3>What is AI MemeForge?</h3>
+      <p>AI MemeForge is an AI-powered meme democracy on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day.</p>
+
+      <h3>How do I participate?</h3>
+      <p>Connect any Solana wallet (Phantom, Solflare, or sign in with Google via Privy) and vote on daily memes — completely free, no gas fees. Each vote earns lottery tickets. Hold $Memeya tokens for bonus tickets. The more tickets you accumulate, the higher your chance of winning the daily NFT.</p>
+
+      <h3>What is the $Memeya token?</h3>
+      <p>$Memeya is the SPL utility token on Solana (CA: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding $Memeya boosts daily lottery ticket earnings with a logarithmic bonus: 10 tokens = +1, 1K = +3, 100K = +5 extra tickets per vote. Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump">PumpFun</a>.</p>
+
+      <h3>How does the daily reward system work?</h3>
+      <p>At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards: $3 to the meme winner (most-voted meme's lottery winner), $2 to a random lucky voter, and $1 to a second lucky voter. Total daily payout is $6 USDC, sent directly to winners' Solana wallets.</p>
+    </article>
+
+    <h2 style="font-size: 22px; font-weight: 700; color: #06b6d4; margin: 40px 0 16px;">Explore the Docs</h2>
     <div class="card-grid">
       ${cards.map(c => `
       <a href="${SITE_URL}/docs/${c.slug}" class="doc-card">
