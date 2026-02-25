@@ -347,7 +347,7 @@ export class MoltbookClient {
 
   /** Create a submolt (community) */
   async createSubmolt(name, description) {
-    return this.request('POST', '/submolts', { name, description });
+    return this.request('POST', '/submolts', { name, display_name: name, description });
   }
 
   /** Subscribe to a submolt */
