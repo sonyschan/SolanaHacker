@@ -2,9 +2,10 @@
  * Reward Distribution Service
  *
  * Distributes USDC rewards after daily lottery:
- * - 10% of wallet balance to meme winner (min $1)
- * - 5% each to 2 random voters (min $0.50 each)
- * - Skip if balance < $2; alert TG dev group if < $5
+ * - $3 to meme winner
+ * - $2 to lucky draw voter 1
+ * - $1 to lucky draw voter 2
+ * - Skip if balance < $6; alert TG dev group if < $10
  *
  * All distributions are idempotent (keyed by drawId) and recorded in Firestore.
  */
@@ -13,12 +14,12 @@ const crypto = require('crypto');
 const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const crossmintService = require('./crossmintService');
 
-const MIN_BALANCE = 2;        // Skip distribution below this
-const LOW_BALANCE_ALERT = 5;  // TG alert threshold
-const MIN_WINNER_REWARD = 1;
-const MIN_VOTER_REWARD = 0.5;
-const WINNER_PERCENT = 0.10;
-const VOTER_PERCENT = 0.05;
+const WINNER_REWARD = 3;      // Fixed $3 to meme winner
+const VOTER_1_REWARD = 2;     // Fixed $2 to lucky draw voter 1
+const VOTER_2_REWARD = 1;     // Fixed $1 to lucky draw voter 2
+const TOTAL_PAYOUT = WINNER_REWARD + VOTER_1_REWARD + VOTER_2_REWARD; // $6
+const MIN_BALANCE = TOTAL_PAYOUT;    // Skip distribution below this
+const LOW_BALANCE_ALERT = 10; // TG alert threshold
 
 // ==================== TG Alert ====================
 
@@ -109,16 +110,10 @@ async function distributeRewards(drawResult, options = {}) {
     return { drawId, status: 'skipped_low_balance', balance: usdcBalance };
   }
 
-  // 5. Calculate amounts — cap to not exceed balance
-  const winnerAmount = Math.min(
-    Math.max(usdcBalance * WINNER_PERCENT, MIN_WINNER_REWARD),
-    usdcBalance
-  );
+  // 5. Static reward amounts
+  const winnerAmount = WINNER_REWARD;
   let remaining = usdcBalance - winnerAmount;
-  const voterAmount = Math.min(
-    Math.max(usdcBalance * VOTER_PERCENT, MIN_VOTER_REWARD),
-    remaining / 2 // split remaining between max 2 voters
-  );
+  const voterAmounts = [VOTER_1_REWARD, VOTER_2_REWARD];
 
   // 6. Select 2 random voters
   const randomVoters = await selectRandomVoters(drawId, winnerWallet, 2);
@@ -129,8 +124,8 @@ async function distributeRewards(drawResult, options = {}) {
     const simTransfers = [
       { type: 'winner', wallet: winnerWallet, amount: winnerAmount, txSignature: 'SIM' }
     ];
-    for (const voter of randomVoters) {
-      simTransfers.push({ type: 'voter', wallet: voter, amount: voterAmount, txSignature: 'SIM' });
+    for (let i = 0; i < randomVoters.length; i++) {
+      simTransfers.push({ type: 'voter', wallet: randomVoters[i], amount: voterAmounts[i], txSignature: 'SIM' });
     }
 
     await recordDistribution(drawId, {
@@ -143,21 +138,22 @@ async function distributeRewards(drawResult, options = {}) {
       randomVoters,
       calculatedAmounts: {
         winner: winnerAmount,
-        voter: voterAmount,
-        total: winnerAmount + (voterAmount * randomVoters.length)
+        voter1: VOTER_1_REWARD,
+        voter2: VOTER_2_REWARD,
+        total: TOTAL_PAYOUT
       }
     });
 
     // Send TG simulation report
     const voterLines = randomVoters.map((v, i) =>
-      `  Voter ${i + 1}: \`${v.slice(0, 4)}…${v.slice(-4)}\` → $${voterAmount.toFixed(2)}`
+      `  Voter ${i + 1}: \`${v.slice(0, 4)}…${v.slice(-4)}\` → $${voterAmounts[i].toFixed(2)}`
     ).join('\n');
     await sendTgAlert(
       `🧪 *Reward Simulation* (draw ${drawId})\n` +
       `Balance: $${usdcBalance.toFixed(2)} USDC\n` +
       `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\` → $${winnerAmount.toFixed(2)}\n` +
       voterLines +
-      `\nTotal: $${(winnerAmount + voterAmount * randomVoters.length).toFixed(2)}\n` +
+      `\nTotal: $${TOTAL_PAYOUT.toFixed(2)}\n` +
       `_No actual transfers made — simulation mode_`
     );
 
@@ -188,22 +184,23 @@ async function distributeRewards(drawResult, options = {}) {
   // Voter transfers — only if winner succeeded and balance remains
   for (let i = 0; i < randomVoters.length; i++) {
     const voter = randomVoters[i];
-    if (remaining < voterAmount) {
+    const amt = voterAmounts[i];
+    if (remaining < amt) {
       console.log(`⚠️ Insufficient remaining balance ($${remaining}) for voter ${i + 1}, skipping`);
       errors.push({ type: 'voter', wallet: voter, error: 'insufficient_balance' });
       continue;
     }
 
     try {
-      const result = await crossmintService.sendUsdc(voter, voterAmount);
+      const result = await crossmintService.sendUsdc(voter, amt);
       transfers.push({
         type: 'voter',
         wallet: voter,
-        amount: voterAmount,
+        amount: amt,
         txSignature: result.txSignature
       });
-      remaining -= voterAmount;
-      console.log(`✅ Voter reward: $${voterAmount} → ${voter}`);
+      remaining -= amt;
+      console.log(`✅ Voter ${i + 1} reward: $${amt} → ${voter}`);
     } catch (err) {
       console.error(`❌ Voter transfer failed for ${voter}:`, err.message);
       errors.push({ type: 'voter', wallet: voter, error: err.message });
@@ -224,8 +221,9 @@ async function distributeRewards(drawResult, options = {}) {
     randomVoters,
     calculatedAmounts: {
       winner: winnerAmount,
-      voter: voterAmount,
-      total: winnerAmount + (voterAmount * randomVoters.length)
+      voter1: VOTER_1_REWARD,
+      voter2: VOTER_2_REWARD,
+      total: TOTAL_PAYOUT
     }
   });
 
@@ -311,5 +309,5 @@ module.exports = {
   distributeRewards,
   getHistory,
   getDistribution,
-  config: { MIN_BALANCE, LOW_BALANCE_ALERT, MIN_WINNER_REWARD, MIN_VOTER_REWARD }
+  config: { MIN_BALANCE, LOW_BALANCE_ALERT, WINNER_REWARD, VOTER_1_REWARD, VOTER_2_REWARD, TOTAL_PAYOUT }
 };

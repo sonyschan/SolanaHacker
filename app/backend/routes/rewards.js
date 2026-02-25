@@ -22,9 +22,13 @@ router.get('/balance', cacheResponse('rewards:balance', TTL.SHORT), async (req, 
         sol: balances.sol,
         thresholds: {
           minDistribution: rewardService.config.MIN_BALANCE,
-          lowBalanceAlert: rewardService.config.LOW_BALANCE_ALERT,
-          minWinnerReward: rewardService.config.MIN_WINNER_REWARD,
-          minVoterReward: rewardService.config.MIN_VOTER_REWARD
+          lowBalanceAlert: rewardService.config.LOW_BALANCE_ALERT
+        },
+        rewards: {
+          winner: rewardService.config.WINNER_REWARD,
+          voter1: rewardService.config.VOTER_1_REWARD,
+          voter2: rewardService.config.VOTER_2_REWARD,
+          total: rewardService.config.TOTAL_PAYOUT
         },
         timestamp: new Date().toISOString()
       }

@@ -640,15 +640,15 @@
         </div>
         <h3 style="font-size:0.88em;color:var(--pink);margin-bottom:8px;">Distribution Preview</h3>
         <table>
-          <tr><th>Recipient</th><th>%</th><th>Amount</th></tr>
-          <tr><td>Meme Winner</td><td>10%</td><td id="dist-winner">--</td></tr>
-          <tr><td>Lucky Draw Voter 1</td><td>5%</td><td id="dist-voter1">--</td></tr>
-          <tr><td>Lucky Draw Voter 2</td><td>5%</td><td id="dist-voter2">--</td></tr>
-          <tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Payout</td><td>20%</td><td id="dist-total">--</td></tr>
+          <tr><th>Recipient</th><th>Amount</th></tr>
+          <tr><td>Meme Winner</td><td id="dist-winner">$3.00</td></tr>
+          <tr><td>Lucky Draw Voter 1</td><td id="dist-voter1">$2.00</td></tr>
+          <tr><td>Lucky Draw Voter 2</td><td id="dist-voter2">$1.00</td></tr>
+          <tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Payout</td><td id="dist-total">$6.00</td></tr>
         </table>
         <div class="note" style="margin-top:8px;border-left-color:var(--cyan);">
           Next distribution: <strong style="color:var(--text);">23:55 UTC daily</strong> &middot;
-          Min balance: <strong>$2</strong> &middot; Low alert: <strong>$5</strong>
+          Min balance: <strong>$6</strong> &middot; Low alert: <strong>$10</strong>
         </div>
       </div>
       <div id="wallet-error" class="error-text" style="display:none;"></div>
@@ -1218,12 +1218,7 @@ function truncAddr(addr) {
   return addr.slice(0, 4) + '…' + addr.slice(-4);
 }
 
-function calcDistribution(usdc) {
-  const winner = Math.max(usdc * 0.10, 1);
-  const voter = Math.max(usdc * 0.05, 0.50);
-  const total = winner + voter * 2;
-  return { winner, voter, total };
-}
+const REWARD_TOTAL = 6; // $3 + $2 + $1
 
 async function loadWalletData() {
   const loading = document.getElementById('wallet-loading');
@@ -1257,7 +1252,7 @@ async function loadWalletData() {
       document.getElementById('wallet-sol').textContent = sol.toFixed(4) + ' SOL';
 
       const statusBadge = document.getElementById('wallet-status-badge');
-      if (usdc >= 2) {
+      if (usdc >= REWARD_TOTAL) {
         statusBadge.textContent = 'Ready';
         statusBadge.className = 'tag tag-green';
         badge.textContent = '$' + usdc.toFixed(2);
@@ -1269,17 +1264,11 @@ async function loadWalletData() {
         badge.style.background = 'rgba(248,81,73,0.2)'; badge.style.color = 'var(--red)';
       }
 
-      if (usdc < 2) {
+      if (usdc < REWARD_TOTAL) {
         document.getElementById('dist-winner').textContent = '--';
         document.getElementById('dist-voter1').textContent = '--';
         document.getElementById('dist-voter2').textContent = '--';
-        document.getElementById('dist-total').innerHTML = '<span style="color:var(--red);">Skipped (below $2 min)</span>';
-      } else {
-        const dist = calcDistribution(usdc);
-        document.getElementById('dist-winner').textContent = '$' + dist.winner.toFixed(2);
-        document.getElementById('dist-voter1').textContent = '$' + dist.voter.toFixed(2);
-        document.getElementById('dist-voter2').textContent = '$' + dist.voter.toFixed(2);
-        document.getElementById('dist-total').textContent = '$' + dist.total.toFixed(2);
+        document.getElementById('dist-total').innerHTML = '<span style="color:var(--red);">Skipped (below $6 min)</span>';
       }
 
       loading.style.display = 'none';
