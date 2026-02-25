@@ -49,8 +49,10 @@ async function sendTgAlert(message) {
 /**
  * Distribute rewards for a completed lottery draw
  * @param {{ drawId: string, status: string, winner: string, memeId: string }} drawResult
+ * @param {{ simulate?: boolean }} [options]
  */
-async function distributeRewards(drawResult) {
+async function distributeRewards(drawResult, options = {}) {
+  const { simulate = false } = options;
   const { drawId, status, winner: winnerWallet, memeId } = drawResult;
 
   if (status !== 'completed' || !winnerWallet) {
@@ -121,7 +123,49 @@ async function distributeRewards(drawResult) {
   // 6. Select 2 random voters
   const randomVoters = await selectRandomVoters(drawId, winnerWallet, 2);
 
-  // 7. Execute transfers
+  // 7. Simulation mode — calculate only, skip actual transfers
+  if (simulate) {
+    console.log(`🧪 SIMULATION mode — skipping actual transfers for draw ${drawId}`);
+    const simTransfers = [
+      { type: 'winner', wallet: winnerWallet, amount: winnerAmount, txSignature: 'SIM' }
+    ];
+    for (const voter of randomVoters) {
+      simTransfers.push({ type: 'voter', wallet: voter, amount: voterAmount, txSignature: 'SIM' });
+    }
+
+    await recordDistribution(drawId, {
+      status: 'simulated',
+      balance: usdcBalance,
+      winnerWallet,
+      memeId,
+      transfers: simTransfers,
+      errors: [],
+      randomVoters,
+      calculatedAmounts: {
+        winner: winnerAmount,
+        voter: voterAmount,
+        total: winnerAmount + (voterAmount * randomVoters.length)
+      }
+    });
+
+    // Send TG simulation report
+    const voterLines = randomVoters.map((v, i) =>
+      `  Voter ${i + 1}: \`${v.slice(0, 4)}…${v.slice(-4)}\` → $${voterAmount.toFixed(2)}`
+    ).join('\n');
+    await sendTgAlert(
+      `🧪 *Reward Simulation* (draw ${drawId})\n` +
+      `Balance: $${usdcBalance.toFixed(2)} USDC\n` +
+      `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\` → $${winnerAmount.toFixed(2)}\n` +
+      voterLines +
+      `\nTotal: $${(winnerAmount + voterAmount * randomVoters.length).toFixed(2)}\n` +
+      `_No actual transfers made — simulation mode_`
+    );
+
+    console.log(`🧪 Simulation recorded for draw ${drawId}`);
+    return { drawId, status: 'simulated', transfers: simTransfers.length, errors: 0 };
+  }
+
+  // 7b. Execute real transfers
   const transfers = [];
   const errors = [];
 
@@ -251,7 +295,9 @@ async function getHistory(limit = 20) {
     .limit(limit)
     .get();
 
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snap.docs
+    .filter(doc => doc.id !== 'config')
+    .map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 /**

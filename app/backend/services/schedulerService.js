@@ -181,7 +181,12 @@ class SchedulerService {
       // Chain reward distribution (non-fatal — lottery draw stands regardless)
       if (result.status === 'completed') {
         try {
-          const rewardResult = await rewardService.distributeRewards(result);
+          // Check reward config — simulate if disabled
+          const configDoc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
+          const rewardEnabled = configDoc?.rewardEnabled !== false;
+          const rewardOpts = rewardEnabled ? {} : { simulate: true };
+          if (!rewardEnabled) console.log('🧪 Reward distribution disabled — running in simulation mode');
+          const rewardResult = await rewardService.distributeRewards(result, rewardOpts);
           console.log('💰 Reward distribution result:', rewardResult);
         } catch (rewardErr) {
           console.error('⚠️ Reward distribution failed (non-fatal):', rewardErr.message);
@@ -293,12 +298,17 @@ class SchedulerService {
         return { skipped: true, reason: 'No completed draw for today' };
       }
 
+      const configDoc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
+      const rewardEnabled = configDoc?.rewardEnabled !== false;
+      const rewardOpts = rewardEnabled ? {} : { simulate: true };
+      if (!rewardEnabled) console.log('🧪 Reward distribution disabled — running in simulation mode');
+
       const result = await rewardService.distributeRewards({
         drawId: draw.id || today,
         status: draw.status,
         winner: draw.winnerWallet,
         memeId: draw.winningMemeId
-      });
+      }, rewardOpts);
 
       await this.logTaskExecution('reward_distribution', 'success');
       return result;

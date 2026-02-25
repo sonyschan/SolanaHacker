@@ -272,6 +272,7 @@
   <button class="tab-btn" onclick="switchTab('moltbook')">Moltbook</button>
   <button class="tab-btn" onclick="switchTab('timers')">Timers</button>
   <button class="tab-btn" onclick="switchTab('system')">System</button>
+  <button class="tab-btn" onclick="switchTab('wallet')">Wallet</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -601,6 +602,95 @@
 
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Wallet -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-wallet">
+
+  <!-- Balance & Distribution Preview -->
+  <div class="section" id="s-wallet-balance">
+    <div class="section-header" onclick="toggle('s-wallet-balance')">
+      <span class="icon">&#128176;</span>
+      <h2>Balance & Upcoming Distribution</h2>
+      <span class="badge" id="wallet-badge">Loading</span>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div id="wallet-loading" class="loading-text"><span class="spinner"></span>Loading wallet data...</div>
+      <div id="wallet-content" style="display:none;">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.75em;color:var(--text-dim);margin-bottom:2px;">Wallet Address</div>
+            <code id="wallet-address" style="font-size:0.85em;letter-spacing:0.5px;"></code>
+          </div>
+        </div>
+        <div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.75em;color:var(--text-dim);">USDC Balance</div>
+            <div id="wallet-usdc" style="font-size:1.8em;font-weight:700;color:var(--green);">--</div>
+          </div>
+          <div>
+            <div style="font-size:0.75em;color:var(--text-dim);">SOL Balance</div>
+            <div id="wallet-sol" style="font-size:1.1em;font-weight:600;color:var(--text-dim);">--</div>
+          </div>
+          <div>
+            <div style="font-size:0.75em;color:var(--text-dim);">Status</div>
+            <span id="wallet-status-badge" class="tag" style="font-size:0.9em;margin-top:4px;display:inline-block;">--</span>
+          </div>
+        </div>
+        <h3 style="font-size:0.88em;color:var(--pink);margin-bottom:8px;">Distribution Preview</h3>
+        <table>
+          <tr><th>Recipient</th><th>%</th><th>Amount</th></tr>
+          <tr><td>Meme Winner</td><td>10%</td><td id="dist-winner">--</td></tr>
+          <tr><td>Lucky Draw Voter 1</td><td>5%</td><td id="dist-voter1">--</td></tr>
+          <tr><td>Lucky Draw Voter 2</td><td>5%</td><td id="dist-voter2">--</td></tr>
+          <tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Payout</td><td>20%</td><td id="dist-total">--</td></tr>
+        </table>
+        <div class="note" style="margin-top:8px;border-left-color:var(--cyan);">
+          Next distribution: <strong style="color:var(--text);">23:55 UTC daily</strong> &middot;
+          Min balance: <strong>$2</strong> &middot; Low alert: <strong>$5</strong>
+        </div>
+      </div>
+      <div id="wallet-error" class="error-text" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Distribution History -->
+  <div class="section" id="s-wallet-history">
+    <div class="section-header" onclick="toggle('s-wallet-history')">
+      <span class="icon">&#128203;</span>
+      <h2>Distribution History</h2>
+      <span class="badge" id="history-badge">Loading</span>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div id="history-loading" class="loading-text"><span class="spinner"></span>Loading history...</div>
+      <div id="history-content" style="display:none;overflow-x:auto;"></div>
+      <div id="history-error" class="error-text" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Reward Control -->
+  <div class="section" id="s-wallet-control">
+    <div class="section-header" onclick="toggle('s-wallet-control')">
+      <span class="icon">&#9881;&#65039;</span>
+      <h2>Reward Control</h2>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div class="toggle-wrap" style="margin-bottom:8px;">
+        <span style="color:var(--text);font-weight:600;">Reward Distribution:</span>
+        <div class="toggle" id="reward-toggle" onclick="toggleReward()"></div>
+        <span id="reward-label" style="font-weight:600;">...</span>
+      </div>
+      <div id="reward-sim-note" class="note" style="display:none;border-left-color:var(--orange);">
+        <strong style="color:var(--orange);">Simulation mode</strong> &mdash; distributions will be calculated and recorded but no USDC transfers will be made. Results are sent to the TG dev group.
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- ─── Footer ─── -->
 <div class="meta" style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
   <a href="/dashboard.html" class="nav-link">&larr; Back to Agent Dashboard</a>
@@ -616,6 +706,7 @@ function switchTab(name) {
   // Load data for the tab if needed
   if (name === 'timers') loadTimers();
   if (name === 'moltbook') loadMoltbookState();
+  if (name === 'wallet') loadWalletData();
 }
 
 function toggle(id) { document.getElementById(id).classList.toggle('collapsed'); }
@@ -1119,6 +1210,153 @@ async function runAnalysis() {
     status.textContent = 'Done'; status.style.color = 'var(--green)';
   } catch (err) { status.textContent = 'Error: ' + err.message; status.style.color = 'var(--red)'; }
   btn.disabled = false; btn.textContent = 'Analyze & Suggest';
+}
+
+// ─── Wallet functions ────────────────────────────────────────
+function truncAddr(addr) {
+  if (!addr || addr.length < 12) return addr || '?';
+  return addr.slice(0, 4) + '…' + addr.slice(-4);
+}
+
+function calcDistribution(usdc) {
+  const winner = Math.max(usdc * 0.10, 1);
+  const voter = Math.max(usdc * 0.05, 0.50);
+  const total = winner + voter * 2;
+  return { winner, voter, total };
+}
+
+async function loadWalletData() {
+  const loading = document.getElementById('wallet-loading');
+  const content = document.getElementById('wallet-content');
+  const walletErr = document.getElementById('wallet-error');
+  const badge = document.getElementById('wallet-badge');
+  const histLoading = document.getElementById('history-loading');
+  const histContent = document.getElementById('history-content');
+  const histErr = document.getElementById('history-error');
+  const histBadge = document.getElementById('history-badge');
+
+  try {
+    const [balRes, histRes, cfgRes] = await Promise.all([
+      fetch('/api/memeya/wallet-status'),
+      fetch('/api/memeya/wallet-history'),
+      fetch('/api/memeya/reward-config')
+    ]);
+    const balData = await balRes.json();
+    const histData = await histRes.json();
+    const cfgData = await cfgRes.json();
+
+    // Balance section
+    if (balData.success && balData.data) {
+      const d = balData.data;
+      const usdc = d.usdc || 0;
+      const sol = d.sol || 0;
+      const addr = d.address || '?';
+
+      document.getElementById('wallet-address').textContent = addr;
+      document.getElementById('wallet-usdc').textContent = '$' + usdc.toFixed(2);
+      document.getElementById('wallet-sol').textContent = sol.toFixed(4) + ' SOL';
+
+      const statusBadge = document.getElementById('wallet-status-badge');
+      if (usdc >= 2) {
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'tag tag-green';
+        badge.textContent = '$' + usdc.toFixed(2);
+        badge.style.background = 'rgba(63,185,80,0.2)'; badge.style.color = 'var(--green)';
+      } else {
+        statusBadge.textContent = 'Insufficient';
+        statusBadge.className = 'tag'; statusBadge.style.background = 'rgba(248,81,73,0.15)'; statusBadge.style.color = 'var(--red)';
+        badge.textContent = '$' + usdc.toFixed(2);
+        badge.style.background = 'rgba(248,81,73,0.2)'; badge.style.color = 'var(--red)';
+      }
+
+      if (usdc < 2) {
+        document.getElementById('dist-winner').textContent = '--';
+        document.getElementById('dist-voter1').textContent = '--';
+        document.getElementById('dist-voter2').textContent = '--';
+        document.getElementById('dist-total').innerHTML = '<span style="color:var(--red);">Skipped (below $2 min)</span>';
+      } else {
+        const dist = calcDistribution(usdc);
+        document.getElementById('dist-winner').textContent = '$' + dist.winner.toFixed(2);
+        document.getElementById('dist-voter1').textContent = '$' + dist.voter.toFixed(2);
+        document.getElementById('dist-voter2').textContent = '$' + dist.voter.toFixed(2);
+        document.getElementById('dist-total').textContent = '$' + dist.total.toFixed(2);
+      }
+
+      loading.style.display = 'none';
+      content.style.display = 'block';
+    } else {
+      throw new Error(balData.error || 'Failed to load balance');
+    }
+
+    // History section
+    if (histData.success && histData.data) {
+      const dists = histData.data.distributions || [];
+      histBadge.textContent = dists.length + ' records';
+      if (dists.length === 0) {
+        histContent.innerHTML = '<div class="placeholder">No distributions yet.</div>';
+      } else {
+        let html = '<table><tr><th>Date</th><th>Winner</th><th>$Amt</th><th>Voter 1</th><th>$Amt</th><th>Voter 2</th><th>$Amt</th><th>Status</th></tr>';
+        for (const d of dists) {
+          const transfers = d.transfers || [];
+          const winnerT = transfers.find(t => t.type === 'winner');
+          const voterTs = transfers.filter(t => t.type === 'voter');
+          const statusColor = d.status === 'completed' ? 'green' : d.status === 'simulated' || d.status === 'partial' ? 'orange' : d.status === 'failed' ? 'red' : 'text-dim';
+          html += '<tr>';
+          html += `<td style="white-space:nowrap;">${escHtml(d.drawId || d.id || '?')}</td>`;
+          html += `<td><code>${winnerT ? truncAddr(winnerT.wallet) : '-'}</code></td>`;
+          html += `<td>${winnerT ? '$' + winnerT.amount.toFixed(2) : '-'}</td>`;
+          html += `<td><code>${voterTs[0] ? truncAddr(voterTs[0].wallet) : '-'}</code></td>`;
+          html += `<td>${voterTs[0] ? '$' + voterTs[0].amount.toFixed(2) : '-'}</td>`;
+          html += `<td><code>${voterTs[1] ? truncAddr(voterTs[1].wallet) : '-'}</code></td>`;
+          html += `<td>${voterTs[1] ? '$' + voterTs[1].amount.toFixed(2) : '-'}</td>`;
+          html += `<td><span class="tag" style="background:rgba(${statusColor === 'green' ? '63,185,80' : statusColor === 'orange' ? '210,153,34' : statusColor === 'red' ? '248,81,73' : '139,148,158'},0.15);color:var(--${statusColor});">${escHtml(d.status || '?')}</span></td>`;
+          html += '</tr>';
+        }
+        html += '</table>';
+        histContent.innerHTML = html;
+      }
+      histLoading.style.display = 'none';
+      histContent.style.display = 'block';
+    } else {
+      histLoading.style.display = 'none';
+      histContent.innerHTML = '<div class="placeholder">Could not load history.</div>';
+      histContent.style.display = 'block';
+    }
+
+    // Reward config toggle
+    const rewardEnabled = cfgData.data?.rewardEnabled !== false;
+    updateRewardUI(rewardEnabled);
+
+  } catch (err) {
+    loading.style.display = 'none';
+    walletErr.textContent = 'Error: ' + err.message;
+    walletErr.style.display = 'block';
+    badge.textContent = 'Error'; badge.style.background = 'rgba(248,81,73,0.2)'; badge.style.color = 'var(--red)';
+    histLoading.style.display = 'none';
+    histErr.textContent = 'Error: ' + err.message;
+    histErr.style.display = 'block';
+  }
+}
+
+function updateRewardUI(enabled) {
+  const toggle = document.getElementById('reward-toggle');
+  const label = document.getElementById('reward-label');
+  const note = document.getElementById('reward-sim-note');
+  toggle.className = enabled ? 'toggle on' : 'toggle';
+  label.textContent = enabled ? 'ON' : 'OFF';
+  label.style.color = enabled ? 'var(--green)' : 'var(--orange)';
+  note.style.display = enabled ? 'none' : 'block';
+}
+
+async function toggleReward() {
+  try {
+    const res = await fetch('/api/memeya/reward-toggle', { method: 'POST' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    updateRewardUI(data.data?.rewardEnabled !== false);
+  } catch (err) {
+    alert('Toggle failed: ' + err.message);
+  }
 }
 
 // ─── Load all on page load ──────────────────────────────────

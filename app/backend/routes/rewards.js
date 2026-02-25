@@ -3,6 +3,7 @@ const router = express.Router();
 const rewardService = require('../services/rewardService');
 const crossmintService = require('../services/crossmintService');
 const { cacheResponse, TTL } = require('../utils/cache');
+const { collections, dbUtils } = require('../config/firebase');
 
 /**
  * @route GET /api/rewards/balance
@@ -62,6 +63,41 @@ router.get('/history', async (req, res) => {
       error: 'Failed to fetch reward history',
       message: error.message
     });
+  }
+});
+
+/**
+ * @route GET /api/rewards/config
+ * @desc Get reward distribution enabled/disabled flag
+ */
+router.get('/config', async (req, res) => {
+  try {
+    const doc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
+    const rewardEnabled = doc?.rewardEnabled !== false; // default true
+    res.json({ success: true, data: { rewardEnabled } });
+  } catch (error) {
+    console.error('❌ Error fetching reward config:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch reward config', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/rewards/config
+ * @desc Toggle reward distribution on/off
+ */
+router.post('/config', async (req, res) => {
+  try {
+    const doc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
+    const current = doc?.rewardEnabled !== false;
+    const rewardEnabled = !current;
+    await dbUtils.setDocument(collections.REWARD_DISTRIBUTIONS, 'config', {
+      rewardEnabled,
+      updatedAt: new Date().toISOString()
+    });
+    res.json({ success: true, data: { rewardEnabled } });
+  } catch (error) {
+    console.error('❌ Error toggling reward config:', error);
+    res.status(500).json({ success: false, error: 'Failed to toggle reward config', message: error.message });
   }
 });
 

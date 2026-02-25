@@ -24,6 +24,7 @@ const DASHBOARD_PATH = path.join(__dirname, 'dashboard.html');
 const MEMEYA_DASHBOARD_PATH = path.join(__dirname, 'memeya-dashboard.html');
 const BASE_DIR = path.resolve(__dirname, '..');
 const X_POST_FLAG = path.join(__dirname, '.memeya-x-enabled');
+const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const startedAt = Date.now();
 
 // ─── Memeya helpers ─────────────────────────────────────────────
@@ -753,6 +754,62 @@ const server = http.createServer((req, res) => {
         jsonRes(res, { success: true, url, tweetId: data.id });
       } catch (err) {
         jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
+  // ─── Wallet Proxy: Balance ──────────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/wallet-status') {
+    (async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/rewards/balance`);
+        const data = await r.json();
+        jsonRes(res, data, r.status);
+      } catch (err) {
+        jsonRes(res, { error: 'Backend unreachable: ' + err.message }, 502);
+      }
+    })();
+    return;
+  }
+
+  // ─── Wallet Proxy: History ─────────────────────────────────
+  if (req.method === 'GET' && req.url.startsWith('/api/memeya/wallet-history')) {
+    (async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/rewards/history?limit=10`);
+        const data = await r.json();
+        jsonRes(res, data, r.status);
+      } catch (err) {
+        jsonRes(res, { error: 'Backend unreachable: ' + err.message }, 502);
+      }
+    })();
+    return;
+  }
+
+  // ─── Wallet Proxy: Reward Config ───────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/reward-config') {
+    (async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/rewards/config`);
+        const data = await r.json();
+        jsonRes(res, data, r.status);
+      } catch (err) {
+        jsonRes(res, { error: 'Backend unreachable: ' + err.message }, 502);
+      }
+    })();
+    return;
+  }
+
+  // ─── Wallet Proxy: Toggle Reward ───────────────────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/reward-toggle') {
+    (async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/rewards/config`, { method: 'POST' });
+        const data = await r.json();
+        jsonRes(res, data, r.status);
+      } catch (err) {
+        jsonRes(res, { error: 'Backend unreachable: ' + err.message }, 502);
       }
     })();
     return;
