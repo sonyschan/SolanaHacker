@@ -30,6 +30,7 @@ const Dashboard = ({
   const [copied, setCopied] = useState(false);
   const [memeyaBalance, setMemeyaBalance] = useState(null);
   const [memeyaBonus, setMemeyaBonus] = useState(0);
+  const [rewardWalletUsdc, setRewardWalletUsdc] = useState(null);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
 
@@ -67,6 +68,17 @@ const Dashboard = ({
       setMemeyaBonus(bonus);
     })();
   }, [walletAddress]);
+
+  // Fetch Memeya reward wallet USDC balance
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/rewards/balance`);
+        const data = await res.json();
+        if (data.success) setRewardWalletUsdc(data.data.usdc);
+      } catch {}
+    })();
+  }, []);
 
   const copyAddress = () => {
     if (walletAddress) {
@@ -701,9 +713,16 @@ const Dashboard = ({
               className="group relative flex items-center gap-2 flex-shrink-0"
               title="@AiMemeForgeIO on X"
             >
-              {/* Speech bubble */}
-              <div className="hidden md:flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
-                <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
+              {/* Speech bubble + wallet balance */}
+              <div className="hidden md:flex items-center gap-2">
+                {rewardWalletUsdc !== null && (
+                  <div className="flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
+                    <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
+                  </div>
+                )}
+                <div className="flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
+                  <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
+                </div>
               </div>
               {/* Avatar */}
               <div className="relative">

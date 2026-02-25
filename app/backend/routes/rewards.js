@@ -9,7 +9,7 @@ const { collections, dbUtils } = require('../config/firebase');
  * @route GET /api/rewards/balance
  * @desc Wallet USDC/SOL balance + config thresholds
  */
-router.get('/balance', cacheResponse('rewards:balance', TTL.SHORT), async (req, res) => {
+router.get('/balance', cacheResponse('rewards:balance', TTL.LONG), async (req, res) => {
   try {
     const balances = await crossmintService.getWalletBalances();
     const address = await crossmintService.getWalletAddress();
