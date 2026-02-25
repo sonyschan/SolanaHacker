@@ -31,6 +31,7 @@ const Dashboard = ({
   const [memeyaBalance, setMemeyaBalance] = useState(null);
   const [memeyaBonus, setMemeyaBonus] = useState(0);
   const [rewardWalletUsdc, setRewardWalletUsdc] = useState(null);
+  const [showWalletInfo, setShowWalletInfo] = useState(false);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
 
@@ -728,9 +729,12 @@ const Dashboard = ({
               </div>
               {/* Wallet balance pill */}
               {rewardWalletUsdc !== null && (
-                <div className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowWalletInfo(true); }}
+                  className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1 hover:bg-green-500/20 transition-colors cursor-pointer"
+                >
                   <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
-                </div>
+                </button>
               )}
             </a>
 
@@ -1069,6 +1073,91 @@ const Dashboard = ({
         meme={modalMeme}
         walletAddress={walletAddress}
       />
+
+      {/* Memeya Wallet Info Modal */}
+      {showWalletInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowWalletInfo(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div
+            className="relative bg-gray-900 border border-white/10 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowWalletInfo(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all z-10"
+            >
+              ✕
+            </button>
+
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Header */}
+              <div className="text-center pr-8">
+                <h2 className="text-2xl font-bold mb-1">Memeya's Wallet</h2>
+                <p className="text-gray-400 text-sm">Powered by <a href="https://www.crossmint.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Crossmint</a></p>
+              </div>
+
+              {/* Balance */}
+              <div className="text-center bg-white/5 border border-white/10 rounded-xl p-5">
+                <div className="text-sm text-gray-400 mb-1">Reward Pool Balance</div>
+                <div className="text-4xl font-bold text-green-400">${rewardWalletUsdc !== null ? rewardWalletUsdc.toFixed(2) : '--'} <span className="text-lg text-gray-400">USDC</span></div>
+              </div>
+
+              {/* What is this */}
+              <div>
+                <h3 className="font-bold text-lg mb-3">What is this?</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Memeya has her own on-chain Solana wallet managed by <span className="text-cyan-400">Crossmint's Agentic Wallet SDK</span>. After each daily lottery draw, USDC rewards are automatically distributed to winners and lucky voters — no manual process, fully autonomous.
+                </p>
+              </div>
+
+              {/* Daily Rewards */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                <h3 className="font-bold text-lg mb-3">Daily Rewards (23:55 UTC)</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: "Meme Winner", desc: "Most-voted meme's lottery winner", amount: "$3", color: "from-yellow-400 to-orange-500", icon: "🏆" },
+                    { label: "Lucky Voter #1", desc: "Random voter (excluding winner)", amount: "$2", color: "from-cyan-400 to-blue-500", icon: "🎲" },
+                    { label: "Lucky Voter #2", desc: "Another random voter", amount: "$1", color: "from-purple-400 to-pink-500", icon: "🎲" }
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 bg-gradient-to-r ${item.color} rounded-lg flex items-center justify-center text-sm`}>{item.icon}</div>
+                        <div>
+                          <div className="font-medium text-sm">{item.label}</div>
+                          <div className="text-xs text-gray-500">{item.desc}</div>
+                        </div>
+                      </div>
+                      <span className="font-bold text-green-400">{item.amount}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-white/10 pt-2 flex justify-between text-sm">
+                    <span className="text-gray-400">Total daily payout</span>
+                    <span className="font-bold text-green-400">$6 USDC</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Future */}
+              <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-400/20 rounded-xl p-5">
+                <h3 className="font-bold text-lg mb-2">🔮 Coming Soon</h3>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  <span className="text-yellow-400 font-medium">$Memeya token fee distribution</span> — A portion of $Memeya trading fees will flow back to active voters and token holders as extra rewards. Vote daily, hold $Memeya, earn more.
+                </p>
+              </div>
+
+              {/* Got it */}
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => setShowWalletInfo(false)}
+                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl transition-all duration-200"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* How It Works Modal */}
       {showHowItWorks && (

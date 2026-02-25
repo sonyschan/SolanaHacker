@@ -24,6 +24,7 @@
 - Memeya TG Community Bot (@memeya_bot)
 - Tapestry 鏈上社交 + $Memeya 餘額顯示
 - Agent Profile + Memeya Dashboard (X/Moltbook/Timers/System)
+- Memeya's Wallet (Crossmint) — 每日 USDC 獎勵自動分發
 
 **🚧 In Progress:** NFT Claim & 鑄造 (Metaplex pNFT, 5% royalty, Arweave)
 
@@ -120,6 +121,17 @@
 
 整合 [Tapestry](https://usetapestry.dev) — Solana 社交圖譜。梗圖評論、投票活動、Memeya 推文映射均上鏈。自動建立 Profile。跨應用可見性：MemeForge 活動可被其他 Tapestry 應用看到。
 
+### Memeya's Wallet (Crossmint)
+
+Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https://www.crossmint.com) 管理。每日抽獎後自動發放 USDC 獎勵給贏家和幸運投票者。
+
+**獎勵分配** (每日 23:55 UTC):
+- 梗圖贏家 (最高票): $3 USDC
+- 幸運投票者 1 (隨機): $2 USDC
+- 幸運投票者 2 (隨機): $1 USDC
+
+**未來目標**: 整合 $Memeya token 交易費用分潤機制，讓持有者和活躍參與者獲得額外獎勵。
+
 ---
 
-*最後更新: 2026-02-24*
+*最後更新: 2026-02-25*
