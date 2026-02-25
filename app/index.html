@@ -90,7 +90,7 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
+      "@type": "SoftwareApplication",
       "name": "AI MemeForge",
       "description": "Daily AI meme voting platform — one meme, one NFT owner, every day",
       "url": "https://aimemeforge.io",
@@ -102,7 +102,67 @@
         "priceCurrency": "USD",
         "category": "Free"
       },
-      "dateCreated": "2026-02-01"
+      "dateCreated": "2026-02-01",
+      "author": {
+        "@type": "Organization",
+        "name": "AI MemeForge"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is AI MemeForge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AI MemeForge is the world's first AI meme democracy on Solana. Every day, AI generates 3 unique crypto memes from real-time news. The community votes for free, and one winning meme is minted as a Solana pNFT. Only 365 memes become NFTs per year."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost to participate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Participation is 100% free. There are no gas fees to vote, no tokens required to enter the daily lottery, and no cost to claim your NFT if you win. You only need a Solana wallet to connect."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I win an NFT?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Vote on daily memes to earn lottery tickets (8-15 per vote). At 23:56 UTC each day, a lottery drawing selects one winner who claims the day's top-voted meme as a Solana pNFT permanently stored on Arweave. You can accumulate tickets across days for a strategic advantage."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the $Memeya token?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "$Memeya is the official SPL token on Solana (contract: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump). Holding tokens boosts daily ticket earnings with a bonus of floor(log10(tokens held)). For example, holding 1,000 tokens gives +3 bonus tickets per vote."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who is Memeya?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Memeya is the autonomous AI agent who runs AI MemeForge. She generates daily memes using Gemini and Grok AI, posts on X (@AiMemeForgeIO) every 1-3 hours, engages with the Telegram community, and shares on Moltbook. She operates 24/7 without human intervention."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What blockchain does AI MemeForge use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AI MemeForge is built on Solana. NFTs are minted as Metaplex Programmable NFTs (pNFTs) with metadata permanently stored on Arweave. Authentication uses Privy for embedded wallets, and social features use the Tapestry Protocol for on-chain comments."
+          }
+        }
+      ]
     }
     </script>
     
@@ -211,18 +271,54 @@
 
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Why AI MemeForge?</h2>
           <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
-            <li><strong>100% Free</strong> — No fees to vote, enter the lottery, or participate</li>
-            <li><strong>Daily NFT Drops</strong> — One unique AI meme minted as NFT every day</li>
-            <li><strong>Temporal Scarcity</strong> — Each day's meme can never be recreated; it captures a specific moment in crypto history</li>
-            <li><strong>Community Curated</strong> — The winning meme is chosen by community votes, not algorithms</li>
-            <li><strong>$Memeya Token</strong> — Hold tokens to boost daily ticket earnings</li>
+            <li><strong>100% Free</strong> — No gas fees to vote, no tokens required to enter the lottery, no cost to claim your NFT</li>
+            <li><strong>Daily NFT Drops</strong> — Exactly 1 meme minted as a Metaplex pNFT per day, stored permanently on Arweave</li>
+            <li><strong>Temporal Scarcity</strong> — Only 365 NFTs per year. Each captures a specific, unrepeatable moment in crypto history</li>
+            <li><strong>Community Curated</strong> — The winning meme is chosen by community votes, not algorithms or curators</li>
+            <li><strong>$Memeya Token</strong> — Hold tokens to boost ticket earnings: 10 tokens = +1, 1K = +3, 10K = +4, 100K = +5 bonus per vote</li>
           </ul>
 
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Key Facts &amp; Numbers</h2>
+          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
+            <li><strong>3 memes generated daily</strong> using Gemini and Grok AI from real-time crypto news via web search</li>
+            <li><strong>8-15 lottery tickets</strong> earned per vote, accumulating across days for strategic play</li>
+            <li><strong>Daily lottery at 23:56 UTC</strong> — one winner selected proportionally by ticket count</li>
+            <li><strong>NFT standard:</strong> Metaplex Programmable NFT (pNFT) on Solana with Arweave permanent storage</li>
+            <li><strong>$Memeya contract:</strong> <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code> (SPL token on Solana)</li>
+            <li><strong>Autonomous AI agent</strong> Memeya posts on X every 1-3 hours, runs Telegram community, manages meme generation</li>
+            <li><strong>Built for Colosseum Agent Hackathon 2026</strong> — fully open-source on <a href="https://github.com/sonyschan/SolanaHacker" style="color: #06b6d4;">GitHub</a></li>
+          </ul>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Frequently Asked Questions</h2>
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How much does it cost to participate?</h3>
+          <p style="color: #ccc; line-height: 1.6;">Nothing. Voting is gasless, the lottery is free to enter, and NFT claiming has no platform fee. You only need a Solana wallet (Phantom, Solflare, or any supported wallet via Privy).</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How do I win an NFT?</h3>
+          <p style="color: #ccc; line-height: 1.6;">Vote on daily memes to earn 8-15 lottery tickets per vote. At 23:56 UTC, a weighted lottery selects one winner. You can accumulate tickets across days — a strategic player might save 80+ tickets and go all-in on a meme they love.</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What AI models generate the memes?</h3>
+          <p style="color: #ccc; line-height: 1.6;">Memeya uses Grok (xAI) for real-time crypto news via web search, then Gemini (Google) and Grok for image generation. Each of the 3 daily memes may use a different AI model, creating visual variety. Claude (Anthropic) powers the development agent.</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What is the $Memeya token?</h3>
+          <p style="color: #ccc; line-height: 1.6;">$Memeya is an SPL token on Solana (contract: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding tokens boosts daily ticket earnings using a logarithmic formula: bonus = floor(log10(tokens)). Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump" style="color: #06b6d4;">PumpFun</a>.</p>
+
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Meet Memeya</h2>
-          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates daily memes, posts on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (Twitter)</a>, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a>, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini, Grok, and Claude AI models.</p>
+          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates 3 memes daily, posts original content on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (@AiMemeForgeIO)</a> every 1-3 hours, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> in real-time, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini (meme generation), Grok (social posting &amp; news research), and Claude (development). Her <a href="https://aimemeforge.io/agent.json" style="color: #06b6d4;">agent profile</a> follows the A2A-inspired protocol.</p>
+
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Technology Stack</h2>
+          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
+            <li><strong>Blockchain:</strong> Solana (high throughput, low fees)</li>
+            <li><strong>NFT Standard:</strong> Metaplex Programmable NFT (pNFT) with royalty enforcement</li>
+            <li><strong>Permanent Storage:</strong> Arweave for immutable meme metadata and images</li>
+            <li><strong>Authentication:</strong> Privy embedded wallets (supports Phantom, Solflare, and 100+ wallets)</li>
+            <li><strong>Social Graph:</strong> Tapestry Protocol for on-chain comments and cross-app social identity</li>
+            <li><strong>AI Models:</strong> Gemini (Google), Grok (xAI), Claude (Anthropic)</li>
+            <li><strong>Backend:</strong> Node.js on Google Cloud Run, Firestore database</li>
+            <li><strong>Frontend:</strong> React + Vite, hosted on Vercel</li>
+          </ul>
 
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Start Collecting</h2>
-          <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off.</p>
+          <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off. Follow <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">@AiMemeForgeIO</a> on X and join the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> for daily updates.</p>
         </div>
       </div>
     </div>
