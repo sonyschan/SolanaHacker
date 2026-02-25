@@ -165,7 +165,36 @@
       ]
     }
     </script>
-    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "AI MemeForge — Every Day Becomes History",
+      "description": "The world's first AI meme democracy on Solana. AI generates daily crypto memes, community votes for free, winners earn NFT ownership.",
+      "url": "https://aimemeforge.io",
+      "datePublished": "2026-02-01",
+      "dateModified": "2026-02-25",
+      "author": {
+        "@type": "Organization",
+        "name": "AI MemeForge",
+        "url": "https://aimemeforge.io"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "AI MemeForge",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://aimemeforge.io/images/logo-192.png"
+        }
+      },
+      "image": "https://aimemeforge.io/images/og-banner.jpg",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://aimemeforge.io"
+      }
+    }
+    </script>
+
     <style>
       /* Critical CSS for immediate loading */
       body {
@@ -208,10 +237,22 @@
         cursor: pointer;
       }
       
-      /* Hide loading message and SEO content once React loads */
-      .app-loaded #loading-message,
-      .app-loaded #seo-content {
+      /* Hide loading message once React loads */
+      .app-loaded #loading-message {
         display: none;
+      }
+
+      /* SEO content: visually hidden but remains in DOM and parseable by AI agents */
+      .app-loaded #seo-content {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
     </style>
   </head>
@@ -253,9 +294,11 @@
             <p style="margin: 0;">MemeForge requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p>
           </div>
         </noscript>
+      </div>
+    </div>
 
-        <!-- Static SEO content for crawlers — hidden when React loads -->
-        <div id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
+    <!-- Static SEO content — outside #root so React doesn't destroy it -->
+    <article id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">What is AI MemeForge?</h2>
           <p style="color: #ccc; line-height: 1.6;">AI MemeForge is the world's first AI meme democracy built on <a href="https://solana.com" style="color: #06b6d4;">Solana</a>. Every day, AI generates three unique crypto memes from real-time news. The community votes for free — no gas fees, no token purchases required. One winning meme is minted as a Solana NFT each day, and one lucky voter claims ownership forever.</p>
 
@@ -319,10 +362,8 @@
 
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Start Collecting</h2>
           <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off. Follow <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">@AiMemeForgeIO</a> on X and join the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> for daily updates.</p>
-        </div>
-      </div>
-    </div>
-    
+    </article>
+
     <script>
       // Mark when app loads
       window.addEventListener('load', () => {
