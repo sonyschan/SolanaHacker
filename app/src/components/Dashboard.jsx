@@ -713,16 +713,9 @@ const Dashboard = ({
               className="group relative flex items-center gap-2 flex-shrink-0"
               title="@AiMemeForgeIO on X"
             >
-              {/* Speech bubble + wallet balance */}
-              <div className="hidden md:flex items-center gap-2">
-                {rewardWalletUsdc !== null && (
-                  <div className="flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
-                    <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
-                  </div>
-                )}
-                <div className="flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
-                  <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
-                </div>
+              {/* Speech bubble */}
+              <div className="hidden md:flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
+                <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
               </div>
               {/* Avatar */}
               <div className="relative">
@@ -734,6 +727,12 @@ const Dashboard = ({
                 </div>
               </div>
             </a>
+            {/* Wallet balance pill — right of avatar */}
+            {rewardWalletUsdc !== null && (
+              <div className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
+                <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
+              </div>
+            )}
 
             {/* Desktop User Info + Settings */}
             <div className="hidden md:flex items-center space-x-2 md:space-x-6">
