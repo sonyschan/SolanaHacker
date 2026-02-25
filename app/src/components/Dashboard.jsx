@@ -31,6 +31,7 @@ const Dashboard = ({
   const [memeyaBalance, setMemeyaBalance] = useState(null);
   const [memeyaBonus, setMemeyaBonus] = useState(0);
   const [rewardWalletUsdc, setRewardWalletUsdc] = useState(null);
+  const [rewardEnabled, setRewardEnabled] = useState(null);
   const [showWalletInfo, setShowWalletInfo] = useState(false);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
@@ -74,9 +75,14 @@ const Dashboard = ({
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/rewards/balance`);
-        const data = await res.json();
-        if (data.success) setRewardWalletUsdc(data.data.usdc);
+        const [balRes, cfgRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/rewards/balance`),
+          fetch(`${API_BASE_URL}/api/rewards/config`)
+        ]);
+        const balData = await balRes.json();
+        const cfgData = await cfgRes.json();
+        if (balData.success) setRewardWalletUsdc(balData.data.usdc);
+        if (cfgData.success) setRewardEnabled(cfgData.data.rewardEnabled);
       } catch {}
     })();
   }, []);
@@ -1110,7 +1116,8 @@ const Dashboard = ({
                 </p>
               </div>
 
-              {/* Daily Rewards */}
+              {/* Daily Rewards — only shown when reward distribution is ON */}
+              {rewardEnabled && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-5">
                 <h3 className="font-bold text-lg mb-3">Daily Rewards (23:55 UTC)</h3>
                 <div className="space-y-3">
@@ -1136,6 +1143,7 @@ const Dashboard = ({
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Future */}
               <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-400/20 rounded-xl p-5">
