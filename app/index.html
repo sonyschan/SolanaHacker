@@ -277,73 +277,42 @@
   <body>
     <!-- Loading State with Clear Call to Action -->
     <div id="root">
-      <div id="loading-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🗳️</div>
+      <header id="loading-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem;">
+        <figure style="font-size: 3rem; margin: 0 0 1rem 0;" aria-hidden="true">🗳️</figure>
         <h1 style="font-size: 2.5rem; font-weight: bold; margin: 0 0 1rem 0; background: linear-gradient(45deg, #fbbf24, #f472b6, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
           AI MemeForge
         </h1>
         <p style="font-size: 1.25rem; margin: 0 0 2rem 0; opacity: 0.9;">
           Every day becomes history. One meme captures it. One person owns it.
         </p>
-        <div class="loading-spinner" role="status" aria-label="Loading MemeForge application"></div>
+        <aside class="loading-spinner" role="status" aria-label="Loading MemeForge application"></aside>
         <p style="margin: 2rem 0 1rem 0; font-size: 1rem; opacity: 0.8;">
           Loading...
         </p>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 800px; margin: 2rem auto;">
-          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🗳️</div>
-            <div style="font-weight: 600;">Vote Daily</div>
-            <div style="font-size: 0.875rem; opacity: 0.8;">Pick today's best meme</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💰</div>
-            <div style="font-weight: 600;">Own the Moment</div>
-            <div style="font-size: 0.875rem; opacity: 0.8;">One winner every day</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏆</div>
-            <div style="font-weight: 600;">Mint History</div>
-            <div style="font-size: 0.875rem; opacity: 0.8;">Claim as Solana NFT</div>
-          </div>
-        </div>
+        <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 800px; margin: 2rem auto;" aria-label="Platform highlights">
+          <article style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;" aria-hidden="true">🗳️</p>
+            <h3 style="font-weight: 600; margin: 0;">Vote Daily</h3>
+            <p style="font-size: 0.875rem; opacity: 0.8; margin: 0;">Pick today's best meme</p>
+          </article>
+          <article style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;" aria-hidden="true">💰</p>
+            <h3 style="font-weight: 600; margin: 0;">Own the Moment</h3>
+            <p style="font-size: 0.875rem; opacity: 0.8; margin: 0;">One winner every day</p>
+          </article>
+          <article style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; backdrop-filter: blur(10px);">
+            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;" aria-hidden="true">🏆</p>
+            <h3 style="font-weight: 600; margin: 0;">Mint History</h3>
+            <p style="font-size: 0.875rem; opacity: 0.8; margin: 0;">Claim as Solana NFT</p>
+          </article>
+        </section>
         <noscript>
-          <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; padding: 1rem; border-radius: 0.5rem; margin-top: 2rem; max-width: 500px;">
+          <aside style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; padding: 1rem; border-radius: 0.5rem; margin-top: 2rem; max-width: 500px;">
             <h2 style="color: #ef4444; margin: 0 0 1rem 0;">JavaScript Required</h2>
             <p style="margin: 0;">MemeForge requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p>
-          </div>
+          </aside>
         </noscript>
-
-        <!-- Static SEO content for crawlers — hidden when React loads -->
-        <div id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">What is AI MemeForge?</h2>
-          <p style="color: #ccc; line-height: 1.6;">AI MemeForge is the world's first AI meme democracy built on <a href="https://solana.com" style="color: #06b6d4;">Solana</a>. Every day, AI generates three unique crypto memes from real-time news. The community votes for free — no gas fees, no token purchases required. One winning meme is minted as a Solana NFT each day, and one lucky voter claims ownership forever.</p>
-
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">How It Works</h2>
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 1: AI Creates 3 Memes Daily</h3>
-          <p style="color: #ccc; line-height: 1.6;">Every day, Memeya — our AI forge master — uses Gemini and Grok AI models to generate three memes inspired by the latest crypto news. Each meme captures the mood of the market in real time.</p>
-
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 2: Community Votes for Free</h3>
-          <p style="color: #ccc; line-height: 1.6;">Connect your Solana wallet and vote on your favorite meme. Voting is completely free — no gas, no tokens, no cost. Every vote earns lottery tickets that accumulate toward the daily drawing.</p>
-
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 3: Daily Winner Owns the NFT</h3>
-          <p style="color: #ccc; line-height: 1.6;">At the end of each day, a lottery determines the winner. The winning voter claims the day's top meme as a <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Solana pNFT</a> — permanently stored on Arweave. Only 365 memes become NFTs per year, making each one inherently scarce.</p>
-
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Why AI MemeForge?</h2>
-          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
-            <li><strong>100% Free</strong> — No fees to vote, enter the lottery, or participate</li>
-            <li><strong>Daily NFT Drops</strong> — One unique AI meme minted as NFT every day</li>
-            <li><strong>Temporal Scarcity</strong> — Each day's meme can never be recreated; it captures a specific moment in crypto history</li>
-            <li><strong>Community Curated</strong> — The winning meme is chosen by community votes, not algorithms</li>
-            <li><strong>$Memeya Token</strong> — Hold tokens to boost daily ticket earnings</li>
-          </ul>
-
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Meet Memeya</h2>
-          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates daily memes, posts on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (Twitter)</a>, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a>, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini, Grok, and Claude AI models.</p>
-
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Start Collecting</h2>
-          <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off.</p>
-        </div>
-      </div>
+      </header>
     </div>
 
     <!-- Static SEO content — outside #root so React doesn't destroy it -->
