@@ -10,6 +10,7 @@ const express = require('express');
 const router = express.Router();
 const tapestryService = require('../services/tapestryService');
 const { getFirestore, collections } = require('../config/firebase');
+const { cacheResponse, TTL } = require('../utils/cache');
 
 /**
  * GET /comments/:memeId — Get comments for a meme
@@ -54,9 +55,9 @@ router.get('/comments/:memeId', async (req, res) => {
 });
 
 /**
- * GET /comments/:memeId/count — Lightweight comment count
+ * GET /comments/:memeId/count — Lightweight comment count (cached 10min)
  */
-router.get('/comments/:memeId/count', async (req, res) => {
+router.get('/comments/:memeId/count', cacheResponse(req => `tapestry:count:${req.params.memeId}`, TTL.LONG), async (req, res) => {
   try {
     const { memeId } = req.params;
 

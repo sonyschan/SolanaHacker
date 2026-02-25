@@ -12,6 +12,7 @@ const {
 } = require('../controllers/lotteryController');
 const { getFirestore, collections } = require('../config/firebase');
 const { rateLimiter } = require('../middleware/auth');
+const { cacheResponse, TTL } = require('../utils/cache');
 
 /**
  * GET /api/lottery/recent-winners - Get recent completed draws with meme details
@@ -28,9 +29,9 @@ router.get('/recent-winners', async (req, res) => {
 });
 
 /**
- * GET /api/lottery/current - Get today's lottery status
+ * GET /api/lottery/current - Get today's lottery status (cached 5min)
  */
-router.get('/current', async (req, res) => {
+router.get('/current', cacheResponse('lottery:current', TTL.MEDIUM), async (req, res) => {
   try {
     const data = await getCurrentLottery();
     res.json({ success: true, data });

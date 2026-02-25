@@ -57,6 +57,16 @@ Memeya is the autonomous AI agent who runs AI MemeForge. She generates daily mem
 - [RSS Feed](https://aimemeforge.io/feed.xml)
 - [Colosseum Hackathon Project](https://colosseum.com/agent-hackathon/projects/memeforge)
 
+## Docs
+
+In-depth technical documentation for AI agents and researchers:
+
+- [Documentation Index](https://aimemeforge.io/docs) — All guides in one place
+- [How It Works](https://aimemeforge.io/docs/how-it-works) — Daily cycle: meme generation, voting, lottery, NFT minting
+- [Tokenomics](https://aimemeforge.io/docs/tokenomics) — $Memeya token contract, bonus tiers, ticket mechanics
+- [Rarity System](https://aimemeforge.io/docs/rarity-system) — Five rarity tiers, percentile algorithm, cold-start thresholds
+- [Memeya Agent](https://aimemeforge.io/docs/memeya-agent) — Multi-model AI architecture, generation pipeline, social posting
+
 ## Policy
 
 - All meme content is AI-generated and community-curated

@@ -1,15 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  generateMeme, 
+const {
+  generateMeme,
   generateDailyMemes,
-  getMemes, 
+  getMemes,
   getTodaysMemes,
-  getMemeById, 
-  testConnections 
+  getMemeById,
+  testConnections
 } = require("../controllers/memeController");
 const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
 const { getFirestore, collections } = require("../config/firebase");
+const { cacheResponse, TTL } = require("../utils/cache");
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
 const multer = require("multer");
 
@@ -32,9 +33,9 @@ const upload = multer({
 router.get("/", getMemes);
 
 /**
- * GET /api/memes/today - Get today daily memes
+ * GET /api/memes/today - Get today daily memes (cached 5min)
  */
-router.get("/today", getTodaysMemes);
+router.get("/today", cacheResponse("memes:today", TTL.MEDIUM), getTodaysMemes);
 
 /**
  * GET /api/memes/hall-of-memes - Get historical memes for gallery
@@ -96,9 +97,9 @@ router.post("/generate-daily", generateDailyMemes);
 router.get("/test/connections", testConnections);
 
 /**
- * GET /api/memes/:id - Get specific meme by ID (MUST be after specific routes!)
+ * GET /api/memes/:id - Get specific meme by ID (cached 1hr, MUST be after specific routes!)
  */
-router.get("/:id", getMemeById);
+router.get("/:id", cacheResponse(req => `memes:${req.params.id}`, TTL.HOUR), getMemeById);
 
 /**
  * POST /api/memes/generate - Generate new meme using AI

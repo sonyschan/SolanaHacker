@@ -13,11 +13,19 @@
       "destination": "https://memeforge-api-836651762884.asia-southeast1.run.app/sitemap.xml"
     },
     {
+      "source": "/docs",
+      "destination": "/api/docs/index"
+    },
+    {
+      "source": "/docs/:slug",
+      "destination": "/api/docs/:slug"
+    },
+    {
       "source": "/meme/:id",
       "destination": "/api/meme/:id"
     },
     {
-      "source": "/((?!api/|meme/|agent\\.json|robots\\.txt|llms\\.txt|feed\\.xml|sitemap\\.xml|favicon).*)",
+      "source": "/((?!api/|meme/|docs/|docs$|agent\\.json|robots\\.txt|llms\\.txt|feed\\.xml|sitemap\\.xml|favicon).*)",
       "destination": "/index.html"
     }
   ]

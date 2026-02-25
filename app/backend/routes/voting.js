@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { submitVote, getVotingResults, getUserVotes, checkVotingEligibility } = require('../controllers/votingController');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
+const { cacheResponse, TTL } = require('../utils/cache');
 const Joi = require('joi');
 
 // Validation schemas - accepts both frontend formats
@@ -119,9 +120,9 @@ router.post('/submit', rateLimiter, async (req, res) => {
 });
 
 /**
- * GET /api/voting/results/:date - Get voting results for specific date
+ * GET /api/voting/results/:date - Get voting results for specific date (cached 30min)
  */
-router.get('/results/:date', async (req, res) => {
+router.get('/results/:date', cacheResponse(req => `voting:results:${req.params.date}`, TTL.HALF_HOUR), async (req, res) => {
   try {
     const { date } = req.params;
     

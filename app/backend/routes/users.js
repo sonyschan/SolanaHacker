@@ -3,6 +3,7 @@ const router = express.Router();
 const { getUserProfile, updateUserProfile, getUserTickets, getUserStats } = require('../controllers/userController');
 const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
+const { cacheResponse, TTL } = require('../utils/cache');
 const Joi = require('joi');
 
 // Validation schemas
@@ -199,9 +200,9 @@ router.post('/:wallet/tickets/claim', rateLimiter, async (req, res) => {
 });
 
 /**
- * GET /api/users/leaderboard - Get user leaderboard
+ * GET /api/users/leaderboard - Get user leaderboard (cached 30min)
  */
-router.get('/leaderboard', async (req, res) => {
+router.get('/leaderboard', cacheResponse(req => `users:leaderboard:${req.query.type || 'votes'}:${req.query.timeframe || '30d'}`, TTL.HALF_HOUR), async (req, res) => {
   try {
     const { type = 'votes', limit = 50, timeframe = '30d' } = req.query;
     // type: votes, wins, tickets, earnings

@@ -483,6 +483,7 @@ export default async function handler(req, res) {
         <a href="${SITE_URL}">Forge</a>
         <a href="${SITE_URL}#gallery">Gallery</a>
         <a href="${SITE_URL}#lottery">Lottery</a>
+        <a href="${SITE_URL}/docs">Docs</a>
       </nav>
     </header>
 

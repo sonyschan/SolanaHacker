@@ -215,6 +215,31 @@ app.get('/sitemap.xml', async (req, res) => {
     <loc>https://aimemeforge.io/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>`,
+    `  <url>
+    <loc>https://aimemeforge.io/docs</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`,
+    `  <url>
+    <loc>https://aimemeforge.io/docs/how-it-works</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`,
+    `  <url>
+    <loc>https://aimemeforge.io/docs/tokenomics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`,
+    `  <url>
+    <loc>https://aimemeforge.io/docs/rarity-system</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`,
+    `  <url>
+    <loc>https://aimemeforge.io/docs/memeya-agent</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>`];
 
     snapshot.forEach(doc => {
