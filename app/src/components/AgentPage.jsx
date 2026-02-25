@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 
 const AGENT_JSON_URL = "https://aimemeforge.io/agent.json";
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
+const MEMEYA_WALLET = '4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP';
 
 const capabilities = [
   {
@@ -61,10 +62,16 @@ const agentJsonPreview = `{
 
 const AgentPage = () => {
   const [caCopied, setCaCopied] = useState(false);
+  const [walletCopied, setWalletCopied] = useState(false);
   const copyCA = useCallback(() => {
     navigator.clipboard.writeText(MEMEYA_TOKEN_CA);
     setCaCopied(true);
     setTimeout(() => setCaCopied(false), 2000);
+  }, []);
+  const copyWallet = useCallback(() => {
+    navigator.clipboard.writeText(MEMEYA_WALLET);
+    setWalletCopied(true);
+    setTimeout(() => setWalletCopied(false), 2000);
   }, []);
 
   const navigateHome = () => {
@@ -253,6 +260,47 @@ const AgentPage = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl transition-all duration-200"
               >
                 Buy on PumpFun
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* Wallet */}
+        <section className="space-y-6">
+          <h3 className="text-2xl font-bold text-center">
+            <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Memeya&apos;s Wallet</span>
+          </h3>
+          <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm space-y-4">
+            <p className="text-gray-300 text-center">
+              Memeya owns a Solana wallet powered by <span className="text-green-400 font-semibold">Crossmint</span>, distributing daily USDC rewards to meme winners and lucky voters.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <code className="text-sm md:text-base font-mono text-green-300 bg-black/30 px-4 py-2 rounded-lg border border-green-500/20 truncate max-w-[240px] md:max-w-none">
+                {MEMEYA_WALLET}
+              </code>
+              <button
+                onClick={copyWallet}
+                className="px-3 py-2 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 hover:bg-green-500/30 transition-colors text-sm font-medium flex-shrink-0"
+              >
+                {walletCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">Winner: $3</span>
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">Lucky #1: $2</span>
+              <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">Lucky #2: $1</span>
+            </div>
+            <div className="text-center">
+              <a
+                href={`https://solscan.io/account/${MEMEYA_WALLET}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl transition-all duration-200"
+              >
+                View on Solscan
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>

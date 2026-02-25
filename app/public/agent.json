@@ -51,6 +51,12 @@
       "namespace": "memeya"
     }
   },
+  "wallet": {
+    "chain": "Solana",
+    "address": "4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP",
+    "provider": "Crossmint Agentic Wallet",
+    "purpose": "Daily USDC reward distribution to meme winners and lucky voters"
+  },
   "technical": {
     "aiModels": ["Gemini (meme generation)", "Grok (X posting & commentary)", "Claude (development agent)"],
     "blockchain": "Solana",
