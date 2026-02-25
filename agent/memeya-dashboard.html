@@ -521,6 +521,13 @@
       <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;">
         Auto-refreshes every 30 seconds. Timer state is written by the agent heartbeat process.
       </div>
+      <div style="margin-bottom:16px;">
+        <button id="btn-spotlight" onclick="triggerSpotlight()" style="
+          background:linear-gradient(135deg,#2ea043,#1a7f37);color:#fff;border:none;padding:8px 18px;
+          border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;transition:opacity 0.2s;
+        ">Post Meme Spotlight Now</button>
+        <span id="spotlight-status" style="margin-left:10px;font-size:0.85em;color:var(--text-dim);"></span>
+      </div>
       <div id="timers-loading" class="loading-text"><span class="spinner"></span>Loading timer state...</div>
       <div id="timers-content" style="display:none;"></div>
       <div id="timers-error" class="error-text" style="display:none;"></div>
@@ -713,6 +720,32 @@ async function loadTimers() {
     badge.style.background = 'rgba(248,81,73,0.2)';
     badge.style.color = 'var(--red)';
   }
+}
+
+// ─── Trigger meme_spotlight X post ──────────────────────────
+async function triggerSpotlight() {
+  const btn = document.getElementById('btn-spotlight');
+  const status = document.getElementById('spotlight-status');
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  status.textContent = 'Generating & posting...';
+  status.style.color = 'var(--orange)';
+  try {
+    const res = await fetch('/api/memeya/trigger-spotlight', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      status.innerHTML = `Posted! <a href="${escHtml(data.url)}" target="_blank" style="color:var(--blue);">${escHtml(data.url)}</a>`;
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = 'Error: ' + (data.error || 'Unknown');
+      status.style.color = 'var(--red)';
+    }
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+  btn.style.opacity = '1';
 }
 
 // Auto-refresh timers every 30s if tab is active

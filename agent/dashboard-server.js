@@ -513,6 +513,135 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ─── Memeya API: Trigger meme_spotlight X post ──────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/trigger-spotlight') {
+    (async () => {
+      try {
+        const apiKey = process.env.XAI_API_KEY;
+        if (!apiKey) { jsonRes(res, { error: 'XAI_API_KEY not configured' }, 500); return; }
+
+        const { gatherContext, chooseTopic } = await import('./skills/x_twitter/x-context.js');
+        const { createExecutors } = await import('./skills/x_twitter/index.js');
+        const { logPost } = await import('./skills/x_twitter/x-context.js');
+
+        // Gather context then force meme_spotlight topic
+        const context = await gatherContext(BASE_DIR, { grokApiKey: apiKey });
+        const topicChoice = chooseTopic(context);
+        // Override to meme_spotlight — rebuild prompt with spotlight context
+        const spotlightCtx = { ...context };
+        const { chooseTopic: _, ...ctxRest } = spotlightCtx; // unused
+        // Re-import buildPrompt indirectly by calling chooseTopic with forced context
+        // Simpler: just override the topic in the choice
+        const forcedChoice = (() => {
+          // Temporarily manipulate to get meme_spotlight prompt
+          const saved = topicChoice;
+          // Re-run chooseTopic but we need meme_spotlight — easiest is to directly call buildPrompt
+          // Since buildPrompt is not exported, we use the gatherContext + force approach:
+          // Set all weights to 0 except meme_spotlight
+          return saved.topic === 'meme_spotlight' ? saved : null;
+        })();
+
+        // If chooseTopic didn't pick meme_spotlight, manually build it
+        let finalChoice = forcedChoice;
+        if (!finalChoice) {
+          const todayMemes = context.todayMemes || [];
+          if (todayMemes.length === 0) {
+            jsonRes(res, { error: 'No memes available today for spotlight' }, 400);
+            return;
+          }
+
+          // Filter out memes already posted (same OG URL dedup as x-context.js)
+          const recentMemeOgUrls = new Set(
+            (context.recentPosts || []).filter(p => p.ogUrl).map(p => p.ogUrl)
+          );
+          const unposted = todayMemes.filter(m => {
+            const url = m.id ? `https://aimemeforge.io/meme/${m.id}` : null;
+            return !url || !recentMemeOgUrls.has(url);
+          });
+          if (unposted.length === 0) {
+            jsonRes(res, { error: 'All memes already posted today — no unposted memes left' }, 400);
+            return;
+          }
+          const meme = unposted[Math.floor(Math.random() * unposted.length)];
+          const memeTitle = meme.title || 'Untitled';
+          const memeDesc = meme.description || '';
+          let memeInfo = `Today's meme: "${memeTitle}". ${memeDesc}`;
+          if (meme.newsSource) memeInfo += ` News angle: ${meme.newsSource}.`;
+          if (meme.style) memeInfo += ` Art style: ${meme.style}.`;
+          if (meme.imageUrl) memeInfo += ` Image: ${meme.imageUrl}`;
+          const ogUrl = meme.id ? `https://aimemeforge.io/meme/${meme.id}` : 'https://aimemeforge.io';
+          const tokenSymbol = meme.tokenSymbol || null;
+          const xHandle = meme.xHandle || null;
+
+          const promptParts = [
+            `TOPIC: Share or react to a meme from AiMemeForge.`,
+            memeInfo,
+            tokenSymbol ? `Mention $${tokenSymbol} in your tweet to attract the token community.` : null,
+            xHandle ? `Tag ${xHandle} in your tweet — they're relevant to this meme's news.` : null,
+            `Write about this meme with personality — hype it, roast it, or share why it's fire.`,
+            `Don't default to blacksmith metaphors. React to the MEME CONTENT itself.`,
+            `Keep your text under 250 chars — a link will be appended automatically.`,
+            `Do NOT include any URL yourself. Just write the tweet text.`,
+          ].filter(Boolean).join('\n');
+
+          finalChoice = { topic: 'meme_spotlight', prompt: promptParts, ogUrl };
+        }
+
+        // Generate tweet
+        const executors = createExecutors({ workDir: path.join(BASE_DIR, 'agent') });
+        const result = await executors.generateTweet(finalChoice, { detailed: true });
+
+        if (!result || !result.text) {
+          jsonRes(res, { error: 'Tweet generation returned empty', draft: result?.originalDraft || null });
+          return;
+        }
+
+        // Post to X
+        let TwitterApi;
+        try {
+          const mod = await import('twitter-api-v2');
+          TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
+        } catch {
+          jsonRes(res, { error: 'twitter-api-v2 not installed', draft: result.text }, 500);
+          return;
+        }
+
+        const ck = process.env.X_CONSUMER_KEY, cs = process.env.X_CONSUMER_SECRET;
+        const at = process.env.X_ACCESS_TOKEN, as = process.env.X_ACCESS_SECRET;
+        if (!ck || !cs || !at || !as) {
+          jsonRes(res, { error: 'Missing X API credentials', draft: result.text }, 500);
+          return;
+        }
+
+        const userClient = new TwitterApi({ appKey: ck, appSecret: cs, accessToken: at, accessSecret: as });
+        const { data } = await userClient.v2.tweet(result.text);
+        const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+
+        // Log to journal
+        try { logPost(BASE_DIR, 'meme_spotlight', result.text, url); } catch {}
+
+        // Share to TG community
+        try {
+          const tgToken = process.env.TELEGRAM_COMMUNITY_BOT_TOKEN;
+          const tgChatId = process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity';
+          if (tgToken && tgChatId) {
+            const msg = `${result.text}\n\n${url}`;
+            await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: tgChatId, text: msg, disable_web_page_preview: false }),
+            });
+          }
+        } catch {}
+
+        jsonRes(res, { success: true, text: result.text, url, topic: 'meme_spotlight', verdict: result.verdict, isBored: result.isBored });
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
   // ─── Memeya API: Send Post to X ─────────────────────────────
   if (req.method === 'POST' && req.url === '/api/memeya/send-post') {
     (async () => {
