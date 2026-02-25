@@ -439,7 +439,7 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
   const todayPosted = posted[today] || [];
 
   // Fetch today's memes from backend
-  const backendUrl = process.env.BACKEND_URL || 'https://api.aimemeforge.io';
+  const backendUrl = process.env.BACKEND_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
   let memes;
   try {
     const res = await fetch(`${backendUrl}/api/memes/today`);
