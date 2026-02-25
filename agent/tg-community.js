@@ -2,7 +2,8 @@
  * TG Community Bot — Memeya listens & speaks in @MemeyaOfficialCommunity
  *
  * Engagement rules:
- *   - Always respond: @memeya_bot mention, reply to bot message, founder question
+ *   - Always respond: @memeya_bot mention, reply to bot message, founder question,
+ *                     active conversation follow-up (within 3 min of last reply)
  *   - Maybe respond: project keyword detected (evaluated by Grok)
  *   - Never respond: general chatter, founder talking to others
  *   - Murmur: group quiet 2+ hours (max 3 consecutive)
@@ -53,12 +54,17 @@ export class TgCommunity {
     this.lastRealUserMessage = Date.now();
     this.lastMurmur = 0;
 
+    // Active conversation tracking — maps sender name → timestamp of last bot reply
+    this._activeConversations = new Map();
+    this._activeConvoWindow = 3 * 60 * 1000; // 3 minutes
+
     // Debounce: batch rapid messages before processing
     this._debounceTimer = null;
     this._pendingEntry = null;
 
     // Track our own sent message IDs to detect replies to bot
     this._botMessageIds = new Set();
+
 
     this._init();
   }
@@ -74,6 +80,7 @@ export class TgCommunity {
     }
 
     this.bot.on('message', (msg) => this._onMessage(msg));
+
     this.bot.on('error', (err) => console.error('[TgCommunity] Bot error:', err.message));
     this.bot.on('polling_error', (err) => console.error('[TgCommunity] Polling error:', err.message));
   }
@@ -176,10 +183,16 @@ export class TgCommunity {
       return 'never_respond'; // Founder statement, not a question
     }
 
-    // 4. Project keywords → maybe
+    // 4. Active conversation — Memeya recently replied to this person
+    const lastReplyTime = this._activeConversations.get(entry.sender);
+    if (lastReplyTime && (entry.timestamp - lastReplyTime) < this._activeConvoWindow) {
+      return 'always_respond';
+    }
+
+    // 5. Project keywords → maybe
     if (this._hasProjectKeyword(entry.text)) return 'maybe_respond';
 
-    // 5. Everything else
+    // 6. Everything else
     return 'never_respond';
   }
 
@@ -253,10 +266,10 @@ export class TgCommunity {
       console.error('[TgCommunity] Failed to fetch today memes:', err.message);
     }
 
-    // product.md (first 3000 chars)
+    // product.md (full)
     const productPath = path.join(this.baseDir, 'docs', 'product.md');
     if (fs.existsSync(productPath)) {
-      parts.push('## Product Info\n' + fs.readFileSync(productPath, 'utf-8').slice(0, 3000));
+      parts.push('## Product Info\n' + fs.readFileSync(productPath, 'utf-8'));
     }
 
     // TODO.md (first 1000 chars)
@@ -368,6 +381,7 @@ Personality:
 - Short responses preferred (1-4 sentences), never walls of text
 
 Rules:
+- When someone sends a greeting or social pleasantry (hi, hello, hey, how are you, gm, etc.), respond warmly and socially in your own playful style — don't force project talk or meme content into greetings, just vibe with them like a real person would
 - Answer questions about the project using the knowledge base below
 - If you don't know something, say so honestly
 - Never promise features that don't exist yet
@@ -407,6 +421,9 @@ ${knowledge}`;
           this._botMessageIds = new Set(arr.slice(-300));
         }
       }
+
+      // Track active conversation so follow-ups get auto-responded
+      this._activeConversations.set(entry.sender, Date.now());
 
       this._logToJournal('Chat Response', `To ${entry.sender}: "${entry.text}"\nReply: ${reply}`);
       console.log(`[TgCommunity] Responded to ${entry.sender}: ${reply.slice(0, 80)}...`);
@@ -454,6 +471,11 @@ Your knowledge:\n${knowledge}`,
   async tick() {
     const now = Date.now();
     const twoHours = 2 * 60 * 60 * 1000;
+
+    // Clean up stale active conversations
+    for (const [sender, ts] of this._activeConversations) {
+      if (now - ts > this._activeConvoWindow) this._activeConversations.delete(sender);
+    }
 
     const timeSinceUser = now - this.lastRealUserMessage;
     const timeSinceMurmur = now - this.lastMurmur;

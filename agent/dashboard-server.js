@@ -295,6 +295,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ─── Memeya API: Product Stats ──────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/memeya/product-stats') {
+    try {
+      const content = safeRead(path.join(BASE_DIR, 'docs/product.md'));
+      const chars = content ? content.length : 0;
+      let level = 'ok';
+      if (chars > 10000) level = 'critical';
+      else if (chars > 8000) level = 'serious';
+      else if (chars > 5000) level = 'warning';
+      jsonRes(res, { chars, level });
+    } catch (err) {
+      jsonRes(res, { error: err.message }, 500);
+    }
+    return;
+  }
+
   // ─── Memeya API: Values ─────────────────────────────────────
   if (req.method === 'GET' && req.url === '/api/memeya/values') {
     try {

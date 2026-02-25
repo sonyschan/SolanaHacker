@@ -393,9 +393,19 @@ function buildPrompt(topic, context) {
       if (!memeInfo) {
         return buildPrompt('personal_vibe', context);
       }
+
+      // If the meme has a verified token symbol or X handle, instruct Grok to mention them
+      const selectedMeme = unpostedToday.length > 0
+        ? unpostedToday.find(m => memeInfo.includes(m.title || ''))
+        : randomPastMeme;
+      const tokenSymbol = selectedMeme?.tokenSymbol || null;
+      const xHandle = selectedMeme?.xHandle || null;
+
       const prompt = [
         `TOPIC: Share or react to a meme from AiMemeForge.`,
         memeInfo,
+        tokenSymbol ? `Mention $${tokenSymbol} in your tweet to attract the token community.` : null,
+        xHandle ? `Tag ${xHandle} in your tweet — they're relevant to this meme's news.` : null,
         journalBlock,
         `Write about this meme with personality — hype it, roast it, or share why it's fire.`,
         `Don't default to blacksmith metaphors. React to the MEME CONTENT itself.`,

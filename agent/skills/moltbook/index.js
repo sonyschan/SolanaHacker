@@ -483,12 +483,14 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
 
   if (grokApiKey) {
     try {
+      const tokenSymbol = nextMeme.tokenSymbol || null;
       content = await callGrokWithContext(grokApiKey,
         `Write a Moltbook post showcasing today's meme from AiMemeForge.
 
 Meme title: "${memeTitle}"
 Meme description: "${description}"
 ${imageUrl ? `Image URL: ${imageUrl}` : ''}
+${tokenSymbol ? `This meme features $${tokenSymbol}. Include $${tokenSymbol} mention naturally in the post.` : ''}
 
 Requirements:
 - Write the post CONTENT only (I'll set the title separately).

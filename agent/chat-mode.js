@@ -44,7 +44,7 @@ export class ChatMode {
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
     this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
-    // Autonomous X posting timer (2-4 hours randomized)
+    // Autonomous X posting timer (1-3 hours randomized)
     // Initialize to now so first post waits full interval after boot
     this.lastXPost = Date.now();
     this.xPostInterval = this._randomXInterval();
@@ -56,6 +56,16 @@ export class ChatMode {
     // Owner mention check timer (every 15 minutes, check immediately on boot)
     this.lastOwnerMentionCheck = 0;
     this.ownerMentionInterval = 15 * 60 * 1000;
+
+    // Moltbook posting timer (posts 1 meme per heartbeat, 35-min cooldown)
+    this.lastMoltbookPost = null;
+    this.moltbookPostDoneDate = null; // YYYY-MM-DD when all memes posted for the day
+    this.moltbookSetupDone = false;
+    this.moltbookIntroDone = false;
+
+    // Moltbook engagement timer (every 3-5 hours randomized)
+    this.lastMoltbookEngage = Date.now(); // wait full interval after boot
+    this.moltbookEngageInterval = this._randomMoltbookEngageInterval();
 
     // Memory distillation flag (biweekly Sunday 9am GMT+8)
     this.lastDistillDate = null;
@@ -1788,14 +1798,18 @@ ${recentMemory.slice(-1500)}
 
 
   /**
-   * Random interval for X posting: 2-4 hours in ms
+   * Random interval for X posting: 1-3 hours in ms
    */
   _randomXInterval() {
-    return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+    return (1 + Math.random() * 2) * 60 * 60 * 1000; // 1-3 hours
   }
 
   _randomCommunityInterval() {
     return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+  }
+
+  _randomMoltbookEngageInterval() {
+    return (3 + Math.random() * 2) * 60 * 60 * 1000; // 3-5 hours
   }
 
   /**
@@ -2007,6 +2021,141 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Autonomous Moltbook posting — posts ONE meme per heartbeat cycle.
+   * Uses a 35-min cooldown (Moltbook's 30-min post rate limit + buffer).
+   * Only starts after 8 AM GMT+8 (after daily meme generation).
+   * First-ever run triggers setup + introduction post.
+   *
+   * With 60-min heartbeats, this posts ~1 meme/hour → 3 memes done in 3 heartbeats.
+   */
+  async maybePostToMoltbook() {
+    if (!process.env.MOLTBOOK_API_KEY) return;
+
+    // Only start posting after 8:30 AM GMT+8 (memes generated at 8 AM, allow 30 min buffer)
+    const now8 = new Date(Date.now() + 8 * 3600_000);
+    const hour = now8.getUTCHours();
+    const minute = now8.getUTCMinutes();
+    if (hour < 8 || (hour === 8 && minute < 30)) return;
+
+    // Skip if all memes already posted today
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.moltbookPostDoneDate === today) return;
+
+    // Rate limit: don't post more often than every 35 min (Moltbook 30-min cooldown)
+    const now = Date.now();
+    if (this.lastMoltbookPost && (now - this.lastMoltbookPost < 35 * 60 * 1000)) return;
+
+    console.log('[ChatMode] maybePostToMoltbook: checking for memes to post...');
+
+    try {
+      const { ensureSetup, postIntroduction, autoPostMemes } = await import('./skills/moltbook/index.js');
+      const deps = {
+        baseDir: this.baseDir,
+        moltbookApiKey: process.env.MOLTBOOK_API_KEY,
+        grokApiKey: this.grokApiKey,
+      };
+
+      // First-ever run: verify profile, create submolt, subscribe
+      if (!this.moltbookSetupDone) {
+        const setupResult = await ensureSetup(deps);
+        if (setupResult.success) {
+          this.moltbookSetupDone = true;
+          console.log('[ChatMode] Moltbook setup complete');
+        } else {
+          console.error('[ChatMode] Moltbook setup failed:', setupResult.reason);
+          return; // Don't set lastMoltbookPost — allow retry next heartbeat
+        }
+      }
+
+      // One-time intro post (retried until successful, guarded by state.introPosted)
+      if (!this.moltbookIntroDone) {
+        const introResult = await postIntroduction(deps);
+        if (introResult.success) {
+          this.moltbookIntroDone = true;
+          if (introResult.reason !== 'already_posted') {
+            console.log('[ChatMode] Moltbook introduction posted');
+            try {
+              await this.telegram.sendDevlog(
+                `📘 <b>Moltbook: Introduction posted!</b>\n` +
+                `Posted self-intro to m/introductions`
+              );
+            } catch {}
+          }
+        }
+        // If failed, moltbookIntroDone stays false → retry next heartbeat
+      }
+
+      // Post next un-posted meme (1 per call, non-blocking)
+      const result = await autoPostMemes(deps);
+
+      if (result.success && result.posted > 0) {
+        // Only set cooldown on successful post
+        this.lastMoltbookPost = now;
+        console.log(`[ChatMode] Moltbook: posted "${result.title}" (${result.posted}/${result.total})`);
+        try {
+          await this.telegram.sendDevlog(
+            `📘 <b>Moltbook meme showcase</b>\n` +
+            `Posted "${result.title}" to m/AiMemeForge`
+          );
+        } catch {}
+      } else if (result.reason === 'all_posted_today' || result.reason === 'no_memes_today') {
+        // All done for today — skip until tomorrow
+        this.moltbookPostDoneDate = today;
+      } else {
+        console.log(`[ChatMode] Moltbook post skipped: ${result.reason || 'unknown'}`);
+        // Don't set lastMoltbookPost on failure — allow retry next heartbeat
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybePostToMoltbook error:', err.message);
+      // Don't set lastMoltbookPost — allow retry next heartbeat
+    }
+  }
+
+  /**
+   * Moltbook community engagement — upvote, comment, reply to notifications.
+   * Runs every 3-5 hours during active hours (9 AM - 11 PM GMT+8).
+   */
+  async maybeMoltbookEngage() {
+    if (!process.env.MOLTBOOK_API_KEY) return;
+    if (!this.isActiveHours()) return;
+
+    const now = Date.now();
+    if (now - this.lastMoltbookEngage < this.moltbookEngageInterval) return;
+
+    this.lastMoltbookEngage = now;
+    this.moltbookEngageInterval = this._randomMoltbookEngageInterval();
+
+    console.log('[ChatMode] maybeMoltbookEngage: engaging on Moltbook...');
+
+    try {
+      const { engage } = await import('./skills/moltbook/index.js');
+      const result = await engage({
+        baseDir: this.baseDir,
+        moltbookApiKey: process.env.MOLTBOOK_API_KEY,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.success && result.actions) {
+        const { upvotes, comments, replies, dms } = result.actions;
+        const total = upvotes + comments + replies + dms;
+        if (total > 0) {
+          console.log(`[ChatMode] Moltbook engage: ${upvotes} upvotes, ${comments} comments, ${replies} replies, ${dms} DMs`);
+          try {
+            await this.telegram.sendDevlog(
+              `📘 <b>Moltbook engagement</b>\n` +
+              `${upvotes} upvotes, ${comments} comments, ${replies} replies, ${dms} DMs`
+            );
+          } catch {}
+        } else {
+          console.log('[ChatMode] Moltbook engage: nothing to engage with');
+        }
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybeMoltbookEngage error:', err.message);
+    }
+  }
+
+  /**
    * TG Community murmur tick — called from heartbeat
    */
   async maybeTgCommunityTick() {
@@ -2022,6 +2171,9 @@ ${recentMemory.slice(-1500)}
    * Heartbeat action - reflect, chat, or search news
    */
   async doHeartbeat() {
+    // Write timer state for dashboard visibility
+    this.writeTimerState();
+
     // Owner mention check runs on its own 15-min timer
     await this.maybeCheckOwnerMentions();
 
@@ -2033,6 +2185,12 @@ ${recentMemory.slice(-1500)}
 
     // Biweekly memory distillation (Sunday 9am GMT+8)
     await this.maybeDistillMemory();
+
+    // Moltbook daily meme posting
+    await this.maybePostToMoltbook();
+
+    // Moltbook community engagement
+    await this.maybeMoltbookEngage();
 
     // TG Community murmur check
     await this.maybeTgCommunityTick();
@@ -2073,6 +2231,116 @@ ${recentMemory.slice(-1500)}
       await this.doReflection();
     } else if (action === 'news') {
       await this.doNewsSearch();
+    }
+  }
+
+  /**
+   * Write current timer state to disk so the dashboard can display it.
+   * Called at the start of every heartbeat tick.
+   */
+  writeTimerState() {
+    try {
+      const now = Date.now();
+      const fmt = (ms) => {
+        if (!ms || ms <= 0) return 'now';
+        const m = Math.floor(ms / 60000);
+        const h = Math.floor(m / 60);
+        if (h > 0) return `${h}h ${m % 60}m`;
+        return `${m}m`;
+      };
+
+      const xEnabled = fs.existsSync(path.join(this.baseDir, 'agent', '.memeya-x-enabled'));
+      const today = new Date().toISOString().slice(0, 10);
+
+      const state = {
+        updatedAt: new Date().toISOString(),
+        activeHours: this.isActiveHours(),
+        sleepToday: this.sleepToday,
+        gmtPlus8Hour: this.getGMT8Hour(),
+        timers: {
+          ownerMention: {
+            label: 'Owner Mention Check',
+            interval: '15m',
+            intervalMs: this.ownerMentionInterval,
+            lastFired: this.lastOwnerMentionCheck || null,
+            nextIn: fmt(this.ownerMentionInterval - (now - (this.lastOwnerMentionCheck || 0))),
+            enabled: true,
+            scope: '24/7',
+          },
+          xPost: {
+            label: 'X Post',
+            interval: fmt(this.xPostInterval),
+            intervalMs: this.xPostInterval,
+            lastFired: this.lastXPost || null,
+            nextIn: fmt(this.xPostInterval - (now - (this.lastXPost || 0))),
+            enabled: xEnabled,
+            scope: '24/7',
+          },
+          communityEngage: {
+            label: 'X Community Engage',
+            interval: fmt(this.communityEngageInterval),
+            intervalMs: this.communityEngageInterval,
+            lastFired: this.lastCommunityEngage || null,
+            nextIn: fmt(this.communityEngageInterval - (now - (this.lastCommunityEngage || 0))),
+            enabled: xEnabled,
+            scope: '24/7',
+          },
+          moltbookPost: {
+            label: 'Moltbook Post',
+            interval: '35m cooldown',
+            intervalMs: 35 * 60 * 1000,
+            lastFired: this.lastMoltbookPost || null,
+            nextIn: this.moltbookPostDoneDate === today
+              ? 'done today'
+              : (this.lastMoltbookPost ? fmt(35 * 60 * 1000 - (now - this.lastMoltbookPost)) : 'ready'),
+            enabled: !!process.env.MOLTBOOK_API_KEY,
+            scope: 'after 8:30am GMT+8',
+            setupDone: this.moltbookSetupDone,
+            introDone: this.moltbookIntroDone,
+            doneDate: this.moltbookPostDoneDate,
+          },
+          moltbookEngage: {
+            label: 'Moltbook Engage',
+            interval: fmt(this.moltbookEngageInterval),
+            intervalMs: this.moltbookEngageInterval,
+            lastFired: this.lastMoltbookEngage || null,
+            nextIn: fmt(this.moltbookEngageInterval - (now - (this.lastMoltbookEngage || 0))),
+            enabled: !!process.env.MOLTBOOK_API_KEY,
+            scope: '9-23 GMT+8',
+          },
+          morningNews: {
+            label: 'Morning News',
+            interval: 'daily 8am GMT+8',
+            lastFired: this.lastMorningNews || null,
+            nextIn: this.getGMT8Hour() >= 9 ? 'tomorrow 8am' : (this.getGMT8Hour() < 8 ? 'today 8am' : 'now'),
+            enabled: true,
+            scope: '8am GMT+8',
+          },
+          distillMemory: {
+            label: 'Memory Distill',
+            interval: 'biweekly Sun 9am',
+            lastFired: this.lastDistillDate || null,
+            nextIn: this.lastDistillDate === today ? 'done today' : 'next Sunday 9am',
+            enabled: true,
+            scope: 'Sun 9am GMT+8',
+          },
+          heartbeatAction: {
+            label: 'Reflect/News',
+            interval: '60m',
+            intervalMs: this.heartbeatInterval,
+            lastFired: this.lastHeartbeat || null,
+            nextIn: fmt(this.heartbeatInterval - (now - (this.lastHeartbeat || 0))),
+            enabled: !this.sleepToday,
+            scope: '9-23 GMT+8',
+          },
+        },
+      };
+
+      const statePath = path.join(this.baseDir, 'agent', '.timer-state.json');
+      fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+    } catch (err) {
+      // Non-critical — don't let timer state writing break the heartbeat
+      console.warn('[ChatMode] Failed to write timer state:', err.message);
     }
   }
 

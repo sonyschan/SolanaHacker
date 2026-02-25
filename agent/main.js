@@ -148,6 +148,7 @@ class SolanaHackerAgent {
         workDir: CONFIG.workDir,
         writer: this.writer,
         onNewPost: (text, url) => this.tgCommunity?.shareXPost(text, url),
+        moltbookApiKey: process.env.MOLTBOOK_API_KEY,
       });
 
       if (!skill) {

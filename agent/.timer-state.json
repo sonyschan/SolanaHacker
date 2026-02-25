@@ -1,0 +1,81 @@
+{
+  "updatedAt": "2026-02-25T04:13:58.452Z",
+  "activeHours": true,
+  "sleepToday": false,
+  "gmtPlus8Hour": 12,
+  "timers": {
+    "ownerMention": {
+      "label": "Owner Mention Check",
+      "interval": "15m",
+      "intervalMs": 900000,
+      "lastFired": 1771992471597,
+      "nextIn": "8m",
+      "enabled": true,
+      "scope": "24/7"
+    },
+    "xPost": {
+      "label": "X Post",
+      "interval": "2h 53m",
+      "intervalMs": 10383365.452514589,
+      "lastFired": 1771991566048,
+      "nextIn": "2h 31m",
+      "enabled": true,
+      "scope": "24/7"
+    },
+    "communityEngage": {
+      "label": "X Community Engage",
+      "interval": "3h 49m",
+      "intervalMs": 13743373.070968581,
+      "lastFired": 1771991566048,
+      "nextIn": "3h 27m",
+      "enabled": true,
+      "scope": "24/7"
+    },
+    "moltbookPost": {
+      "label": "Moltbook Post",
+      "interval": "35m cooldown",
+      "intervalMs": 2100000,
+      "lastFired": null,
+      "nextIn": "ready",
+      "enabled": true,
+      "scope": "after 8:30am GMT+8",
+      "setupDone": true,
+      "introDone": true,
+      "doneDate": null
+    },
+    "moltbookEngage": {
+      "label": "Moltbook Engage",
+      "interval": "3h 56m",
+      "intervalMs": 14197130.05249118,
+      "lastFired": 1771991566049,
+      "nextIn": "3h 35m",
+      "enabled": true,
+      "scope": "9-23 GMT+8"
+    },
+    "morningNews": {
+      "label": "Morning News",
+      "interval": "daily 8am GMT+8",
+      "lastFired": null,
+      "nextIn": "tomorrow 8am",
+      "enabled": true,
+      "scope": "8am GMT+8"
+    },
+    "distillMemory": {
+      "label": "Memory Distill",
+      "interval": "biweekly Sun 9am",
+      "lastFired": null,
+      "nextIn": "next Sunday 9am",
+      "enabled": true,
+      "scope": "Sun 9am GMT+8"
+    },
+    "heartbeatAction": {
+      "label": "Reflect/News",
+      "interval": "60m",
+      "intervalMs": 3600000,
+      "lastFired": 1771991567421,
+      "nextIn": "38m",
+      "enabled": true,
+      "scope": "9-23 GMT+8"
+    }
+  }
+}
