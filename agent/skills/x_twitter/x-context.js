@@ -231,13 +231,12 @@ function logCommentInsights(baseDir, comments) {
 
 // ─── Topic Selection ────────────────────────────────────────
 
-const BASE_TOPICS = [
-  { id: 'meme_spotlight',     weight: 30 },
+// Secondary topics — equal weight, used only after all today's memes are posted
+const SECONDARY_TOPICS = [
   { id: 'personal_vibe',      weight: 25 },
-  { id: 'crypto_commentary',  weight: 20 },  // general crypto hot takes via Grok web search (no @mentions or replies)
-  { id: 'feature_showtime',   weight: 15 },
-  { id: 'dev_update',         weight: 10 },
-  // community_call disabled — no community yet
+  { id: 'crypto_commentary',  weight: 25 },
+  { id: 'feature_showtime',   weight: 25 },
+  { id: 'dev_update',         weight: 25 },
 ];
 
 function weightedRandom(topics) {
@@ -251,38 +250,61 @@ function weightedRandom(topics) {
 }
 
 /**
- * Choose a topic based on available context, with priority checks and anti-repetition.
- * Priority: dev_update (if fresh commits + not posted today) → weighted random.
- * Dynamically adds community_response when there are replies on recent posts.
+ * Choose a topic based on available context.
+ *
+ * Priority order:
+ * 1. meme_spotlight — post ALL unposted today's memes first (no duplicates)
+ * 2. Once all 3 memes are posted → secondary topics (equal 25% each)
+ *    + dynamic community_response & token_spotlight chances
+ *
  * Returns { topic, prompt, ogUrl, meta } where meta contains selection details.
  */
 export function chooseTopic(context) {
   const { todayMemes, randomPastMeme, commits, recentPosts, comments } = context;
 
-  // Build dynamic topic pool
-  const topics = BASE_TOPICS.map(t => ({ ...t }));
+  // ── Check if today's memes still need spotlight ──
+  const recentMemeOgUrls = new Set(
+    recentPosts.filter(p => p.ogUrl).map(p => p.ogUrl)
+  );
+  const unpostedToday = todayMemes.filter(m => {
+    const url = m.id ? `${SITE_URL}/meme/${m.id}` : null;
+    return !url || !recentMemeOgUrls.has(url);
+  });
+  const allMemesPosted = unpostedToday.length === 0;
 
-  // Add community_response if there are comments on recent posts
-  if (comments && comments.length > 0) {
-    const totalLikes = comments.reduce((sum, c) =>
-      sum + c.replies.reduce((s, r) => s + r.likes, 0), 0);
-    const weight = totalLikes > 3 ? 35 : 20;
-    topics.push({ id: 'community_response', weight });
+  // ── Priority 1: meme_spotlight if unposted memes remain ──
+  if (!allMemesPosted) {
+    const { prompt, ogUrl, ...extra } = buildPrompt('meme_spotlight', context);
+    return {
+      topic: 'meme_spotlight',
+      prompt,
+      ogUrl,
+      ...extra,
+      meta: {
+        pool: [{ id: 'meme_spotlight', weight: 100 }],
+        unpostedMemes: unpostedToday.length,
+        priorityForced: 'meme_spotlight',
+      },
+    };
   }
 
-  // ── Priority checks: dev_update + token_spotlight (each max 1/day) ──
+  // ── Priority 2: secondary topics (all memes posted) ──
+  const topics = SECONDARY_TOPICS.map(t => ({ ...t }));
   const todayTopics = recentPosts.map(p => p.topic).filter(Boolean);
   const devUpdateToday = todayTopics.includes('dev_update');
   const tokenSpotlightToday = todayTopics.includes('token_spotlight');
   const hasCommits = commits.length > 0;
   let priorityForced = null;
 
-  if (hasCommits && !devUpdateToday) {
-    priorityForced = 'dev_update';
+  // Add community_response if there are comments on recent posts
+  if (comments && comments.length > 0) {
+    const totalLikes = comments.reduce((sum, c) =>
+      sum + c.replies.reduce((s, r) => s + r.likes, 0), 0);
+    topics.push({ id: 'community_response', weight: totalLikes > 3 ? 35 : 20 });
   }
 
   // token_spotlight: 20% chance if not posted about token today (max 1/day)
-  if (!priorityForced && !tokenSpotlightToday && Math.random() < 0.20) {
+  if (!tokenSpotlightToday && Math.random() < 0.20) {
     priorityForced = 'token_spotlight';
   }
 
@@ -329,6 +351,7 @@ export function chooseTopic(context) {
       fallbackFrom: fallbackApplied ? initialPick : null,
       priorityForced,
       devUpdateToday,
+      allMemesPosted: true,
     },
   };
 }
@@ -433,7 +456,11 @@ function buildPrompt(topic, context) {
         `You are Memeya, the builder. These are changes YOU made (for context — DO NOT include GitHub links):`,
         commitList,
         `Write as if YOU personally upgraded the system. Talk about what it means for users, not the technical details.`,
-        `Vary your framing — don't always say "just shipped" or "lava hammer just...". Try: proud builder energy, casual flex, or understated "oh btw I fixed..."`,
+        `FORMAT: Use a structured, listicle-style tweet. Use "．" or emoji bullets (🔧 🎨 ⚡ 🧠 etc.) to list 2-3 key updates.`,
+        `Start with a short punchy intro line, then bullet points. Example format:`,
+        `"been cooking today ngl\n⚡ faster voting flow\n🎨 new rarity badges\n🧠 smarter meme picks\nwho noticed?"`,
+        `TONE: Professional but playful — like a dev who's proud of their work but keeps it chill. Slight flex energy.`,
+        `Vary your framing — don't always say "just shipped". Try: "today's patch notes ↓", "small upgrades, big vibes", "changelog nobody asked for"`,
         `Never include GitHub links. Never say "commit" or "merge".`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
