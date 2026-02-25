@@ -262,6 +262,23 @@ function savePosted(baseDir, posted) {
   fs.writeFileSync(path.join(dir, 'posted.json'), JSON.stringify(posted, null, 2));
 }
 
+function loadPostHistory(baseDir) {
+  const historyPath = path.join(baseDir, 'memory/moltbook/post_history.json');
+  try {
+    return JSON.parse(fs.readFileSync(historyPath, 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+function savePostHistory(baseDir, history) {
+  const dir = path.join(baseDir, 'memory/moltbook');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  // Keep only last 20 posts to prevent unbounded growth
+  const trimmed = history.slice(-20);
+  fs.writeFileSync(path.join(dir, 'post_history.json'), JSON.stringify(trimmed, null, 2));
+}
+
 function loadEngaged(baseDir) {
   const engagedPath = path.join(baseDir, 'memory/moltbook/engaged.json');
   try {
@@ -462,13 +479,7 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
   });
 
   if (!nextMeme) {
-    // All memes posted — try cross-posting if not done yet
-    if (!todayPosted.includes('_crossposted')) {
-      await _tryCrossPost(memes[0], moltbookApiKey, grokApiKey, baseDir);
-      todayPosted.push('_crossposted');
-      posted[today] = todayPosted;
-      savePosted(baseDir, posted);
-    }
+    // Cross-posting disabled — duplicate content across submolts triggers spam filters
     return { success: true, reason: 'all_posted_today', count: todayPosted.length };
   }
 
@@ -477,34 +488,56 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
   const description = nextMeme.description || nextMeme.newsHeadline || '';
   const imageUrl = nextMeme.imageUrl || '';
 
-  // AI-generate post content with full Memeya context
-  let title = `Daily Forge \u{1F528} ${memeTitle}`;
+  // Load recent post history for deduplication context
+  const postHistory = loadPostHistory(baseDir);
+  const recentTitles = postHistory.slice(-10).map(p => `- "${p.title}"`).join('\n');
+  const recentContext = recentTitles
+    ? `\nRECENT POSTS (do NOT reuse these titles, openers, or structures — be fresh and different each time):\n${recentTitles}\n`
+    : '';
+
+  // AI-generate BOTH title and content with full Memeya context
+  let title;
   let content;
 
   if (grokApiKey) {
     try {
       const tokenSymbol = nextMeme.tokenSymbol || null;
-      content = await callGrokWithContext(grokApiKey,
+      const generated = await callGrokWithContext(grokApiKey,
         `Write a Moltbook post showcasing today's meme from AiMemeForge.
 
 Meme title: "${memeTitle}"
 Meme description: "${description}"
 ${imageUrl ? `Image URL: ${imageUrl}` : ''}
 ${tokenSymbol ? `This meme features $${tokenSymbol}. Include $${tokenSymbol} mention naturally in the post.` : ''}
-
+${recentContext}
 Requirements:
-- Write the post CONTENT only (I'll set the title separately).
+- Write BOTH a title (first line) and content (rest), separated by a blank line.
+- The title MUST be unique and creative — do NOT use "Daily Forge" or any prefix from recent posts.
+- Vary your title style: sometimes a question, sometimes a bold take, sometimes a pun, sometimes just the meme name with flair.
 - Include the image URL on its own line if available.
 - Include a link to https://aimemeforge.io for voting.
 - Mention $Memeya holders get voting bonus — softly, naturally.
 - End with an engaging question or call to action for other agents.
 - 3-5 short paragraphs. Be genuine, show personality. No hashtags.
+- Vary your opening line, structure, and tone from recent posts. Don't start the same way twice.
 - This is for m/AiMemeForge submolt on Moltbook (audience: AI agents).`,
-        baseDir, { maxTokens: 350, temperature: 0.85 });
+        baseDir, { maxTokens: 400, temperature: 0.9 });
+
+      if (generated) {
+        const lines = generated.split('\n');
+        const firstLine = lines[0].replace(/^#+\s*/, '').trim();
+        if (firstLine && lines.length > 1) {
+          title = firstLine.slice(0, 120);
+          content = lines.slice(1).join('\n').trim();
+        }
+      }
     } catch (err) {
       console.warn(`[Moltbook] AI content generation failed, using template: ${err.message}`);
     }
   }
+
+  // Fallback title if AI didn't generate one
+  if (!title) title = `${memeTitle} — fresh from the forge`;
 
   // Template fallback
   if (!content) {
@@ -528,6 +561,10 @@ Requirements:
     todayPosted.push(memeId);
     posted[today] = todayPosted;
     savePosted(baseDir, posted);
+
+    // Save to post history for deduplication in future posts
+    postHistory.push({ title, snippet: (content || '').slice(0, 100), date: today, memeId });
+    savePostHistory(baseDir, postHistory);
 
     console.log(`[Moltbook] Posted meme: ${title}`);
     logToJournal(baseDir, `- Posted meme "${title}" to m/AiMemeForge on Moltbook`);
