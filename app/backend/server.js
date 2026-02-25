@@ -89,8 +89,9 @@ app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/og', ogRoutes);
 app.use('/api/tapestry', tapestryRoutes);
 
-// Global stats endpoint
-app.get('/api/stats', async (req, res) => {
+// Global stats endpoint (cached 10min — 3x .count() queries are expensive)
+const { cacheResponse, TTL } = require('./utils/cache');
+app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) => {
   try {
     const { getFirestore, collections } = require('./config/firebase');
     const db = getFirestore();
@@ -131,6 +132,112 @@ app.get('/api/stats', async (req, res) => {
         timestamp: new Date().toISOString()
       }
     });
+  }
+});
+
+// In-memory cache for feed/sitemap (changes once per day, avoids Firestore hammering from crawlers)
+const xmlCache = { feed: { data: null, expires: 0 }, sitemap: { data: null, expires: 0 } };
+const XML_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// RSS feed — recent daily memes
+app.get('/feed.xml', async (req, res) => {
+  try {
+    if (xmlCache.feed.data && Date.now() < xmlCache.feed.expires) {
+      res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+      return res.send(xmlCache.feed.data);
+    }
+
+    const { getFirestore, collections } = require('./config/firebase');
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.MEMES)
+      .where('type', '==', 'daily')
+      .where('status', 'in', ['active', 'voting_active', 'voting_completed'])
+      .orderBy('generatedAt', 'desc')
+      .limit(20)
+      .get();
+
+    const items = [];
+    snapshot.forEach(doc => {
+      const m = doc.data();
+      const pubDate = new Date(m.generatedAt).toUTCString();
+      const imageUrl = m.imageUrl && m.imageUrl.startsWith('/generated/')
+        ? `https://memeforge-api-836651762884.asia-southeast1.run.app${m.imageUrl}`
+        : m.imageUrl || '';
+      items.push(`    <item>
+      <title><![CDATA[${m.title || 'AI Meme'}]]></title>
+      <description><![CDATA[${m.description || m.prompt || ''}]]></description>
+      <link>https://aimemeforge.io/meme/${doc.id}</link>
+      <guid isPermaLink="true">https://aimemeforge.io/meme/${doc.id}</guid>
+      <pubDate>${pubDate}</pubDate>${imageUrl ? `\n      <enclosure url="${imageUrl}" type="image/png" />` : ''}
+    </item>`);
+    });
+
+    const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AI MemeForge — Daily AI Memes</title>
+    <link>https://aimemeforge.io</link>
+    <description>Daily AI-generated crypto memes. Vote for free, win NFT ownership. One meme, one owner, every day.</description>
+    <language>en</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="https://memeforge-api-836651762884.asia-southeast1.run.app/feed.xml" rel="self" type="application/rss+xml" />
+${items.join('\n')}
+  </channel>
+</rss>`;
+
+    xmlCache.feed = { data: rss, expires: Date.now() + XML_CACHE_TTL };
+    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.send(rss);
+  } catch (error) {
+    console.error('RSS feed error:', error);
+    res.status(500).send('<?xml version="1.0"?><rss version="2.0"><channel><title>Error</title></channel></rss>');
+  }
+});
+
+// Sitemap
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    if (xmlCache.sitemap.data && Date.now() < xmlCache.sitemap.expires) {
+      res.set('Content-Type', 'application/xml; charset=utf-8');
+      return res.send(xmlCache.sitemap.data);
+    }
+
+    const { getFirestore, collections } = require('./config/firebase');
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.MEMES)
+      .where('type', '==', 'daily')
+      .where('status', 'in', ['active', 'voting_active', 'voting_completed'])
+      .orderBy('generatedAt', 'desc')
+      .limit(50)
+      .get();
+
+    const urls = [`  <url>
+    <loc>https://aimemeforge.io/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>`];
+
+    snapshot.forEach(doc => {
+      const m = doc.data();
+      const lastmod = m.generatedAt ? new Date(m.generatedAt).toISOString().split('T')[0] : '';
+      urls.push(`  <url>
+    <loc>https://aimemeforge.io/meme/${doc.id}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`);
+    });
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+    xmlCache.sitemap = { data: sitemap, expires: Date.now() + XML_CACHE_TTL };
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    res.send(sitemap);
+  } catch (error) {
+    console.error('Sitemap error:', error);
+    res.status(500).send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
   }
 });
 

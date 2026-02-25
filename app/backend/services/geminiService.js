@@ -31,17 +31,28 @@ class GeminiService {
     });
   }
 
-  async generateMemePrompt(newsContent) {
+  async generateMemePrompt(newsContent, recentThemes = []) {
     try {
-      const prompt = `Based on this crypto/tech news: "${newsContent}"
-      
-Create a funny, engaging meme concept that would appeal to crypto and tech enthusiasts. 
+      let prompt = `Based on this crypto/tech news: "${newsContent}"
+
+Create a funny, engaging meme concept that would appeal to crypto and tech enthusiasts.
 Include:
 1. A brief description of the visual scene
 2. Any text that should appear on the meme
 3. The emotional tone (funny, ironic, relatable, etc.)
 
 Keep it appropriate and avoid controversial content.`;
+
+      if (recentThemes.length > 0) {
+        const themesList = recentThemes
+          .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
+          .join('\n');
+        prompt += `\n\nIMPORTANT — AVOID REPETITION:
+These meme themes were used in the past 7 days — create something DIFFERENT:
+${themesList}
+
+Your meme must have a FRESH angle, not rehash the topics above.`;
+      }
 
       const result = await this.textModel.generateContent(prompt);
       const response = await result.response;
@@ -130,10 +141,10 @@ Meme concept: "${memePrompt.substring(0, 300)}"
 News context: "${newsSource}"
 
 Requirements:
-- Output EXACTLY ${tagCount} tags
+- Output EXACTLY ${tagCount} single-word tags (one word each, no hyphens, no multi-word)
 - Be specific and creative
 - Include: emotions, topics, visual elements, cultural references
-- Format: lowercase, hyphenated for multi-word
+- Examples: pump, degen, fomo, bullish, chaos, ironic, solana, memecoin
 
 Output as JSON array only:
 ["tag1", "tag2", ...]`;
@@ -147,14 +158,14 @@ Output as JSON array only:
         const tags = JSON.parse(jsonMatch[0]);
         const cleanTags = tags
           .slice(0, tagCount)
-          .map(tag => tag.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+          .map(tag => tag.toLowerCase().replace(/[^a-z0-9]/g, ''));
         console.log(`✅ Generated tags: ${cleanTags.join(', ')}`);
         return cleanTags;
       }
-      return ['ai-generated', 'crypto-meme'];
+      return ['ai', 'crypto'];
     } catch (error) {
       console.error('Error generating tags:', error);
-      return ['ai-generated', 'crypto-meme'];
+      return ['ai', 'crypto'];
     }
   }
 
@@ -312,7 +323,7 @@ Technical requirements:
     }
   }
 
-  async generateDailyMemes(newsData, count = 3, imageGenerators = null) {
+  async generateDailyMemes(newsData, count = 3, imageGenerators = null, recentThemes = [], tokenSymbols = []) {
     try {
       const memes = [];
 
@@ -324,7 +335,7 @@ Technical requirements:
         const newsItem = newsData[i] || newsData[0];
         const style = todaysStyles[i];
 
-        const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem);
+        const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem, recentThemes);
 
         // Use external image generator if provided, otherwise default to Gemini
         let imageData;
@@ -341,6 +352,13 @@ Technical requirements:
         const description = await this.generateMemeDescription(memePrompt, newsItem.title || 'Crypto News');
         const tags = await this.generateMemeTags(memePrompt, newsItem.title || 'Crypto News');
 
+        const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
+
+        // Add "memecoin" tag if this meme is about a specific token
+        if (tokenSymbol && !tags.includes('memecoin')) {
+          tags.push('memecoin');
+        }
+
         memes.push({
           id: `meme_${Date.now()}_${i}`,
           title: title,
@@ -348,6 +366,8 @@ Technical requirements:
           prompt: memePrompt,
           imageUrl: imageData.imageUrl || imageData.fallbackUrl,
           newsSource: newsItem.title || 'Crypto News',
+          tokenSymbol: tokenSymbol,
+          xHandle: newsItem.x_handle || null,
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
@@ -365,7 +385,9 @@ Technical requirements:
             fileSize: imageData.fileSize || 0,
             storageLocation: imageData.storageLocation || 'unknown',
             environment: imageData.environment || {},
-            tagsCount: tags.length
+            tagsCount: tags.length,
+            tokenSymbol: tokenSymbol,
+            xHandle: newsItem.x_handle || null
           },
           rarity: 'unknown'
         });

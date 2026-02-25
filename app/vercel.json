@@ -5,11 +5,19 @@
       "destination": "https://memeforge-api-836651762884.asia-southeast1.run.app/api/og/:path*"
     },
     {
+      "source": "/feed.xml",
+      "destination": "https://memeforge-api-836651762884.asia-southeast1.run.app/feed.xml"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://memeforge-api-836651762884.asia-southeast1.run.app/sitemap.xml"
+    },
+    {
       "source": "/meme/:id",
       "destination": "/api/meme/:id"
     },
     {
-      "source": "/((?!api/|meme/|agent\\.json).*)",
+      "source": "/((?!api/|meme/|agent\\.json|robots\\.txt|llms\\.txt|feed\\.xml|sitemap\\.xml|favicon).*)",
       "destination": "/index.html"
     }
   ]

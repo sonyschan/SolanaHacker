@@ -88,6 +88,40 @@ async function generateMeme(req, res) {
 }
 
 /**
+ * Fetch recent meme themes from Firestore for anti-repetition.
+ * Returns last 7 days of daily memes (up to 21).
+ */
+async function getRecentMemeThemes() {
+  try {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+
+    const recentMemes = await dbUtils.queryWithOrderAndLimit(
+      collections.MEMES,
+      'generatedAt',
+      'desc',
+      21,
+      [
+        { field: 'type', operator: '==', value: 'daily' },
+        { field: 'generatedAt', operator: '>=', value: cutoff.toISOString() },
+      ]
+    );
+
+    const themes = recentMemes.map(m => ({
+      title: m.title,
+      tags: m.tags || [],
+      newsSource: m.newsSource || '',
+    }));
+
+    console.log(`🔄 Loaded ${themes.length} recent meme themes for anti-repetition`);
+    return themes;
+  } catch (error) {
+    console.error('⚠️ Error fetching recent meme themes:', error);
+    return [];
+  }
+}
+
+/**
  * Generate daily memes
  */
 async function generateDailyMemes(req, res) {
@@ -103,12 +137,31 @@ async function generateDailyMemes(req, res) {
       .where("generatedAt", "<=", endOfDay.toISOString())
       .get();
     if (!existingSnapshot.empty && existingSnapshot.size >= 3) {
-      console.log("ℹ️ Daily memes already exist for today ("+existingSnapshot.size+" found), skipping generation");
-      return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
+      if (req.query.force === 'true') {
+        // Delete existing daily memes so regeneration replaces them (always 3 per day)
+        const batch = getFirestore().batch();
+        existingSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        console.log(`🗑️ Deleted ${existingSnapshot.size} existing daily memes for regeneration`);
+      } else {
+        console.log("ℹ️ Daily memes already exist for today ("+existingSnapshot.size+" found), skipping generation");
+        return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
+      }
     }
-    
-    // Get crypto news
-    const newsData = await newsService.getCryptoNews();
+
+    // Fetch recent meme themes for anti-repetition
+    const recentThemes = await getRecentMemeThemes();
+
+    // Get crypto news (with anti-repetition context)
+    const newsData = await newsService.getCryptoNews(recentThemes);
+    console.log(`📰 News topics: ${newsData.map(n => n.title).join(' | ')}`);
+
+    // Extract token symbols from news headlines (parallel)
+    const tokenSymbols = await Promise.all(
+      newsData.slice(0, 3).map(n => newsService.extractTokenSymbol(n.title))
+    );
+    const symbolLog = tokenSymbols.map((t, i) => t ? `$${t.symbol}` : '-').join(', ');
+    console.log(`🪙 Token symbols: ${symbolLog}`);
 
     // Random model selection per meme
     const imageGenerators = Array.from({ length: 3 }, () =>
@@ -116,8 +169,8 @@ async function generateDailyMemes(req, res) {
     );
     console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
 
-    // Generate 3 memes based on news (with random image model per meme)
-    const dailyMemes = await geminiService.generateDailyMemes(newsData, 3, imageGenerators);
+    // Generate 3 memes based on news (with anti-repetition context + token symbols)
+    const dailyMemes = await geminiService.generateDailyMemes(newsData, 3, imageGenerators, recentThemes, tokenSymbols);
     
     // Save each meme to Firestore
     const savedMemes = [];
