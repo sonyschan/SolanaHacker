@@ -955,7 +955,101 @@ MEMEYA_TAPESTRY_PROFILE_ID=<created once during setup>
 
 ---
 
-## 11. 實作規劃
+## 11. Crossmint 錢包與獎勵分發
+
+### 11.1 概述
+
+Memeya 擁有自主管理的鏈上 Solana 錢包，透過 [Crossmint Agentic Wallet SDK](https://www.crossmint.com) (`@crossmint/wallets-sdk`) 實現。每日抽獎後自動分發 USDC 獎勵。
+
+**流程:**
+```
+lottery_draw (23:55 UTC) → distributeRewards() → Crossmint SDK sendUsdc() → Firestore 記錄
+```
+
+### 11.2 獎勵規則
+
+| 受獎者 | 金額 | 選取方式 |
+|--------|------|---------|
+| 梗圖贏家 (最高票擁有者) | $3 USDC | lottery_draw 結果 |
+| 幸運投票者 #1 | $2 USDC | Fisher-Yates 隨機 (排除贏家) |
+| 幸運投票者 #2 | $1 USDC | Fisher-Yates 隨機 (排除贏家) |
+| **每日合計** | **$6 USDC** | |
+
+**餘額門檻:** 餘額 < $6 跳過分發 · 餘額 < $10 發送 TG 低餘額警報
+
+### 11.3 API 端點
+
+| 方法 | 路徑 | 說明 |
+|------|------|------|
+| GET | `/api/rewards/balance` | 錢包餘額 + 獎勵設定 (快取 10 分鐘) |
+| GET | `/api/rewards/history?limit=N` | 近期分發紀錄 |
+| GET | `/api/rewards/config` | 獎勵分發開關狀態 |
+| POST | `/api/rewards/config` | Toggle 開關 (ON/OFF) |
+| GET | `/api/rewards/:drawId` | 特定分發詳情 |
+
+### 11.4 模擬模式
+
+Dashboard 可 toggle 獎勵分發 ON/OFF。OFF 時進入模擬模式:
+- 計算金額、選取投票者，但 **不執行** USDC 轉帳
+- Firestore 記錄 `status: 'simulated'`
+- 發送 TG 報告 (完整模擬結果: 誰會收到多少)
+
+### 11.5 Firestore Schema
+
+**reward_distributions/{drawId}** (drawId = YYYY-MM-DD)
+```javascript
+{
+  drawId: '2026-02-25',
+  timestamp: '2026-02-25T23:55:00.000Z',
+  status: 'completed' | 'simulated' | 'partial' | 'failed' | 'skipped_low_balance',
+  balance: 60.00,
+  winnerWallet: '4Bqy...SbMP',
+  memeId: 'meme_xxx',
+  transfers: [
+    { type: 'winner', wallet: '4Bqy...', amount: 3, txSignature: '...' },
+    { type: 'voter', wallet: '7Abc...', amount: 2, txSignature: '...' },
+    { type: 'voter', wallet: '9Xyz...', amount: 1, txSignature: '...' }
+  ],
+  errors: [],
+  randomVoters: ['7Abc...', '9Xyz...'],
+  calculatedAmounts: { winner: 3, voter1: 2, voter2: 1, total: 6 }
+}
+```
+
+**reward_distributions/config**
+```javascript
+{
+  rewardEnabled: true,     // false = 模擬模式
+  updatedAt: '2026-02-25T14:30:00.000Z'
+}
+```
+
+### 11.6 關鍵檔案
+
+| 檔案 | 用途 |
+|------|------|
+| `backend/services/crossmintService.js` | Crossmint SDK wrapper (getWallet, balances, sendUsdc) |
+| `backend/services/rewardService.js` | 獎勵計算、分發、模擬、TG 通知 |
+| `backend/routes/rewards.js` | REST endpoints (balance, history, config) |
+| `backend/services/schedulerService.js` | lottery_draw 後串接 distributeRewards |
+| `scripts/crossmint-setup.js` | 一次性設定: 建立 Crossmint 錢包 |
+
+### 11.7 環境變數
+
+```
+CROSSMINT_API_KEY=sk_production_...    # Crossmint Server-side API Key
+MEMEYA_WALLET_LOCATOR=4BqywEbj...      # 錢包地址 (setup script 產生)
+```
+
+### 11.8 Dashboard 整合
+
+- **Memeya Dashboard** (droplet): Wallet tab — 餘額、分發預覽、歷史、ON/OFF toggle
+- **AiMemeForge 前端** (Vercel): Header 顯示 USDC 餘額，點擊開啟 Wallet 說明 modal
+- Dashboard server proxy: `/api/memeya/wallet-*` → Cloud Run `/api/rewards/*`
+
+---
+
+## 12. 實作規劃
 
 ### Agent Memeya
 
