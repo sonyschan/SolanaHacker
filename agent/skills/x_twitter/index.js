@@ -401,17 +401,19 @@ export function createExecutors(deps) {
       .replace(/\s{2,}/g, ' ')                            // Collapse multiple spaces
       .trim();
 
-    // Trim to 280 chars (leaving room for OG link if needed) — skip for noCharLimit
+    // Trim to 280 chars (leaving room for OG link + CTA if needed) — skip for noCharLimit
     const ogUrl = isStructured ? contextInput.ogUrl : null;
+    const voteCta = isStructured && contextInput.topic === 'meme_spotlight' && ogUrl ? '\n\nVote for this Meme \u{1F447}' : '';
     let tweet;
     let maxLen;
     if (noCharLimit) {
       maxLen = null; // no limit
-      tweet = ogUrl ? `${cleaned}\n${ogUrl}` : cleaned;
+      tweet = ogUrl ? `${cleaned}${voteCta}\n${ogUrl}` : cleaned;
     } else {
-      maxLen = ogUrl ? 280 - ogUrl.length - 1 : 280; // -1 for newline
+      const suffix = ogUrl ? `${voteCta}\n${ogUrl}` : '';
+      maxLen = suffix ? 280 - suffix.length : 280;
       const trimmed = cleaned.length > maxLen ? cleaned.slice(0, maxLen - 3) + '...' : cleaned;
-      tweet = ogUrl ? `${trimmed}\n${ogUrl}` : (cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned);
+      tweet = suffix ? `${trimmed}${suffix}` : (cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned);
     }
 
     // Skip boring check for meme_spotlight when featuring a meme not in recent posts
