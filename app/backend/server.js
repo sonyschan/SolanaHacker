@@ -13,6 +13,7 @@ const lotteryRoutes = require('./routes/lottery');
 const schedulerRoutes = require('./routes/scheduler');
 const ogRoutes = require('./routes/og');
 const tapestryRoutes = require('./routes/tapestry');
+const rewardRoutes = require('./routes/rewards');
 
 // Import scheduler service
 const schedulerService = require('./services/schedulerService');
@@ -88,6 +89,7 @@ app.use('/api/lottery', lotteryRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/og', ogRoutes);
 app.use('/api/tapestry', tapestryRoutes);
+app.use('/api/rewards', rewardRoutes);
 
 // Global stats endpoint (cached 10min — 3x .count() queries are expensive)
 const { cacheResponse, TTL } = require('./utils/cache');

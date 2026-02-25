@@ -47,7 +47,8 @@ router.post('/trigger/:taskName', async (req, res) => {
       'end_voting',
       'lottery_draw',
       'cleanup',
-      'voting_progress'
+      'voting_progress',
+      'reward_distribution'
     ];
     
     if (!validTasks.includes(taskName)) {

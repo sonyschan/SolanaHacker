@@ -17,6 +17,7 @@ const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const memeController = require('../controllers/memeController');
 const votingController = require('../controllers/votingController');
 const lotteryController = require('../controllers/lotteryController');
+const rewardService = require('./rewardService');
 
 class SchedulerService {
   constructor() {
@@ -177,6 +178,16 @@ class SchedulerService {
       const result = await lotteryController.runDailyLottery();
       console.log('✅ Daily lottery completed:', result);
 
+      // Chain reward distribution (non-fatal — lottery draw stands regardless)
+      if (result.status === 'completed') {
+        try {
+          const rewardResult = await rewardService.distributeRewards(result);
+          console.log('💰 Reward distribution result:', rewardResult);
+        } catch (rewardErr) {
+          console.error('⚠️ Reward distribution failed (non-fatal):', rewardErr.message);
+        }
+      }
+
       await this.logTaskExecution('lottery_draw', 'success');
       return result;
 
@@ -263,6 +274,38 @@ class SchedulerService {
     } catch (error) {
       console.error('❌ Daily cycle failed:', error);
       await this.logTaskExecution('daily_cycle', 'failed', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Manual reward distribution for today's draw
+   */
+  async runRewardDistribution() {
+    console.log('💰 Running manual reward distribution...');
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const draw = await dbUtils.getDocument(collections.LOTTERY_DRAWS, today);
+
+      if (!draw || draw.status !== 'completed') {
+        console.log('⚠️ No completed lottery draw found for today');
+        return { skipped: true, reason: 'No completed draw for today' };
+      }
+
+      const result = await rewardService.distributeRewards({
+        drawId: draw.id || today,
+        status: draw.status,
+        winner: draw.winnerWallet,
+        memeId: draw.winningMemeId
+      });
+
+      await this.logTaskExecution('reward_distribution', 'success');
+      return result;
+
+    } catch (error) {
+      console.error('❌ Reward distribution failed:', error);
+      await this.logTaskExecution('reward_distribution', 'failed', error.message);
       throw error;
     }
   }
@@ -403,6 +446,8 @@ class SchedulerService {
         return await this.weeklyCleanup();
       case 'voting_progress':
         return await this.checkVotingProgress();
+      case 'reward_distribution':
+        return await this.runRewardDistribution();
       default:
         throw new Error(`Unknown task: ${taskName}`);
     }
