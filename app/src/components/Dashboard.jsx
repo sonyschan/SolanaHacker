@@ -726,13 +726,13 @@ const Dashboard = ({
                   <svg className="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </div>
               </div>
+              {/* Wallet balance pill */}
+              {rewardWalletUsdc !== null && (
+                <div className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
+                  <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
+                </div>
+              )}
             </a>
-            {/* Wallet balance pill — right of avatar */}
-            {rewardWalletUsdc !== null && (
-              <div className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1">
-                <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
-              </div>
-            )}
 
             {/* Desktop User Info + Settings */}
             <div className="hidden md:flex items-center space-x-2 md:space-x-6">
