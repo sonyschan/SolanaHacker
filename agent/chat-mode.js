@@ -44,7 +44,7 @@ export class ChatMode {
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
     this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
-    // Autonomous X posting timer (1-3 hours randomized)
+    // Autonomous X posting timer (2-4 hours randomized)
     // Initialize to now so first post waits full interval after boot
     this.lastXPost = Date.now();
     this.xPostInterval = this._randomXInterval();
@@ -1798,10 +1798,10 @@ ${recentMemory.slice(-1500)}
 
 
   /**
-   * Random interval for X posting: 1-3 hours in ms
+   * Random interval for X posting: 2-4 hours in ms
    */
   _randomXInterval() {
-    return (1 + Math.random() * 2) * 60 * 60 * 1000; // 1-3 hours
+    return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
   }
 
   _randomCommunityInterval() {
