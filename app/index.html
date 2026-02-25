@@ -330,11 +330,24 @@
     </div>
 
     <!-- Static SEO content — outside #root so React doesn't destroy it -->
-    <article id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
+    <main id="seo-content" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; text-align: left;">
+      <nav aria-label="Documentation links" style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem;">
+        <a href="https://aimemeforge.io/docs" style="color: #06b6d4; margin-right: 1rem;">Docs</a>
+        <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4; margin-right: 1rem;">How It Works</a>
+        <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4; margin-right: 1rem;">Tokenomics</a>
+        <a href="https://aimemeforge.io/docs/rarity-system" style="color: #06b6d4; margin-right: 1rem;">Rarity System</a>
+        <a href="https://aimemeforge.io/docs/memeya-agent" style="color: #06b6d4;">Memeya Agent</a>
+      </nav>
+
+      <article>
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">What is AI MemeForge?</h2>
           <p style="color: #ccc; line-height: 1.6;">AI MemeForge is the world's first AI meme democracy built on <a href="https://solana.com" style="color: #06b6d4;">Solana</a>. Every day, AI generates three unique crypto memes from real-time news. The community votes for free — no gas fees, no token purchases required. One winning meme is minted as a Solana NFT each day, and one lucky voter claims ownership forever.</p>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">How It Works</h2>
+          <p style="color: #ccc; line-height: 1.6;">Read the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">full daily cycle guide</a> for a detailed breakdown.</p>
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 1: AI Creates 3 Memes Daily</h3>
           <p style="color: #ccc; line-height: 1.6;">Every day, Memeya — our AI forge master — uses Gemini and Grok AI models to generate three memes inspired by the latest crypto news. Each meme captures the mood of the market in real time.</p>
 
@@ -343,43 +356,54 @@
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 3: Daily Winner Owns the NFT</h3>
           <p style="color: #ccc; line-height: 1.6;">At the end of each day, a lottery determines the winner. The winning voter claims the day's top meme as a <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Solana pNFT</a> — permanently stored on Arweave. Only 365 memes become NFTs per year, making each one inherently scarce.</p>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Why AI MemeForge?</h2>
           <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
             <li><strong>100% Free</strong> — No gas fees to vote, no tokens required to enter the lottery, no cost to claim your NFT</li>
             <li><strong>Daily NFT Drops</strong> — Exactly 1 meme minted as a Metaplex pNFT per day, stored permanently on Arweave</li>
             <li><strong>Temporal Scarcity</strong> — Only 365 NFTs per year. Each captures a specific, unrepeatable moment in crypto history</li>
             <li><strong>Community Curated</strong> — The winning meme is chosen by community votes, not algorithms or curators</li>
-            <li><strong>$Memeya Token</strong> — Hold tokens to boost ticket earnings: 10 tokens = +1, 1K = +3, 10K = +4, 100K = +5 bonus per vote</li>
+            <li><strong>$Memeya Token</strong> — Hold tokens to boost ticket earnings: 10 tokens = +1, 1K = +3, 10K = +4, 100K = +5 bonus per vote. See the <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4;">tokenomics guide</a></li>
           </ul>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Key Facts &amp; Numbers</h2>
           <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
             <li><strong>3 memes generated daily</strong> using Gemini and Grok AI from real-time crypto news via web search</li>
             <li><strong>8-15 lottery tickets</strong> earned per vote, accumulating across days for strategic play</li>
-            <li><strong>Daily lottery at 23:56 UTC</strong> — one winner selected proportionally by ticket count</li>
+            <li><strong>Daily lottery at 23:55 UTC</strong> — one winner selected proportionally by ticket count</li>
             <li><strong>NFT standard:</strong> Metaplex Programmable NFT (pNFT) on Solana with Arweave permanent storage</li>
             <li><strong>$Memeya contract:</strong> <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code> (SPL token on Solana)</li>
-            <li><strong>Autonomous AI agent</strong> Memeya posts on X every 1-3 hours, runs Telegram community, manages meme generation</li>
+            <li><strong>Autonomous AI agent</strong> Memeya posts on X, runs <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a>, manages meme generation</li>
             <li><strong>Built for Colosseum Agent Hackathon 2026</strong> — fully open-source on <a href="https://github.com/sonyschan/SolanaHacker" style="color: #06b6d4;">GitHub</a></li>
+            <li><strong>5 rarity tiers</strong> — Common, Uncommon, Rare, Epic, Legendary — determined by <a href="https://aimemeforge.io/docs/rarity-system" style="color: #06b6d4;">community voting</a></li>
           </ul>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Frequently Asked Questions</h2>
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How much does it cost to participate?</h3>
           <p style="color: #ccc; line-height: 1.6;">Nothing. Voting is gasless, the lottery is free to enter, and NFT claiming has no platform fee. You only need a Solana wallet (Phantom, Solflare, or any supported wallet via Privy).</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How do I win an NFT?</h3>
-          <p style="color: #ccc; line-height: 1.6;">Vote on daily memes to earn 8-15 lottery tickets per vote. At 23:56 UTC, a weighted lottery selects one winner. You can accumulate tickets across days — a strategic player might save 80+ tickets and go all-in on a meme they love.</p>
+          <p style="color: #ccc; line-height: 1.6;">Vote on daily memes to earn 8-15 lottery tickets per vote. At 23:55 UTC, a weighted lottery selects one winner. You can accumulate tickets across days — a strategic player might save 80+ tickets and go all-in on a meme they love. Full details in the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">how it works guide</a>.</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What AI models generate the memes?</h3>
-          <p style="color: #ccc; line-height: 1.6;">Memeya uses Grok (xAI) for real-time crypto news via web search, then Gemini (Google) and Grok for image generation. Each of the 3 daily memes may use a different AI model, creating visual variety. Claude (Anthropic) powers the development agent.</p>
+          <p style="color: #ccc; line-height: 1.6;">Memeya uses Grok (xAI) for real-time crypto news via web search, then Gemini (Google) for image generation. Each of the 3 daily memes may use a different art style, creating visual variety. Claude (Anthropic) powers development. Learn more about <a href="https://aimemeforge.io/docs/memeya-agent" style="color: #06b6d4;">Memeya's architecture</a>.</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What is the $Memeya token?</h3>
-          <p style="color: #ccc; line-height: 1.6;">$Memeya is an SPL token on Solana (contract: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding tokens boosts daily ticket earnings using a logarithmic formula: bonus = floor(log10(tokens)). Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump" style="color: #06b6d4;">PumpFun</a>.</p>
+          <p style="color: #ccc; line-height: 1.6;">$Memeya is an SPL token on Solana (contract: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding tokens boosts daily ticket earnings using a logarithmic formula: bonus = floor(log10(tokens)). Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump" style="color: #06b6d4;">PumpFun</a>. See the full <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4;">tokenomics breakdown</a>.</p>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Meet Memeya</h2>
-          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates 3 memes daily, posts original content on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (@AiMemeForgeIO)</a> every 1-3 hours, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> in real-time, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini (meme generation), Grok (social posting &amp; news research), and Claude (development). Her <a href="https://aimemeforge.io/agent.json" style="color: #06b6d4;">agent profile</a> follows the A2A-inspired protocol.</p>
+          <p style="color: #ccc; line-height: 1.6;"><a href="https://aimemeforge.io/#agent" style="color: #06b6d4;">Memeya</a> is the autonomous AI agent who runs AI MemeForge. She generates 3 memes daily, posts original content on <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">X (@AiMemeForgeIO)</a>, engages with the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> in real-time, and shares on <a href="https://www.moltbook.com/u/memeya" style="color: #06b6d4;">Moltbook</a>. Powered by Gemini (meme generation), Grok (social posting &amp; news research), and Claude (development). Her <a href="https://aimemeforge.io/agent.json" style="color: #06b6d4;">agent profile</a> follows the A2A-inspired protocol. Read about <a href="https://aimemeforge.io/docs/memeya-agent" style="color: #06b6d4;">her full architecture</a>.</p>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Technology Stack</h2>
           <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
             <li><strong>Blockchain:</strong> Solana (high throughput, low fees)</li>
@@ -391,10 +415,24 @@
             <li><strong>Backend:</strong> Node.js on Google Cloud Run, Firestore database</li>
             <li><strong>Frontend:</strong> React + Vite, hosted on Vercel</li>
           </ul>
+          </section>
 
+          <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Start Collecting</h2>
           <p style="color: #ccc; line-height: 1.6;">Every day you don't vote is a meme you miss. <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Connect your wallet</a> and start building your NFT collection. The earlier you join, the more you accumulate before the ecosystem takes off. Follow <a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">@AiMemeForgeIO</a> on X and join the <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a> for daily updates.</p>
-    </article>
+          </section>
+
+      </article>
+
+      <footer style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+        <nav aria-label="Footer links" style="color: #ccc; font-size: 0.875rem;">
+          <a href="https://aimemeforge.io/docs" style="color: #06b6d4; margin: 0 0.75rem;">Documentation</a>
+          <a href="https://aimemeforge.io/feed.xml" style="color: #06b6d4; margin: 0 0.75rem;">RSS Feed</a>
+          <a href="https://aimemeforge.io/llms.txt" style="color: #06b6d4; margin: 0 0.75rem;">llms.txt</a>
+          <a href="https://aimemeforge.io/sitemap.xml" style="color: #06b6d4; margin: 0 0.75rem;">Sitemap</a>
+        </nav>
+      </footer>
+    </main>
 
     <script>
       // Mark when app loads

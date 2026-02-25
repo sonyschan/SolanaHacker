@@ -273,7 +273,7 @@ const AgentPage = () => {
                 className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm"
               >
                 <div className="flex items-start gap-3">
-                  <img src="/images/memeya-avatar.png" alt="" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
+                  <img src="/images/memeya-avatar.png" alt="Memeya AI agent avatar" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-white text-sm">Memeya</span>
