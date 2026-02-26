@@ -629,12 +629,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'completed' && (
         <div className="text-center">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-4xl font-bold mb-4">🎉 Voting Complete!</h2>
-            <p className="text-lg text-gray-300 mb-6">
-              Thank you for participating in today's meme democracy!
-            </p>
-
-            {/* $Memeya holding reminder — first screen on mobile */}
+            {/* $Memeya holding reminder — above heading for first-screen visibility */}
             {!isMemeyaQualified && (
               <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-6 text-left">
                 <p className="font-bold text-yellow-300 mb-1">Hold 10,000 $Memeya to qualify for USDC draws</p>
@@ -659,6 +654,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 </div>
               </div>
             )}
+
+            <h2 className="text-4xl font-bold mb-4">🎉 Voting Complete!</h2>
+            <p className="text-lg text-gray-300 mb-6">
+              Thank you for participating in today's meme democracy!
+            </p>
 
             {/* Show the voted meme */}
             {selectedMeme && (
