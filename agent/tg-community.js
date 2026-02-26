@@ -486,16 +486,16 @@ Your knowledge:\n${knowledge}`,
       if (now - ts > this._activeConvoWindow) this._activeConversations.delete(sender);
     }
 
-    const timeSinceUser = now - this.lastRealUserMessage;
-    const timeSinceMurmur = now - this.lastMurmur;
-
-    if (
-      timeSinceUser >= twoHours &&
-      timeSinceMurmur >= twoHours &&
-      this.consecutiveMurmurs < 3
-    ) {
-      await this._generateMurmur();
-    }
+    // Murmur disabled — Memeya talks too much without community engagement
+    // const timeSinceUser = now - this.lastRealUserMessage;
+    // const timeSinceMurmur = now - this.lastMurmur;
+    // if (
+    //   timeSinceUser >= twoHours &&
+    //   timeSinceMurmur >= twoHours &&
+    //   this.consecutiveMurmurs < 3
+    // ) {
+    //   await this._generateMurmur();
+    // }
   }
 
   // ──────────────────────────────────────────────
