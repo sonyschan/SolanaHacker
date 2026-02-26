@@ -178,6 +178,14 @@
             "@type": "Answer",
             "text": "AI MemeForge is built on Solana. NFTs are minted as Metaplex Programmable NFTs (pNFTs) with metadata permanently stored on Arweave. Authentication uses Privy for embedded wallets, and social features use the Tapestry Protocol for on-chain comments."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the daily reward system work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "At 23:55 UTC daily, Memeya's Crossmint-powered Solana wallet automatically distributes USDC rewards: $3 to the meme winner, $2 to a random lucky voter, and $1 to a second lucky voter. Total daily payout is $6 USDC sent directly to winners' Solana wallets. Transactions are verifiable on Solscan."
+          }
         }
       ]
     }
@@ -358,16 +366,23 @@
           </section>
 
           <section>
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">How It Works</h2>
-          <p style="color: #ccc; line-height: 1.6;">Read the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">full daily cycle guide</a> for a detailed breakdown.</p>
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 1: AI Creates 3 Memes Daily</h3>
-          <p style="color: #ccc; line-height: 1.6;">Every day, Memeya — our AI forge master — uses Gemini and Grok AI models to generate three memes inspired by the latest crypto news. Each meme captures the mood of the market in real time.</p>
-
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 2: Community Votes for Free</h3>
-          <p style="color: #ccc; line-height: 1.6;">Connect your Solana wallet and vote on your favorite meme. Voting is completely free — no gas, no tokens, no cost. Every vote earns lottery tickets that accumulate toward the daily drawing.</p>
-
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Step 3: Daily Winner Owns the NFT</h3>
-          <p style="color: #ccc; line-height: 1.6;">At the end of each day, a lottery determines the winner. The winning voter claims the day's top meme as a <a href="https://aimemeforge.io/#dashboard" style="color: #06b6d4;">Solana pNFT</a> — permanently stored on Arweave. Only 365 memes become NFTs per year, making each one inherently scarce.</p>
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">How It Works — Daily Cycle</h2>
+          <p style="color: #ccc; line-height: 1.6;">AI MemeForge runs a fully automated 24-hour cycle. Read the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">full daily cycle guide</a> for a detailed breakdown.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Time (UTC)</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Event</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Details</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">00:00</td><td style="padding: 8px 12px;">Meme Generation</td><td style="padding: 8px 12px;">Grok (xAI) fetches trending crypto news; Gemini (Google) generates 3 memes in randomized art styles</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">00:30 – 23:50</td><td style="padding: 8px 12px;">Community Voting</td><td style="padding: 8px 12px;">Free voting open to all Solana wallets. Each vote earns 1–10 base tickets + streak bonus (up to +10) + $Memeya bonus</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">23:50</td><td style="padding: 8px 12px;">Winner Determined</td><td style="padding: 8px 12px;">Highest-voted meme wins. Rarity tier assigned by percentile algorithm across all historical memes</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">23:55</td><td style="padding: 8px 12px;">Lottery Draw + USDC Rewards</td><td style="padding: 8px 12px;">Weighted random draw selects NFT owner. Crossmint wallet distributes $3 + $2 + $1 USDC to winner and 2 lucky voters</td></tr>
+              <tr><td style="padding: 8px 12px;">23:56</td><td style="padding: 8px 12px;">Reset</td><td style="padding: 8px 12px;">All participating tickets reset to zero. Cycle restarts at midnight</td></tr>
+            </tbody>
+          </table>
+          <p style="color: #9ca3af; font-size: 0.875rem;"><strong>Note:</strong> Users can toggle "Don't Participate" to accumulate tickets across multiple days. Switching back to "Participate" before a draw leverages the full accumulated total — a core strategic mechanic.</p>
           </section>
 
           <section>
@@ -382,32 +397,89 @@
           </section>
 
           <section>
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Key Facts &amp; Numbers</h2>
-          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
-            <li><strong>3 memes generated daily</strong> using Gemini and Grok AI from real-time crypto news via web search</li>
-            <li><strong>8-15 lottery tickets</strong> earned per vote, accumulating across days for strategic play</li>
-            <li><strong>Daily lottery at 23:55 UTC</strong> — one winner selected proportionally by ticket count</li>
-            <li><strong>NFT standard:</strong> Metaplex Programmable NFT (pNFT) on Solana with Arweave permanent storage</li>
-            <li><strong>$Memeya contract:</strong> <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code> (SPL token on Solana)</li>
-            <li><strong>Autonomous AI agent</strong> Memeya posts on X, runs <a href="https://t.me/MemeyaOfficialCommunity" style="color: #06b6d4;">Telegram community</a>, manages meme generation</li>
-            <li><strong>Built for Colosseum Agent Hackathon 2026</strong> — fully open-source on <a href="https://github.com/sonyschan/SolanaHacker" style="color: #06b6d4;">GitHub</a></li>
-            <li><strong>5 rarity tiers</strong> — Common, Uncommon, Rare, Epic, Legendary — determined by <a href="https://aimemeforge.io/docs/rarity-system" style="color: #06b6d4;">community voting</a></li>
-          </ul>
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Ticket Formula &amp; Strategy</h2>
+          <p style="color: #ccc; line-height: 1.6;">Every vote earns lottery tickets calculated as: <code style="background: rgba(6,182,212,0.12); color: #22d3ee; padding: 2px 6px; border-radius: 4px;">tickets = base(1-10) + streak(min(days, 10)) + tokenBonus(floor(log10($Memeya)))</code></p>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Component</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Range</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Mechanic</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Base tickets</td><td style="padding: 8px 12px;">1 – 10</td><td style="padding: 8px 12px;">Random roll each vote</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Streak bonus</td><td style="padding: 8px 12px;">+0 to +10</td><td style="padding: 8px 12px;">+1 per consecutive voting day, capped at 10</td></tr>
+              <tr><td style="padding: 8px 12px;">$Memeya bonus</td><td style="padding: 8px 12px;">+0 to +6</td><td style="padding: 8px 12px;">floor(log10(tokens held)), minimum 10 tokens. See <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4;">full tier table</a></td></tr>
+            </tbody>
+          </table>
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">Worked Example: Ticket Earnings Comparison</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Player</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Base (avg)</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Streak</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Token Bonus</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Per Vote</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">New user, no tokens</td><td style="padding: 8px 12px;">~5.5</td><td style="padding: 8px 12px;">+1</td><td style="padding: 8px 12px;">0</td><td style="padding: 8px 12px;"><strong>~6.5</strong></td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Day-7 voter, 500 $Memeya</td><td style="padding: 8px 12px;">~5.5</td><td style="padding: 8px 12px;">+7</td><td style="padding: 8px 12px;">+2</td><td style="padding: 8px 12px;"><strong>~14.5</strong></td></tr>
+              <tr><td style="padding: 8px 12px;">Day-10+ voter, 100K $Memeya</td><td style="padding: 8px 12px;">~5.5</td><td style="padding: 8px 12px;">+10</td><td style="padding: 8px 12px;">+5</td><td style="padding: 8px 12px;"><strong>~20.5</strong></td></tr>
+            </tbody>
+          </table>
+          <p style="color: #9ca3af; font-size: 0.875rem;">A 10-day streak voter with 100K $Memeya earns roughly <strong>3.2x more tickets per vote</strong> than a new user — rewarding consistency and long-term holding without whale concentration.</p>
+          </section>
+
+          <section>
+          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Platform Statistics</h2>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Metric</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Value</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Source</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Daily memes generated</td><td style="padding: 8px 12px;">3</td><td style="padding: 8px 12px;">Gemini (Google) + Grok (xAI)</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Max NFTs per year</td><td style="padding: 8px 12px;">365</td><td style="padding: 8px 12px;">1 per day, Metaplex pNFT standard</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Daily USDC rewards</td><td style="padding: 8px 12px;">$6 ($3 + $2 + $1)</td><td style="padding: 8px 12px;">Crossmint Agentic Wallet on Solana</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Cost to participate</td><td style="padding: 8px 12px;">$0 (gasless)</td><td style="padding: 8px 12px;">Privy embedded wallets</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">NFT storage</td><td style="padding: 8px 12px;">Permanent</td><td style="padding: 8px 12px;">Arweave decentralized storage</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Rarity tiers</td><td style="padding: 8px 12px;">5 (Common → Legendary)</td><td style="padding: 8px 12px;"><a href="https://aimemeforge.io/docs/rarity-system" style="color: #06b6d4;">Percentile-based algorithm</a></td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">$Memeya token</td><td style="padding: 8px 12px;">SPL on Solana</td><td style="padding: 8px 12px;">CA: <code style="font-size: 0.8rem;">mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code></td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Agent social posts</td><td style="padding: 8px 12px;">Every 1-3 hours</td><td style="padding: 8px 12px;"><a href="https://x.com/AiMemeForgeIO" style="color: #06b6d4;">@AiMemeForgeIO</a> on X</td></tr>
+              <tr><td style="padding: 8px 12px;">Hackathon</td><td style="padding: 8px 12px;"><a href="https://arena.colosseum.org/" style="color: #06b6d4;">Colosseum Agent Hackathon 2026</a></td><td style="padding: 8px 12px;">Open-source on <a href="https://github.com/sonyschan/SolanaHacker" style="color: #06b6d4;">GitHub</a></td></tr>
+            </tbody>
+          </table>
           </section>
 
           <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Frequently Asked Questions</h2>
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How much does it cost to participate?</h3>
-          <p style="color: #ccc; line-height: 1.6;">Nothing. Voting is gasless, the lottery is free to enter, and NFT claiming has no platform fee. You only need a Solana wallet (Phantom, Solflare, or any supported wallet via Privy).</p>
+          <p style="color: #ccc; line-height: 1.6;">Nothing. Voting is gasless, the lottery is free to enter, and NFT claiming has no platform fee. You only need a Solana wallet — supported options include Phantom, Solflare, Backpack, and 100+ other wallets via <a href="https://www.privy.io/" style="color: #06b6d4;">Privy</a> embedded wallet authentication. You can also sign in with Google (no existing crypto wallet required). The only cost a winner may encounter is ~0.01 SOL in network gas to mint their winning NFT on-chain.</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How do I win an NFT?</h3>
-          <p style="color: #ccc; line-height: 1.6;">Vote on daily memes to earn 8-15 lottery tickets per vote. At 23:55 UTC, a weighted lottery selects one winner. You can accumulate tickets across days — a strategic player might save 80+ tickets and go all-in on a meme they love. Full details in the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">how it works guide</a>.</p>
+          <p style="color: #ccc; line-height: 1.6;">Vote on daily memes to earn lottery tickets. At 23:55 UTC, a weighted random draw (cumulative scan algorithm) selects one winner proportional to ticket holdings. <strong>Example:</strong> If you hold 50 tickets in a pool of 500 total, your win probability is 10%. You can toggle "Don't Participate" to accumulate tickets across multiple days without entering the draw — then switch back to "Participate" on a day with a meme you love, entering the draw with your full accumulated balance. After any draw you participate in, your tickets reset to zero. Full details in the <a href="https://aimemeforge.io/docs/how-it-works" style="color: #06b6d4;">how it works guide</a>.</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What AI models generate the memes?</h3>
-          <p style="color: #ccc; line-height: 1.6;">Memeya uses Grok (xAI) for real-time crypto news via web search, then Gemini (Google) for image generation. Each of the 3 daily memes may use a different art style, creating visual variety. Claude (Anthropic) powers development. Learn more about <a href="https://aimemeforge.io/docs/memeya-agent" style="color: #06b6d4;">Memeya's architecture</a>.</p>
+          <p style="color: #ccc; line-height: 1.6;">Memeya's pipeline uses three AI models from different providers, each handling a specialized task:</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 6px 12px; color: #06b6d4;">Model</th>
+              <th style="text-align: left; padding: 6px 12px; color: #06b6d4;">Provider</th>
+              <th style="text-align: left; padding: 6px 12px; color: #06b6d4;">Role in Pipeline</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 6px 12px;">Grok</td><td style="padding: 6px 12px;">xAI</td><td style="padding: 6px 12px;">Real-time crypto news discovery via web search, X/Twitter social content generation</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 6px 12px;">Gemini</td><td style="padding: 6px 12px;">Google</td><td style="padding: 6px 12px;">Meme image generation in randomized art styles (pixel art, watercolor, anime, editorial cartoon, etc.)</td></tr>
+              <tr><td style="padding: 6px 12px;">Claude</td><td style="padding: 6px 12px;">Anthropic</td><td style="padding: 6px 12px;">Development agent, vision analysis, and complex reasoning tasks</td></tr>
+            </tbody>
+          </table>
+          <p style="color: #ccc; line-height: 1.6;">Each of the 3 daily memes uses a different randomized art style, ensuring visual variety. Learn more about <a href="https://aimemeforge.io/docs/memeya-agent" style="color: #06b6d4;">Memeya's full architecture</a>.</p>
 
           <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">What is the $Memeya token?</h3>
-          <p style="color: #ccc; line-height: 1.6;">$Memeya is an SPL token on Solana (contract: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding tokens boosts daily ticket earnings using a logarithmic formula: bonus = floor(log10(tokens)). Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump" style="color: #06b6d4;">PumpFun</a>. See the full <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4;">tokenomics breakdown</a>.</p>
+          <p style="color: #ccc; line-height: 1.6;">$Memeya is an SPL utility token on Solana (contract: <code style="background: rgba(6,182,212,0.12); color: #22d3ee; padding: 2px 6px; border-radius: 4px;">mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding tokens boosts daily ticket earnings using a logarithmic formula: <code style="background: rgba(6,182,212,0.12); color: #22d3ee; padding: 2px 6px; border-radius: 4px;">bonus = floor(log10(tokens))</code>. The diminishing-returns curve means going from 1K to 10K tokens adds only +1 ticket — rewarding broad distribution over whale concentration. Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump" style="color: #06b6d4;">PumpFun</a>. See the full <a href="https://aimemeforge.io/docs/tokenomics" style="color: #06b6d4;">tokenomics breakdown</a> with all 7 bonus tiers.</p>
+
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #a5b4fc;">How does the daily reward system work?</h3>
+          <p style="color: #ccc; line-height: 1.6;">At 23:55 UTC each day, Memeya's <a href="https://www.crossmint.com/" style="color: #06b6d4;">Crossmint</a>-powered Solana wallet (address: <code style="background: rgba(6,182,212,0.12); color: #22d3ee; padding: 2px 6px; border-radius: 4px;">4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP</code>) automatically distributes USDC rewards: <strong>$3</strong> to the meme winner (most-voted meme's lottery winner), <strong>$2</strong> to a randomly selected lucky voter, and <strong>$1</strong> to a second lucky voter. Total daily payout: <strong>$6 USDC</strong>. Rewards are sent directly to winners' Solana wallets — no claiming step required. Transactions are verifiable on <a href="https://solscan.io/account/4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP" style="color: #06b6d4;">Solscan</a>.</p>
           </section>
 
           <section>
@@ -417,16 +489,24 @@
 
           <section>
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0 0.75rem;">Technology Stack</h2>
-          <ul style="color: #ccc; line-height: 1.8; padding-left: 1.5rem;">
-            <li><strong>Blockchain:</strong> Solana (high throughput, low fees)</li>
-            <li><strong>NFT Standard:</strong> Metaplex Programmable NFT (pNFT) with royalty enforcement</li>
-            <li><strong>Permanent Storage:</strong> Arweave for immutable meme metadata and images</li>
-            <li><strong>Authentication:</strong> Privy embedded wallets (supports Phantom, Solflare, and 100+ wallets)</li>
-            <li><strong>Social Graph:</strong> Tapestry Protocol for on-chain comments and cross-app social identity</li>
-            <li><strong>AI Models:</strong> Gemini (Google), Grok (xAI), Claude (Anthropic)</li>
-            <li><strong>Backend:</strong> Node.js on Google Cloud Run, Firestore database</li>
-            <li><strong>Frontend:</strong> React + Vite, hosted on Vercel</li>
-          </ul>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem;">
+            <thead><tr style="border-bottom: 2px solid rgba(6,182,212,0.3);">
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Layer</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Technology</th>
+              <th style="text-align: left; padding: 8px 12px; color: #06b6d4;">Purpose</th>
+            </tr></thead>
+            <tbody style="color: #d1d5db;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Blockchain</td><td style="padding: 8px 12px;"><a href="https://solana.com" style="color: #06b6d4;">Solana</a></td><td style="padding: 8px 12px;">High throughput (~65K TPS), sub-second finality, ~$0.00025 per transaction</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">NFT Standard</td><td style="padding: 8px 12px;"><a href="https://www.metaplex.com/" style="color: #06b6d4;">Metaplex</a> pNFT</td><td style="padding: 8px 12px;">Programmable NFTs with enforced 5% creator royalties on all secondary sales</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Storage</td><td style="padding: 8px 12px;"><a href="https://www.arweave.org/" style="color: #06b6d4;">Arweave</a></td><td style="padding: 8px 12px;">Permanent, immutable storage for meme images and NFT metadata</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Authentication</td><td style="padding: 8px 12px;"><a href="https://www.privy.io/" style="color: #06b6d4;">Privy</a></td><td style="padding: 8px 12px;">Embedded wallets supporting Phantom, Solflare, Backpack, and Google sign-in</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Social Graph</td><td style="padding: 8px 12px;"><a href="https://usetapestry.dev" style="color: #06b6d4;">Tapestry Protocol</a></td><td style="padding: 8px 12px;">On-chain comments and cross-app social identity on Solana</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Wallet</td><td style="padding: 8px 12px;"><a href="https://www.crossmint.com/" style="color: #06b6d4;">Crossmint</a></td><td style="padding: 8px 12px;">Agentic Wallet SDK for autonomous USDC reward distribution</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">AI Models</td><td style="padding: 8px 12px;">Gemini, Grok, Claude</td><td style="padding: 8px 12px;">Google (images), xAI (news + social), Anthropic (development)</td></tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);"><td style="padding: 8px 12px;">Backend</td><td style="padding: 8px 12px;">Node.js + <a href="https://cloud.google.com/run" style="color: #06b6d4;">Cloud Run</a></td><td style="padding: 8px 12px;">Serverless API with Firestore database on Google Cloud</td></tr>
+              <tr><td style="padding: 8px 12px;">Frontend</td><td style="padding: 8px 12px;">React + Vite + <a href="https://vercel.com" style="color: #06b6d4;">Vercel</a></td><td style="padding: 8px 12px;">Edge-deployed SPA with SSR docs pages for AI crawlability</td></tr>
+            </tbody>
+          </table>
           </section>
 
           <section>
