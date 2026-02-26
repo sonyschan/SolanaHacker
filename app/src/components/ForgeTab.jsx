@@ -634,6 +634,32 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               Thank you for participating in today's meme democracy!
             </p>
 
+            {/* $Memeya holding reminder — first screen on mobile */}
+            {!isMemeyaQualified && (
+              <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-6 text-left">
+                <p className="font-bold text-yellow-300 mb-1">Hold 10,000 $Memeya to qualify for USDC draws</p>
+                <p className="text-sm text-yellow-200/80 mb-2">
+                  Current: {currentBalance.toLocaleString()} $Memeya
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyCA}
+                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {caCopied ? '✓ Copied' : 'Copy CA'}
+                  </button>
+                  <a
+                    href={`https://pump.fun/coin/${MEMEYA_CA}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Buy on pump.fun
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Show the voted meme */}
             {selectedMeme && (
               <div className="mb-6">
@@ -696,32 +722,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 </div>
               </div>
             </div>
-
-            {/* $Memeya holding reminder */}
-            {!isMemeyaQualified && (
-              <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-4 text-left">
-                <p className="font-bold text-yellow-300 mb-1">Hold 10,000 $Memeya to qualify for USDC draws</p>
-                <p className="text-sm text-yellow-200/80 mb-2">
-                  Current: {currentBalance.toLocaleString()} $Memeya
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={copyCA}
-                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    {caCopied ? '✓ Copied' : 'Copy CA'}
-                  </button>
-                  <a
-                    href={`https://pump.fun/coin/${MEMEYA_CA}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    Buy on pump.fun
-                  </a>
-                </div>
-              </div>
-            )}
 
             {/* Info lines */}
             <div className="text-sm text-gray-400 space-y-1 mb-6">
