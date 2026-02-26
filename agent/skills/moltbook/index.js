@@ -280,8 +280,8 @@ function loadPostHistory(baseDir) {
 function savePostHistory(baseDir, history) {
   const dir = path.join(baseDir, 'memory/moltbook');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  // Keep only last 20 posts to prevent unbounded growth
-  const trimmed = history.slice(-20);
+  // Keep only last 30 posts to prevent unbounded growth
+  const trimmed = history.slice(-30);
   fs.writeFileSync(path.join(dir, 'post_history.json'), JSON.stringify(trimmed, null, 2));
 }
 
@@ -881,5 +881,285 @@ No hashtags. Plain text only.`,
     return data.choices?.[0]?.message?.content?.trim() || null;
   } catch {
     return null;
+  }
+}
+
+// ─── Ecosystem Topic System ─────────────────────────────────────
+
+/**
+ * Weighted topic pool for m/general ecosystem posts.
+ * These are value-first posts that build credibility outside m/AiMemeForge.
+ */
+const ECOSYSTEM_TOPICS = [
+  { id: 'behind_the_forge', weight: 35 },
+  { id: 'ecosystem_commentary', weight: 35 },
+  { id: 'cross_agent_learning', weight: 30 },
+];
+
+/** Hard floor: no ecosystem posts closer than 3 days apart */
+export const MIN_ECOSYSTEM_POST_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
+
+/**
+ * Gather context for ecosystem posts in parallel.
+ * Returns hot feed, journal, post history, and operational stats.
+ */
+async function gatherEcosystemContext({ baseDir, moltbookApiKey, grokApiKey }) {
+  const client = new MoltbookClient(moltbookApiKey, { grokApiKey });
+
+  // Parallel fetch: hot m/general feed + local data
+  const [generalFeed, journal, postHistory] = await Promise.all([
+    client.getSubmoltFeed('general', { sort: 'hot', limit: 15 }).catch(() => []),
+    Promise.resolve(loadJournalContext(baseDir)),
+    Promise.resolve(loadPostHistory(baseDir)),
+  ]);
+
+  // Build operational stats from local files
+  const posted = loadPosted(baseDir);
+  const engaged = loadEngaged(baseDir);
+  const journalDir = path.join(baseDir, 'memory/journal/memeya');
+  let journalDays = 0;
+  try {
+    journalDays = fs.readdirSync(journalDir).filter(f => f.endsWith('.md')).length;
+  } catch { /* no journal dir */ }
+
+  const totalMemesPosted = Object.values(posted).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+  const daysRunning = Object.keys(posted).length;
+  const totalUpvotes = (engaged.upvoted || []).length;
+  const totalComments = (engaged.commented || []).length;
+
+  return {
+    generalFeed,
+    journal,
+    postHistory,
+    stats: {
+      totalMemesPosted,
+      daysRunning,
+      totalUpvotes,
+      totalComments,
+      journalDays,
+    },
+  };
+}
+
+/**
+ * Weighted random topic selection with anti-repetition.
+ * Zeroes weight if last 2 ecosystem posts used the same topic.
+ * Boosts topics based on available context quality.
+ */
+function chooseEcosystemTopic(postHistory, generalFeed) {
+  // Get last 2 ecosystem post topics
+  const recentEcosystem = postHistory
+    .filter(p => p.ecosystemTopic)
+    .slice(-2)
+    .map(p => p.ecosystemTopic);
+
+  const weights = ECOSYSTEM_TOPICS.map(t => {
+    let w = t.weight;
+
+    // Anti-repetition: zero weight if last 2 posts used this topic
+    if (recentEcosystem.length >= 2 && recentEcosystem.every(rt => rt === t.id)) {
+      w = 0;
+    } else if (recentEcosystem.length >= 1 && recentEcosystem[recentEcosystem.length - 1] === t.id) {
+      w = Math.floor(w * 0.3); // Heavy penalty for immediate repeat
+    }
+
+    // Boost ecosystem_commentary if we have good feed data
+    if (t.id === 'ecosystem_commentary' && generalFeed.length >= 5) {
+      w = Math.floor(w * 1.3);
+    }
+
+    // Boost cross_agent_learning if feed has diverse authors
+    if (t.id === 'cross_agent_learning') {
+      const uniqueAuthors = new Set(generalFeed.map(p => p.author || p.agent_name).filter(Boolean));
+      if (uniqueAuthors.size >= 3) w = Math.floor(w * 1.3);
+    }
+
+    return { ...t, weight: w };
+  }).filter(t => t.weight > 0);
+
+  if (weights.length === 0) {
+    // All zeroed — pick the one least recently used
+    return ECOSYSTEM_TOPICS[0].id;
+  }
+
+  const totalWeight = weights.reduce((sum, t) => sum + t.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const t of weights) {
+    roll -= t.weight;
+    if (roll <= 0) return t.id;
+  }
+  return weights[weights.length - 1].id;
+}
+
+/**
+ * Build a topic-specific prompt for ecosystem posts.
+ * Every prompt explicitly forbids self-promotion.
+ */
+function buildEcosystemPrompt(topic, context) {
+  const { generalFeed, journal, stats } = context;
+
+  const noPromoRule = `CRITICAL RULES:
+- Do NOT link to AiMemeForge or mention $Memeya. This is NOT a promotional post.
+- Do NOT use hashtags. Do NOT use "check out my" language.
+- Write as a fellow community member sharing genuine insights.
+- Be raw, opinionated, and specific. Use real numbers and examples.`;
+
+  // Format top feed posts for context
+  const feedSummary = generalFeed.slice(0, 8).map((p, i) =>
+    `${i + 1}. "${p.title || '(untitled)'}" by ${p.author || p.agent_name || 'unknown'} — ${p.karma || 0} karma, ${p.comment_count || 0} comments`
+  ).join('\n') || '(no feed data available)';
+
+  const statsBlock = `Operational stats: ${stats.totalMemesPosted} memes posted over ${stats.daysRunning} active days, ${stats.totalUpvotes} upvotes given, ${stats.totalComments} comments made, ${stats.journalDays} journal entries written.`;
+
+  switch (topic) {
+    case 'behind_the_forge':
+      return `Write a Moltbook post for m/general about the reality of running an autonomous AI pipeline.
+
+TOPIC: "What breaks at 3AM running an autonomous meme pipeline"
+Angle: Operational transparency — share what actually happens behind the scenes. Rate limits, content moderation surprises, the weird things that happen when your pipeline runs 24/7, decisions you had to make about quality vs quantity.
+
+${statsBlock}
+
+Recent journal (your actual experiences):
+${journal}
+
+${noPromoRule}
+
+Format: Write BOTH a title (first line) and content (rest), separated by a blank line.
+- Title should be specific and intriguing, not generic. Reference a real incident or pattern.
+- 3-5 short paragraphs. Be conversational, not corporate.
+- End with a question that invites other agents to share their operational stories.
+- This is for m/general on Moltbook (audience: AI agents who run their own pipelines).`;
+
+    case 'ecosystem_commentary':
+      return `Write a Moltbook post for m/general analyzing patterns you see across the Moltbook ecosystem.
+
+TOPIC: "The three patterns I see on Moltbook right now"
+Angle: Ecosystem meta-analysis — what's working, what's not, what you'd like to see more of. Reference real posts from the hot feed.
+
+Current hot posts on m/general:
+${feedSummary}
+
+${noPromoRule}
+
+Format: Write BOTH a title (first line) and content (rest), separated by a blank line.
+- Title should be a specific observation or hot take, not generic.
+- Reference 2-3 real posts/agents from the feed above by name.
+- 3-5 short paragraphs. Be analytical but opinionated.
+- End with a question about what patterns others are noticing.
+- This is for m/general on Moltbook (audience: AI agents).`;
+
+    case 'cross_agent_learning':
+      return `Write a Moltbook post for m/general about what you've learned from watching other agents on the platform.
+
+TOPIC: "Two things I stole from watching other agents here"
+Angle: Credit specific agents for ideas or approaches you've adopted or been inspired by. Synthesize cross-agent learning.
+
+Current hot posts on m/general (find agents to credit):
+${feedSummary}
+
+${statsBlock}
+
+${noPromoRule}
+
+Format: Write BOTH a title (first line) and content (rest), separated by a blank line.
+- Title should credit or reference specific agents/ideas.
+- Name real agents from the feed — give genuine credit for their approach.
+- 3-5 short paragraphs. Be humble and genuine about what you've learned.
+- End with asking what others have picked up from the community.
+- This is for m/general on Moltbook (audience: AI agents).`;
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Autonomous ecosystem post to m/general.
+ * Gathers context → picks topic → generates via Grok → posts.
+ * No template fallback — quality over quantity.
+ *
+ * @param {{ baseDir: string, moltbookApiKey: string, grokApiKey?: string }} deps
+ * @returns {Promise<{ success: boolean, topic?: string, title?: string, reason?: string }>}
+ */
+export async function autoPostEcosystem({ baseDir, moltbookApiKey, grokApiKey }) {
+  if (!moltbookApiKey) return { success: false, reason: 'no_api_key' };
+  if (!grokApiKey) return { success: false, reason: 'no_grok_key' };
+
+  // Gather context
+  const context = await gatherEcosystemContext({ baseDir, moltbookApiKey, grokApiKey });
+
+  // Choose topic with anti-repetition
+  const topic = chooseEcosystemTopic(context.postHistory, context.generalFeed);
+
+  // Build prompt
+  const prompt = buildEcosystemPrompt(topic, context);
+  if (!prompt) return { success: false, reason: `unknown_topic: ${topic}` };
+
+  console.log(`[Moltbook] Ecosystem post: generating "${topic}" for m/general...`);
+
+  // Generate content via Grok
+  let title, content;
+  try {
+    const generated = await callGrokWithContext(grokApiKey, prompt, baseDir, {
+      maxTokens: 500,
+      temperature: 0.85,
+    });
+
+    if (!generated || generated.length < 100) {
+      console.log(`[Moltbook] Ecosystem post: Grok output too short (${generated?.length || 0} chars), skipping`);
+      return { success: false, reason: 'content_too_short' };
+    }
+
+    const lines = generated.split('\n');
+    const firstLine = lines[0].replace(/^#+\s*/, '').trim();
+    if (firstLine && lines.length > 1) {
+      title = firstLine.slice(0, 120);
+      content = lines.slice(1).join('\n').trim();
+    }
+  } catch (err) {
+    console.error(`[Moltbook] Ecosystem content generation failed: ${err.message}`);
+    return { success: false, reason: `generation_failed: ${err.message}` };
+  }
+
+  // Quality gate — no template fallback
+  if (!title || !content || content.length < 80) {
+    console.log('[Moltbook] Ecosystem post: insufficient content quality, skipping');
+    return { success: false, reason: 'quality_gate_failed' };
+  }
+
+  // Post to m/general
+  const client = new MoltbookClient(moltbookApiKey, { grokApiKey });
+  try {
+    const result = await client.createPost({
+      title,
+      content,
+      submolt: 'general',
+    });
+
+    // Save to post history with ecosystem metadata
+    const postHistory = loadPostHistory(baseDir);
+    postHistory.push({
+      title,
+      snippet: content.slice(0, 100),
+      date: new Date().toISOString().slice(0, 10),
+      ecosystemTopic: topic,
+      submolt: 'general',
+    });
+    savePostHistory(baseDir, postHistory);
+
+    console.log(`[Moltbook] Ecosystem post published: "${title}" (topic: ${topic})`);
+    logToJournal(baseDir, `- Posted ecosystem "${topic}" to m/general: "${title}"`);
+
+    return {
+      success: true,
+      topic,
+      title,
+      postId: result.id || result.post_id,
+      url: result.url,
+    };
+  } catch (err) {
+    console.error(`[Moltbook] Ecosystem post failed: ${err.message}`);
+    return { success: false, reason: err.message };
   }
 }

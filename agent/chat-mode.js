@@ -68,6 +68,10 @@ export class ChatMode {
     this.lastMoltbookEngage = Date.now(); // wait full interval after boot
     this.moltbookEngageInterval = this._randomMoltbookEngageInterval();
 
+    // Moltbook ecosystem posts to m/general (3.5-5 day timer, independent from meme posts)
+    this.lastMoltbookEcosystemPost = Date.now(); // wait full interval after boot
+    this.moltbookEcosystemInterval = this._randomMoltbookEcosystemInterval();
+
     // Memory distillation flag (biweekly Sunday 9am GMT+8)
     this.lastDistillDate = null;
 
@@ -1817,6 +1821,10 @@ ${recentMemory.slice(-1500)}
     return (3 + Math.random() * 2) * 60 * 60 * 1000; // 3-5 hours
   }
 
+  _randomMoltbookEcosystemInterval() {
+    return (3.5 + Math.random() * 1.5) * 24 * 60 * 60 * 1000; // 3.5-5 days
+  }
+
   /**
    * Autonomous X posting — runs independently on its own 2-4 hour timer.
    * No active window — Memeya serves global users, not just GMT+8.
@@ -2162,6 +2170,54 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Moltbook ecosystem post to m/general — value-first content (not meme promotion).
+   * Runs on its own 3.5-5 day timer, independent from meme posts.
+   * Checks 35-min buffer vs last meme post to respect Moltbook's rate limit.
+   */
+  async maybePostEcosystem() {
+    if (!process.env.MOLTBOOK_API_KEY) return;
+    if (!this.isActiveHours()) return;
+
+    const now = Date.now();
+
+    // Check ecosystem timer (3.5-5 day interval)
+    if (now - this.lastMoltbookEcosystemPost < this.moltbookEcosystemInterval) return;
+
+    // Rate limit safe: 35-min buffer vs last meme post to avoid 1-post-per-30-min limit
+    if (this.lastMoltbookPost && (now - this.lastMoltbookPost < 35 * 60 * 1000)) return;
+
+    console.log('[ChatMode] maybePostEcosystem: attempting ecosystem post to m/general...');
+
+    try {
+      const { autoPostEcosystem } = await import('./skills/moltbook/index.js');
+      const result = await autoPostEcosystem({
+        baseDir: this.baseDir,
+        moltbookApiKey: process.env.MOLTBOOK_API_KEY,
+        grokApiKey: this.grokApiKey,
+      });
+
+      if (result.success) {
+        this.lastMoltbookEcosystemPost = now;
+        this.moltbookEcosystemInterval = this._randomMoltbookEcosystemInterval();
+        console.log(`[ChatMode] Moltbook ecosystem: "${result.title}" (topic: ${result.topic})`);
+        try {
+          await this.telegram.sendDevlog(
+            `📘 <b>Moltbook ecosystem post</b>\n` +
+            `Topic: <code>${result.topic}</code>\n` +
+            `"${result.title}" → m/general` +
+            (result.url ? `\n<a href="${result.url}">View post</a>` : '')
+          );
+        } catch {}
+      } else {
+        console.log(`[ChatMode] Moltbook ecosystem skipped: ${result.reason || 'unknown'}`);
+        // Don't update timer on failure — allow retry next heartbeat
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybePostEcosystem error:', err.message);
+    }
+  }
+
+  /**
    * TG Community murmur tick — called from heartbeat
    */
   async maybeTgCommunityTick() {
@@ -2197,6 +2253,9 @@ ${recentMemory.slice(-1500)}
 
     // Moltbook community engagement
     await this.maybeMoltbookEngage();
+
+    // Moltbook ecosystem posts to m/general (3.5-5 day timer)
+    await this.maybePostEcosystem();
 
     // TG Community murmur check
     await this.maybeTgCommunityTick();
@@ -2313,6 +2372,15 @@ ${recentMemory.slice(-1500)}
             nextIn: fmt(this.moltbookEngageInterval - (now - (this.lastMoltbookEngage || 0))),
             enabled: !!process.env.MOLTBOOK_API_KEY,
             scope: '9-23 GMT+8',
+          },
+          moltbookEcosystem: {
+            label: 'Moltbook Ecosystem',
+            interval: fmt(this.moltbookEcosystemInterval),
+            intervalMs: this.moltbookEcosystemInterval,
+            lastFired: this.lastMoltbookEcosystemPost || null,
+            nextIn: fmt(this.moltbookEcosystemInterval - (now - (this.lastMoltbookEcosystemPost || 0))),
+            enabled: !!process.env.MOLTBOOK_API_KEY,
+            scope: '9-23 GMT+8 (every 3.5-5 days)',
           },
           morningNews: {
             label: 'Morning News',

@@ -355,6 +355,34 @@ export class MoltbookClient {
     return this.request('POST', `/submolts/${name}/subscribe`);
   }
 
+  /**
+   * Get a submolt's feed (hot posts from a specific community).
+   * Tries the submolt-specific endpoint first, falls back to global feed + filter.
+   * @param {string} submoltName - e.g. 'general'
+   * @param {{ sort?: string, limit?: number }} opts
+   */
+  async getSubmoltFeed(submoltName, { sort = 'hot', limit = 15 } = {}) {
+    // Try submolt-specific endpoint first
+    try {
+      const params = new URLSearchParams();
+      if (sort) params.set('sort', sort);
+      if (limit) params.set('limit', String(limit));
+      const qs = params.toString();
+      const data = await this.request('GET', `/submolts/${submoltName}/feed${qs ? '?' + qs : ''}`);
+      const posts = data.posts || data.data || [];
+      if (posts.length > 0) return posts;
+    } catch {
+      // Submolt endpoint may not exist — fall back to global feed + filter
+    }
+
+    // Fallback: fetch global feed and filter by submolt name
+    const data = await this.getFeed({ sort, limit: limit * 3 });
+    const posts = data.posts || data.data || [];
+    return posts
+      .filter(p => (p.submolt || '').toLowerCase() === submoltName.toLowerCase())
+      .slice(0, limit);
+  }
+
   /** Follow an agent */
   async followAgent(name) {
     return this.request('POST', `/agents/${name}/follow`);
