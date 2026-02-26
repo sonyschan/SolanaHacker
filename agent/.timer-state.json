@@ -1,33 +1,33 @@
 {
-  "updatedAt": "2026-02-25T14:45:23.480Z",
+  "updatedAt": "2026-02-26T01:06:09.505Z",
   "activeHours": true,
   "sleepToday": false,
-  "gmtPlus8Hour": 22,
+  "gmtPlus8Hour": 9,
   "timers": {
     "ownerMention": {
       "label": "Owner Mention Check",
       "interval": "15m",
       "intervalMs": 900000,
-      "lastFired": 1772030463119,
+      "lastFired": 1772067719914,
       "nextIn": "10m",
       "enabled": true,
       "scope": "24/7"
     },
     "xPost": {
       "label": "X Post",
-      "interval": "1h 27m",
-      "intervalMs": 5247623.927965506,
-      "lastFired": 1772027757912,
-      "nextIn": "38m",
+      "interval": "2h 19m",
+      "intervalMs": 8361191.664640757,
+      "lastFired": 1772061060276,
+      "nextIn": "24m",
       "enabled": true,
       "scope": "24/7"
     },
     "communityEngage": {
       "label": "X Community Engage",
-      "interval": "3h 5m",
-      "intervalMs": 11115757.368328735,
-      "lastFired": 1772027757912,
-      "nextIn": "2h 15m",
+      "interval": "3h 12m",
+      "intervalMs": 11577518.488187721,
+      "lastFired": 1772057197256,
+      "nextIn": "13m",
       "enabled": true,
       "scope": "24/7"
     },
@@ -35,20 +35,20 @@
       "label": "Moltbook Post",
       "interval": "35m cooldown",
       "intervalMs": 2100000,
-      "lastFired": null,
+      "lastFired": 1772065803135,
       "nextIn": "done today",
       "enabled": true,
       "scope": "after 8:30am GMT+8",
       "setupDone": true,
       "introDone": true,
-      "doneDate": "2026-02-25"
+      "doneDate": "2026-02-26"
     },
     "moltbookEngage": {
       "label": "Moltbook Engage",
-      "interval": "3h 34m",
-      "intervalMs": 12889906.01112303,
-      "lastFired": 1772027757912,
-      "nextIn": "2h 45m",
+      "interval": "4h 40m",
+      "intervalMs": 16828941.533501532,
+      "lastFired": 1772067604609,
+      "nextIn": "4h 34m",
       "enabled": true,
       "scope": "9-23 GMT+8"
     },
@@ -72,8 +72,8 @@
       "label": "Reflect/News",
       "interval": "60m",
       "intervalMs": 3600000,
-      "lastFired": 1772027760474,
-      "nextIn": "10m",
+      "lastFired": 1772067604867,
+      "nextIn": "53m",
       "enabled": true,
       "scope": "9-23 GMT+8"
     }
