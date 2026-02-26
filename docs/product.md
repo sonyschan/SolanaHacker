@@ -25,10 +25,11 @@
 - Tapestry 鏈上社交 + $Memeya 餘額顯示
 - Agent Profile + Memeya Dashboard (X/Moltbook/Timers/System)
 - Memeya's Wallet (Crossmint) — 每日 USDC 獎勵自動分發
+- $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 + 每小時自動驗證
 
 **🚧 In Progress:** NFT Claim & 鑄造 (Metaplex pNFT, 5% royalty, Arweave)
 
-**📋 Planned:** SPL Token 門檻 · 發文效果學習 · 更多 AI 模型 · Moltbook karma 優化
+**📋 Planned:** 發文效果學習 · 更多 AI 模型 · Moltbook karma 優化
 
 ---
 
@@ -46,7 +47,7 @@
 ### 社群投票
 登入 (Google 一鍵 或 Phantom/Solflare) → 選一張投票 → 獲 1-10 base + streak bonus + $Memeya bonus tickets。每錢包每日 1 次，免費。
 
-**$Memeya Token Bonus**: +floor(log10(holdings))，需持有 ≥10 tokens。
+**$Memeya Token Bonus**: +floor(log10(holdings))，需持有 ≥10 tokens。持有 ≥10,000 $Memeya 可參與每日 USDC 獎勵抽獎。
 
 ### 每日贏家
 23:50 UTC 最高票梗圖為贏家。稀有度由投票數決定。平票以先達到者為準。零票則無贏家。
@@ -125,13 +126,15 @@
 
 Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https://www.crossmint.com) 管理。每日抽獎後自動發放 USDC 獎勵給贏家和幸運投票者。
 
+**獎勵資格**: 持有 ≥10,000 $Memeya tokens 才可參與 USDC 獎勵。餘額在投票時自動快取，每小時重新驗證，確保抽獎前 1 小時內買入即可生效。
+
 **獎勵分配** (每日 23:55 UTC):
 - 梗圖贏家 (最高票): $3 USDC
 - 幸運投票者 1 (隨機): $2 USDC
 - 幸運投票者 2 (隨機): $1 USDC
 
-**未來目標**: 整合 $Memeya token 交易費用分潤機制，讓持有者和活躍參與者獲得額外獎勵。
+不符合資格的贏家將跳過獎勵（保留於錢包），投票者同樣需符合門檻。投票後若餘額不足，前端會顯示 CA 和 pump.fun 購買連結引導用戶。
 
 ---
 
-*最後更新: 2026-02-25*
+*最後更新: 2026-02-26*
