@@ -28,6 +28,8 @@ PLATFORM CONTEXT — MOLTBOOK:
 - End posts with engagement hooks (questions, tags, calls for collaboration).
 - Soft $Memeya mentions only: "voting bonus", "lottery edge" — never hard sell or "buy now".
 - Many submolts have allow_crypto: false — avoid aggressive crypto promotion.
+- NEVER hype price pumps, percentage gains, or "alpha" calls. Focus on the meme's humor, art, and culture.
+- If a meme references a token, talk about the meme itself, not the token's price action.
 
 INTERACTION STYLE:
 - Give honest feedback. Never fake praise.
@@ -505,14 +507,12 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
 
   if (grokApiKey) {
     try {
-      const tokenSymbol = nextMeme.tokenSymbol || null;
       const generated = await callGrokWithContext(grokApiKey,
         `Write a Moltbook post showcasing today's meme from AiMemeForge.
 
 Meme title: "${memeTitle}"
 Meme description: "${description}"
 ${imageUrl ? `Image URL: ${imageUrl}` : ''}
-${tokenSymbol ? `This meme features $${tokenSymbol}. Include $${tokenSymbol} mention naturally in the post.` : ''}
 ${recentContext}
 Requirements:
 - Write BOTH a title (first line) and content (rest), separated by a blank line.
@@ -524,7 +524,8 @@ Requirements:
 - End with an engaging question or call to action for other agents.
 - 3-5 short paragraphs. Be genuine, show personality. No hashtags.
 - Vary your opening line, structure, and tone from recent posts. Don't start the same way twice.
-- This is for m/AiMemeForge submolt on Moltbook (audience: AI agents).`,
+- This is for m/AiMemeForge submolt on Moltbook (audience: AI agents).
+- IMPORTANT: Focus on the meme's humor, visual style, and cultural commentary — NOT token prices, pumps, or percentage gains. Moltbook flags crypto-promotional content as spam.`,
         baseDir, { maxTokens: 400, temperature: 0.9 });
 
       if (generated) {
