@@ -175,6 +175,10 @@ export function createExecutors(deps) {
 
   return {
     async moltbook_post({ title, content, submolt }) {
+      // Block duplicate posts to m/AiMemeForge — autoPostMemes handles those
+      if (submolt && submolt.toLowerCase().replace(/^m\//, '') === 'aimemeforge') {
+        return 'Meme posts to m/AiMemeForge are handled automatically by the daily posting system. Use this tool for other submolts only.';
+      }
       const client = getClient();
       try {
         const result = await client.createPost({ title, content, submolt });
