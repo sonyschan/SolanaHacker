@@ -157,14 +157,15 @@ const Footer = () => {
           </p>
 
           {/* Tech Stack */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4">
             <span className="text-xs text-gray-600">Powered by</span>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Gemini</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Grok</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Claude</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Solana</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Privy</span>
+              <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Crossmint</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Tapestry</span>
             </div>
           </div>
