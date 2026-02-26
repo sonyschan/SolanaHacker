@@ -86,6 +86,83 @@ router.post('/trigger/:taskName', async (req, res) => {
 });
 
 /**
+ * @route POST /api/scheduler/recover/:date
+ * @desc Recover a failed lottery draw for a specific date (YYYY-MM-DD)
+ * @access Admin only
+ */
+router.post('/recover/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format. Use YYYY-MM-DD'
+      });
+    }
+
+    console.log(`🔧 Recovery requested for date: ${date}`);
+
+    const result = await schedulerService.recoverDraw(date);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.skipped ? 'Draw already completed' : `Recovery ${result.error ? 'failed' : 'completed'} for ${date}`
+    });
+
+  } catch (error) {
+    console.error(`❌ Recovery failed for ${req.params.date}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Recovery failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route PATCH /api/scheduler/draw/:date
+ * @desc Update specific fields on a lottery draw record
+ * @access Admin only
+ */
+router.patch('/draw/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const allowedFields = ['winnerTickets', 'totalTickets', 'totalParticipants'];
+    const updates = {};
+
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        updates[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: `No valid fields. Allowed: ${allowedFields.join(', ')}`
+      });
+    }
+
+    const { dbUtils, collections } = require('../config/firebase');
+    const existing = await dbUtils.getDocument(collections.LOTTERY_DRAWS, date);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Draw not found' });
+    }
+
+    await dbUtils.updateDocument(collections.LOTTERY_DRAWS, date, updates);
+    const updated = await dbUtils.getDocument(collections.LOTTERY_DRAWS, date);
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error(`❌ Draw update failed for ${req.params.date}:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * @route GET /api/scheduler/logs
  * @desc Get recent scheduler task logs
  * @access Public

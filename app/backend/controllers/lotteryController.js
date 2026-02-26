@@ -345,23 +345,46 @@ async function getRecentWinners(limit = 10) {
 
   const draws = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  // Batch fetch meme details
+  // Batch fetch meme details + reward distributions
   const memeIds = [...new Set(draws.map(d => d.winningMemeId).filter(Boolean))];
   const memes = {};
-  await Promise.all(memeIds.map(async id => {
-    const meme = await dbUtils.getDocument(collections.MEMES, id);
-    if (meme) memes[id] = meme;
-  }));
+  const rewards = {};
+  await Promise.all([
+    ...memeIds.map(async id => {
+      const meme = await dbUtils.getDocument(collections.MEMES, id);
+      if (meme) memes[id] = meme;
+    }),
+    ...draws.map(async d => {
+      const reward = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, d.date);
+      if (reward) rewards[d.date] = reward;
+    })
+  ]);
 
-  return draws.map(d => ({
-    drawId: d.date,
-    winnerWallet: d.winnerWallet,
-    winnerTickets: d.winnerTickets || 0,
-    totalTickets: d.totalTickets || 0,
-    memeId: d.winningMemeId,
-    memeTitle: memes[d.winningMemeId]?.title || null,
-    memeImageUrl: memes[d.winningMemeId]?.imageUrl || null,
-  }));
+  return draws.map(d => {
+    const reward = rewards[d.date];
+    const transfers = reward?.transfers || [];
+    const winnerTransfer = transfers.find(t => t.type === 'winner');
+    const voterTransfers = transfers.filter(t => t.type === 'voter');
+
+    return {
+      drawId: d.date,
+      winnerWallet: d.winnerWallet,
+      winnerTickets: d.winnerTickets || 0,
+      totalTickets: d.totalTickets || 0,
+      memeId: d.winningMemeId,
+      memeTitle: memes[d.winningMemeId]?.title || null,
+      memeImageUrl: memes[d.winningMemeId]?.imageUrl || null,
+      // Reward data
+      rewardStatus: reward?.status || null,
+      winnerUsdc: winnerTransfer?.amount || null,
+      winnerTxSignature: winnerTransfer?.txSignature || null,
+      luckyVoters: voterTransfers.map((t, i) => ({
+        wallet: t.wallet,
+        amount: t.amount,
+        txSignature: t.txSignature || null,
+      })),
+    };
+  });
 }
 
 module.exports = {

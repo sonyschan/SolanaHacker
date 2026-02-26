@@ -489,62 +489,123 @@ const Dashboard = ({
               {/* Table header */}
               <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-white/5 text-sm font-medium text-gray-400 border-b border-white/10">
                 <div className="col-span-2">Date</div>
-                <div className="col-span-3">Meme</div>
+                <div className="col-span-2">Meme</div>
                 <div className="col-span-3">Winner</div>
                 <div className="col-span-2">Votes</div>
-                <div className="col-span-2">Win Rate</div>
+                <div className="col-span-1">Win Rate</div>
+                <div className="col-span-2 text-right">USDC</div>
               </div>
               {/* Table rows */}
               {recentWinners.map((w) => {
                 const isYou = walletAddress && w.winnerWallet === walletAddress;
                 const winRate = w.totalTickets > 0 ? (w.winnerTickets / w.totalTickets * 100).toFixed(1) : '0.0';
                 const dateStr = new Date(w.drawId + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const hasVoters = w.luckyVoters && w.luckyVoters.length > 0;
                 return (
-                  <div
-                    key={w.drawId}
-                    className={`grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-4 border-b border-white/5 hover:bg-white/5 transition-colors ${isYou ? 'bg-green-500/5' : ''}`}
-                  >
-                    {/* Date */}
-                    <div className="md:col-span-2 text-sm text-gray-300">
-                      <span className="md:hidden text-gray-500 mr-2">Date:</span>{dateStr}
-                    </div>
-                    {/* Meme */}
-                    <div className="md:col-span-3">
-                      <button
-                        onClick={() => {
-                          if (w.memeId) {
-                            setModalMeme({ id: w.memeId, title: w.memeTitle, imageUrl: w.memeImageUrl });
-                            setIsModalOpen(true);
-                          }
-                        }}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left"
-                      >
-                        {w.memeImageUrl ? (
-                          <img src={w.memeImageUrl} alt={w.memeTitle || 'Meme'} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  <div key={w.drawId} className={`border-b border-white/5 ${hasVoters ? '' : ''}`}>
+                    {/* Meme Winner Row */}
+                    <div
+                      className={`grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-4 hover:bg-white/5 transition-colors ${isYou ? 'bg-green-500/5' : ''}`}
+                    >
+                      {/* Date */}
+                      <div className="md:col-span-2 text-sm text-gray-300">
+                        <span className="md:hidden text-gray-500 mr-2">Date:</span>{dateStr}
+                      </div>
+                      {/* Meme */}
+                      <div className="md:col-span-2">
+                        <button
+                          onClick={() => {
+                            if (w.memeId) {
+                              setModalMeme({ id: w.memeId, title: w.memeTitle, imageUrl: w.memeImageUrl });
+                              setIsModalOpen(true);
+                            }
+                          }}
+                          className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left"
+                        >
+                          {w.memeImageUrl ? (
+                            <img src={w.memeImageUrl} alt={w.memeTitle || 'Meme'} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-lg flex-shrink-0">🎨</div>
+                          )}
+                          <span className="text-sm text-cyan-400 truncate">{w.memeTitle || `Meme ${w.memeId?.slice(-6) || '?'}`}</span>
+                        </button>
+                      </div>
+                      {/* Winner */}
+                      <div className="md:col-span-3 flex items-center gap-2">
+                        <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
+                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/20 px-1.5 py-0.5 rounded">Meme</span>
+                        <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
+                        {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
+                      </div>
+                      {/* Votes */}
+                      <div className="md:col-span-2 text-sm text-gray-300">
+                        <span className="md:hidden text-gray-500 mr-2">Votes:</span>
+                        {w.winnerTickets} / {w.totalTickets}
+                      </div>
+                      {/* Win Rate */}
+                      <div className="md:col-span-1 text-sm">
+                        <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
+                        <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                          {winRate}%
+                        </span>
+                      </div>
+                      {/* USDC */}
+                      <div className="md:col-span-2 text-sm text-right">
+                        <span className="md:hidden text-gray-500 mr-2">USDC:</span>
+                        {w.winnerUsdc ? (
+                          w.winnerTxSignature ? (
+                            <a href={`https://solscan.io/tx/${w.winnerTxSignature}`} target="_blank" rel="noopener noreferrer" className="text-green-400 font-medium hover:underline">${w.winnerUsdc}</a>
+                          ) : (
+                            <span className="text-green-400 font-medium">${w.winnerUsdc}</span>
+                          )
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-lg flex-shrink-0">🎨</div>
+                          <span className="text-gray-600">-</span>
                         )}
-                        <span className="text-sm text-cyan-400 truncate">{w.memeTitle || `Meme ${w.memeId?.slice(-6) || '?'}`}</span>
-                      </button>
+                      </div>
                     </div>
-                    {/* Winner */}
-                    <div className="md:col-span-3 flex items-center gap-2">
-                      <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
-                      <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
-                      {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
-                    </div>
-                    {/* Votes */}
-                    <div className="md:col-span-2 text-sm text-gray-300">
-                      <span className="md:hidden text-gray-500 mr-2">Votes:</span>
-                      {w.winnerTickets} / {w.totalTickets}
-                    </div>
-                    {/* Win Rate */}
-                    <div className="md:col-span-2 text-sm">
-                      <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
-                      <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
-                        {winRate}%
-                      </span>
-                    </div>
+                    {/* Lucky Voter Rows */}
+                    {w.luckyVoters?.map((v, vi) => {
+                      const isVoterYou = walletAddress && v.wallet === walletAddress;
+                      return (
+                        <div
+                          key={`${w.drawId}-voter-${vi}`}
+                          className={`grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-3 hover:bg-white/5 transition-colors ${isVoterYou ? 'bg-green-500/5' : 'bg-white/[0.02]'}`}
+                        >
+                          {/* Date - empty */}
+                          <div className="md:col-span-2"></div>
+                          {/* Meme - empty */}
+                          <div className="md:col-span-2"></div>
+                          {/* Winner */}
+                          <div className="md:col-span-3 flex items-center gap-2">
+                            <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
+                            <span className="text-xs font-bold text-purple-400 bg-purple-500/20 px-1.5 py-0.5 rounded">Lucky</span>
+                            <span className="text-sm font-mono text-gray-300">{privateWallet(v.wallet)}</span>
+                            {isVoterYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
+                          </div>
+                          {/* Votes */}
+                          <div className="md:col-span-2 text-sm text-gray-300">
+                            <span className="md:hidden text-gray-500 mr-2">Votes:</span>
+                            {w.winnerTickets} / {w.totalTickets}
+                          </div>
+                          {/* Win Rate */}
+                          <div className="md:col-span-1 text-sm">
+                            <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
+                            <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                              {winRate}%
+                            </span>
+                          </div>
+                          {/* USDC */}
+                          <div className="md:col-span-2 text-sm text-right">
+                            <span className="md:hidden text-gray-500 mr-2">USDC:</span>
+                            {v.txSignature ? (
+                              <a href={`https://solscan.io/tx/${v.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-green-400 font-medium hover:underline">${v.amount}</a>
+                            ) : (
+                              <span className="text-green-400 font-medium">${v.amount}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}

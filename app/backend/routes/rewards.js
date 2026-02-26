@@ -106,6 +106,38 @@ router.post('/config', async (req, res) => {
 });
 
 /**
+ * @route PATCH /api/rewards/:drawId
+ * @desc Admin: manually fix a reward distribution record (e.g. add missing txSignature)
+ */
+router.patch('/:drawId', async (req, res) => {
+  try {
+    const { drawId } = req.params;
+    const existing = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, drawId);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Distribution not found' });
+    }
+
+    const allowedFields = ['status', 'transfers', 'errors', 'randomVoters', 'winnerWallet', 'memeId'];
+    const updates = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: `No valid fields. Allowed: ${allowedFields.join(', ')}` });
+    }
+
+    updates.updatedAt = new Date().toISOString();
+    await dbUtils.updateDocument(collections.REWARD_DISTRIBUTIONS, drawId, updates);
+    const updated = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, drawId);
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error(`❌ Reward distribution update failed for ${req.params.drawId}:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * @route GET /api/rewards/:drawId
  * @desc Specific distribution details
  */

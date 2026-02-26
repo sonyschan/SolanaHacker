@@ -328,6 +328,192 @@ class SchedulerService {
     }
   }
 
+  /**
+   * Recover a failed lottery draw for a specific date
+   * Finds memes for that date, determines winner, updates draw record
+   */
+  async recoverDraw(targetDate) {
+    console.log(`🔧 Recovering lottery draw for ${targetDate}...`);
+
+    // 1. Check existing draw
+    const existingDraw = await dbUtils.getDocument(collections.LOTTERY_DRAWS, targetDate);
+    if (existingDraw && existingDraw.status === 'completed') {
+      return { skipped: true, reason: 'Draw already completed', draw: existingDraw };
+    }
+
+    // 2. Find memes generated on that date
+    const db = getFirestore();
+    const startOfDay = new Date(targetDate + 'T00:00:00.000Z').toISOString();
+    const endOfDay = new Date(targetDate + 'T23:59:59.999Z').toISOString();
+
+    const memesSnap = await db.collection(collections.MEMES)
+      .where('type', '==', 'daily')
+      .where('generatedAt', '>=', startOfDay)
+      .where('generatedAt', '<=', endOfDay)
+      .get();
+
+    const memes = [];
+    memesSnap.forEach(doc => {
+      memes.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`📋 Found ${memes.length} memes for ${targetDate}`);
+    if (memes.length === 0) {
+      return { error: true, reason: 'No memes found for date' };
+    }
+
+    // 3. Calculate voting results
+    const results = {};
+    for (const meme of memes) {
+      const totalYes = meme.votes?.selection?.yes || 0;
+      const totalNo = meme.votes?.selection?.no || 0;
+      const totalSelection = totalYes + totalNo;
+      const totalRarity = Object.values(meme.votes?.rarity || {}).reduce((a, b) => a + b, 0);
+      results[meme.id] = {
+        id: meme.id,
+        title: meme.title,
+        votes: meme.votes || { selection: {}, rarity: {} },
+        totalSelectionVotes: totalSelection,
+        totalRarityVotes: totalRarity,
+        yesVotes: totalYes
+      };
+      console.log(`  📊 ${meme.id}: "${meme.title}" — yes:${totalYes} no:${totalNo} total:${totalSelection}`);
+    }
+
+    // 4. Select winner (most yes votes, then total)
+    const winningMeme = this.selectWinningMeme(results);
+    if (!winningMeme) {
+      return { error: true, reason: 'No winning meme could be determined', results };
+    }
+
+    const rarity = this.calculateRarity(winningMeme.votes.rarity);
+    console.log(`🏆 Winner: ${winningMeme.id} "${winningMeme.title}" with ${winningMeme.totalSelectionVotes} votes, rarity: ${rarity}`);
+
+    // 5. Update the winning meme
+    await dbUtils.updateDocument(collections.MEMES, winningMeme.id, {
+      status: 'voting_completed',
+      finalRarity: rarity,
+      isWinner: true,
+      votingCompleted: targetDate + 'T23:50:00.000Z'
+    });
+
+    // Mark other memes as not winners
+    for (const meme of memes) {
+      if (meme.id !== winningMeme.id) {
+        await dbUtils.updateDocument(collections.MEMES, meme.id, {
+          status: 'voting_completed',
+          isWinner: false,
+          votingCompleted: targetDate + 'T23:50:00.000Z'
+        });
+      }
+    }
+
+    // 6. Get participants (users with weeklyTickets > 0 at draw time)
+    // NOTE: tickets may have already been reset by today's draw, so we use a snapshot approach
+    const usersSnap = await db.collection(collections.USERS).get();
+    const allUsers = [];
+    usersSnap.forEach(doc => {
+      allUsers.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Get voters who voted on the target date's memes
+    const votesSnap = await db.collection(collections.VOTES)
+      .where('timestamp', '>=', startOfDay)
+      .where('timestamp', '<=', endOfDay)
+      .get();
+
+    const voterWallets = new Set();
+    votesSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.walletAddress) voterWallets.add(data.walletAddress);
+    });
+
+    console.log(`👥 Found ${voterWallets.size} voters on ${targetDate}`);
+
+    // Pick a random voter as the lottery winner (since original tickets are gone)
+    const voterArray = [...voterWallets].filter(w => {
+      const user = allUsers.find(u => u.id === w);
+      return user && user.lotteryOptIn !== false;
+    });
+
+    let lotteryWinner = null;
+    if (voterArray.length > 0) {
+      const randIdx = Math.floor(Math.random() * voterArray.length);
+      lotteryWinner = voterArray[randIdx];
+    }
+
+    // 7. Update lottery draw record
+    const drawData = {
+      id: targetDate,
+      date: targetDate,
+      drawTime: new Date().toISOString(),
+      winnerWallet: lotteryWinner,
+      winnerTickets: 0,
+      totalParticipants: voterArray.length,
+      totalTickets: 0,
+      winningMemeId: winningMeme.id,
+      status: lotteryWinner ? 'completed' : 'no_participants',
+      recovered: true,
+      recoveredAt: new Date().toISOString()
+    };
+    await dbUtils.setDocument(collections.LOTTERY_DRAWS, targetDate, drawData);
+
+    // 8. Update meme nftOwner if we have a winner
+    if (lotteryWinner) {
+      await dbUtils.updateDocument(collections.MEMES, winningMeme.id, {
+        nftOwner: {
+          walletAddress: lotteryWinner,
+          selectedAt: new Date().toISOString(),
+          drawId: targetDate,
+          claimTxSignature: null,
+          mintAddress: null
+        }
+      });
+
+      // Update winner user
+      const admin = require('firebase-admin');
+      const winnerRef = db.collection(collections.USERS).doc(lotteryWinner);
+      const winnerDoc = await winnerRef.get();
+      if (winnerDoc.exists) {
+        await winnerRef.update({
+          nftWins: admin.firestore.FieldValue.arrayUnion({
+            memeId: winningMeme.id,
+            drawId: targetDate,
+            selectedAt: new Date().toISOString(),
+            claimed: false
+          })
+        });
+      }
+    }
+
+    console.log(`✅ Draw recovered for ${targetDate}. Winner: ${lotteryWinner || 'none'}, Meme: ${winningMeme.id}`);
+
+    // 9. Chain reward distribution if draw completed
+    if (drawData.status === 'completed') {
+      try {
+        const configDoc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
+        const rewardEnabled = configDoc?.rewardEnabled !== false;
+        const rewardOpts = rewardEnabled ? {} : { simulate: true };
+        if (!rewardEnabled) console.log('🧪 Reward distribution disabled — simulation mode');
+
+        const rewardResult = await rewardService.distributeRewards({
+          drawId: targetDate,
+          status: 'completed',
+          winner: lotteryWinner,
+          memeId: winningMeme.id
+        }, rewardOpts);
+        console.log('💰 Reward distribution result:', rewardResult);
+        drawData.rewardResult = rewardResult;
+      } catch (rewardErr) {
+        console.error('⚠️ Reward distribution failed (non-fatal):', rewardErr.message);
+        drawData.rewardError = rewardErr.message;
+      }
+    }
+
+    await this.logTaskExecution('recover_draw', 'success');
+    return drawData;
+  }
+
   // ==================== Helper Methods ====================
 
   async getTodaysMemes() {
@@ -466,6 +652,8 @@ class SchedulerService {
         return await this.checkVotingProgress();
       case 'reward_distribution':
         return await this.runRewardDistribution();
+      case 'recover_draw':
+        throw new Error('recover_draw requires a date parameter — use POST /api/scheduler/recover/:date');
       default:
         throw new Error(`Unknown task: ${taskName}`);
     }
