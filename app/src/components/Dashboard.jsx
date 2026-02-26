@@ -818,7 +818,7 @@ const Dashboard = ({
                 )}
                 <div className="text-center">
                   <div className="text-sm text-gray-400">
-                    {drawPhase === 'result' ? 'Winner' : drawPhase === 'drawing' ? 'Lottery' : 'Next Draw'}
+                    {drawPhase === 'result' ? 'Winner' : drawPhase === 'drawing' ? 'Lottery' : 'Next Meme & USDC Draw'}
                   </div>
                   {drawPhase === 'drawing' ? (
                     <div className="font-bold text-yellow-400 text-lg animate-pulse">Drawing...</div>
@@ -1123,6 +1123,29 @@ const Dashboard = ({
           </div>
         </div>
       </nav>
+
+      {/* Mobile Draw Countdown Banner */}
+      <div className="md:hidden relative z-10">
+        <div className="max-w-7xl mx-auto px-3 pt-4">
+          <div className="flex items-center justify-between bg-gradient-to-r from-orange-500/10 via-yellow-500/10 to-orange-500/10 border border-orange-400/20 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎰</span>
+              <span className="text-xs font-medium text-gray-300">
+                {drawPhase === 'result' ? 'Winner Announced!' : drawPhase === 'drawing' ? 'Drawing Now...' : 'Next Meme & USDC Draw'}
+              </span>
+            </div>
+            {drawPhase === 'drawing' ? (
+              <span className="font-bold text-yellow-400 text-sm animate-pulse">Drawing...</span>
+            ) : drawPhase === 'result' && drawResult ? (
+              <span className="font-bold text-green-400 text-sm">
+                {drawResult.winnerWallet ? `${drawResult.winnerWallet.slice(0, 4)}...${drawResult.winnerWallet.slice(-4)}` : 'No winner'}
+              </span>
+            ) : (
+              <span className="font-bold text-orange-400 text-base font-mono">{countdown}</span>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Tab Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-3 md:px-6 py-6 md:py-12">
