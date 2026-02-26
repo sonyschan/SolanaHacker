@@ -110,9 +110,23 @@ async function distributeRewards(drawResult, options = {}) {
     return { drawId, status: 'skipped_low_balance', balance: usdcBalance };
   }
 
-  // 5. Static reward amounts
+  // 5. Check winner $Memeya qualification (10K holding required for USDC)
+  const MEMEYA_THRESHOLD = 10000;
+  const winnerUser = await dbUtils.getDocument(collections.USERS, winnerWallet);
+  const winnerQualified = winnerUser && (winnerUser.memeyaBalance || 0) >= MEMEYA_THRESHOLD;
+
+  if (!winnerQualified) {
+    console.log(`⚠️ Winner ${winnerWallet} not qualified — memeyaBalance: ${winnerUser?.memeyaBalance || 0} (need ${MEMEYA_THRESHOLD})`);
+    await sendTgAlert(
+      `⚠️ *Winner Skipped (Insufficient $Memeya)*\n` +
+      `Draw: ${drawId}\n` +
+      `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\`\n` +
+      `Balance: ${(winnerUser?.memeyaBalance || 0).toLocaleString()} $Memeya (need ${MEMEYA_THRESHOLD.toLocaleString()})`
+    );
+  }
+
   const winnerAmount = WINNER_REWARD;
-  let remaining = usdcBalance - winnerAmount;
+  let remaining = usdcBalance - (winnerQualified ? winnerAmount : 0);
   const voterAmounts = [VOTER_1_REWARD, VOTER_2_REWARD];
 
   // 6. Select 2 random voters
@@ -121,9 +135,12 @@ async function distributeRewards(drawResult, options = {}) {
   // 7. Simulation mode — calculate only, skip actual transfers
   if (simulate) {
     console.log(`🧪 SIMULATION mode — skipping actual transfers for draw ${drawId}`);
-    const simTransfers = [
-      { type: 'winner', wallet: winnerWallet, amount: winnerAmount, txSignature: 'SIM' }
-    ];
+    const simTransfers = [];
+    if (winnerQualified) {
+      simTransfers.push({ type: 'winner', wallet: winnerWallet, amount: winnerAmount, txSignature: 'SIM' });
+    } else {
+      simTransfers.push({ type: 'winner', wallet: winnerWallet, amount: 0, txSignature: 'SIM', skipped: true, reason: 'insufficient_memeya_balance' });
+    }
     for (let i = 0; i < randomVoters.length; i++) {
       simTransfers.push({ type: 'voter', wallet: randomVoters[i], amount: voterAmounts[i], txSignature: 'SIM' });
     }
@@ -132,15 +149,17 @@ async function distributeRewards(drawResult, options = {}) {
       status: 'simulated',
       balance: usdcBalance,
       winnerWallet,
+      winnerQualified,
+      ...(!winnerQualified && { winnerSkipped: true, winnerSkipReason: 'insufficient_memeya_balance' }),
       memeId,
       transfers: simTransfers,
       errors: [],
       randomVoters,
       calculatedAmounts: {
-        winner: winnerAmount,
+        winner: winnerQualified ? winnerAmount : 0,
         voter1: VOTER_1_REWARD,
         voter2: VOTER_2_REWARD,
-        total: TOTAL_PAYOUT
+        total: (winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD
       }
     });
 
@@ -151,9 +170,9 @@ async function distributeRewards(drawResult, options = {}) {
     await sendTgAlert(
       `🧪 *Reward Simulation* (draw ${drawId})\n` +
       `Balance: $${usdcBalance.toFixed(2)} USDC\n` +
-      `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\` → $${winnerAmount.toFixed(2)}\n` +
+      `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\` → $${(winnerQualified ? winnerAmount : 0).toFixed(2)}${!winnerQualified ? ' (SKIPPED — <10K $Memeya)' : ''}\n` +
       voterLines +
-      `\nTotal: $${TOTAL_PAYOUT.toFixed(2)}\n` +
+      `\nTotal: $${((winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD).toFixed(2)}\n` +
       `_No actual transfers made — simulation mode_`
     );
 
@@ -165,20 +184,31 @@ async function distributeRewards(drawResult, options = {}) {
   const transfers = [];
   const errors = [];
 
-  // Winner transfer
-  try {
-    const result = await crossmintService.sendUsdc(winnerWallet, winnerAmount);
+  // Winner transfer (skip if not qualified by $Memeya holding)
+  if (winnerQualified) {
+    try {
+      const result = await crossmintService.sendUsdc(winnerWallet, winnerAmount);
+      transfers.push({
+        type: 'winner',
+        wallet: winnerWallet,
+        amount: winnerAmount,
+        txSignature: result.txSignature
+      });
+      remaining -= winnerAmount;
+      console.log(`✅ Winner reward: $${winnerAmount} → ${winnerWallet}`);
+    } catch (err) {
+      console.error(`❌ Winner transfer failed:`, err.message);
+      errors.push({ type: 'winner', wallet: winnerWallet, error: err.message });
+    }
+  } else {
+    console.log(`⏭️ Winner $3 skipped — ${winnerWallet} holds < ${MEMEYA_THRESHOLD} $Memeya`);
     transfers.push({
       type: 'winner',
       wallet: winnerWallet,
-      amount: winnerAmount,
-      txSignature: result.txSignature
+      amount: 0,
+      skipped: true,
+      reason: 'insufficient_memeya_balance'
     });
-    remaining -= winnerAmount;
-    console.log(`✅ Winner reward: $${winnerAmount} → ${winnerWallet}`);
-  } catch (err) {
-    console.error(`❌ Winner transfer failed:`, err.message);
-    errors.push({ type: 'winner', wallet: winnerWallet, error: err.message });
   }
 
   // Voter transfers — only if winner succeeded and balance remains
@@ -215,15 +245,17 @@ async function distributeRewards(drawResult, options = {}) {
     status: distStatus,
     balance: usdcBalance,
     winnerWallet,
+    winnerQualified,
+    ...(!winnerQualified && { winnerSkipped: true, winnerSkipReason: 'insufficient_memeya_balance' }),
     memeId,
     transfers,
     errors,
     randomVoters,
     calculatedAmounts: {
-      winner: winnerAmount,
+      winner: winnerQualified ? winnerAmount : 0,
       voter1: VOTER_1_REWARD,
       voter2: VOTER_2_REWARD,
-      total: TOTAL_PAYOUT
+      total: (winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD
     }
   });
 
@@ -256,10 +288,26 @@ async function selectRandomVoters(drawId, excludeWallet, count) {
     }
   });
 
-  const voters = Array.from(voterSet);
+  // Filter by $Memeya holding (10K required for USDC rewards)
+  const MEMEYA_THRESHOLD = 10000;
+  const walletArray = Array.from(voterSet);
+  const qualifiedVoters = [];
+  if (walletArray.length > 0) {
+    const userRefs = walletArray.map(w => db.collection(collections.USERS).doc(w));
+    const userDocs = await db.getAll(...userRefs);
+    userDocs.forEach((doc, idx) => {
+      if (doc.exists && (doc.data().memeyaBalance || 0) >= MEMEYA_THRESHOLD) {
+        qualifiedVoters.push(walletArray[idx]);
+      }
+    });
+  }
+
+  console.log(`🗳️ Voters: ${voterSet.size} total, ${qualifiedVoters.length} qualified (≥${MEMEYA_THRESHOLD} $Memeya)`);
+
+  const voters = qualifiedVoters;
 
   if (voters.length === 0) {
-    console.log('⚠️ No eligible voters found for random selection');
+    console.log('⚠️ No eligible voters found for random selection (none hold ≥10K $Memeya)');
     return [];
   }
 

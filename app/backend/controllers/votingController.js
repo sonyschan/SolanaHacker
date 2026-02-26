@@ -21,14 +21,17 @@ async function awardVotingTickets(walletAddress) {
 
     // Token holding bonus (read-only RPC call, outside transaction)
     let tokenBonus = 0;
+    let tokenAmount = 0;
+    let rpcSucceeded = false;
     try {
-      const tokenAmount = await getMemeyaBalance(walletAddress);
+      tokenAmount = await getMemeyaBalance(walletAddress);
+      rpcSucceeded = true;
       tokenBonus = calculateTokenBonus(tokenAmount);
       if (tokenBonus > 0) {
         console.log(`🪙 $Memeya bonus: ${tokenBonus} (holding ${tokenAmount.toLocaleString()} tokens) for ${walletAddress}`);
       }
     } catch (e) {
-      // Graceful: no bonus if RPC fails
+      // Graceful: no bonus if RPC fails, don't overwrite cached balance
       console.error('Token bonus check failed:', e.message);
     }
 
@@ -47,6 +50,10 @@ async function awardVotingTickets(walletAddress) {
           streakDays: 1,
           lastVoteDate: today,
           totalVotes: 1,
+          ...(rpcSucceeded && {
+            memeyaBalance: tokenAmount,
+            memeyaBalanceUpdatedAt: new Date().toISOString(),
+          }),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -76,6 +83,10 @@ async function awardVotingTickets(walletAddress) {
           streakDays: newStreak,
           lastVoteDate: today,
           totalVotes: (userData.totalVotes || 0) + 1,
+          ...(rpcSucceeded && {
+            memeyaBalance: tokenAmount,
+            memeyaBalanceUpdatedAt: new Date().toISOString(),
+          }),
           updatedAt: new Date().toISOString()
         });
       }
@@ -88,6 +99,7 @@ async function awardVotingTickets(walletAddress) {
       baseTickets,
       streakBonus,
       tokenBonus,
+      ...(rpcSucceeded && { memeyaBalance: tokenAmount }),
       user: updatedUser.exists ? { id: updatedUser.id, ...updatedUser.data() } : null
     };
   } catch (error) {
@@ -142,10 +154,12 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
     // Award tickets after RARITY vote (not selection) - do this BEFORE saving
     let ticketsEarned = 0;
     let updatedUser = null;
+    let memeyaBalance;
     if (voteType === 'rarity') {
       const reward = await awardVotingTickets(walletAddress);
       ticketsEarned = reward.ticketsEarned;
       updatedUser = reward.user;
+      memeyaBalance = reward.memeyaBalance;
       voteData.ticketsEarned = ticketsEarned; // Store in vote document for later retrieval
       voteData.baseTickets = reward.baseTickets;
       voteData.streakBonus = reward.streakBonus;
@@ -185,6 +199,7 @@ async function submitVote({ memeId, userId, voteType, choice, score, walletAddre
       ...voteData,
       ticketsEarned,
       tokenBonus: voteData.tokenBonus || 0,
+      memeyaBalance,
       user: updatedUser
     };
 

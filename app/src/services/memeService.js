@@ -146,6 +146,10 @@ class MemeService {
       return {
         success: result.success,
         ticketsEarned: voteData.ticketsEarned,
+        baseTickets: voteData.baseTickets,
+        streakBonus: voteData.streakBonus,
+        tokenBonus: voteData.tokenBonus,
+        memeyaBalance: voteData.memeyaBalance,
         user: voteData.user,
         vote: voteData
       };

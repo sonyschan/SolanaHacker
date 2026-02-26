@@ -277,4 +277,42 @@ router.get('/:wallet/memeya-balance', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/users/:wallet/refresh-memeya-balance
+ * Fetch fresh $Memeya balance via RPC and cache it on the Firestore user doc.
+ * Used when a previously-prompted user revisits after the 1-hour cooldown,
+ * so their cached balance is up-to-date for the daily USDC draw.
+ */
+router.post('/:wallet/refresh-memeya-balance', rateLimiter, async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const balance = await getMemeyaBalance(wallet);
+    const bonus = calculateTokenBonus(balance);
+
+    // Update Firestore user doc with fresh balance
+    const { getFirestore, collections } = require('../config/firebase');
+    const db = getFirestore();
+    const userRef = db.collection(collections.USERS).doc(wallet);
+    const userDoc = await userRef.get();
+
+    if (userDoc.exists) {
+      await userRef.update({
+        memeyaBalance: balance,
+        memeyaBalanceUpdatedAt: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { balance, bonus }
+    });
+  } catch (error) {
+    console.error('Refresh $Memeya balance error:', error);
+    res.json({
+      success: true,
+      data: { balance: 0, bonus: 0 }
+    });
+  }
+});
+
 module.exports = router;

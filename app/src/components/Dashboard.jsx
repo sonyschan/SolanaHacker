@@ -62,9 +62,37 @@ const Dashboard = ({
   }, [isSettingsOpen]);
 
   // Fetch $Memeya token balance
+  // If user was previously prompted about 10K requirement and 1 hour has passed,
+  // refresh via backend (updates Firestore cache for draw-time qualification).
+  // Otherwise, use the standard frontend RPC call (display only, no Firestore write).
   useEffect(() => {
     if (!walletAddress) return;
+    const REFRESH_COOLDOWN = 60 * 60 * 1000; // 1 hour
     (async () => {
+      const promptedAt = localStorage.getItem('memeya_prompted_at');
+      const cacheExpired = promptedAt && (Date.now() - parseInt(promptedAt) > REFRESH_COOLDOWN);
+
+      if (cacheExpired) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/refresh-memeya-balance`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = await res.json();
+          if (data.success) {
+            setMemeyaBalance(data.data.balance);
+            setMemeyaBonus(data.data.bonus);
+            // Clear the frontend balance cache so it picks up the fresh value
+            localStorage.removeItem(`memeya_bal_${walletAddress}`);
+            // Reset prompted timestamp — ForgeTab will re-set it if still unqualified
+            localStorage.removeItem('memeya_prompted_at');
+            return;
+          }
+        } catch (e) {
+          console.warn('Balance refresh failed, falling back to RPC:', e.message);
+        }
+      }
+
       const { balance, bonus } = await getMemeyaBalance(walletAddress);
       setMemeyaBalance(balance);
       setMemeyaBonus(bonus);
@@ -715,6 +743,7 @@ const Dashboard = ({
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
           setVotingStreak={setVotingStreak}
+          memeyaBalance={memeyaBalance}
         />;
       case 'gallery':
         return <GalleryTab />;
@@ -728,6 +757,7 @@ const Dashboard = ({
           setUserTickets={setUserTickets}
           votingStreak={votingStreak}
           setVotingStreak={setVotingStreak}
+          memeyaBalance={memeyaBalance}
         />;
     }
   };

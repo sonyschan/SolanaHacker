@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import memeService from '../services/memeService';
 import MemeModal from './MemeModal';
 import ModalOverlay from './ModalOverlay';
 
-const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress }) => {
+const MEMEYA_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
+const MEMEYA_THRESHOLD = 10000;
+
+const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress, memeyaBalance }) => {
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [votedMemeId, setVotedMemeId] = useState(null);  // Track which meme user voted for
@@ -21,6 +24,40 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMemeIndex, setModalMemeIndex] = useState(0); // Track current meme index for navigation
   const [isInitializing, setIsInitializing] = useState(true); // Prevents UI flash during vote status check
+  const [showMemeyaNotice, setShowMemeyaNotice] = useState(false);
+  const [caCopied, setCaCopied] = useState(false);
+  const [localMemeyaBalance, setLocalMemeyaBalance] = useState(memeyaBalance);
+  const latestBalanceRef = useRef(localMemeyaBalance);
+
+  // Sync memeyaBalance from Dashboard prop
+  useEffect(() => {
+    if (memeyaBalance !== undefined) {
+      setLocalMemeyaBalance(memeyaBalance);
+      latestBalanceRef.current = memeyaBalance;
+    }
+  }, [memeyaBalance]);
+
+  const currentBalance = localMemeyaBalance ?? 0;
+  const isMemeyaQualified = currentBalance >= MEMEYA_THRESHOLD;
+
+  // Track when user was shown the $Memeya notice (for hourly refresh cycle)
+  useEffect(() => {
+    if (currentPhase === 'completed' && !isMemeyaQualified) {
+      const existing = localStorage.getItem('memeya_prompted_at');
+      if (!existing) {
+        localStorage.setItem('memeya_prompted_at', Date.now().toString());
+      }
+    }
+    if (isMemeyaQualified) {
+      localStorage.removeItem('memeya_prompted_at');
+    }
+  }, [currentPhase, isMemeyaQualified]);
+
+  const copyCA = () => {
+    navigator.clipboard.writeText(MEMEYA_CA);
+    setCaCopied(true);
+    setTimeout(() => setCaCopied(false), 2000);
+  };
 
   // Fetch today's memes on component mount
   useEffect(() => {
@@ -195,6 +232,10 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           if (result.baseTickets) setBaseTickets(result.baseTickets);
           if (result.streakBonus) setStreakBonusEarned(result.streakBonus);
           if (result.tokenBonus) setTokenBonus(result.tokenBonus);
+          if (result.memeyaBalance !== undefined) {
+            setLocalMemeyaBalance(result.memeyaBalance);
+            latestBalanceRef.current = result.memeyaBalance;
+          }
           if (result.user) {
             setUserTickets(result.user.weeklyTickets || 0);
             setVotingStreak(result.user.streakDays || 0);
@@ -211,9 +252,13 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
     setCurrentPhase('completed');
     setShowReward(true);
 
-    // Auto-hide reward after 3 seconds
+    // Auto-hide reward after 3 seconds, then show $Memeya notice if needed
     setTimeout(() => {
       setShowReward(false);
+      if ((latestBalanceRef.current ?? 0) < MEMEYA_THRESHOLD) {
+        setShowMemeyaNotice(true);
+        localStorage.setItem('memeya_prompted_at', Date.now().toString());
+      }
     }, 3000);
   };
 
@@ -242,6 +287,47 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           </p>
         )}
         <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
+      </ModalOverlay>
+
+      {/* $Memeya Holding Notice Modal */}
+      <ModalOverlay
+        isOpen={showMemeyaNotice}
+        backdropOpacity="bg-black/80"
+        closeOnBackdropClick={true}
+        onClose={() => setShowMemeyaNotice(false)}
+        className="bg-gradient-to-br from-orange-600 to-yellow-600 rounded-2xl p-8 text-center max-w-md mx-auto"
+      >
+        <div className="text-5xl mb-4">&#129689;</div>
+        <h3 className="text-2xl font-bold mb-3">Qualify for USDC Rewards!</h3>
+        <p className="text-orange-100 mb-4">
+          Hold 10,000 $Memeya tokens to be eligible for daily USDC draws ($3 winner + $2/$1 lucky voters)
+        </p>
+        <div className="bg-black/20 rounded-lg p-3 mb-4">
+          <p className="text-xs text-orange-200 mb-1">Contract Address</p>
+          <div className="flex items-center justify-center gap-2">
+            <code className="text-xs text-white break-all">{MEMEYA_CA}</code>
+            <button
+              onClick={copyCA}
+              className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors flex-shrink-0"
+            >
+              {caCopied ? '✓' : 'Copy'}
+            </button>
+          </div>
+        </div>
+        <a
+          href={`https://pump.fun/coin/${MEMEYA_CA}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block w-full py-3 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-lg transition-colors mb-3"
+        >
+          Buy $Memeya on pump.fun
+        </a>
+        <button
+          onClick={() => setShowMemeyaNotice(false)}
+          className="text-orange-200 hover:text-white text-sm transition-colors"
+        >
+          Got it
+        </button>
       </ModalOverlay>
 
       {/* Loading skeleton — shown during initialization (no phase-specific header to avoid flash) */}
@@ -610,6 +696,32 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 </div>
               </div>
             </div>
+
+            {/* $Memeya holding reminder */}
+            {!isMemeyaQualified && (
+              <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-4 text-left">
+                <p className="font-bold text-yellow-300 mb-1">Hold 10,000 $Memeya to qualify for USDC draws</p>
+                <p className="text-sm text-yellow-200/80 mb-2">
+                  Current: {currentBalance.toLocaleString()} $Memeya
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyCA}
+                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {caCopied ? '✓ Copied' : 'Copy CA'}
+                  </button>
+                  <a
+                    href={`https://pump.fun/coin/${MEMEYA_CA}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Buy on pump.fun
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Info lines */}
             <div className="text-sm text-gray-400 space-y-1 mb-6">
