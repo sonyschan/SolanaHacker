@@ -57,8 +57,9 @@ export class ChatMode {
     this.lastOwnerMentionCheck = 0;
     this.ownerMentionInterval = 15 * 60 * 1000;
 
-    // Moltbook posting timer (posts 1 meme per heartbeat, 35-min cooldown)
+    // Moltbook posting timer (posts 1 meme per heartbeat, 2-3 hour cooldown)
     this.lastMoltbookPost = null;
+    this.moltbookPostInterval = this._randomMoltbookPostInterval();
     this.moltbookPostDoneDate = null; // YYYY-MM-DD when all memes posted for the day
     this.moltbookSetupDone = false;
     this.moltbookIntroDone = false;
@@ -1808,6 +1809,10 @@ ${recentMemory.slice(-1500)}
     return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
   }
 
+  _randomMoltbookPostInterval() {
+    return (2 + Math.random() * 1) * 60 * 60 * 1000; // 2-3 hours
+  }
+
   _randomMoltbookEngageInterval() {
     return (3 + Math.random() * 2) * 60 * 60 * 1000; // 3-5 hours
   }
@@ -2041,9 +2046,9 @@ ${recentMemory.slice(-1500)}
     const today = new Date().toISOString().slice(0, 10);
     if (this.moltbookPostDoneDate === today) return;
 
-    // Rate limit: don't post more often than every 35 min (Moltbook 30-min cooldown)
+    // Rate limit: space posts 2-3 hours apart to avoid spam flags
     const now = Date.now();
-    if (this.lastMoltbookPost && (now - this.lastMoltbookPost < 35 * 60 * 1000)) return;
+    if (this.lastMoltbookPost && (now - this.lastMoltbookPost < this.moltbookPostInterval)) return;
 
     console.log('[ChatMode] maybePostToMoltbook: checking for memes to post...');
 
@@ -2089,8 +2094,9 @@ ${recentMemory.slice(-1500)}
       const result = await autoPostMemes(deps);
 
       if (result.success && result.posted > 0) {
-        // Only set cooldown on successful post
+        // Only set cooldown on successful post — randomize next interval
         this.lastMoltbookPost = now;
+        this.moltbookPostInterval = this._randomMoltbookPostInterval();
         console.log(`[ChatMode] Moltbook: posted "${result.title}" (${result.posted}/${result.total})`);
         try {
           await this.telegram.sendDevlog(
@@ -2287,12 +2293,12 @@ ${recentMemory.slice(-1500)}
           },
           moltbookPost: {
             label: 'Moltbook Post',
-            interval: '35m cooldown',
-            intervalMs: 35 * 60 * 1000,
+            interval: fmt(this.moltbookPostInterval),
+            intervalMs: this.moltbookPostInterval,
             lastFired: this.lastMoltbookPost || null,
             nextIn: this.moltbookPostDoneDate === today
               ? 'done today'
-              : (this.lastMoltbookPost ? fmt(35 * 60 * 1000 - (now - this.lastMoltbookPost)) : 'ready'),
+              : (this.lastMoltbookPost ? fmt(this.moltbookPostInterval - (now - this.lastMoltbookPost)) : 'ready'),
             enabled: !!process.env.MOLTBOOK_API_KEY,
             scope: 'after 8:30am GMT+8',
             setupDone: this.moltbookSetupDone,
