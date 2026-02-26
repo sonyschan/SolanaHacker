@@ -78,6 +78,9 @@ export class TelegramBridge {
     this.approvalResult = null; // { approved: boolean, reason?: string }
     this.screenshotDir = '/home/projects/solanahacker/screenshots';
 
+    // Dedup guard: track recent message IDs to prevent double-processing on polling reconnects
+    this._processedMsgIds = new Set();
+
     this.setupListeners();
   }
 
@@ -124,6 +127,19 @@ export class TelegramBridge {
       if (msg.chat.id.toString() !== this.chatId.toString()) {
         console.log(`[TG] Ignoring message from unknown chat: ${msg.chat.id}`);
         return;
+      }
+
+      // Dedup: skip if we already processed this message (polling reconnect can deliver twice)
+      const msgId = msg.message_id;
+      if (this._processedMsgIds.has(msgId)) {
+        console.log(`[TG] Skipping duplicate message_id: ${msgId}`);
+        return;
+      }
+      this._processedMsgIds.add(msgId);
+      // Keep set bounded — prune old IDs beyond 200
+      if (this._processedMsgIds.size > 200) {
+        const iter = this._processedMsgIds.values();
+        this._processedMsgIds.delete(iter.next().value);
       }
 
       const text = msg.text || msg.caption || '';  // Also check caption for photos
