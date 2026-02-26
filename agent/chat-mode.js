@@ -2257,8 +2257,8 @@ ${recentMemory.slice(-1500)}
     // Moltbook ecosystem posts to m/general (3.5-5 day timer)
     await this.maybePostEcosystem();
 
-    // TG Community murmur check
-    await this.maybeTgCommunityTick();
+    // TG Community murmur disabled — Memeya talks too much without community engagement
+    // await this.maybeTgCommunityTick();
 
     if (this.sleepToday) {
       console.log('[ChatMode] Sleep mode active, skipping heartbeat');
