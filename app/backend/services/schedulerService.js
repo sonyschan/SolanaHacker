@@ -127,6 +127,12 @@ class SchedulerService {
       }
 
       const results = await this.calculateVotingResults(activePeriod.memeIds);
+
+      // Defensive: warn if all memes in the voting period were deleted/missing
+      if (Object.keys(results).length === 0) {
+        console.warn(`⚠️ All ${activePeriod.memeIds.length} memes in voting period are missing (deleted?). Meme IDs: ${activePeriod.memeIds.join(', ')}`);
+      }
+
       const winningMeme = this.selectWinningMeme(results);
 
       if (winningMeme) {
@@ -150,6 +156,8 @@ class SchedulerService {
         }
 
         console.log(`✅ Voting completed. Winner: ${winningMeme.id} with rarity: ${rarity}`);
+      } else {
+        console.warn(`⚠️ No winning meme could be determined from voting results. Results keys: ${Object.keys(results).length}`);
       }
 
       await dbUtils.updateDocument(collections.VOTING_PERIODS, activePeriod.id, {

@@ -142,7 +142,9 @@ async function generateDailyMemes(req, res) {
         const batch = getFirestore().batch();
         existingSnapshot.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-        console.log(`🗑️ Deleted ${existingSnapshot.size} existing daily memes for regeneration`);
+        console.log(`🗑️ Deleted ${existingSnapshot.size} existing daily memes for force regeneration`);
+        // NOTE: If an active voting period references these deleted memes,
+        // it will be patched below after new memes are saved (see "force regen voting fix").
       } else {
         console.log("ℹ️ Daily memes already exist for today ("+existingSnapshot.size+" found), skipping generation");
         return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
@@ -173,22 +175,50 @@ async function generateDailyMemes(req, res) {
     const dailyMemes = await geminiService.generateDailyMemes(newsData, 3, imageGenerators, recentThemes, tokenSymbols);
     
     // Save each meme to Firestore
+    // If force-regenerating during an active voting period, inherit voting_active status
+    let activeVotingPeriod = null;
+    if (req.query.force === 'true') {
+      const vpSnap = await getFirestore().collection(collections.VOTING_PERIODS)
+        .where('date', '==', today)
+        .where('status', '==', 'active')
+        .limit(1)
+        .get();
+      if (!vpSnap.empty) {
+        activeVotingPeriod = { id: vpSnap.docs[0].id, ...vpSnap.docs[0].data() };
+      }
+    }
+    const memeStatus = activeVotingPeriod ? 'voting_active' : 'active';
+
     const savedMemes = [];
     for (const meme of dailyMemes) {
       await dbUtils.setDocument(collections.MEMES, meme.id, {
         ...meme,
         type: 'daily',
-        status: 'active'
+        status: memeStatus,
+        ...(activeVotingPeriod ? {
+          votingStarted: activeVotingPeriod.startTime,
+          votingEnds: activeVotingPeriod.endTime
+        } : {})
       });
       savedMemes.push(meme);
     }
-    
+
+    // Force regen voting fix: update the active voting period to reference new meme IDs
+    if (activeVotingPeriod) {
+      const newMemeIds = savedMemes.map(m => m.id);
+      await dbUtils.updateDocument(collections.VOTING_PERIODS, activeVotingPeriod.id, {
+        memeIds: newMemeIds
+      });
+      console.log(`🔄 Updated voting period ${activeVotingPeriod.id} with new meme IDs: ${newMemeIds.join(', ')}`);
+    }
+
     console.log(`✅ Generated ${savedMemes.length} daily memes`);
-    
+
     res.json({
       success: true,
       message: `Generated ${savedMemes.length} daily memes`,
-      memes: savedMemes
+      memes: savedMemes,
+      ...(activeVotingPeriod ? { votingPeriodUpdated: true } : {})
     });
 
   } catch (error) {
