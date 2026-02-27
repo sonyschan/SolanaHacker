@@ -286,6 +286,20 @@ export class TgCommunity {
       parts.push('## Current TODOs\n' + fs.readFileSync(todoPath, 'utf-8').slice(0, 1000));
     }
 
+    // Agent journal (last 2 days) — system updates, releases, deployments
+    const agentJournalDir = path.join(this.baseDir, 'memory', 'journal');
+    if (fs.existsSync(agentJournalDir)) {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      for (const date of [yesterday, today]) {
+        const jPath = path.join(agentJournalDir, `${date}.md`);
+        if (fs.existsSync(jPath)) {
+          const content = fs.readFileSync(jPath, 'utf-8');
+          parts.push(`## System Updates ${date}\n` + content.slice(-3000));
+        }
+      }
+    }
+
     // Memeya journal (last 2 days, last 2000 chars)
     const journalDir = path.join(this.baseDir, 'memory', 'journal', 'memeya');
     if (fs.existsSync(journalDir)) {
@@ -295,7 +309,7 @@ export class TgCommunity {
         const jPath = path.join(journalDir, `${date}.md`);
         if (fs.existsSync(jPath)) {
           const content = fs.readFileSync(jPath, 'utf-8');
-          parts.push(`## Journal ${date}\n` + content.slice(-2000));
+          parts.push(`## Memeya Activity ${date}\n` + content.slice(-2000));
         }
       }
     }
