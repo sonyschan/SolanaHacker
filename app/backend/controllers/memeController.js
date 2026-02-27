@@ -156,7 +156,15 @@ async function generateDailyMemes(req, res) {
 
     // Get crypto news (with anti-repetition context)
     const newsData = await newsService.getCryptoNews(recentThemes);
-    console.log(`📰 News topics: ${newsData.map(n => n.title).join(' | ')}`);
+    const categoryLabels = { A: 'Token/Market', B: 'Industry/Tech', C: 'People/Culture' };
+    console.log(`📰 News topics: ${newsData.map(n => `[${n.category || '?'}] ${n.title}`).join(' | ')}`);
+    const cats = newsData.map(n => n.category).filter(Boolean);
+    const uniqueCats = new Set(cats);
+    if (uniqueCats.size < 3) {
+      console.log(`⚠️ Category diversity: ${cats.join(',')} — only ${uniqueCats.size}/3 unique categories`);
+    } else {
+      console.log(`✅ Category diversity: ${cats.map(c => categoryLabels[c] || c).join(', ')}`);
+    }
 
     // Extract token symbols from news headlines (parallel)
     const tokenSymbols = await Promise.all(

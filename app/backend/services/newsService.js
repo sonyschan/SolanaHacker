@@ -54,19 +54,24 @@ class NewsService {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      let prompt = `Today is ${today}. Search for the 3 most meme-worthy crypto/blockchain events from the PAST 12 HOURS. Prioritize:
-- Breaking price movements (coins pumping/dumping >20% today)
-- New memecoin launches or viral tokens (e.g. tokens hitting $10M+ market cap today)
-- Major protocol events, hacks, or launches happening NOW
-- Regulatory announcements or celebrity crypto moves from TODAY
-- Trending CT (Crypto Twitter) topics RIGHT NOW
+      let prompt = `Today is ${today}. Search for 3 meme-worthy crypto/Web3 events from the PAST 12-24 hours.
 
-If fewer than 3 events happened in the last 12 hours, extend to 24 hours.
-Do NOT include old events (BTC hitting $100K months ago, Solana Saga launch, etc.) unless they are specifically trending again TODAY.
+CRITICAL: Each event MUST be from a DIFFERENT category. Pick exactly one from each:
 
-For each event, include the X (Twitter) handle of the key person or entity involved (e.g. @elonmusk, @solana, @VitalikButerin, @aaboronkov). Use null if no clear handle.
+Category A — Token/Market Action:
+  Price pumps/dumps >20%, viral memecoin launches, liquidation cascades, exchange listing pumps
 
-Return as JSON array: [{ "title": "...", "summary": "...", "trend_reason": "...", "x_handle": "@..." }]`;
+Category B — Industry & Tech News:
+  Protocol launches, hacks, major partnerships, AI×Web3 product announcements, exchange new features, regulatory moves, blockchain upgrades
+
+Category C — People & Culture:
+  Celebrity/influencer crypto moments, famous people speeches/tweets about crypto, CT drama, community milestones, viral crypto memes or cultural moments
+
+Do NOT include old events unless they are specifically trending again TODAY.
+
+For each event, include the X (Twitter) handle of the key person or entity involved (e.g. @elonmusk, @solana, @VitalikButerin). Use null if no clear handle.
+
+Return as JSON array: [{ "title": "...", "summary": "...", "trend_reason": "...", "x_handle": "@...", "category": "A"|"B"|"C" }]`;
 
       if (recentMemeThemes.length > 0) {
         const themesList = recentMemeThemes
@@ -120,21 +125,24 @@ Return as JSON array: [{ "title": "...", "summary": "...", "trend_reason": "..."
     const today = new Date().toISOString().split('T')[0];
     return [
       {
-        title: `Crypto market update ${today}`,
-        summary: `Latest cryptocurrency market movements and trends for ${today}.`,
+        title: `Crypto market movers ${today}`,
+        summary: `Top cryptocurrency price movements and trading volume spikes for ${today}.`,
         trend_reason: 'Daily market activity',
+        category: 'A',
         source: 'Fallback',
       },
       {
-        title: `DeFi and memecoin activity ${today}`,
-        summary: `Decentralized finance and memecoin trading activity on ${today}.`,
-        trend_reason: 'Community trading activity',
+        title: `Web3 tech and protocol updates ${today}`,
+        summary: `Latest blockchain upgrades, DeFi protocol launches, and AI×Web3 developments on ${today}.`,
+        trend_reason: 'Industry developments',
+        category: 'B',
         source: 'Fallback',
       },
       {
-        title: `Solana ecosystem developments ${today}`,
-        summary: `Solana network updates and ecosystem growth on ${today}.`,
-        trend_reason: 'Ecosystem growth',
+        title: `Crypto culture and community moments ${today}`,
+        summary: `Notable crypto community milestones, influencer takes, and viral moments on ${today}.`,
+        trend_reason: 'Community buzz',
+        category: 'C',
         source: 'Fallback',
       },
     ];
