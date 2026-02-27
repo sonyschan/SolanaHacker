@@ -618,17 +618,15 @@ const Dashboard = ({
                             <span className="text-sm font-mono text-gray-300">{privateWallet(v.wallet)}</span>
                             {isVoterYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
                           </div>
-                          {/* Votes */}
-                          <div className="md:col-span-1 text-sm text-gray-300 flex items-center">
+                          {/* Votes - N/A for lucky voters (random draw, not ticket-based) */}
+                          <div className="md:col-span-1 text-sm text-gray-500 flex items-center">
                             <span className="md:hidden text-gray-500 mr-2">Votes:</span>
-                            {w.winnerTickets} / {w.totalTickets}
+                            —
                           </div>
-                          {/* Win Rate */}
+                          {/* Win Rate - N/A for lucky voters */}
                           <div className="md:col-span-2 text-sm text-right flex items-center justify-end">
                             <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
-                            <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
-                              {winRate}%
-                            </span>
+                            <span className="font-medium text-gray-500">—</span>
                           </div>
                         </div>
                       );

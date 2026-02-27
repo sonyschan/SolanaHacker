@@ -45,9 +45,15 @@ export class ChatMode {
     this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
     // Autonomous X posting timer (2-4 hours randomized)
-    // Initialize to now so first post waits full interval after boot
-    this.lastXPost = Date.now();
+    // Persist across restarts via .last-x-post-at file
     this.xPostInterval = this._randomXInterval();
+    const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
+    try {
+      const ts = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10);
+      this.lastXPost = ts && ts > 0 ? ts : Date.now();
+    } catch {
+      this.lastXPost = Date.now();
+    }
 
     // Community engagement timer (every 2-4 hours, offset from posting)
     this.lastCommunityEngage = Date.now();
@@ -71,6 +77,10 @@ export class ChatMode {
     // Moltbook ecosystem posts to m/general (3.5-5 day timer, independent from meme posts)
     this.lastMoltbookEcosystemPost = Date.now(); // wait full interval after boot
     this.moltbookEcosystemInterval = this._randomMoltbookEcosystemInterval();
+
+    // Winner announcement timer (5-min polling after lottery at 23:55 UTC)
+    this.lastWinnerAnnouncementCheck = 0;
+    this.winnerAnnouncementInterval = 5 * 60 * 1000; // 5 min
 
     // Memory distillation flag (biweekly Sunday 9am GMT+8)
     this.lastDistillDate = null;
@@ -1835,10 +1845,25 @@ ${recentMemory.slice(-1500)}
     if (!fs.existsSync(flagPath)) return; // Autonomous X posting disabled
 
     const now = Date.now();
+
+    // Check if dashboard manually posted — shared file resets our timer
+    const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
+    try {
+      const ts = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10);
+      if (ts && ts > this.lastXPost) {
+        this.lastXPost = ts;
+        this.xPostInterval = this._randomXInterval();
+        console.log('[ChatMode] Timer reset — dashboard manual post detected');
+      }
+    } catch { /* file doesn't exist or invalid — ignore */ }
+
     if (now - this.lastXPost < this.xPostInterval) return; // Not time yet
 
     this.lastXPost = now;
     this.xPostInterval = this._randomXInterval(); // Randomize next interval
+
+    // Persist timer across restarts
+    try { fs.writeFileSync(path.join(this.baseDir, 'agent', '.last-x-post-at'), String(now), 'utf-8'); } catch { /* best-effort */ }
 
     console.log('[ChatMode] maybePostToX: attempting autonomous X post...');
 
@@ -1931,6 +1956,183 @@ ${recentMemory.slice(-1500)}
       }
     } catch (err) {
       console.error('[ChatMode] maybeCommunityEngage error:', err.message);
+    }
+  }
+
+  /**
+   * Build dynamic winner announcement text from distribution record.
+   * Iterates transfers[] — not hardcoded to any specific count/amount.
+   */
+  buildWinnerAnnouncementText(dist) {
+    const fmtWallet = (w) => w ? `${w.slice(0, 4)}...${w.slice(-4)}` : '????...????';
+    const lines = ['AiMemeForge Daily Winners!\n'];
+
+    const winnerTransfer = (dist.transfers || []).find(t => t.type === 'winner');
+    const voterTransfers = (dist.transfers || []).filter(t => t.type === 'voter');
+
+    // Winner line
+    if (winnerTransfer) {
+      if (winnerTransfer.skipped || winnerTransfer.amount === 0) {
+        lines.push(`Meme Owner: ${fmtWallet(winnerTransfer.wallet)} — Meme (no USDC)`);
+      } else {
+        lines.push(`Meme Owner: ${fmtWallet(winnerTransfer.wallet)} — Meme + $${winnerTransfer.amount} USDC`);
+      }
+    } else if (dist.winnerWallet) {
+      // Fallback: winner in dist but not in transfers
+      lines.push(`Meme Owner: ${fmtWallet(dist.winnerWallet)} — Meme (no USDC)`);
+    }
+
+    // Voter lines
+    for (const vt of voterTransfers) {
+      if (vt.skipped || vt.amount === 0) continue;
+      lines.push(`Lucky Voter: ${fmtWallet(vt.wallet)} — $${vt.amount} USDC`);
+    }
+
+    lines.push('');
+    lines.push("Today's memes are live — vote now!");
+    lines.push('aimemeforge.io');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Auto-announce daily winners on X after reward distribution.
+   * Polls backend every 5 min for unannounced completed distributions.
+   */
+  async maybeAnnounceWinners() {
+    // Same kill switch as X posting
+    const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
+    if (!fs.existsSync(flagPath)) return;
+
+    // Only poll around lottery time — 23:30-00:30 UTC (lottery runs at 23:55 UTC)
+    const utcHour = new Date().getUTCHours();
+    const utcMin = new Date().getUTCMinutes();
+    if (!((utcHour === 23 && utcMin >= 30) || (utcHour === 0 && utcMin < 30))) return;
+
+    const now = Date.now();
+    if (now - this.lastWinnerAnnouncementCheck < this.winnerAnnouncementInterval) return;
+    this.lastWinnerAnnouncementCheck = now;
+
+    const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
+
+    try {
+      // 1. Check for unannounced distribution
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(`${BACKEND_URL}/api/rewards/latest-unannounced`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        console.warn(`[ChatMode] latest-unannounced returned HTTP ${res.status}`);
+        return;
+      }
+
+      const json = await res.json();
+      if (!json.success || !json.data) return;
+
+      const dist = json.data;
+      const drawId = dist.drawId || dist.id;
+
+      // In-memory dedup guard: if tweet posted but PATCH failed, don't re-post this process lifetime
+      if (!this._announcedDrawIds) this._announcedDrawIds = new Set();
+      if (this._announcedDrawIds.has(drawId)) return;
+
+      console.log(`[ChatMode] maybeAnnounceWinners: found unannounced distribution ${drawId}`);
+
+      // 2. Build tweet text
+      const text = this.buildWinnerAnnouncementText(dist);
+
+      // 3. Fetch meme image (best-effort)
+      let imageBase64 = null;
+      let imageMimeType = null;
+      if (dist.memeImageUrl) {
+        try {
+          const imgController = new AbortController();
+          const imgTimeout = setTimeout(() => imgController.abort(), 15000);
+          const imgRes = await fetch(dist.memeImageUrl, { signal: imgController.signal });
+          clearTimeout(imgTimeout);
+
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            imageBase64 = buf.toString('base64');
+            const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+            imageMimeType = ct.split(';')[0].trim();
+          }
+        } catch (imgErr) {
+          console.warn('[ChatMode] Winner image fetch failed (non-fatal):', imgErr.message);
+        }
+      }
+
+      // 4. Post to X via dashboard send-post
+      const postBody = { text, topic: 'winner_announcement' };
+      if (imageBase64) {
+        postBody.imageBase64 = imageBase64;
+        postBody.imageMimeType = imageMimeType;
+      }
+
+      const postController = new AbortController();
+      const postTimeout = setTimeout(() => postController.abort(), 30000);
+      const postRes = await fetch(`http://localhost:${this.devServerPort}/api/memeya/send-post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postBody),
+        signal: postController.signal,
+      });
+      clearTimeout(postTimeout);
+
+      if (!postRes.ok) {
+        const errText = await postRes.text().catch(() => 'unknown');
+        console.error(`[ChatMode] Winner announcement tweet failed (HTTP ${postRes.status}): ${errText}`);
+        return;
+      }
+
+      const postJson = await postRes.json();
+      if (postJson.error) {
+        console.error('[ChatMode] Winner announcement tweet failed:', postJson.error);
+        return;
+      }
+
+      console.log(`[ChatMode] Winner announcement posted: ${postJson.url}`);
+
+      // Mark in-memory to prevent duplicate tweets if PATCH fails
+      this._announcedDrawIds.add(drawId);
+
+      // 5. Mark as announced in Firestore
+      const patchController = new AbortController();
+      const patchTimeout = setTimeout(() => patchController.abort(), 10000);
+      try {
+        await fetch(`${BACKEND_URL}/api/rewards/${drawId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ xAnnounced: true }),
+          signal: patchController.signal,
+        });
+        clearTimeout(patchTimeout);
+      } catch (patchErr) {
+        clearTimeout(patchTimeout);
+        console.error('[ChatMode] Failed to mark xAnnounced (will retry on restart):', patchErr.message);
+      }
+
+      // 6. Reset X post timer to avoid collision
+      this.lastXPost = Date.now();
+      this.xPostInterval = this._randomXInterval();
+      try { fs.writeFileSync(path.join(this.baseDir, 'agent', '.last-x-post-at'), String(Date.now()), 'utf-8'); } catch { /* best-effort */ }
+
+      // 7. TG devlog notification
+      try {
+        await this.telegram.sendDevlog(
+          `🏆 <b>Winner announcement posted to X!</b>\n` +
+          `Draw: <code>${drawId}</code>\n` +
+          `${dist.memeTitle ? `Meme: ${dist.memeTitle}\n` : ''}` +
+          `${postJson.url ? `<a href="${postJson.url}">View tweet</a>` : ''}`
+        );
+      } catch (e) {
+        console.error('[ChatMode] TG notification failed:', e.message);
+      }
+    } catch (err) {
+      console.error('[ChatMode] maybeAnnounceWinners error:', err.message);
     }
   }
 
@@ -2245,6 +2447,9 @@ ${recentMemory.slice(-1500)}
     // Community engagement runs on its own timer
     await this.maybeCommunityEngage();
 
+    // Winner announcement — auto-post daily winners to X after reward distribution
+    await this.maybeAnnounceWinners();
+
     // Biweekly memory distillation (Sunday 9am GMT+8)
     await this.maybeDistillMemory();
 
@@ -2389,6 +2594,15 @@ ${recentMemory.slice(-1500)}
             nextIn: this.getGMT8Hour() >= 9 ? 'tomorrow 8am' : (this.getGMT8Hour() < 8 ? 'today 8am' : 'now'),
             enabled: true,
             scope: '8am GMT+8',
+          },
+          winnerAnnouncement: {
+            label: 'Winner Announcement',
+            interval: '5m',
+            intervalMs: this.winnerAnnouncementInterval,
+            lastFired: this.lastWinnerAnnouncementCheck || null,
+            nextIn: fmt(this.winnerAnnouncementInterval - (now - (this.lastWinnerAnnouncementCheck || 0))),
+            enabled: xEnabled,
+            scope: '23:30-00:30 UTC (after lottery)',
           },
           distillMemory: {
             label: 'Memory Distill',

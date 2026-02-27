@@ -13,6 +13,7 @@
 const crypto = require('crypto');
 const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const crossmintService = require('./crossmintService');
+const { getMemeyaBalance } = require('./solanaService');
 
 const WINNER_REWARD = 3;      // Fixed $3 to meme winner
 const VOTER_1_REWARD = 2;     // Fixed $2 to lucky draw voter 1
@@ -274,8 +275,12 @@ async function selectRandomVoters(drawId, excludeWallet, count) {
   const db = getFirestore();
   const today = drawId; // drawId is YYYY-MM-DD
 
+  // Votes store ISO timestamp, not date — use range query to match the day
+  const startOfDay = new Date(today + 'T00:00:00.000Z').toISOString();
+  const endOfDay = new Date(today + 'T23:59:59.999Z').toISOString();
   const votesSnap = await db.collection(collections.VOTES)
-    .where('date', '==', today)
+    .where('timestamp', '>=', startOfDay)
+    .where('timestamp', '<=', endOfDay)
     .get();
 
   // Collect unique voter wallets, excluding winner
@@ -289,17 +294,27 @@ async function selectRandomVoters(drawId, excludeWallet, count) {
   });
 
   // Filter by $Memeya holding (10K required for USDC rewards)
+  // Always refresh on-chain at draw time — cached balances may be stale (user could have sold)
   const MEMEYA_THRESHOLD = 10000;
   const walletArray = Array.from(voterSet);
   const qualifiedVoters = [];
-  if (walletArray.length > 0) {
-    const userRefs = walletArray.map(w => db.collection(collections.USERS).doc(w));
-    const userDocs = await db.getAll(...userRefs);
-    userDocs.forEach((doc, idx) => {
-      if (doc.exists && (doc.data().memeyaBalance || 0) >= MEMEYA_THRESHOLD) {
-        qualifiedVoters.push(walletArray[idx]);
+  for (const wallet of walletArray) {
+    try {
+      const balance = await getMemeyaBalance(wallet);
+      // Cache the fresh balance
+      await dbUtils.setDocument(collections.USERS, wallet, {
+        memeyaBalance: balance,
+        memeyaBalanceUpdatedAt: new Date().toISOString()
+      });
+      if (balance >= MEMEYA_THRESHOLD) {
+        qualifiedVoters.push(wallet);
+        console.log(`✅ Voter ${wallet.slice(0, 4)}...${wallet.slice(-4)}: ${balance.toLocaleString()} $Memeya — qualified`);
+      } else {
+        console.log(`❌ Voter ${wallet.slice(0, 4)}...${wallet.slice(-4)}: ${balance.toLocaleString()} $Memeya — below ${MEMEYA_THRESHOLD}`);
       }
-    });
+    } catch (rpcErr) {
+      console.warn(`⚠️ RPC failed for ${wallet.slice(0, 4)}...${wallet.slice(-4)}: ${rpcErr.message} — skipping`);
+    }
   }
 
   console.log(`🗳️ Voters: ${voterSet.size} total, ${qualifiedVoters.length} qualified (≥${MEMEYA_THRESHOLD} $Memeya)`);

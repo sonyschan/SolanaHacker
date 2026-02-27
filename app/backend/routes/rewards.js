@@ -3,7 +3,59 @@ const router = express.Router();
 const rewardService = require('../services/rewardService');
 const crossmintService = require('../services/crossmintService');
 const { cacheResponse, TTL } = require('../utils/cache');
-const { collections, dbUtils } = require('../config/firebase');
+const { collections, dbUtils, getFirestore } = require('../config/firebase');
+
+/**
+ * @route GET /api/rewards/latest-unannounced
+ * @desc Most recent completed distribution not yet announced on X
+ */
+router.get('/latest-unannounced', async (req, res) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection(collections.REWARD_DISTRIBUTIONS)
+      .orderBy('timestamp', 'desc')
+      .limit(10)
+      .get();
+
+    // Find first completed doc that hasn't been announced (client-side filter to avoid composite index)
+    let dist = null;
+    for (const doc of snap.docs) {
+      if (doc.id === 'config') continue;
+      const data = { id: doc.id, ...doc.data() };
+      if (data.status === 'completed' && data.xAnnounced !== true) {
+        dist = data;
+        break;
+      }
+    }
+
+    if (!dist) {
+      return res.json({ success: true, data: null });
+    }
+
+    // Enrich with meme imageUrl and title
+    let memeImageUrl = null;
+    let memeTitle = null;
+    if (dist.memeId) {
+      const meme = await dbUtils.getDocument(collections.MEMES, dist.memeId);
+      if (meme) {
+        memeImageUrl = meme.imageUrl || null;
+        memeTitle = meme.title || null;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { ...dist, memeImageUrl, memeTitle }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching latest unannounced distribution:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch latest unannounced distribution',
+      message: error.message
+    });
+  }
+});
 
 /**
  * @route GET /api/rewards/balance
@@ -117,7 +169,7 @@ router.patch('/:drawId', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Distribution not found' });
     }
 
-    const allowedFields = ['status', 'transfers', 'errors', 'randomVoters', 'winnerWallet', 'memeId'];
+    const allowedFields = ['status', 'transfers', 'errors', 'randomVoters', 'winnerWallet', 'memeId', 'xAnnounced'];
     const updates = {};
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

@@ -64,10 +64,11 @@ router.post('/trigger/:taskName', async (req, res) => {
       console.log(`📝 Reason: ${reason}`);
     }
 
-    await schedulerService.triggerTask(taskName);
-    
+    const result = await schedulerService.triggerTask(taskName, { date: req.body.date });
+
     res.json({
       success: true,
+      data: result,
       message: `Task '${taskName}' triggered successfully`,
       taskName,
       triggeredAt: new Date().toISOString(),
