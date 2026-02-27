@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import memeService from '../services/memeService';
 import MemeModal from './MemeModal';
 import ModalOverlay from './ModalOverlay';
@@ -7,6 +8,7 @@ const MEMEYA_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const MEMEYA_THRESHOLD = 10000;
 
 const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress, memeyaBalance }) => {
+  const { t } = useTranslation();
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [votedMemeId, setVotedMemeId] = useState(null);  // Track which meme user voted for
@@ -22,8 +24,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const [error, setError] = useState(null);
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMemeIndex, setModalMemeIndex] = useState(0); // Track current meme index for navigation
-  const [isInitializing, setIsInitializing] = useState(true); // Prevents UI flash during vote status check
+  const [modalMemeIndex, setModalMemeIndex] = useState(0);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [showMemeyaNotice, setShowMemeyaNotice] = useState(false);
   const [caCopied, setCaCopied] = useState(false);
   const [localMemeyaBalance, setLocalMemeyaBalance] = useState(memeyaBalance);
@@ -74,7 +76,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           console.log('🖼️ First meme:', result.memes[0]);
           setDailyMemes(result.memes);
 
-          // Initialize selection votes from Firebase data (handle 0 properly)
           const newVotes = {};
           result.memes.forEach((meme) => {
             const selectionYes = meme.votes?.selection?.yes;
@@ -82,7 +83,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             console.log(`🗳️ Vote init: ${meme.id} = ${newVotes[meme.id]} (from API: ${selectionYes})`);
           });
           setVotes(newVotes);
-          // Note: rarityVotes will be set per-meme when user selects one in handleVote
         } else {
           console.log("No memes found for today");
           setDailyMemes([]);
@@ -93,7 +93,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       } catch (err) {
         console.error('❌ Error loading memes:', err);
         setError(err.message);
-        // Use fallback memes
         const fallbackMemes = memeService.getFallbackMemes();
         console.log('🔄 Using fallback memes:', fallbackMemes);
         setDailyMemes(fallbackMemes);
@@ -129,26 +128,20 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         console.log('📋 User votes:', userVotes);
 
         if (userVotes && userVotes.length > 0) {
-          // Get today's meme IDs
           const todayMemeIds = new Set(dailyMemes.map(m => m.id));
-
-          // Find if user voted for any of today's memes
           const todayVotes = userVotes.filter(v => todayMemeIds.has(v.memeId));
           console.log('📊 Votes for today\'s memes:', todayVotes);
 
           if (todayVotes.length > 0) {
-            // Check if user has completed rarity vote
             const rarityVote = todayVotes.find(v => v.voteType === 'rarity');
             const selectionVote = todayVotes.find(v => v.voteType === 'selection');
 
             if (rarityVote) {
-              // User completed both phases
               console.log('✅ User already completed voting for:', rarityVote.memeId);
               setVotedMemeId(rarityVote.memeId);
               setCurrentPhase('completed');
               const selected = dailyMemes.find(m => m.id === rarityVote.memeId);
               setSelectedMeme(selected);
-              // Restore ticketsEarned from vote record
               if (rarityVote.ticketsEarned) {
                 setEarnedTickets(rarityVote.ticketsEarned);
                 if (rarityVote.baseTickets) setBaseTickets(rarityVote.baseTickets);
@@ -157,7 +150,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 console.log('🎫 Restored ticketsEarned:', rarityVote.ticketsEarned);
               }
             } else if (selectionVote) {
-              // User completed selection, needs rarity vote
               console.log('⏳ User completed selection, pending rarity for:', selectionVote.memeId);
               setVotedMemeId(selectionVote.memeId);
               setCurrentPhase('rarity');
@@ -168,9 +160,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         }
       } catch (err) {
         console.error('❌ Error checking vote status:', err);
-        // Don't block UI on error, just proceed with default state
       } finally {
-        // Done checking - allow UI to render
         setIsInitializing(false);
       }
     };
@@ -180,39 +170,33 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
 
   // Score to rarity label mapping for display
   const getScoreLabel = (score) => {
-    if (score <= 2) return { label: 'Meh', emoji: '😐', color: 'text-gray-400' };
-    if (score <= 4) return { label: 'Okay', emoji: '👍', color: 'text-gray-300' };
-    if (score <= 6) return { label: 'Good', emoji: '😊', color: 'text-blue-400' };
-    if (score <= 8) return { label: 'Great', emoji: '🔥', color: 'text-purple-400' };
-    return { label: 'Amazing', emoji: '🏆', color: 'text-yellow-400' };
+    if (score <= 2) return { label: t('forge.scoreLabels.meh'), emoji: '😐', color: 'text-gray-400' };
+    if (score <= 4) return { label: t('forge.scoreLabels.okay'), emoji: '👍', color: 'text-gray-300' };
+    if (score <= 6) return { label: t('forge.scoreLabels.good'), emoji: '😊', color: 'text-blue-400' };
+    if (score <= 8) return { label: t('forge.scoreLabels.great'), emoji: '🔥', color: 'text-purple-400' };
+    return { label: t('forge.scoreLabels.amazing'), emoji: '🏆', color: 'text-yellow-400' };
   };
 
   const handleVote = async (memeId) => {
     try {
-      // Call backend API to record selection vote (no tickets awarded yet)
       const result = await memeService.submitVote(memeId, 'selection', 'yes', walletAddress);
 
       if (result.success) {
-        // Update local vote count
         setVotes(prev => ({ ...prev, [memeId]: (prev[memeId] || 0) + 1 }));
-        // Note: ticketsEarned will be 0 for selection vote - tickets only awarded after rarity vote
       }
 
-      // The meme the user clicked becomes the selected meme for rarity voting
-      const selected = dailyMemes.find(m => m.id === memeId);
-      setSelectedMeme(selected);
-      setVotedMemeId(memeId);  // Track which meme was voted for
-      setRarityScore(5); // Reset score slider to middle
-      setCurrentPhase('rarity');
-      // Scroll to top so user sees Phase 2 explanation
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-      console.error('Vote error:', error);
-      // Still proceed to rarity phase for demo
       const selected = dailyMemes.find(m => m.id === memeId);
       setSelectedMeme(selected);
       setVotedMemeId(memeId);
-      setRarityScore(5); // Reset score slider to middle
+      setRarityScore(5);
+      setCurrentPhase('rarity');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error('Vote error:', error);
+      const selected = dailyMemes.find(m => m.id === memeId);
+      setSelectedMeme(selected);
+      setVotedMemeId(memeId);
+      setRarityScore(5);
       setCurrentPhase('rarity');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -220,12 +204,10 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
 
   const handleRarityVote = async () => {
     try {
-      // Call backend API to record score-based rarity vote
       if (selectedMeme) {
         const result = await memeService.submitScoreVote(selectedMeme.id, rarityScore, walletAddress);
 
         if (result.success) {
-          // Update user stats from API response
           if (result.ticketsEarned) {
             setEarnedTickets(result.ticketsEarned);
           }
@@ -244,7 +226,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       }
     } catch (error) {
       console.error('Rarity vote error:', error);
-      // Fallback: use random tickets for demo
       const fallbackTickets = Math.floor(Math.random() * 8) + 8;
       setEarnedTickets(fallbackTickets);
     }
@@ -252,7 +233,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
     setCurrentPhase('completed');
     setShowReward(true);
 
-    // Auto-hide reward after 3 seconds, then show $Memeya notice if needed
     setTimeout(() => {
       setShowReward(false);
       if ((latestBalanceRef.current ?? 0) < MEMEYA_THRESHOLD) {
@@ -265,8 +245,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   const resetVoting = () => {
     setCurrentPhase('selection');
     setSelectedMeme(null);
-    // Re-fetch memes to get fresh vote counts from backend
-    // For now, just reset to current state
   };
 
   return (
@@ -279,14 +257,14 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-bounce"
       >
         <div className="text-6xl mb-4">🎉</div>
-        <h3 className="text-2xl font-bold mb-2">Vote Successful!</h3>
-        <p className="text-lg">You earned <span className="font-bold text-yellow-300">{earnedTickets} tickets</span>!</p>
+        <h3 className="text-2xl font-bold mb-2">{t('forge.reward.title')}</h3>
+        <p className="text-lg">{t('forge.reward.earned', { count: earnedTickets }).split(`${earnedTickets}`).map((part, i) => i === 0 ? <React.Fragment key={i}>{part}<span className="font-bold text-yellow-300">{earnedTickets} {t('forge.completed.ticketsEarned').toLowerCase()}</span></React.Fragment> : part)}</p>
         {(baseTickets > 0 || streakBonusEarned > 0 || tokenBonus > 0) && (
           <p className="text-sm text-purple-200 mt-1">
-            (Base: {baseTickets}{streakBonusEarned > 0 ? ` + Streak: ${streakBonusEarned}` : ''}{tokenBonus > 0 ? ` + $Memeya: ${tokenBonus}` : ''})
+            ({t('forge.reward.base', { count: baseTickets })}{streakBonusEarned > 0 ? ` + ${t('forge.reward.streak', { count: streakBonusEarned })}` : ''}{tokenBonus > 0 ? ` + ${t('forge.reward.tokenBonus', { count: tokenBonus })}` : ''})
           </p>
         )}
-        <p className="text-sm text-purple-200 mt-2">Voting streak: {votingStreak} days</p>
+        <p className="text-sm text-purple-200 mt-2">{t('forge.reward.votingStreak', { count: votingStreak })}</p>
       </ModalOverlay>
 
       {/* $Memeya Holding Notice Modal */}
@@ -298,19 +276,19 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         className="bg-gradient-to-br from-orange-600 to-yellow-600 rounded-2xl p-8 text-center max-w-md mx-auto"
       >
         <div className="text-5xl mb-4">&#129689;</div>
-        <h3 className="text-2xl font-bold mb-3">Qualify for USDC Rewards!</h3>
+        <h3 className="text-2xl font-bold mb-3">{t('forge.memeyaNotice.title')}</h3>
         <p className="text-orange-100 mb-4">
-          Hold 10,000 $Memeya tokens to be eligible for daily USDC draws ($3 winner + $2/$1 lucky voters)
+          {t('forge.memeyaNotice.desc')}
         </p>
         <div className="bg-black/20 rounded-lg p-3 mb-4">
-          <p className="text-xs text-orange-200 mb-1">Contract Address</p>
+          <p className="text-xs text-orange-200 mb-1">{t('forge.memeyaNotice.contractAddress')}</p>
           <div className="flex items-center justify-center gap-2">
             <code className="text-xs text-white break-all">{MEMEYA_CA}</code>
             <button
               onClick={copyCA}
               className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors flex-shrink-0"
             >
-              {caCopied ? '✓' : 'Copy'}
+              {caCopied ? '✓' : t('common.copy')}
             </button>
           </div>
         </div>
@@ -320,17 +298,17 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           rel="noopener noreferrer"
           className="inline-block w-full py-3 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-lg transition-colors mb-3"
         >
-          Buy $Memeya on pump.fun
+          {t('forge.memeyaNotice.buyOnPump')}
         </a>
         <button
           onClick={() => setShowMemeyaNotice(false)}
           className="text-orange-200 hover:text-white text-sm transition-colors"
         >
-          Got it
+          {t('common.gotIt').replace('!', '')}
         </button>
       </ModalOverlay>
 
-      {/* Loading skeleton — shown during initialization (no phase-specific header to avoid flash) */}
+      {/* Loading skeleton */}
       {isInitializing && (
         <div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -358,17 +336,16 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'selection' && (
         <div>
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4">🤖 Today's AI Generated Memes</h2>
-            <p className="text-gray-300">Vote for your favorite meme to advance to rarity voting</p>
+            <h2 className="text-3xl font-bold mb-4">🤖 {t('forge.phase1.title')}</h2>
+            <p className="text-gray-300">{t('forge.phase1.desc')}</p>
 
-            {/* Phase indicator */}
             <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4 mt-4 inline-block">
-              <span className="text-green-300">🚀 Phase 1/2: Meme Selection - Pick the winner!</span>
+              <span className="text-green-300">🚀 {t('forge.phase1.indicator')}</span>
             </div>
 
             {error && (
               <div className="bg-red-600 bg-opacity-20 border border-red-600 rounded-lg p-3 mt-4 inline-block">
-                <span className="text-red-300">⚠️ Using fallback memes (Backend: {error})</span>
+                <span className="text-red-300">⚠️ {t('forge.phase1.fallbackError', { error })}</span>
               </div>
             )}
           </div>
@@ -395,9 +372,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           ) : dailyMemes.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">🎨</div>
-              <h3 className="text-2xl font-bold mb-2">No memes available yet</h3>
-              <p className="text-gray-400 mb-2">Daily AI memes are generated at 8:00 AM (UTC+8)</p>
-              <p className="text-gray-500 text-sm">Check back soon!</p>
+              <h3 className="text-2xl font-bold mb-2">{t('forge.phase1.noMemes')}</h3>
+              <p className="text-gray-400 mb-2">{t('forge.phase1.noMemesTime')}</p>
+              <p className="text-gray-500 text-sm">{t('forge.phase1.checkBack')}</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
@@ -415,7 +392,6 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     }}
                     title="Click to enlarge"
                     onError={(e) => {
-                      // Fallback image if AI-generated image fails to load
                       e.target.src = `https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=${encodeURIComponent(meme.title)}`;
                     }}
                   />
@@ -424,8 +400,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     <p className="text-gray-300 text-sm mb-4">
                       {meme.description || `AI-generated from: ${meme.newsSource}`}
                     </p>
-                    
-                    {/* NFT Traits - Row 1: AI Generated + Style */}
+
+                    {/* NFT Traits - Row 1 */}
                     <div className="flex flex-wrap gap-1 mb-2">
                       {meme.metadata?.imageGenerated && (
                         <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
@@ -439,7 +415,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       )}
                     </div>
 
-                    {/* NFT Traits - Row 2: News Source */}
+                    {/* NFT Traits - Row 2 */}
                     <div className="flex flex-wrap gap-1 mb-2">
                       {meme.newsSource && (
                         <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
@@ -448,7 +424,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       )}
                     </div>
 
-                    {/* NFT Traits - Row 3: Tags */}
+                    {/* NFT Traits - Row 3 */}
                     {meme.tags && meme.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {meme.tags.map((tag, idx) => (
@@ -458,10 +434,10 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                         ))}
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center mb-4">
                       <div className="text-sm text-gray-400">
-                        Current votes: <span className="text-white font-bold">{votes[meme.id] || 0}</span>
+                        {t('forge.phase1.currentVotes')}<span className="text-white font-bold">{votes[meme.id] || 0}</span>
                       </div>
                     </div>
 
@@ -470,21 +446,21 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                         onClick={() => handleVote(meme.id)}
                         className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
                       >
-                        ❤️ Vote for This Meme
+                        ❤️ {t('forge.phase1.voteButton')}
                       </button>
                     ) : votedMemeId === meme.id ? (
                       <button
                         disabled
                         className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90"
                       >
-                        ✅ You Voted This Meme
+                        ✅ {t('forge.phase1.votedButton')}
                       </button>
                     ) : (
                       <button
                         disabled
                         className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50"
                       >
-                        Not Voted
+                        {t('forge.phase1.notVoted')}
                       </button>
                     )}
                   </div>
@@ -499,16 +475,15 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'rarity' && selectedMeme && (
         <div>
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4">🏆 Winner Selected!</h2>
-            <p className="text-gray-300">Now vote to decide this meme's rarity level</p>
+            <h2 className="text-3xl font-bold mb-4">🏆 {t('forge.phase2.title')}</h2>
+            <p className="text-gray-300">{t('forge.phase2.desc')}</p>
             <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mt-4 inline-block">
-              <span className="text-blue-300">💎 Phase 2/2: Rarity Decision - Community choice!</span>
+              <span className="text-blue-300">💎 {t('forge.phase2.indicator')}</span>
             </div>
             <button onClick={() => { setCurrentPhase('selection'); setSelectedMeme(null); setVotedMemeId(null); }} className="mt-4 text-gray-400 hover:text-white flex items-center space-x-2 mx-auto transition-colors">
               <span>←</span>
-              <span>Back to meme selection</span>
+              <span>{t('forge.phase2.backToSelection')}</span>
             </button>
-            
           </div>
 
           {/* Winning Meme Display */}
@@ -535,7 +510,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   <p className="text-sm text-gray-300">
                     {selectedMeme.description || `AI-generated from: ${selectedMeme.newsSource}`}
                   </p>
-                  
+
                   {/* NFT Traits Display */}
                   <div className="flex flex-wrap justify-center gap-1 mt-3">
                     {selectedMeme.metadata?.imageGenerated && (
@@ -563,9 +538,9 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                       ))}
                     </div>
                   )}
-                  
+
                   <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg p-2 mt-3">
-                    <span className="text-yellow-300 text-sm">👑 Winning Meme - Community Selected!</span>
+                    <span className="text-yellow-300 text-sm">👑 {t('forge.phase2.winningMeme')}</span>
                   </div>
                 </div>
               </div>
@@ -575,7 +550,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           {/* Score-Based Rating Slider */}
           <div className="max-w-md mx-auto">
             <div className="bg-gray-800/50 border border-gray-600 rounded-2xl p-8">
-              <h3 className="text-xl font-bold text-center mb-6">Rate this meme</h3>
+              <h3 className="text-xl font-bold text-center mb-6">{t('forge.phase2.rateThisMeme')}</h3>
 
               {/* Score Display */}
               <div className="text-center mb-6">
@@ -613,12 +588,12 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 onClick={handleRarityVote}
                 className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-lg hover:scale-105 transition-transform"
               >
-                Submit Rating
+                {t('forge.phase2.submitRating')}
               </button>
 
               {/* Info */}
               <p className="text-center text-gray-400 text-sm mt-4">
-                Your rating helps determine the meme's final rarity
+                {t('forge.phase2.ratingHelp')}
               </p>
             </div>
           </div>
@@ -629,19 +604,19 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'completed' && (
         <div className="text-center">
           <div className="max-w-2xl mx-auto">
-            {/* $Memeya holding reminder — above heading for first-screen visibility */}
+            {/* $Memeya holding reminder */}
             {!isMemeyaQualified && (
               <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-6 text-left">
-                <p className="font-bold text-yellow-300 mb-1">Hold 10,000 $Memeya to qualify for USDC draws</p>
+                <p className="font-bold text-yellow-300 mb-1">{t('forge.completed.holdReminder')}</p>
                 <p className="text-sm text-yellow-200/80 mb-2">
-                  Current: {currentBalance.toLocaleString()} $Memeya
+                  {t('forge.completed.currentBalance', { amount: currentBalance.toLocaleString() })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={copyCA}
                     className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    {caCopied ? '✓ Copied' : 'Copy CA'}
+                    {caCopied ? t('common.copiedCheck') : t('common.copyCA')}
                   </button>
                   <a
                     href={`https://pump.fun/coin/${MEMEYA_CA}`}
@@ -649,15 +624,15 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     rel="noopener noreferrer"
                     className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    Buy on pump.fun
+                    {t('forge.completed.buyOnPump')}
                   </a>
                 </div>
               </div>
             )}
 
-            <h2 className="text-4xl font-bold mb-4">🎉 Voting Complete!</h2>
+            <h2 className="text-4xl font-bold mb-4">🎉 {t('forge.completed.title')}</h2>
             <p className="text-lg text-gray-300 mb-6">
-              Thank you for participating in today's meme democracy!
+              {t('forge.completed.thanks')}
             </p>
 
             {/* Show the voted meme */}
@@ -681,7 +656,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     />
                     <div className="p-3">
                       <h3 className="font-bold text-white text-sm">{selectedMeme.title}</h3>
-                      <span className="text-xs text-yellow-300">👑 You voted for this meme</span>
+                      <span className="text-xs text-yellow-300">👑 {t('forge.completed.youVotedFor')}</span>
                     </div>
                   </div>
                 </div>
@@ -691,49 +666,49 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             <div className={`grid ${tokenBonus > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-6`}>
               <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-4">
                 <div className="text-2xl mb-1">🎫</div>
-                <h3 className="font-bold text-sm mb-1">Tickets Earned</h3>
+                <h3 className="font-bold text-sm mb-1">{t('forge.completed.ticketsEarned')}</h3>
                 <div className="text-xl text-green-300">
-                  {earnedTickets > 0 ? earnedTickets : '✓ Credited'}
+                  {earnedTickets > 0 ? earnedTickets : t('forge.completed.credited')}
                 </div>
               </div>
 
               <div className="bg-purple-600 bg-opacity-20 border border-purple-600 rounded-xl p-4">
                 <div className="text-2xl mb-1">🔥</div>
-                <h3 className="font-bold text-sm mb-1">Voting Streak</h3>
+                <h3 className="font-bold text-sm mb-1">{t('forge.completed.votingStreak')}</h3>
                 <div className="text-xl text-purple-300">{votingStreak} day{votingStreak !== 1 ? 's' : ''}</div>
               </div>
 
               {tokenBonus > 0 && (
                 <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-4">
                   <div className="text-2xl mb-1">&#129689;</div>
-                  <h3 className="font-bold text-sm mb-1">$Memeya Bonus</h3>
+                  <h3 className="font-bold text-sm mb-1">{t('forge.completed.memeyaBonus')}</h3>
                   <div className="text-xl text-yellow-300">+{tokenBonus}</div>
                 </div>
               )}
             </div>
 
-            {/* Next Step - Prominent CTA */}
+            {/* Next Step */}
             <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/50 rounded-xl p-4 mb-4">
               <div className="flex items-center justify-center gap-3">
                 <span className="text-2xl">⏰</span>
                 <div>
-                  <p className="font-bold text-orange-300">Come back tomorrow!</p>
-                  <p className="text-sm text-orange-200/80">New AI memes drop daily at 00:00 UTC</p>
+                  <p className="font-bold text-orange-300">{t('forge.completed.comeBack')}</p>
+                  <p className="text-sm text-orange-200/80">{t('forge.completed.newMemesDaily')}</p>
                 </div>
               </div>
             </div>
 
             {/* Info lines */}
             <div className="text-sm text-gray-400 space-y-1 mb-6">
-              <p>📅 Daily lottery draw at 23:55 UTC</p>
-              <p>🚀 NFT minting coming soon!</p>
+              <p>📅 {t('forge.completed.lotteryDraw')}</p>
+              <p>🚀 {t('forge.completed.nftSoon')}</p>
             </div>
 
             <button
               onClick={resetVoting}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform"
             >
-              🔄 View Results & Stats
+              🔄 {t('forge.completed.viewResults')}
             </button>
           </div>
         </div>

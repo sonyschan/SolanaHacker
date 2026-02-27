@@ -1,8 +1,10 @@
 import React from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 const WalletConnection = ({ variant = "primary", className = "", showAddress = true }) => {
     const { authenticated, walletAddress, shortAddress, walletName, login, logout } = useAuth();
+    const { t } = useTranslation();
 
     const buttonClasses = {
         primary: "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 text-sm md:text-base",
@@ -25,8 +27,8 @@ const WalletConnection = ({ variant = "primary", className = "", showAddress = t
                     onClick={logout}
                     className={buttonClasses.secondary}
                 >
-                    <span className="hidden sm:inline">Disconnect</span>
-                    <span className="sm:hidden">Logout</span>
+                    <span className="hidden sm:inline">{t('common.disconnect')}</span>
+                    <span className="sm:hidden">{t('common.logout')}</span>
                 </button>
             </div>
         );
@@ -44,8 +46,8 @@ const WalletConnection = ({ variant = "primary", className = "", showAddress = t
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     <span className="whitespace-nowrap">
-                        <span className="hidden sm:inline">Sign In</span>
-                        <span className="sm:hidden">Sign In</span>
+                        <span className="hidden sm:inline">{t('common.signIn')}</span>
+                        <span className="sm:hidden">{t('common.signIn')}</span>
                     </span>
                 </div>
             </button>

@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getMemeComments, postComment, getCommentCount } from '../services/memeService';
 
-/**
- * CommentSection — Collapsed-by-default comment section for memes.
- * Uses Tapestry social protocol for onchain comments.
- *
- * @param {string} memeId - MemeForge meme ID
- * @param {string|null} walletAddress - Connected wallet (null = not authenticated)
- */
 const CommentSection = ({ memeId, walletAddress }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [comments, setComments] = useState([]);
   const [count, setCount] = useState(0);
@@ -57,12 +52,12 @@ const CommentSection = ({ memeId, walletAddress }) => {
     if (!dateStr) return '';
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t('comments.justNow');
+    if (mins < 60) return t('comments.minutesAgo', { count: mins });
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
+    if (hrs < 24) return t('comments.hoursAgo', { count: hrs });
     const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
+    return t('comments.daysAgo', { count: days });
   };
 
   return (
@@ -75,13 +70,13 @@ const CommentSection = ({ memeId, walletAddress }) => {
         <span className="text-sm text-gray-300">
           {count > 0 ? (
             <>
-              <span className="mr-1.5">💬</span>
-              {count} Comment{count !== 1 ? 's' : ''}
+              <span className="mr-1.5">{'\uD83D\uDCAC'}</span>
+              {t('comments.count', { count })}
             </>
           ) : (
             <>
-              <span className="mr-1.5">💬</span>
-              Comment
+              <span className="mr-1.5">{'\uD83D\uDCAC'}</span>
+              {t('comments.comment')}
             </>
           )}
         </span>
@@ -102,7 +97,7 @@ const CommentSection = ({ memeId, walletAddress }) => {
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
-                placeholder="Write a comment..."
+                placeholder={t('comments.placeholder')}
                 maxLength={500}
                 rows={2}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-purple-500/50"
@@ -114,14 +109,14 @@ const CommentSection = ({ memeId, walletAddress }) => {
                   disabled={!text.trim() || posting}
                   className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm text-white font-medium transition-colors"
                 >
-                  {posting ? 'Posting...' : 'Post'}
+                  {posting ? t('common.posting') : t('common.post')}
                 </button>
               </div>
               {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
             </div>
           ) : (
             <div className="p-3 border-b border-white/10 bg-white/5 text-center">
-              <p className="text-xs text-gray-400">Connect wallet to comment</p>
+              <p className="text-xs text-gray-400">{t('comments.connectToComment')}</p>
             </div>
           )}
 
@@ -133,7 +128,7 @@ const CommentSection = ({ memeId, walletAddress }) => {
               </div>
             ) : comments.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
-                Be the first to comment!
+                {t('comments.beFirst')}
               </div>
             ) : (
               comments.map((c, i) => (

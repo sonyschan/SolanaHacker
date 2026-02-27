@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ModalOverlay from './ModalOverlay';
 import CommentSection from './CommentSection';
 
 const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavigate, votedMemeId, onVote, walletAddress }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const getShareUrl = () => {
@@ -34,12 +36,11 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
       if (event.keyCode === 27) {
         onClose();
       }
-      // Arrow navigation only if we have memes array and onNavigate callback
       if (onNavigate && memes.length > 1) {
-        if (event.keyCode === 37) { // Left arrow
+        if (event.keyCode === 37) {
           const newIndex = currentIndex > 0 ? currentIndex - 1 : memes.length - 1;
           onNavigate(newIndex);
-        } else if (event.keyCode === 39) { // Right arrow
+        } else if (event.keyCode === 39) {
           const newIndex = currentIndex < memes.length - 1 ? currentIndex + 1 : 0;
           onNavigate(newIndex);
         }
@@ -87,7 +88,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             <h2 className="text-lg md:text-2xl font-bold text-white mb-1 md:mb-2 truncate">{meme.title}</h2>
             <div className="flex items-center space-x-4 text-sm text-gray-400">
               {meme.votes && meme.votes.selection && (
-                <span>{meme.votes.selection.yes + meme.votes.selection.no} votes</span>
+                <span>{t('memeModal.votes', { count: meme.votes.selection.yes + meme.votes.selection.no })}</span>
               )}
               {meme.sentiment && (
                 <span className={`px-2 py-1 rounded ${
@@ -100,7 +101,6 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
               )}
             </div>
           </div>
-          {/* Navigation Counter in header */}
           {onNavigate && memes.length > 1 && (
             <div className="bg-white/10 text-white text-sm px-3 py-1 rounded-full whitespace-nowrap">
               {currentIndex + 1} / {memes.length}
@@ -130,22 +130,21 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             style={{ display: meme.imageUrl ? 'none' : 'flex' }}
           >
             <div className="text-8xl mb-4">{meme.image}</div>
-            <p className="text-gray-400">Click anywhere outside to close</p>
+            <p className="text-gray-400">{t('memeModal.fallbackHint')}</p>
           </div>
         </div>
       </div>
 
-      {/* Voting Section (shown when onVote prop is provided) */}
+      {/* Voting Section */}
       {showVoting && (
         <div className="px-4 md:px-6 pb-4">
-          {/* Description */}
           {(meme.description || meme.newsSource) && (
             <p className="text-gray-300 text-sm mb-4">
               {meme.description || `AI-generated from: ${meme.newsSource}`}
             </p>
           )}
 
-          {/* NFT Traits - Row 1: AI Generated + Style */}
+          {/* NFT Traits - Row 1 */}
           <div className="flex flex-wrap gap-1 mb-2">
             {meme.metadata?.imageGenerated && (
               <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
@@ -159,7 +158,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             )}
           </div>
 
-          {/* NFT Traits - Row 2: News Source */}
+          {/* NFT Traits - Row 2 */}
           <div className="flex flex-wrap gap-1 mb-2">
             {meme.newsSource && (
               <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
@@ -168,7 +167,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             )}
           </div>
 
-          {/* NFT Traits - Row 3: Tags */}
+          {/* NFT Traits - Row 3 */}
           {meme.tags && meme.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
               {meme.tags.map((tag, idx) => (
@@ -181,7 +180,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
 
           {/* Vote Count */}
           <div className="text-sm text-gray-400 mb-4">
-            Current votes: <span className="text-white font-bold">{meme.votes?.selection?.yes || 0}</span>
+            {t('memeModal.currentVotes')}<span className="text-white font-bold">{meme.votes?.selection?.yes || 0}</span>
           </div>
 
           {/* Vote Button - 3 states */}
@@ -190,21 +189,21 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
               onClick={() => onVote(meme.id)}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform text-white"
             >
-              ❤️ Vote for This Meme
+              {'\u2764\uFE0F'} {t('memeModal.voteButton')}
             </button>
           ) : votedMemeId === meme.id ? (
             <button
               disabled
               className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90 text-white"
             >
-              ✅ You Voted This Meme
+              {'\u2705'} {t('memeModal.votedButton')}
             </button>
           ) : (
             <button
               disabled
               className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50 text-white"
             >
-              Not Voted
+              {t('memeModal.notVoted')}
             </button>
           )}
         </div>
@@ -220,7 +219,6 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
       {/* Share Buttons */}
       <div className="px-4 md:px-6 pb-4">
         <div className="flex items-center justify-center gap-2 md:gap-3">
-          {/* Share to X Button */}
           <button
             onClick={handleShareToX}
             className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 border border-white/20 rounded-lg transition-all duration-200 hover:scale-105"
@@ -228,10 +226,9 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
-            <span className="text-white text-sm font-medium">Share</span>
+            <span className="text-white text-sm font-medium">{t('common.share')}</span>
           </button>
 
-          {/* Copy Link Button */}
           <button
             onClick={handleCopyLink}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
@@ -245,14 +242,14 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
                 <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-green-400 text-sm font-medium">Copied!</span>
+                <span className="text-green-400 text-sm font-medium">{t('common.copied')}</span>
               </>
             ) : (
               <>
                 <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span className="text-gray-300 text-sm font-medium">Copy Link</span>
+                <span className="text-gray-300 text-sm font-medium">{t('common.copyLink')}</span>
               </>
             )}
           </button>
@@ -263,7 +260,7 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
       {meme.source && (
         <div className="px-4 md:px-6 pb-3 md:pb-4">
           <div className="bg-white/5 rounded-lg p-3 md:p-4">
-            <p className="text-xs text-gray-400 truncate">Source: {meme.source}</p>
+            <p className="text-xs text-gray-400 truncate">{t('memeModal.source', { source: meme.source })}</p>
           </div>
         </div>
       )}
@@ -272,15 +269,14 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
       <div className="px-4 md:px-6 pb-3 md:pb-4">
         <p className="text-xs text-gray-500 text-center">
           {onNavigate && memes.length > 1
-            ? 'Swipe or use arrows to navigate'
-            : 'Tap outside to close'}
+            ? t('memeModal.navHint')
+            : t('memeModal.closeHint')}
         </p>
       </div>
 
-      {/* Navigation Buttons (only if we have multiple memes) */}
+      {/* Navigation Buttons */}
       {onNavigate && memes.length > 1 && (
         <>
-          {/* Previous Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -294,7 +290,6 @@ const MemeModal = ({ isOpen, onClose, meme, memes = [], currentIndex = 0, onNavi
             </svg>
           </button>
 
-          {/* Next Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();

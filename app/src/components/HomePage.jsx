@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import WalletConnection from './WalletConnection';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
+  const { t } = useTranslation();
   const [weeklyVoters, setWeeklyVoters] = useState(0);
   const [totalMemes, setTotalMemes] = useState(0);
   const [caCopied, setCaCopied] = useState(false);
@@ -51,7 +54,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               AI MemeForge
             </h1>
-            <div className="text-xs text-gray-500 hidden sm:block">AI Dreams. Humans Decide.</div>
+            <div className="text-xs text-gray-500 hidden sm:block">{t('home.tagline')}</div>
           </div>
         </div>
 
@@ -59,13 +62,15 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <div className="hidden lg:flex items-center space-x-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-              <span className="text-sm text-gray-400">Live</span>
+              <span className="text-sm text-gray-400">{t('home.nav.live')}</span>
             </div>
             <div className="text-sm">
               <span className="text-cyan-400 font-bold">{weeklyVoters}</span>
-              <span className="text-gray-500 ml-1">voters this week</span>
+              <span className="text-gray-500 ml-1">{t('home.nav.votersThisWeek')}</span>
             </div>
           </div>
+
+          <LanguageSwitcher variant="dropdown" />
 
           <div className="flex-shrink-0">
             <WalletConnection variant="primary" className="text-sm md:text-base" />
@@ -79,28 +84,30 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         <div className="text-center mb-20 md:mb-28">
           <div className="inline-flex items-center space-x-2 mb-6 flex-wrap justify-center gap-2">
             <div className="px-4 py-2 bg-green-400/10 border border-green-400/20 rounded-full text-sm text-green-400 font-medium">
-              100% Free
+              {t('home.hero.free')}
             </div>
             <div className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-sm text-cyan-400 font-medium">
-              Daily Drops
+              {t('home.hero.dailyDrops')}
             </div>
             <div className="px-4 py-2 bg-purple-400/10 border border-purple-400/20 rounded-full text-sm text-purple-400 font-medium">
-              Real NFTs
+              {t('home.hero.realNFTs')}
             </div>
           </div>
 
           <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-4 leading-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
-              Historical AI Memes
+              {t('home.hero.title')}
             </span>
           </h2>
           <p className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 tracking-wide bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Vote Free. Earn Daily. Own Forever.
+            {t('home.hero.subtitle')}
           </p>
 
           <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Vote on AI-generated memes every day. Win the daily lottery and claim your meme as a
-            <strong className="text-white"> Solana NFT</strong>. Build your collection for free — the earlier you start, the more you accumulate.
+            <Trans i18nKey="home.hero.desc">
+              Vote on AI-generated memes every day. Win the daily lottery and claim your meme as a
+              <strong className="text-white"> Solana NFT</strong>. Build your collection for free — the earlier you start, the more you accumulate.
+            </Trans>
           </p>
 
           {/* CTA */}
@@ -111,15 +118,15 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 flex-wrap gap-y-2">
             <div className="flex items-center space-x-2">
               <span className="text-green-400">&#10003;</span>
-              <span>No fees, no gas to vote</span>
+              <span>{t('home.hero.noFees')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-cyan-400">&#10003;</span>
-              <span>1 NFT minted daily</span>
+              <span>{t('home.hero.oneNFT')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-purple-400">&#10003;</span>
-              <span>You own what you win</span>
+              <span>{t('home.hero.youOwn')}</span>
             </div>
           </div>
         </div>
@@ -127,9 +134,9 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         {/* Daily Loop — 4 Steps */}
         <div className="mb-20 md:mb-28">
           <div className="text-center mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-4">How It Works</h3>
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.howItWorks.title')}</h3>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              A simple daily loop. AI creates, you vote, one winner emerges, one person owns it.
+              {t('home.howItWorks.desc')}
             </p>
           </div>
 
@@ -152,14 +159,13 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         {/* Growth Flywheel */}
         <div className="mb-20 md:mb-28">
           <div className="text-center mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-4">The Growth Flywheel</h3>
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.flywheel.title')}</h3>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Free participation creates a self-reinforcing cycle. The earlier you join, the more you benefit.
+              {t('home.flywheel.desc')}
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Flywheel diagram — landscape on desktop, square on mobile */}
             <div className="mb-8">
               <img
                 src="/images/flywheel-growth.jpg"
@@ -177,10 +183,10 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
             <div className="text-center">
               <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3">
-                The earlier you start collecting, the more you accumulate before the ecosystem takes off.
+                {t('home.flywheel.earlyStart')}
               </p>
               <p className="text-gray-500 text-sm">
-                Only 365 memes become NFTs per year. Every one you own is permanently scarce.
+                {t('home.flywheel.scarce')}
               </p>
             </div>
           </div>
@@ -189,9 +195,9 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         {/* Ticket Strategy Teaser */}
         <div className="mb-20 md:mb-28">
           <div className="text-center mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-4">Play It Smart</h3>
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.playItSmart.title')}</h3>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Not every meme is worth entering the lottery for. Accumulate tickets and strike when it matters.
+              {t('home.playItSmart.desc')}
             </p>
           </div>
           <div className="max-w-5xl mx-auto">
@@ -218,11 +224,9 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
               <div className="text-4xl mb-3">&#129689;</div>
               <h3 className="text-2xl md:text-3xl font-bold mb-2">
                 <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">$Memeya</span>
-                <span className="text-white"> — Official Token</span>
+                <span className="text-white"> {t('home.memeya.officialToken')}</span>
               </h3>
-              <p className="text-gray-400 mb-6 max-w-xl mx-auto">
-                Hold $Memeya tokens to boost your daily ticket earnings! Bonus = floor(log<sub>10</sub>(tokens held)).
-              </p>
+              <p className="text-gray-400 mb-6 max-w-xl mx-auto" dangerouslySetInnerHTML={{ __html: t('home.memeya.holdBonus') }} />
 
               {/* CA Display */}
               <div className="flex items-center justify-center gap-2 mb-6">
@@ -233,16 +237,16 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                   onClick={copyCA}
                   className="px-3 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium flex-shrink-0"
                 >
-                  {caCopied ? 'Copied!' : 'Copy'}
+                  {caCopied ? t('common.copied') : t('common.copy')}
                 </button>
               </div>
 
               {/* Bonus Examples */}
               <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10 tokens = +1</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">1K = +3</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">10K = +4</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">100K = +5</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.ten')}</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.oneK')}</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.tenK')}</span>
+                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.hundredK')}</span>
               </div>
 
               <a
@@ -251,7 +255,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl transition-all duration-200"
               >
-                Buy on PumpFun
+                {t('home.memeya.buyOnPumpFun')}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -264,43 +268,40 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-20 md:mb-28">
           <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-400/20 rounded-2xl p-8 hover:border-green-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-green-500/25">
-              <span className="text-2xl">⚡</span>
+              <span className="text-2xl">{'\u26A1'}</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-green-400">100% Free</h3>
+            <h3 className="text-2xl font-bold mb-4 text-green-400">{t('home.valueProps.free.title')}</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
-              No gas fees to vote, no tokens to buy, no cost at all.
-              Connect your wallet and start earning lottery tickets immediately.
+              {t('home.valueProps.free.desc')}
             </p>
             <div className="text-sm text-green-300 font-medium">
-              &#10003; Free voting &#10003; Free tickets &#10003; Free to enter lottery
+              {t('home.valueProps.free.tags')}
             </div>
           </div>
 
           <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/20 rounded-2xl p-8 hover:border-cyan-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-cyan-500/25">
-              <span className="text-2xl">🌟</span>
+              <span className="text-2xl">{'\uD83C\uDF1F'}</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-cyan-400">Daily NFT Drops</h3>
+            <h3 className="text-2xl font-bold mb-4 text-cyan-400">{t('home.valueProps.daily.title')}</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
-              One meme becomes an NFT every single day. That's only 365 per year —
-              each one is permanently scarce and community-curated.
+              {t('home.valueProps.daily.desc')}
             </p>
             <div className="text-sm text-cyan-300 font-medium">
-              &#10003; 1 per day &#10003; Community voted &#10003; Solana pNFT
+              {t('home.valueProps.daily.tags')}
             </div>
           </div>
 
           <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-400/20 rounded-2xl p-8 hover:border-purple-400/40 transition-all duration-500">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-purple-500/25">
-              <span className="text-2xl">📚</span>
+              <span className="text-2xl">{'\uD83D\uDCDA'}</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-purple-400">Your Collection Grows</h3>
+            <h3 className="text-2xl font-bold mb-4 text-purple-400">{t('home.valueProps.collection.title')}</h3>
             <p className="text-gray-400 leading-relaxed mb-4">
-              Every meme you win is yours. Claim it as a Solana pNFT and own it forever.
-              The more you collect, the more your portfolio is worth as the ecosystem expands.
+              {t('home.valueProps.collection.desc')}
             </p>
             <div className="text-sm text-purple-300 font-medium">
-              &#10003; True ownership &#10003; Mint anytime &#10003; Trade on marketplaces
+              {t('home.valueProps.collection.tags')}
             </div>
           </div>
         </div>
@@ -311,12 +312,11 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <div className="relative z-10">
             <div className="inline-flex items-center space-x-2 mb-4">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-ping" />
-              <span className="text-green-400 font-medium">Live Now</span>
+              <span className="text-green-400 font-medium">{t('home.cta.liveNow')}</span>
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4">Start Collecting Today</h3>
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">{t('home.cta.title')}</h3>
             <p className="text-gray-400 mb-8 max-w-2xl mx-auto text-base md:text-lg">
-              Every day you don't vote is a meme you miss. Connect your wallet, vote for free,
-              and start building your NFT collection before everyone else.
+              {t('home.cta.desc')}
             </p>
             <div className="space-y-4">
               <WalletConnection variant="primary" className="px-12 py-4 text-xl font-bold" />
@@ -326,18 +326,18 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 {weeklyVoters > 0 && (
                   <div className="flex items-center space-x-2">
                     <span className="text-cyan-400 font-bold">{weeklyVoters}</span>
-                    <span>voters this week</span>
+                    <span>{t('home.cta.votersThisWeek')}</span>
                   </div>
                 )}
                 {totalMemes > 0 && (
                   <div className="flex items-center space-x-2">
                     <span className="text-purple-400 font-bold">{totalMemes}</span>
-                    <span>memes created</span>
+                    <span>{t('home.cta.memesCreated')}</span>
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
                   <span className="text-green-400 font-bold">365/yr</span>
-                  <span>max NFTs</span>
+                  <span>{t('home.cta.maxNFTs')}</span>
                 </div>
               </div>
             </div>

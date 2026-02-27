@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { getMemeyaBalance, formatTokenAmount } from '../services/solanaService';
 import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
 import GalleryTab from './GalleryTab';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -18,6 +20,7 @@ const Dashboard = ({
   setVotingStreak,
   walletAddress
 }) => {
+  const { t, i18n } = useTranslation();
   const { logout, walletName, shortAddress, hasEmbeddedWallet, exportWallet } = useAuth();
   const [activeTab, setActiveTab] = useState('forge');
   const [modalMeme, setModalMeme] = useState(null);
@@ -35,6 +38,13 @@ const Dashboard = ({
   const [showWalletInfo, setShowWalletInfo] = useState(false);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
+
+  const tabs = [
+    { id: 'forge', label: t('dashboard.tabs.forge'), icon: '\uD83E\uDD16', desc: t('dashboard.tabs.forgeDesc') },
+    { id: 'gallery', label: t('dashboard.tabs.gallery'), icon: '\uD83C\uDFDB\uFE0F', desc: t('dashboard.tabs.galleryDesc') },
+    { id: 'tickets', label: t('dashboard.tabs.tickets'), icon: '\uD83C\uDFAB', desc: t('dashboard.tabs.ticketsDesc') },
+    { id: 'wins', label: t('dashboard.tabs.wins'), icon: '\uD83C\uDFC6', desc: t('dashboard.tabs.winsDesc') }
+  ];
 
   // Close hamburger menu or settings dropdown on ESC
   useEffect(() => {
@@ -210,31 +220,23 @@ const Dashboard = ({
     return () => { clearInterval(tickId); clearInterval(pollId); };
   }, [drawPhase]);
 
-  const tabs = [
-    { id: 'forge', label: 'Forge', icon: '🤖', desc: 'Vote on today\'s memes' },
-    { id: 'gallery', label: 'Gallery', icon: '🏛️', desc: 'Hall of Memes' },
-    { id: 'tickets', label: 'Tickets', icon: '🎫', desc: 'Manage entries' },
-    { id: 'wins', label: 'Winners', icon: '🏆', desc: 'Check who won' }
-  ];
-
   // Enhanced Tickets Tab
   const TicketsTabContent = () => (
     <div className="space-y-8">
       <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-center">
-        <div className="text-8xl text-yellow-400 mb-6">🎫</div>
+        <div className="text-8xl text-yellow-400 mb-6">{'\uD83C\uDFAB'}</div>
         <div className="text-6xl text-yellow-400 font-bold mb-4">{userTickets}</div>
-        <h3 className="text-2xl font-bold mb-4">Your Lottery Tickets</h3>
+        <h3 className="text-2xl font-bold mb-4">{t('dashboard.tickets.title')}</h3>
         <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-          Each ticket gives you one weighted entry in the daily meme lottery.
-          Tickets are earned by voting on memes - no purchase necessary!
+          {t('dashboard.tickets.desc')}
         </p>
 
         {/* Ticket Earning Breakdown */}
         <div className="grid md:grid-cols-3 gap-6 mb-8 max-w-3xl mx-auto">
           <div className="bg-white/5 rounded-xl p-6">
-            <h4 className="font-bold mb-2 text-cyan-400">Base Roll</h4>
-            <div className="text-2xl font-bold mb-2">1-10</div>
-            <p className="text-sm text-gray-400">Random tickets per vote</p>
+            <h4 className="font-bold mb-2 text-cyan-400">{t('dashboard.tickets.baseRoll')}</h4>
+            <div className="text-2xl font-bold mb-2">{t('dashboard.tickets.baseRange')}</div>
+            <p className="text-sm text-gray-400">{t('dashboard.tickets.baseDesc')}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-6 relative">
             <button
@@ -244,17 +246,17 @@ const Dashboard = ({
             >
               !
             </button>
-            <h4 className="font-bold mb-2 text-green-400">Streak Bonus</h4>
+            <h4 className="font-bold mb-2 text-green-400">{t('dashboard.tickets.streakBonus')}</h4>
             <div className="text-2xl font-bold mb-2">+{Math.min(votingStreak, 10)}</div>
-            <p className="text-sm text-gray-400">{votingStreak} day{votingStreak !== 1 ? 's' : ''} consecutive (max +10)</p>
+            <p className="text-sm text-gray-400">{t('dashboard.tickets.streakDesc', { count: votingStreak })}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-6">
-            <h4 className="font-bold mb-2 text-yellow-400">$Memeya Bonus</h4>
+            <h4 className="font-bold mb-2 text-yellow-400">{t('dashboard.tickets.memeyaBonus')}</h4>
             <div className="text-2xl font-bold mb-2">+{memeyaBonus}</div>
             <p className="text-sm text-gray-400">
               {memeyaBalance !== null && memeyaBalance > 0
-                ? `Holding ${formatTokenAmount(memeyaBalance)} tokens`
-                : 'Hold tokens for bonus tickets'}
+                ? t('dashboard.tickets.holdingTokens', { amount: formatTokenAmount(memeyaBalance) })
+                : t('dashboard.tickets.holdForBonus')}
             </p>
           </div>
         </div>
@@ -264,7 +266,7 @@ const Dashboard = ({
           <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-5">
             <div className="flex items-center justify-center gap-2 mb-3">
               <span className="text-xl">&#129689;</span>
-              <h4 className="font-bold text-yellow-400">$Memeya Token</h4>
+              <h4 className="font-bold text-yellow-400">{t('dashboard.tickets.memeyaToken')}</h4>
             </div>
             <div className="flex items-center justify-center gap-2 mb-3">
               <code className="text-xs font-mono text-yellow-300 bg-black/30 px-3 py-1.5 rounded-lg border border-yellow-500/20 truncate max-w-[240px] md:max-w-none">
@@ -276,14 +278,14 @@ const Dashboard = ({
                 }}
                 className="px-2 py-1.5 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 hover:bg-yellow-500/30 transition-colors text-xs font-medium flex-shrink-0"
               >
-                Copy
+                {t('common.copy')}
               </button>
             </div>
             <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400 mb-3">
-              <span className="px-2 py-1 bg-white/5 rounded-full">10 = +1 ticket</span>
-              <span className="px-2 py-1 bg-white/5 rounded-full">1K = +3</span>
-              <span className="px-2 py-1 bg-white/5 rounded-full">10K = +4</span>
-              <span className="px-2 py-1 bg-white/5 rounded-full">100K = +5</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">{t('dashboard.tickets.tenTicket')}</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">{t('dashboard.tickets.oneKTicket')}</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">{t('dashboard.tickets.tenKTicket')}</span>
+              <span className="px-2 py-1 bg-white/5 rounded-full">{t('dashboard.tickets.hundredKTicket')}</span>
             </div>
             <div className="text-center">
               <a
@@ -292,7 +294,7 @@ const Dashboard = ({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-sm text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
               >
-                Buy on PumpFun
+                {t('home.memeya.buyOnPumpFun')}
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -303,7 +305,7 @@ const Dashboard = ({
 
         {/* Lottery Strategy - Side by side cards */}
         <div className="mb-8 max-w-2xl mx-auto">
-          <h4 className="font-bold text-xl md:text-2xl mb-4 text-purple-400">Your Lottery Strategy</h4>
+          <h4 className="font-bold text-xl md:text-2xl mb-4 text-purple-400">{t('dashboard.tickets.strategy')}</h4>
           <div className="grid grid-cols-2 gap-4">
             {/* Enter Tonight */}
             <button
@@ -326,10 +328,10 @@ const Dashboard = ({
               }`}
             >
               {lotteryOptIn && <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-green-400 animate-pulse" />}
-              <div className="text-2xl mb-2">🎰</div>
-              <div className={`font-bold text-lg mb-1 ${lotteryOptIn ? 'text-green-400' : 'text-gray-300'}`}>Enter Tonight</div>
+              <div className="text-2xl mb-2">{'\uD83C\uDFB0'}</div>
+              <div className={`font-bold text-lg mb-1 ${lotteryOptIn ? 'text-green-400' : 'text-gray-300'}`}>{t('dashboard.tickets.enterTonight')}</div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                Use all your tickets in tonight's draw. Win = you own the meme. Tickets reset to 0 after draw.
+                {t('dashboard.tickets.enterDesc')}
               </p>
             </button>
             {/* Save Tickets */}
@@ -353,10 +355,10 @@ const Dashboard = ({
               }`}
             >
               {!lotteryOptIn && <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-orange-400 animate-pulse" />}
-              <div className="text-2xl mb-2">🧠</div>
-              <div className={`font-bold text-lg mb-1 ${!lotteryOptIn ? 'text-orange-400' : 'text-gray-300'}`}>Save Tickets</div>
+              <div className="text-2xl mb-2">{'\uD83E\uDDE0'}</div>
+              <div className={`font-bold text-lg mb-1 ${!lotteryOptIn ? 'text-orange-400' : 'text-gray-300'}`}>{t('dashboard.tickets.saveTickets')}</div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                Carry tickets over each day. Enter later with better odds when you see a meme you love.
+                {t('dashboard.tickets.saveDesc')}
               </p>
             </button>
           </div>
@@ -367,8 +369,8 @@ const Dashboard = ({
               : 'text-orange-400 bg-orange-500/10'
           }`}>
             {lotteryOptIn
-              ? `${userTickets} ticket${userTickets !== 1 ? 's' : ''} entering tonight's draw`
-              : `Saving ${userTickets} ticket${userTickets !== 1 ? 's' : ''} for a future draw`
+              ? t('dashboard.tickets.enteringTonight', { count: userTickets })
+              : t('dashboard.tickets.savingTickets', { count: userTickets })
             }
           </div>
         </div>
@@ -390,13 +392,13 @@ const Dashboard = ({
               &#10005;
             </button>
             <div className="p-6 md:p-8">
-              <h3 className="text-xl font-bold mb-4 text-green-400">Streak Bonus System</h3>
-              <p className="text-gray-400 text-sm mb-6">Vote daily to build your streak. Each consecutive day adds bonus tickets, up to +10.</p>
+              <h3 className="text-xl font-bold mb-4 text-green-400">{t('dashboard.tickets.streakSystem')}</h3>
+              <p className="text-gray-400 text-sm mb-6">{t('dashboard.tickets.streakSystemDesc')}</p>
 
               <div className="space-y-2 mb-6">
                 {[1,2,3,4,5,6,7,8,9,10].map(day => (
                   <div key={day} className="flex items-center gap-3">
-                    <span className={`text-sm font-mono w-14 ${votingStreak >= day ? 'text-green-400' : 'text-gray-500'}`}>Day {day}</span>
+                    <span className={`text-sm font-mono w-14 ${votingStreak >= day ? 'text-green-400' : 'text-gray-500'}`}>{t('dashboard.tickets.streakDay', { day })}</span>
                     <div className="flex-1 bg-white/5 rounded-full h-4 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${votingStreak >= day ? 'bg-green-500/60' : 'bg-white/10'}`}
@@ -409,8 +411,8 @@ const Dashboard = ({
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-gray-400">
-                <p className="mb-2"><strong className="text-white">How it works:</strong></p>
-                <p>Vote every day to increase your streak. Miss a day and it resets to Day 1. The streak bonus stacks with your base roll (1-10) and $Memeya token bonus.</p>
+                <p className="mb-2"><strong className="text-white">{t('dashboard.tickets.streakHowItWorks')}</strong></p>
+                <p>{t('dashboard.tickets.streakExplain')}</p>
               </div>
 
               <div className="text-center mt-6">
@@ -418,7 +420,7 @@ const Dashboard = ({
                   onClick={() => setShowStreakInfo(false)}
                   className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl transition-all duration-200"
                 >
-                  Got it!
+                  {t('common.gotIt')}
                 </button>
               </div>
             </div>
@@ -450,7 +452,7 @@ const Dashboard = ({
     fetchRecentWinners();
   }, [activeTab]);
 
-  const privateWallet = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : '—';
+  const privateWallet = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : '\u2014';
 
   const WinnersTabContent = () => {
     const filteredWins = nftWins
@@ -462,9 +464,9 @@ const Dashboard = ({
       .sort((a, b) => (b.selectedAt || '').localeCompare(a.selectedAt || ''));
 
     const myWinsFilters = [
-      { id: 'all', label: 'All', count: nftWins.length },
-      { id: 'unclaimed', label: 'Unclaimed', count: nftWins.filter(w => !w.claimed).length },
-      { id: 'minted', label: 'Minted', count: nftWins.filter(w => w.claimed).length }
+      { id: 'all', label: t('dashboard.winners.all'), count: nftWins.length },
+      { id: 'unclaimed', label: t('dashboard.winners.unclaimed'), count: nftWins.filter(w => !w.claimed).length },
+      { id: 'minted', label: t('common.minted'), count: nftWins.filter(w => w.claimed).length }
     ];
 
     return (
@@ -472,8 +474,8 @@ const Dashboard = ({
         {/* Top-level view toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🏆</span>
-            <h3 className="text-2xl font-bold">Winners</h3>
+            <span className="text-3xl">{'\uD83C\uDFC6'}</span>
+            <h3 className="text-2xl font-bold">{t('dashboard.winners.title')}</h3>
           </div>
           <div className="flex gap-2">
             <button
@@ -484,7 +486,7 @@ const Dashboard = ({
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
               }`}
             >
-              All Winners
+              {t('dashboard.winners.allWinners')}
             </button>
             <button
               onClick={() => setWinnersView('my_wins')}
@@ -494,7 +496,7 @@ const Dashboard = ({
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
               }`}
             >
-              My Wins ({nftWins.length})
+              {t('dashboard.winners.myWins', { count: nftWins.length })}
             </button>
           </div>
         </div>
@@ -503,31 +505,31 @@ const Dashboard = ({
         {winnersView === 'all_winners' && (
           winnersLoading ? (
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-              <div className="text-4xl mb-4 animate-spin">🎰</div>
-              <p className="text-gray-400">Loading winners...</p>
+              <div className="text-4xl mb-4 animate-spin">{'\uD83C\uDFB0'}</div>
+              <p className="text-gray-400">{t('dashboard.winners.loadingWinners')}</p>
             </div>
           ) : recentWinners.length === 0 ? (
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-              <div className="text-6xl mb-4 opacity-50">🎯</div>
-              <h4 className="text-xl font-bold mb-2">No draws yet</h4>
-              <p className="text-gray-400">Lottery runs daily at 23:55 UTC</p>
+              <div className="text-6xl mb-4 opacity-50">{'\uD83C\uDFAF'}</div>
+              <h4 className="text-xl font-bold mb-2">{t('dashboard.winners.noDraws')}</h4>
+              <p className="text-gray-400">{t('dashboard.winners.lotteryTime')}</p>
             </div>
           ) : (
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
               {/* Table header */}
               <div className="hidden md:grid grid-cols-12 gap-3 px-6 py-3 bg-white/5 text-sm font-medium text-gray-400 border-b border-white/10">
-                <div className="col-span-2">Date</div>
-                <div className="col-span-3">Meme</div>
-                <div className="col-span-1">USDC</div>
-                <div className="col-span-3">Winner</div>
-                <div className="col-span-1">Votes</div>
-                <div className="col-span-2 text-right">Win Rate</div>
+                <div className="col-span-2">{t('dashboard.winners.date')}</div>
+                <div className="col-span-3">{t('dashboard.winners.meme')}</div>
+                <div className="col-span-1">{t('dashboard.winners.usdc')}</div>
+                <div className="col-span-3">{t('dashboard.winners.winner')}</div>
+                <div className="col-span-1">{t('dashboard.winners.votes')}</div>
+                <div className="col-span-2 text-right">{t('dashboard.winners.winRate')}</div>
               </div>
               {/* Table rows */}
               {recentWinners.map((w) => {
                 const isYou = walletAddress && w.winnerWallet === walletAddress;
                 const winRate = w.totalTickets > 0 ? (w.winnerTickets / w.totalTickets * 100).toFixed(1) : '0.0';
-                const dateStr = new Date(w.drawId + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const dateStr = new Date(w.drawId + 'T00:00:00Z').toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
                 return (
                   <div key={w.drawId} className="border-b border-white/5">
                     {/* Meme Winner Row */}
@@ -536,7 +538,7 @@ const Dashboard = ({
                     >
                       {/* Date */}
                       <div className="md:col-span-2 text-sm text-gray-300 flex items-center">
-                        <span className="md:hidden text-gray-500 mr-2">Date:</span>{dateStr}
+                        <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.date')}:</span>{dateStr}
                       </div>
                       {/* Meme */}
                       <div className="md:col-span-3">
@@ -552,14 +554,14 @@ const Dashboard = ({
                           {w.memeImageUrl ? (
                             <img src={w.memeImageUrl} alt={w.memeTitle || 'Meme'} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-lg flex-shrink-0">🎨</div>
+                            <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-lg flex-shrink-0">{'\uD83C\uDFA8'}</div>
                           )}
                           <span className="text-sm text-cyan-400 truncate">{w.memeTitle || `Meme ${w.memeId?.slice(-6) || '?'}`}</span>
                         </button>
                       </div>
                       {/* USDC */}
                       <div className="md:col-span-1 text-sm flex items-center">
-                        <span className="md:hidden text-gray-500 mr-2">USDC:</span>
+                        <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.usdc')}:</span>
                         {w.winnerUsdc ? (
                           w.winnerTxSignature ? (
                             <a href={`https://solscan.io/tx/${w.winnerTxSignature}`} target="_blank" rel="noopener noreferrer" className="text-green-400 font-medium hover:underline">${w.winnerUsdc}</a>
@@ -572,19 +574,19 @@ const Dashboard = ({
                       </div>
                       {/* Winner */}
                       <div className="md:col-span-3 flex items-center gap-2">
-                        <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
-                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/20 px-1.5 py-0.5 rounded">Meme</span>
+                        <span className="md:hidden text-gray-500 text-sm mr-1">{t('dashboard.winners.winner')}:</span>
+                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/20 px-1.5 py-0.5 rounded">{t('dashboard.winners.memeTag')}</span>
                         <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
-                        {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
+                        {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">{t('dashboard.winners.you')}</span>}
                       </div>
                       {/* Votes */}
                       <div className="md:col-span-1 text-sm text-gray-300 flex items-center">
-                        <span className="md:hidden text-gray-500 mr-2">Votes:</span>
+                        <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.votes')}:</span>
                         {w.winnerTickets} / {w.totalTickets}
                       </div>
                       {/* Win Rate */}
                       <div className="md:col-span-2 text-sm text-right flex items-center justify-end">
-                        <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
+                        <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.winRate')}:</span>
                         <span className={`font-medium ${parseFloat(winRate) >= 50 ? 'text-green-400' : parseFloat(winRate) >= 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
                           {winRate}%
                         </span>
@@ -604,7 +606,7 @@ const Dashboard = ({
                           <div className="md:col-span-3"></div>
                           {/* USDC */}
                           <div className="md:col-span-1 text-sm flex items-center">
-                            <span className="md:hidden text-gray-500 mr-2">USDC:</span>
+                            <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.usdc')}:</span>
                             {v.txSignature ? (
                               <a href={`https://solscan.io/tx/${v.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-green-400 font-medium hover:underline">${v.amount}</a>
                             ) : (
@@ -613,20 +615,20 @@ const Dashboard = ({
                           </div>
                           {/* Winner */}
                           <div className="md:col-span-3 flex items-center gap-2">
-                            <span className="md:hidden text-gray-500 text-sm mr-1">Winner:</span>
-                            <span className="text-xs font-bold text-purple-400 bg-purple-500/20 px-1.5 py-0.5 rounded">Lucky</span>
+                            <span className="md:hidden text-gray-500 text-sm mr-1">{t('dashboard.winners.winner')}:</span>
+                            <span className="text-xs font-bold text-purple-400 bg-purple-500/20 px-1.5 py-0.5 rounded">{t('dashboard.winners.luckyTag')}</span>
                             <span className="text-sm font-mono text-gray-300">{privateWallet(v.wallet)}</span>
-                            {isVoterYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">(You)</span>}
+                            {isVoterYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">{t('dashboard.winners.you')}</span>}
                           </div>
                           {/* Votes - N/A for lucky voters (random draw, not ticket-based) */}
                           <div className="md:col-span-1 text-sm text-gray-500 flex items-center">
-                            <span className="md:hidden text-gray-500 mr-2">Votes:</span>
-                            —
+                            <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.votes')}:</span>
+                            {'\u2014'}
                           </div>
                           {/* Win Rate - N/A for lucky voters */}
                           <div className="md:col-span-2 text-sm text-right flex items-center justify-end">
-                            <span className="md:hidden text-gray-500 mr-2">Win Rate:</span>
-                            <span className="font-medium text-gray-500">—</span>
+                            <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.winRate')}:</span>
+                            <span className="font-medium text-gray-500">{'\u2014'}</span>
                           </div>
                         </div>
                       );
@@ -661,14 +663,14 @@ const Dashboard = ({
             {/* Empty State */}
             {nftWins.length === 0 ? (
               <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-                <div className="text-6xl mb-4 opacity-50">🎯</div>
-                <h4 className="text-xl font-bold mb-2">No wins yet</h4>
-                <p className="text-gray-400 max-w-md mx-auto">Keep voting to earn tickets! Win the daily draw to own a meme and mint it as an NFT.</p>
+                <div className="text-6xl mb-4 opacity-50">{'\uD83C\uDFAF'}</div>
+                <h4 className="text-xl font-bold mb-2">{t('dashboard.winners.noWinsYet')}</h4>
+                <p className="text-gray-400 max-w-md mx-auto">{t('dashboard.winners.keepVoting')}</p>
               </div>
             ) : filteredWins.length === 0 ? (
               <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-12 text-center">
-                <div className="text-5xl mb-4 opacity-50">{winsFilter === 'minted' ? '🎨' : '📭'}</div>
-                <p className="text-gray-400">No {winsFilter} memes yet.</p>
+                <div className="text-5xl mb-4 opacity-50">{winsFilter === 'minted' ? '\uD83C\uDFA8' : '\uD83D\uDCED'}</div>
+                <p className="text-gray-400">{t('dashboard.winners.noFiltered', { filter: winsFilter })}</p>
               </div>
             ) : (
               /* Wins Grid */
@@ -686,7 +688,7 @@ const Dashboard = ({
                             className="w-full h-full object-contain"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🎨</div>
+                          <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">{'\uD83C\uDFA8'}</div>
                         )}
                         {/* Status badge */}
                         <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
@@ -694,7 +696,7 @@ const Dashboard = ({
                             ? 'bg-green-500/80 text-white'
                             : 'bg-yellow-500/80 text-white'
                         }`}>
-                          {win.claimed ? 'Minted' : 'Claimable'}
+                          {win.claimed ? t('common.minted') : t('common.claimable')}
                         </div>
                       </div>
                       {/* Info */}
@@ -703,10 +705,10 @@ const Dashboard = ({
                           {meme?.title || `Meme ${win.memeId.slice(-6)}`}
                         </h4>
                         <div className="text-xs text-gray-400 mt-1">
-                          Won {new Date(win.selectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {t('dashboard.winners.won', { date: new Date(win.selectedAt).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }) })}
                         </div>
                         {win.drawId && (
-                          <div className="text-xs text-gray-500 mt-0.5">Draw #{win.drawId}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{t('dashboard.winners.drawId', { id: win.drawId })}</div>
                         )}
                         {!win.claimed ? (
                           <button
@@ -714,11 +716,11 @@ const Dashboard = ({
                             disabled
                             title="NFT minting coming soon"
                           >
-                            Claim NFT (Soon)
+                            {t('dashboard.winners.claimNftSoon')}
                           </button>
                         ) : (
                           <div className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
-                            Minted
+                            {t('common.minted')}
                           </div>
                         )}
                       </div>
@@ -784,7 +786,7 @@ const Dashboard = ({
                 <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                   AI MemeForge
                 </h1>
-                <div className="hidden md:block text-xs text-gray-500">AI Meme Democracy Platform</div>
+                <div className="hidden md:block text-xs text-gray-500">{t('dashboard.subtitle')}</div>
               </div>
             </button>
 
@@ -810,7 +812,7 @@ const Dashboard = ({
             >
               {/* Speech bubble */}
               <div className="hidden md:flex items-center bg-cyan-500/15 border border-cyan-400/30 rounded-full px-3 py-1 group-hover:bg-cyan-500/25 transition-colors">
-                <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">Find me on X!</span>
+                <span className="text-xs font-medium text-cyan-300 whitespace-nowrap">{t('dashboard.findMeOnX')}</span>
               </div>
               {/* Avatar */}
               <div className="relative">
@@ -846,10 +848,10 @@ const Dashboard = ({
                 )}
                 <div className="text-center">
                   <div className="text-sm text-gray-400">
-                    {drawPhase === 'result' ? 'Winner' : drawPhase === 'drawing' ? 'Lottery' : 'Next Meme & USDC Draw'}
+                    {drawPhase === 'result' ? t('dashboard.nav.winner') : drawPhase === 'drawing' ? t('dashboard.nav.lottery') : t('dashboard.nav.nextDraw')}
                   </div>
                   {drawPhase === 'drawing' ? (
-                    <div className="font-bold text-yellow-400 text-lg animate-pulse">Drawing...</div>
+                    <div className="font-bold text-yellow-400 text-lg animate-pulse">{t('dashboard.nav.drawing')}</div>
                   ) : drawPhase === 'result' && drawResult ? (
                     <div className="font-bold text-green-400 text-lg">
                       {drawResult.winnerWallet
@@ -887,13 +889,18 @@ const Dashboard = ({
                 {isSettingsOpen && (
                   <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] isolate">
                     <div className="py-1">
+                      {/* Language */}
+                      <div className="px-4 py-3 border-b border-white/10">
+                        <LanguageSwitcher variant="inline" />
+                      </div>
+
                       {/* How It Works */}
                       <button
                         onClick={() => { setShowHowItWorks(true); setIsSettingsOpen(false); }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
                       >
                         <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 text-sm font-bold">?</span>
-                        <span className="text-sm">How It Works</span>
+                        <span className="text-sm">{t('dashboard.settings.howItWorks')}</span>
                       </button>
 
                       {/* Buy $Memeya */}
@@ -905,7 +912,7 @@ const Dashboard = ({
                         className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
                       >
                         <span className="w-7 h-7 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0 text-sm">&#129689;</span>
-                        <span className="text-sm text-yellow-400">Buy $Memeya</span>
+                        <span className="text-sm text-yellow-400">{t('dashboard.settings.buyMemeya')}</span>
                         <svg className="w-3.5 h-3.5 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -922,7 +929,7 @@ const Dashboard = ({
                         <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
                         </span>
-                        <span className="text-sm">GitHub</span>
+                        <span className="text-sm">{t('dashboard.settings.github')}</span>
                         <svg className="w-3.5 h-3.5 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -950,7 +957,7 @@ const Dashboard = ({
                           </span>
                           <div className="text-left">
                             <div className="text-sm font-mono text-cyan-300">{shortAddress}</div>
-                            <div className="text-xs text-gray-500">{copied ? 'Copied!' : 'Copy address'}</div>
+                            <div className="text-xs text-gray-500">{copied ? t('common.copied') : t('dashboard.settings.copyAddress')}</div>
                           </div>
                         </button>
                       )}
@@ -969,7 +976,7 @@ const Dashboard = ({
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                             </svg>
                           </span>
-                          <span className="text-sm">Export Private Key</span>
+                          <span className="text-sm">{t('dashboard.settings.exportPrivateKey')}</span>
                         </button>
                       )}
 
@@ -983,7 +990,7 @@ const Dashboard = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                           </svg>
                         </span>
-                        <span className="text-sm">Sign Out</span>
+                        <span className="text-sm">{t('common.signOut')}</span>
                       </button>
                     </div>
                   </div>
@@ -1021,13 +1028,18 @@ const Dashboard = ({
             className="fixed left-0 right-0 top-[57px] z-50 md:hidden bg-gray-900 border-b border-white/10 shadow-2xl animate-slide-down"
           >
             <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
+              {/* Language */}
+              <div className="px-3 py-3">
+                <LanguageSwitcher variant="inline" />
+              </div>
+
               {/* How It Works */}
               <button
                 onClick={() => { setShowHowItWorks(true); setIsMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">?</span>
-                <span className="text-sm font-medium">How It Works</span>
+                <span className="text-sm font-medium">{t('dashboard.settings.howItWorks')}</span>
               </button>
 
               {/* Buy $Memeya */}
@@ -1039,7 +1051,7 @@ const Dashboard = ({
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <span className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-sm">&#129689;</span>
-                <span className="text-sm font-medium text-yellow-400">Buy $Memeya</span>
+                <span className="text-sm font-medium text-yellow-400">{t('dashboard.settings.buyMemeya')}</span>
                 <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -1056,7 +1068,7 @@ const Dashboard = ({
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
                 </span>
-                <span className="text-sm font-medium">GitHub</span>
+                <span className="text-sm font-medium">{t('dashboard.settings.github')}</span>
                 <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -1081,7 +1093,7 @@ const Dashboard = ({
                   {memeyaBalance !== null && memeyaBalance > 0 && (
                     <span className="text-xs text-yellow-400 font-medium">&#129689; {formatTokenAmount(memeyaBalance)}</span>
                   )}
-                  <span className="ml-auto text-xs text-gray-500">{copied ? 'Copied!' : 'Copy'}</span>
+                  <span className="ml-auto text-xs text-gray-500">{copied ? t('common.copied') : t('common.copy')}</span>
                 </button>
               )}
 
@@ -1099,7 +1111,7 @@ const Dashboard = ({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                   </span>
-                  <span className="text-sm font-medium">Export Private Key</span>
+                  <span className="text-sm font-medium">{t('dashboard.settings.exportPrivateKey')}</span>
                 </button>
               )}
 
@@ -1113,7 +1125,7 @@ const Dashboard = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                 </span>
-                <span className="text-sm font-medium">Sign Out</span>
+                <span className="text-sm font-medium">{t('common.signOut')}</span>
               </button>
             </div>
           </div>
@@ -1157,13 +1169,13 @@ const Dashboard = ({
         <div className="max-w-7xl mx-auto px-3 pt-4">
           <div className="flex items-center justify-between bg-gradient-to-r from-orange-500/10 via-yellow-500/10 to-orange-500/10 border border-orange-400/20 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🎰</span>
+              <span className="text-lg">{'\uD83C\uDFB0'}</span>
               <span className="text-xs font-medium text-gray-300">
-                {drawPhase === 'result' ? 'Winner Announced!' : drawPhase === 'drawing' ? 'Drawing Now...' : 'Next Meme & USDC Draw'}
+                {drawPhase === 'result' ? t('dashboard.nav.winnerAnnounced') : drawPhase === 'drawing' ? t('dashboard.nav.drawingNow') : t('dashboard.nav.nextDraw')}
               </span>
             </div>
             {drawPhase === 'drawing' ? (
-              <span className="font-bold text-yellow-400 text-sm animate-pulse">Drawing...</span>
+              <span className="font-bold text-yellow-400 text-sm animate-pulse">{t('dashboard.nav.drawing')}</span>
             ) : drawPhase === 'result' && drawResult ? (
               <span className="font-bold text-green-400 text-sm">
                 {drawResult.winnerWallet ? `${drawResult.winnerWallet.slice(0, 4)}...${drawResult.winnerWallet.slice(-4)}` : 'No winner'}
@@ -1203,39 +1215,39 @@ const Dashboard = ({
               onClick={() => setShowWalletInfo(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all z-10"
             >
-              ✕
+              {'\u2715'}
             </button>
 
             <div className="p-6 md:p-8 space-y-6">
               {/* Header */}
               <div className="text-center pr-8">
-                <h2 className="text-2xl font-bold mb-1">Memeya's Wallet</h2>
-                <p className="text-gray-400 text-sm">Powered by <a href="https://www.crossmint.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Crossmint</a></p>
+                <h2 className="text-2xl font-bold mb-1">{t('dashboard.walletInfo.title')}</h2>
+                <p className="text-gray-400 text-sm">{t('dashboard.walletInfo.poweredBy').split('<1>')[0]}<a href="https://www.crossmint.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Crossmint</a>{t('dashboard.walletInfo.poweredBy').split('</1>')[1] || ''}</p>
               </div>
 
               {/* Balance */}
               <div className="text-center bg-white/5 border border-white/10 rounded-xl p-5">
-                <div className="text-sm text-gray-400 mb-1">Reward Pool Balance</div>
+                <div className="text-sm text-gray-400 mb-1">{t('dashboard.walletInfo.rewardPool')}</div>
                 <div className="text-4xl font-bold text-green-400">${rewardWalletUsdc !== null ? rewardWalletUsdc.toFixed(2) : '--'} <span className="text-lg text-gray-400">USDC</span></div>
               </div>
 
               {/* What is this */}
               <div>
-                <h3 className="font-bold text-lg mb-3">What is this?</h3>
+                <h3 className="font-bold text-lg mb-3">{t('dashboard.walletInfo.whatIsThis')}</h3>
                 <p className="text-sm text-gray-400 leading-relaxed">
-                  Memeya has her own on-chain Solana wallet managed by <span className="text-cyan-400">Crossmint's Agentic Wallet SDK</span>. After each daily lottery draw, USDC rewards are automatically distributed to winners and lucky voters — no manual process, fully autonomous.
+                  {t('dashboard.walletInfo.whatIsThisDesc')}
                 </p>
               </div>
 
               {/* Daily Rewards — only shown when reward distribution is ON */}
               {rewardEnabled && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-                <h3 className="font-bold text-lg mb-3">Daily Rewards (23:55 UTC)</h3>
+                <h3 className="font-bold text-lg mb-3">{t('dashboard.walletInfo.dailyRewards')}</h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Meme Winner", desc: "Most-voted meme's lottery winner", amount: "$3", color: "from-yellow-400 to-orange-500", icon: "🏆" },
-                    { label: "Lucky Voter #1", desc: "Random voter (excluding winner)", amount: "$2", color: "from-cyan-400 to-blue-500", icon: "🎲" },
-                    { label: "Lucky Voter #2", desc: "Another random voter", amount: "$1", color: "from-purple-400 to-pink-500", icon: "🎲" }
+                    { label: t('dashboard.walletInfo.memeWinner'), desc: t('dashboard.walletInfo.memeWinnerDesc'), amount: "$3", color: "from-yellow-400 to-orange-500", icon: "\uD83C\uDFC6" },
+                    { label: t('dashboard.walletInfo.luckyVoter1'), desc: t('dashboard.walletInfo.luckyVoter1Desc'), amount: "$2", color: "from-cyan-400 to-blue-500", icon: "\uD83C\uDFB2" },
+                    { label: t('dashboard.walletInfo.luckyVoter2'), desc: t('dashboard.walletInfo.luckyVoter2Desc'), amount: "$1", color: "from-purple-400 to-pink-500", icon: "\uD83C\uDFB2" }
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1249,7 +1261,7 @@ const Dashboard = ({
                     </div>
                   ))}
                   <div className="border-t border-white/10 pt-2 flex justify-between text-sm">
-                    <span className="text-gray-400">Total daily payout</span>
+                    <span className="text-gray-400">{t('dashboard.walletInfo.totalDaily')}</span>
                     <span className="font-bold text-green-400">$6 USDC</span>
                   </div>
                 </div>
@@ -1258,9 +1270,9 @@ const Dashboard = ({
 
               {/* Future */}
               <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-400/20 rounded-xl p-5">
-                <h3 className="font-bold text-lg mb-2">🔮 Coming Soon</h3>
+                <h3 className="font-bold text-lg mb-2">{'\uD83D\uDD2E'} {t('dashboard.walletInfo.comingSoon')}</h3>
                 <p className="text-sm text-gray-300 leading-relaxed">
-                  <span className="text-yellow-400 font-medium">$Memeya token fee distribution</span> — A portion of $Memeya trading fees will flow back to active voters and token holders as extra rewards. Vote daily, hold $Memeya, earn more.
+                  {t('dashboard.walletInfo.comingSoonDesc')}
                 </p>
               </div>
 
@@ -1270,7 +1282,7 @@ const Dashboard = ({
                   onClick={() => setShowWalletInfo(false)}
                   className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold rounded-xl transition-all duration-200"
                 >
-                  Got it!
+                  {t('common.gotIt')}
                 </button>
               </div>
             </div>
@@ -1291,23 +1303,23 @@ const Dashboard = ({
               onClick={() => setShowHowItWorks(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all z-10"
             >
-              ✕
+              {'\u2715'}
             </button>
 
             <div className="p-6 md:p-8 space-y-8">
               {/* Header */}
               <div className="text-center pr-8">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">How It Works</h2>
-                <p className="text-gray-400">A simple daily loop — completely free to participate.</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">{t('dashboard.howItWorks.title')}</h2>
+                <p className="text-gray-400">{t('dashboard.howItWorks.desc')}</p>
               </div>
 
               {/* 4-Step Daily Loop */}
               <div className="space-y-4">
                 {[
-                  { step: "1", icon: "🤖", title: "AI Creates", desc: "Every day, AI generates 3 fresh memes from trending crypto news.", color: "from-cyan-400 to-blue-500" },
-                  { step: "2", icon: "🗳️", title: "You Vote", desc: "Pick your favorite meme. You earn lottery tickets (1-10 base + streak bonus) just for voting — free, no gas.", color: "from-purple-400 to-pink-500" },
-                  { step: "3", icon: "🏆", title: "Daily Winner", desc: "The most-voted meme wins. A weighted lottery picks one voter as the owner.", color: "from-yellow-400 to-orange-500" },
-                  { step: "4", icon: "🎨", title: "Claim NFT", desc: "The winner can mint their meme as a Solana pNFT — true ownership, forever.", color: "from-green-400 to-emerald-500" }
+                  { step: "1", icon: "\uD83E\uDD16", title: t('dashboard.howItWorks.step1Title'), desc: t('dashboard.howItWorks.step1Desc'), color: "from-cyan-400 to-blue-500" },
+                  { step: "2", icon: "\uD83D\uDDF3\uFE0F", title: t('dashboard.howItWorks.step2Title'), desc: t('dashboard.howItWorks.step2Desc'), color: "from-purple-400 to-pink-500" },
+                  { step: "3", icon: "\uD83C\uDFC6", title: t('dashboard.howItWorks.step3Title'), desc: t('dashboard.howItWorks.step3Desc'), color: "from-yellow-400 to-orange-500" },
+                  { step: "4", icon: "\uD83C\uDFA8", title: t('dashboard.howItWorks.step4Title'), desc: t('dashboard.howItWorks.step4Desc'), color: "from-green-400 to-emerald-500" }
                 ].map((item) => (
                   <div key={item.step} className="flex items-start space-x-4">
                     <div className={`w-10 h-10 flex-shrink-0 bg-gradient-to-r ${item.color} rounded-lg flex items-center justify-center`}>
@@ -1323,38 +1335,38 @@ const Dashboard = ({
 
               {/* Ticket Strategy */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-                <h3 className="font-bold text-lg mb-3">🧠 Ticket Strategy</h3>
+                <h3 className="font-bold text-lg mb-3">{'\uD83E\uDDE0'} {t('dashboard.howItWorks.ticketStrategy')}</h3>
                 <p className="text-sm text-gray-400 mb-3">
-                  You can choose when to enter the lottery. Skip days to save tickets, then enter with better odds when you see a meme you love.
+                  {t('dashboard.howItWorks.ticketStrategyDesc')}
                 </p>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-white/5 rounded-lg p-3">
-                    <div className="font-bold text-cyan-400 mb-1">🎯 Daily Player</div>
-                    <p className="text-gray-500 text-xs">Enter every day with your daily tickets. Consistent small chances.</p>
+                    <div className="font-bold text-cyan-400 mb-1">{'\uD83C\uDFAF'} {t('dashboard.howItWorks.dailyPlayer')}</div>
+                    <p className="text-gray-500 text-xs">{t('dashboard.howItWorks.dailyPlayerDesc')}</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3">
-                    <div className="font-bold text-purple-400 mb-1">🧠 Accumulator</div>
-                    <p className="text-gray-500 text-xs">Save tickets across days. Enter once with 70+ tickets to dominate.</p>
+                    <div className="font-bold text-purple-400 mb-1">{'\uD83E\uDDE0'} {t('dashboard.howItWorks.accumulator')}</div>
+                    <p className="text-gray-500 text-xs">{t('dashboard.howItWorks.accumulatorDesc')}</p>
                   </div>
                 </div>
               </div>
 
               {/* Growth Flywheel */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-                <h3 className="font-bold text-lg mb-3">🔄 Why It Gets Better</h3>
+                <h3 className="font-bold text-lg mb-3">{'\uD83D\uDD04'} {t('dashboard.howItWorks.whyBetter')}</h3>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-                  <span className="text-green-400 font-medium">Vote free</span>
+                  <span className="text-green-400 font-medium">{t('dashboard.howItWorks.voteFree')}</span>
                   <span className="text-gray-600">&rarr;</span>
-                  <span className="text-cyan-400 font-medium">Win memes</span>
+                  <span className="text-cyan-400 font-medium">{t('dashboard.howItWorks.winMemes')}</span>
                   <span className="text-gray-600">&rarr;</span>
-                  <span className="text-blue-400 font-medium">Community grows</span>
+                  <span className="text-blue-400 font-medium">{t('dashboard.howItWorks.communityGrows')}</span>
                   <span className="text-gray-600">&rarr;</span>
-                  <span className="text-purple-400 font-medium">NFTs gain value</span>
+                  <span className="text-purple-400 font-medium">{t('dashboard.howItWorks.nftsGainValue')}</span>
                   <span className="text-gray-600">&rarr;</span>
-                  <span className="text-green-400 font-medium">Vote more</span>
+                  <span className="text-green-400 font-medium">{t('dashboard.howItWorks.voteMore')}</span>
                 </div>
                 <p className="text-center text-xs text-gray-500 mt-3">
-                  Only 365 NFTs per year. The earlier you collect, the more you have when the ecosystem grows.
+                  {t('dashboard.howItWorks.only365')}
                 </p>
               </div>
 
@@ -1364,7 +1376,7 @@ const Dashboard = ({
                   onClick={() => setShowHowItWorks(false)}
                   className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold rounded-xl transition-all duration-200"
                 >
-                  Got it!
+                  {t('common.gotIt')}
                 </button>
               </div>
             </div>
