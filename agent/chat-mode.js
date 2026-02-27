@@ -74,9 +74,10 @@ export class ChatMode {
     this.lastMoltbookEngage = Date.now(); // wait full interval after boot
     this.moltbookEngageInterval = this._randomMoltbookEngageInterval();
 
-    // Moltbook ecosystem posts to m/general (3.5-5 day timer, independent from meme posts)
-    this.lastMoltbookEcosystemPost = Date.now(); // wait full interval after boot
+    // Moltbook ecosystem posts to m/general (1-2 day timer, independent from meme posts)
+    // Use half-interval initial wait so restarts don't push posts out too far
     this.moltbookEcosystemInterval = this._randomMoltbookEcosystemInterval();
+    this.lastMoltbookEcosystemPost = Date.now() - this.moltbookEcosystemInterval / 2;
 
     // Winner announcement timer (5-min polling after lottery at 23:55 UTC)
     this.lastWinnerAnnouncementCheck = 0;
@@ -1832,7 +1833,7 @@ ${recentMemory.slice(-1500)}
   }
 
   _randomMoltbookEcosystemInterval() {
-    return (3.5 + Math.random() * 1.5) * 24 * 60 * 60 * 1000; // 3.5-5 days
+    return (1 + Math.random()) * 24 * 60 * 60 * 1000; // 1-2 days
   }
 
   /**
@@ -2374,7 +2375,7 @@ ${recentMemory.slice(-1500)}
 
   /**
    * Moltbook ecosystem post to m/general — value-first content (not meme promotion).
-   * Runs on its own 3.5-5 day timer, independent from meme posts.
+   * Runs on its own 1-2 day timer, independent from meme posts.
    * Checks 35-min buffer vs last meme post to respect Moltbook's rate limit.
    */
   async maybePostEcosystem() {
@@ -2586,7 +2587,7 @@ ${recentMemory.slice(-1500)}
             lastFired: this.lastMoltbookEcosystemPost || null,
             nextIn: fmt(this.moltbookEcosystemInterval - (now - (this.lastMoltbookEcosystemPost || 0))),
             enabled: !!process.env.MOLTBOOK_API_KEY,
-            scope: '9-23 GMT+8 (every 3.5-5 days)',
+            scope: '9-23 GMT+8 (every 1-2 days)',
           },
           morningNews: {
             label: 'Morning News',
