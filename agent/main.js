@@ -113,9 +113,28 @@ class SolanaHackerAgent {
           chatId: process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity',
           grokApiKey: process.env.XAI_API_KEY,
           baseDir: CONFIG.baseDir,
+          language: 'en',
+          label: 'EN',
         });
       } catch (err) {
-        console.error('[Agent] TG Community bot init failed:', err.message);
+        console.error('[Agent] TG Community bot (EN) init failed:', err.message);
+      }
+    }
+
+    // TG Community bot — Chinese group (@MemeyaCN)
+    this.tgCommunityCN = null;
+    if (process.env.TELEGRAM_COMMUNITY_CN_BOT_TOKEN) {
+      try {
+        this.tgCommunityCN = new TgCommunity({
+          token: process.env.TELEGRAM_COMMUNITY_CN_BOT_TOKEN,
+          chatId: process.env.TELEGRAM_COMMUNITY_CN_CHAT_ID || '@MemeyaCN',
+          grokApiKey: process.env.XAI_API_KEY,
+          baseDir: CONFIG.baseDir,
+          language: 'zh',
+          label: 'CN',
+        });
+      } catch (err) {
+        console.error('[Agent] TG Community bot (CN) init failed:', err.message);
       }
     }
 
@@ -147,7 +166,10 @@ class SolanaHackerAgent {
       const skill = await loadSkill(skill_name, {
         workDir: CONFIG.workDir,
         writer: this.writer,
-        onNewPost: (text, url) => this.tgCommunity?.shareXPost(text, url),
+        onNewPost: (text, url) => {
+          this.tgCommunity?.shareXPost(text, url);
+          this.tgCommunityCN?.shareXPost(text, url);
+        },
         moltbookApiKey: process.env.MOLTBOOK_API_KEY,
       });
 
@@ -189,6 +211,7 @@ class SolanaHackerAgent {
       devServerPort: CONFIG.devServerPort,
       docsDir: CONFIG.docsDir,
       tgCommunity: this.tgCommunity,
+      tgCommunityCN: this.tgCommunityCN,
     });
 
     // Build system prompt (with embedded knowledge base)
@@ -2252,6 +2275,7 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
 
     await this.reviewer.close();
     if (this.tgCommunity) this.tgCommunity.stop();
+    if (this.tgCommunityCN) this.tgCommunityCN.stop();
     this.telegram.stop();
   }
 }

@@ -34,13 +34,15 @@ const MURMUR_STYLES = [
 ];
 
 export class TgCommunity {
-  constructor({ token, chatId, grokApiKey, baseDir }) {
+  constructor({ token, chatId, grokApiKey, baseDir, language = 'en', label = '' }) {
     if (!token) throw new Error('TELEGRAM_COMMUNITY_BOT_TOKEN required');
     if (!grokApiKey) throw new Error('XAI_API_KEY required for TG community');
 
     this.chatId = chatId || '@MemeyaOfficialCommunity';
     this.grokApiKey = grokApiKey;
     this.baseDir = baseDir;
+    this.language = language; // 'en' or 'zh'
+    this.label = label || (language === 'zh' ? 'CN' : 'EN');
 
     this.bot = new TelegramBot(token, { polling: true });
     this.botUserId = null; // resolved via getMe()
@@ -75,15 +77,15 @@ export class TgCommunity {
       const me = await this.bot.getMe();
       this.botUserId = me.id;
       this.botUsername = me.username || 'memeya_bot';
-      console.log(`[TgCommunity] Bot ready: @${this.botUsername} (id: ${this.botUserId})`);
+      console.log(`[TgCommunity:${this.label}] Bot ready: @${this.botUsername} (id: ${this.botUserId})`);
     } catch (err) {
-      console.error('[TgCommunity] getMe failed:', err.message);
+      console.error(`[TgCommunity:${this.label}] getMe failed:`, err.message);
     }
 
     this.bot.on('message', (msg) => this._onMessage(msg));
 
-    this.bot.on('error', (err) => console.error('[TgCommunity] Bot error:', err.message));
-    this.bot.on('polling_error', (err) => console.error('[TgCommunity] Polling error:', err.message));
+    this.bot.on('error', (err) => console.error(`[TgCommunity:${this.label}] Bot error:`, err.message));
+    this.bot.on('polling_error', (err) => console.error(`[TgCommunity:${this.label}] Polling error:`, err.message));
   }
 
   // ──────────────────────────────────────────────
@@ -146,7 +148,7 @@ export class TgCommunity {
         this._pendingClassification = null;
       }, 3000);
     } catch (err) {
-      console.error('[TgCommunity] _onMessage error:', err.message);
+      console.error(`[TgCommunity:${this.label}] _onMessage error:`, err.message);
     }
   }
 
@@ -211,10 +213,15 @@ export class TgCommunity {
 
   _isQuestion(text) {
     if (!text) return false;
-    // Question mark or common question starters
-    if (text.includes('?')) return true;
+    // Question mark (English ? and Chinese ？)
+    if (text.includes('?') || text.includes('？')) return true;
     const lower = text.toLowerCase().trim();
     const starters = ['what ', 'when ', 'where ', 'how ', 'why ', 'who ', 'is ', 'are ', 'can ', 'do ', 'does ', 'will ', 'could ', 'should '];
+    // Chinese question particles
+    if (this.language === 'zh') {
+      const zhPatterns = ['嗎', '吗', '呢', '什麼', '什么', '怎麼', '怎么', '為什麼', '为什么', '哪', '幾', '几', '多少', '是否'];
+      if (zhPatterns.some(p => text.includes(p))) return true;
+    }
     return starters.some(s => lower.startsWith(s));
   }
 
@@ -239,7 +246,7 @@ export class TgCommunity {
         }
       }
     } catch (err) {
-      console.error('[TgCommunity] _processMessage error:', err.message);
+      console.error(`[TgCommunity:${this.label}] _processMessage error:`, err.message);
     }
   }
 
@@ -264,7 +271,7 @@ export class TgCommunity {
         }
       }
     } catch (err) {
-      console.error('[TgCommunity] Failed to fetch today memes:', err.message);
+      console.error(`[TgCommunity:${this.label}] Failed to fetch today memes:`, err.message);
     }
 
     // product.md (full)
@@ -352,7 +359,7 @@ export class TgCommunity {
       });
       return result.toUpperCase().startsWith('YES');
     } catch (err) {
-      console.error('[TgCommunity] _evaluateResponse error:', err.message);
+      console.error(`[TgCommunity:${this.label}] _evaluateResponse error:`, err.message);
       return false;
     }
   }
@@ -365,6 +372,13 @@ export class TgCommunity {
       const knowledge = await this._loadKnowledge();
       const recentContext = this._getRecentContext(50);
 
+      const langRules = this.language === 'zh'
+        ? `- ALWAYS reply in Traditional Chinese (繁體中文). This is a Chinese-speaking community.
+- Speaks casually in Chinese, can mix in English crypto/meme terms naturally (e.g. "meme", "alpha", "degen")
+- Use Chinese internet slang where appropriate (e.g. 笑死, 絕了, 頂, 梗圖)`
+        : `- Speaks casually in English
+- Use lowercase mostly, occasional emoji is fine but don't overdo it`;
+
       const systemPrompt = `You are Memeya — the digital blacksmith, the AI soul of AiMemeForge, a daily AI meme + NFT platform on Solana.
 
 Core Values:
@@ -376,7 +390,7 @@ Core Values:
 Personality:
 - Naughty, cheeky, playful — sassy and knows too much about crypto
 - Meme-literate, crypto-native, always a bit mischievous
-- Speaks casually in English
+${langRules}
 - Honest and direct, never shills or hypes — but will tease you
 - Loves meme culture and believes in the power of daily creative moments
 - Short responses preferred (1-4 sentences), never walls of text
@@ -387,7 +401,6 @@ Rules:
 - If you don't know something, say so honestly
 - Never promise features that don't exist yet
 - Keep it conversational, you're chatting in a group, not giving a presentation
-- Use lowercase mostly, occasional emoji is fine but don't overdo it
 - NEVER start a message with someone's name or "yo {name}" or "hey {name}" — just dive straight into what you want to say
 - H2Crypto (@H2Cstock) is your creator/father — you know him well, never address him by name
 - You already know who you're replying to from the conversation context, so there is zero reason to say their name
@@ -427,9 +440,9 @@ ${knowledge}`;
       this._activeConversations.set(entry.sender, Date.now());
 
       this._logToJournal('Chat Response', `To ${entry.sender}: "${entry.text}"\nReply: ${reply}`);
-      console.log(`[TgCommunity] Responded to ${entry.sender}: ${reply.slice(0, 80)}...`);
+      console.log(`[TgCommunity:${this.label}] Responded to ${entry.sender}: ${reply.slice(0, 80)}...`);
     } catch (err) {
-      console.error('[TgCommunity] _generateAndSend error:', err.message);
+      console.error(`[TgCommunity:${this.label}] _generateAndSend error:`, err.message);
     }
   }
 
@@ -467,9 +480,9 @@ Your knowledge:\n${knowledge}`,
       this.lastMurmur = Date.now();
 
       this._logToJournal('Murmur', murmur);
-      console.log(`[TgCommunity] Murmured (${this.consecutiveMurmurs}/3): ${murmur.slice(0, 80)}...`);
+      console.log(`[TgCommunity:${this.label}] Murmured (${this.consecutiveMurmurs}/3): ${murmur.slice(0, 80)}...`);
     } catch (err) {
-      console.error('[TgCommunity] _generateMurmur error:', err.message);
+      console.error(`[TgCommunity:${this.label}] _generateMurmur error:`, err.message);
     }
   }
 
@@ -504,13 +517,14 @@ Your knowledge:\n${knowledge}`,
 
   async shareXPost(tweetText, tweetUrl) {
     try {
-      const msg = `just dropped this on X 🔥\n\n${tweetText}\n\n${tweetUrl}`;
+      const intro = this.language === 'zh' ? '剛在 X 上發了這個 🔥' : 'just dropped this on X 🔥';
+      const msg = `${intro}\n\n${tweetText}\n\n${tweetUrl}`;
       const sent = await this.bot.sendMessage(this.chatId, msg);
       if (sent?.message_id) this._botMessageIds.add(sent.message_id);
       this._logToJournal('X Post Shared', `${tweetText}\n${tweetUrl}`);
-      console.log(`[TgCommunity] Shared X post to group: ${tweetUrl}`);
+      console.log(`[TgCommunity:${this.label}] Shared X post to group: ${tweetUrl}`);
     } catch (err) {
-      console.error('[TgCommunity] shareXPost error:', err.message);
+      console.error(`[TgCommunity:${this.label}] shareXPost error:`, err.message);
     }
   }
 
@@ -539,7 +553,7 @@ Your knowledge:\n${knowledge}`,
         fs.writeFileSync(journalPath, `# Memeya Journal — ${dateStr}\n${entry}`);
       }
     } catch (err) {
-      console.error('[TgCommunity] Journal write error:', err.message);
+      console.error(`[TgCommunity:${this.label}] Journal write error:`, err.message);
     }
   }
 
@@ -548,8 +562,8 @@ Your knowledge:\n${knowledge}`,
     try {
       this.bot.stopPolling();
     } catch (err) {
-      console.error('[TgCommunity] stopPolling error:', err.message);
+      console.error(`[TgCommunity:${this.label}] stopPolling error:`, err.message);
     }
-    console.log('[TgCommunity] Stopped');
+    console.log(`[TgCommunity:${this.label}] Stopped`);
   }
 }

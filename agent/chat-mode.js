@@ -34,6 +34,7 @@ export class ChatMode {
     this.devServerPort = deps.devServerPort || 5173;
     this.docsDir = deps.docsDir || path.join(this.baseDir, 'docs');
     this.tgCommunity = deps.tgCommunity || null;
+    this.tgCommunityCN = deps.tgCommunityCN || null;
     console.log(`[ChatMode] Initialized with baseDir: ${this.baseDir}`);
     this.valuesPath = path.join(this.memoryDir, 'knowledge', 'values.md');
     this.wipPath = path.join(this.memoryDir, 'journal', 'work_in_progress.md');
@@ -1849,12 +1850,13 @@ ${recentMemory.slice(-1500)}
         } catch (e) {
           console.error('[ChatMode] Telegram notification failed:', e.message);
         }
-        // Share to TG community group
-        if (this.tgCommunity) {
+        // Share to TG community groups
+        for (const bot of [this.tgCommunity, this.tgCommunityCN]) {
+          if (!bot) continue;
           try {
-            await this.tgCommunity.shareXPost(result.text, result.url);
+            await bot.shareXPost(result.text, result.url);
           } catch (e) {
-            console.error('[ChatMode] TG community share failed:', e.message);
+            console.error(`[ChatMode] TG community share failed (${bot.label}):`, e.message);
           }
         }
       } else {
@@ -2387,11 +2389,13 @@ ${recentMemory.slice(-1500)}
    * TG Community murmur tick — called from heartbeat
    */
   async maybeTgCommunityTick() {
-    if (!this.tgCommunity) return;
-    try {
-      await this.tgCommunity.tick();
-    } catch (err) {
-      console.error('[ChatMode] TG community tick error:', err.message);
+    for (const bot of [this.tgCommunity, this.tgCommunityCN]) {
+      if (!bot) continue;
+      try {
+        await bot.tick();
+      } catch (err) {
+        console.error(`[ChatMode] TG community tick error (${bot.label}):`, err.message);
+      }
     }
   }
 
