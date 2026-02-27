@@ -239,8 +239,8 @@ const GalleryTab = () => {
                       <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent"></div>
                     </div>
 
-                    {/* Day's Memes Grid - 2 columns on mobile, 3-4 on desktop */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    {/* Day's Memes Grid - 2 columns on mobile, 3 on desktop (matches 3 daily memes) */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                       {dayMemes.map((meme) => (
                         <div
                           key={meme.id}
