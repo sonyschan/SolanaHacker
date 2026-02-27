@@ -267,6 +267,8 @@
     "reward": {
       "title": "Vote Successful!",
       "earned": "You earned <1>{{count}} tickets</1>!",
+      "earnedPrefix": "You earned",
+      "tickets": "tickets",
       "base": "Base: {{count}}",
       "streak": "Streak: {{count}}",
       "tokenBonus": "$Memeya: {{count}}",

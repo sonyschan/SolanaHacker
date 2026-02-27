@@ -258,7 +258,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       >
         <div className="text-6xl mb-4">🎉</div>
         <h3 className="text-2xl font-bold mb-2">{t('forge.reward.title')}</h3>
-        <p className="text-lg">{t('forge.reward.earned', { count: earnedTickets }).split(`${earnedTickets}`).map((part, i) => i === 0 ? <React.Fragment key={i}>{part}<span className="font-bold text-yellow-300">{earnedTickets} {t('forge.completed.ticketsEarned').toLowerCase()}</span></React.Fragment> : part)}</p>
+        <p className="text-lg">{t('forge.reward.earnedPrefix')} <span className="font-bold text-yellow-300">{earnedTickets} {t('forge.reward.tickets')}</span>!</p>
         {(baseTickets > 0 || streakBonusEarned > 0 || tokenBonus > 0) && (
           <p className="text-sm text-purple-200 mt-1">
             ({t('forge.reward.base', { count: baseTickets })}{streakBonusEarned > 0 ? ` + ${t('forge.reward.streak', { count: streakBonusEarned })}` : ''}{tokenBonus > 0 ? ` + ${t('forge.reward.tokenBonus', { count: tokenBonus })}` : ''})

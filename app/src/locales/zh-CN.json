@@ -267,6 +267,8 @@
     "reward": {
       "title": "投票成功!",
       "earned": "你获得了 <1>{{count}} 张票券</1>!",
+      "earnedPrefix": "你获得了",
+      "tickets": "张票券",
       "base": "基础: {{count}}",
       "streak": "连续: {{count}}",
       "tokenBonus": "$Memeya: {{count}}",
