@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { submitVote, getVotingResults, getUserVotes, checkVotingEligibility } = require('../controllers/votingController');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
-const { cacheResponse, TTL } = require('../utils/cache');
+const { cacheResponse, invalidate, TTL } = require('../utils/cache');
 const Joi = require('joi');
 
 // Validation schemas - accepts both frontend formats
@@ -103,6 +103,10 @@ router.post('/submit', rateLimiter, async (req, res) => {
       walletAddress,
       timestamp: new Date().toISOString()
     });
+
+    // Invalidate meme caches so both Forge and Gallery show fresh vote counts
+    invalidate('memes:today');
+    invalidate('memes:hall-of-memes');
 
     res.json({
       success: true,
