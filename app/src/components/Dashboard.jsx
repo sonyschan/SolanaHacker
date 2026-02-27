@@ -103,9 +103,12 @@ const Dashboard = ({
         }
       }
 
-      const { balance, bonus } = await getMemeyaBalance(walletAddress);
-      setMemeyaBalance(balance);
-      setMemeyaBonus(bonus);
+      const result = await getMemeyaBalance(walletAddress);
+      if (result) {
+        setMemeyaBalance(result.balance);
+        setMemeyaBonus(result.bonus);
+      }
+      // If null (fetch failed), keep memeyaBalance as null → ForgeTab treats as loading
     })();
   }, [walletAddress]);
 

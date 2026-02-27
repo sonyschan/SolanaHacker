@@ -4,7 +4,8 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 /**
  * Fetch $Memeya token balance via backend proxy.
  * Caches in localStorage for 10 minutes.
- * Returns { balance, bonus } — gracefully returns zeros on error.
+ * Returns { balance, bonus } or null on failure (so callers can distinguish
+ * "actually 0 tokens" from "fetch failed").
  */
 export async function getMemeyaBalance(walletAddress) {
   try {
@@ -31,10 +32,10 @@ export async function getMemeyaBalance(walletAddress) {
       return { balance, bonus };
     }
 
-    return { balance: 0, bonus: 0 };
+    return null; // API error — don't overwrite existing state with 0
   } catch (error) {
     console.error('Error fetching $Memeya balance:', error);
-    return { balance: 0, bonus: 0 };
+    return null; // fetch failed — don't overwrite existing state with 0
   }
 }
 
