@@ -13,7 +13,8 @@ export async function getMemeyaBalance(walletAddress) {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const { balance, bonus, ts } = JSON.parse(cached);
-      if (Date.now() - ts < CACHE_TTL) {
+      // Don't trust cached balance of 0 — likely from a transient RPC failure
+      if (balance > 0 && Date.now() - ts < CACHE_TTL) {
         return { balance, bonus };
       }
     }
@@ -23,7 +24,10 @@ export async function getMemeyaBalance(walletAddress) {
 
     if (data.success) {
       const { balance, bonus } = data.data;
-      localStorage.setItem(cacheKey, JSON.stringify({ balance, bonus, ts: Date.now() }));
+      // Only cache positive balances — 0 may be from transient RPC failure
+      if (balance > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify({ balance, bonus, ts: Date.now() }));
+      }
       return { balance, bonus };
     }
 
