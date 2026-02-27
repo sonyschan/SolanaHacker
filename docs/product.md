@@ -19,13 +19,14 @@
 - 社群投票 + 連勝獎勵 + $Memeya token bonus
 - 每日抽獎 (加權隨機) + Ticket 累積策略
 - Hall of Memes + OG Card 分享
-- Agent Memeya X 自主經營 (@AiMemeForgeIO, 5 話題, 三層記憶)
+- Agent Memeya X 自主經營 (@AiMemeForgeIO, 6 話題, 三層記憶)
 - Memeya Moltbook 社群 (moltbook.com/u/memeya)
 - Memeya TG Community Bot (@memeya_bot)
 - Tapestry 鏈上社交 + $Memeya 餘額顯示
 - Agent Profile + Memeya Dashboard (X/Moltbook/Timers/System)
 - Memeya's Wallet (Crossmint) — 每日 USDC 獎勵自動分發
-- $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 + 每小時自動驗證
+- $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 (抽獎時即時鏈上驗證)
+- 每日得獎公告自動發佈 X 推文 (含梗圖圖片)
 
 **🚧 In Progress:** NFT Claim & 鑄造 (Metaplex pNFT, 5% royalty, Arweave)
 
@@ -126,7 +127,7 @@
 
 Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https://www.crossmint.com) 管理。每日抽獎後自動發放 USDC 獎勵給贏家和幸運投票者。
 
-**獎勵資格**: 持有 ≥10,000 $Memeya tokens 才可參與 USDC 獎勵。餘額在投票時自動快取，每小時重新驗證，確保抽獎前 1 小時內買入即可生效。
+**獎勵資格**: 持有 ≥10,000 $Memeya tokens 才可參與 USDC 獎勵。抽獎時即時查詢鏈上餘額 (Solana RPC)，確保資格判定基於最新持倉，無快取延遲。
 
 **獎勵分配** (每日 23:55 UTC):
 - 梗圖贏家 (最高票): $3 USDC
@@ -135,6 +136,8 @@ Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https
 
 不符合資格的贏家將跳過獎勵（保留於錢包），投票者同樣需符合門檻。投票後若餘額不足，前端會顯示 CA 和 pump.fun 購買連結引導用戶。
 
+**得獎公告**: 獎勵分發後，Agent 自動在 X 發佈得獎推文 (含梗圖圖片、贏家錢包、USDC 金額)。23:30-00:30 UTC 每 5 分鐘輪詢，冪等不重複。
+
 ---
 
-*最後更新: 2026-02-26*
+*最後更新: 2026-02-27*

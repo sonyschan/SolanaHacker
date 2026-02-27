@@ -37,10 +37,8 @@
 | `X_BEARER_TOKEN` | App-only (搜尋/讀取) | ✅ 已設定 |
 | `X_CLIENT_ID` | OAuth 2.0 | ✅ 已設定 |
 | `X_CLIENT_SECRET` | OAuth 2.0 | ✅ 已設定 |
-| `X_ACCESS_TOKEN` | User-level (發文) | ❌ 需新增 |
-| `X_ACCESS_SECRET` | User-level (發文) | ❌ 需新增 |
-
-取得 Access Token：https://developer.x.com → App → Keys and Tokens → Generate Access Token and Secret
+| `X_ACCESS_TOKEN` | User-level (發文) | ✅ 已設定 |
+| `X_ACCESS_SECRET` | User-level (發文) | ✅ 已設定 |
 
 ## 使用方式
 
@@ -60,4 +58,6 @@ Agent 在 Chat Mode 中：
 
 - **2026-02-19**: 角色設計、skill 框架建立、cron 設定
 - **2026-02-20**: CC 重寫 skill (修正 broken imports, 對齊 skill-loader 架構)
-- **TODO**: 新增 X_ACCESS_TOKEN/SECRET、測試發文、整合 heartbeat
+- **2026-02-20**: X_ACCESS_TOKEN/SECRET 設定完成、自主發文上線
+- **2026-02-25**: meme_spotlight 加入投票 CTA
+- **2026-02-27**: 每日得獎公告自動發推 (含梗圖圖片)、修復幸運投票者選取 bug

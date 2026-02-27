@@ -2074,7 +2074,8 @@ ${recentMemory.slice(-1500)}
 
       const postController = new AbortController();
       const postTimeout = setTimeout(() => postController.abort(), 30000);
-      const postRes = await fetch(`http://localhost:${this.devServerPort}/api/memeya/send-post`, {
+      const dashboardPort = process.env.DASHBOARD_PORT || 8090;
+      const postRes = await fetch(`http://localhost:${dashboardPort}/api/memeya/send-post`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postBody),
