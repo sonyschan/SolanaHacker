@@ -14,6 +14,8 @@ const GalleryTab = () => {
   const [selectedMeme, setSelectedMeme] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'winners'
   const [copied, setCopied] = useState(false);
+  const [visibleDays, setVisibleDays] = useState(10);
+  const DAYS_PER_PAGE = 10;
 
   // Share helpers
   const getShareUrl = (meme) => {
@@ -98,7 +100,7 @@ const GalleryTab = () => {
         {/* Filter Tabs */}
         <div className="flex justify-center gap-4 mt-6">
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => { setFilter('all'); setVisibleDays(DAYS_PER_PAGE); }}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
               filter === 'all'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
@@ -108,7 +110,7 @@ const GalleryTab = () => {
             All Memes
           </button>
           <button
-            onClick={() => setFilter('winners')}
+            onClick={() => { setFilter('winners'); setVisibleDays(DAYS_PER_PAGE); }}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
               filter === 'winners'
                 ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/25'
@@ -234,9 +236,13 @@ const GalleryTab = () => {
           ) : (
             /* All Memes - Grouped by date */
             <div className="space-y-10">
-              {Object.entries(groupedByDate)
-                .sort(([a], [b]) => b.localeCompare(a))
-                .map(([date, dayMemes]) => (
+              {(() => {
+                const sortedDates = Object.entries(groupedByDate)
+                  .sort(([a], [b]) => b.localeCompare(a));
+                const visibleDates = sortedDates.slice(0, visibleDays);
+                const hasMore = sortedDates.length > visibleDays;
+                return (<>
+              {visibleDates.map(([date, dayMemes]) => (
                   <div key={date}>
                     {/* Date Header */}
                     <div className="flex items-center gap-4 mb-4">
@@ -317,7 +323,19 @@ const GalleryTab = () => {
                       ))}
                     </div>
                   </div>
-                ))}
+              ))}
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={() => setVisibleDays(prev => prev + DAYS_PER_PAGE)}
+                    className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-cyan-500/50 rounded-xl text-gray-300 hover:text-white transition-all duration-300"
+                  >
+                    Load More ({sortedDates.length - visibleDays} days remaining)
+                  </button>
+                </div>
+              )}
+                </>);
+              })()}
             </div>
           )}
         </>
