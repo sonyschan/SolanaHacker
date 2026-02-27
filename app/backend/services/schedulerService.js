@@ -18,6 +18,7 @@ const memeController = require('../controllers/memeController');
 const votingController = require('../controllers/votingController');
 const lotteryController = require('../controllers/lotteryController');
 const rewardService = require('./rewardService');
+const rarityService = require('./rarityService');
 
 class SchedulerService {
   constructor() {
@@ -142,26 +143,46 @@ class SchedulerService {
       const winningMeme = this.selectWinningMeme(results);
 
       if (winningMeme) {
-        const rarity = this.calculateRarity(winningMeme.votes.rarity);
+        // Use score-based percentile rarity from rarityService
+        const avgScore = winningMeme.rarity?.averageScore;
+        let finalRarity = 'common';
+        if (typeof avgScore === 'number' && avgScore > 0) {
+          const result = await rarityService.calculateRarity(avgScore);
+          finalRarity = result.rarity.toLowerCase();
+          console.log(`[Scheduler] Rarity for ${winningMeme.id}: avgScore=${avgScore}, percentile=${result.percentile}, method=${result.method} → ${finalRarity}`);
+        } else {
+          // Fallback: use legacy vote counts if no score data
+          finalRarity = this.calculateRarity(winningMeme.votes.rarity);
+          console.log(`[Scheduler] Rarity fallback (no score data) for ${winningMeme.id}: ${finalRarity}`);
+        }
 
         await dbUtils.updateDocument(collections.MEMES, winningMeme.id, {
           status: 'voting_completed',
-          finalRarity: rarity,
+          finalRarity,
           isWinner: true,
           votingCompleted: new Date().toISOString()
         });
 
         for (const memeId of activePeriod.memeIds) {
           if (memeId !== winningMeme.id) {
+            // Calculate rarity for losing memes too
+            const loserResult = results[memeId];
+            let loserRarity = 'common';
+            const loserAvg = loserResult?.rarity?.averageScore;
+            if (typeof loserAvg === 'number' && loserAvg > 0) {
+              const lr = await rarityService.calculateRarity(loserAvg);
+              loserRarity = lr.rarity.toLowerCase();
+            }
             await dbUtils.updateDocument(collections.MEMES, memeId, {
               status: 'voting_completed',
+              finalRarity: loserRarity,
               isWinner: false,
               votingCompleted: new Date().toISOString()
             });
           }
         }
 
-        console.log(`✅ Voting completed. Winner: ${winningMeme.id} with rarity: ${rarity}`);
+        console.log(`✅ Voting completed. Winner: ${winningMeme.id} with rarity: ${finalRarity}`);
       } else {
         console.warn(`⚠️ No winning meme could be determined from voting results. Results keys: ${Object.keys(results).length}`);
       }
@@ -566,6 +587,7 @@ class SchedulerService {
           id: memeId,
           title: meme.title,
           votes: meme.votes || { selection: {}, rarity: {} },
+          rarity: meme.rarity || {}, // score-based rarity data (averageScore, totalVotes)
           totalSelectionVotes: Object.values(meme.votes?.selection || {}).reduce((a, b) => a + b, 0),
           totalRarityVotes: Object.values(meme.votes?.rarity || {}).reduce((a, b) => a + b, 0)
         };

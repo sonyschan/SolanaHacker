@@ -185,15 +185,14 @@ const GalleryTab = () => {
                       {formatDate(meme.generatedAt)}
                     </div>
 
-                    {/* NFT Owner Badge */}
-                    {meme.nftOwner && (
-                      <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
-                        Owned: {meme.nftOwner.walletAddress.slice(0, 4)}...{meme.nftOwner.walletAddress.slice(-4)}
-                      </div>
-                    )}
-
                     {/* Image - Square aspect ratio */}
                     <div className="relative aspect-square bg-gray-800 overflow-hidden">
+                      {/* NFT Owner Badge - inside image container so it doesn't overlap content */}
+                      {meme.nftOwner && (
+                        <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+                          Owned: {meme.nftOwner.walletAddress.slice(0, 4)}...{meme.nftOwner.walletAddress.slice(-4)}
+                        </div>
+                      )}
                       <img
                         src={meme.imageUrl || meme.image}
                         alt={meme.title}
