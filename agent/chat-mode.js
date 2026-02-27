@@ -185,44 +185,9 @@ export class ChatMode {
         },
       },
 
-      // --- Debug ---
-      {
-        name: 'check_console_errors',
-        description: 'Check browser console for JavaScript errors on the dev server. Use to debug UI issues without taking screenshots.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            click_selector: { type: 'string', description: 'Optional CSS selector to click before checking errors' },
-          },
-        },
-      },
-      {
-        name: 'take_screenshot',
-        description: 'Take a screenshot of the running dev server to verify UI changes. Returns the screenshot path. Use after making UI changes to confirm they look correct.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            viewport: { type: 'string', enum: ['desktop', 'mobile'], description: 'Viewport size. desktop: 1280x720, mobile: 375x812. Default: desktop' },
-          },
-        },
-      },
-
-      // --- Dev Server ---
-      {
-        name: 'dev_server',
-        description: 'Control the Vite development server. Use to start/restart the frontend after waking up or if it crashes.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            action: {
-              type: 'string',
-              enum: ['start', 'restart', 'stop', 'status'],
-              description: 'start: Launch dev server. restart: Kill and relaunch. stop: Kill. status: Check if running.',
-            },
-          },
-          required: ['action'],
-        },
-      },
+      // NOTE: check_console_errors, take_screenshot, dev_server are DISABLED.
+      // The Vite dev server cannot run on the droplet (missing frontend deps like @privy-io/react-auth).
+      // Frontend is deployed via Vercel — use Vercel preview or local dev for UI verification.
 
       // --- Cron Jobs ---
       {
@@ -536,13 +501,10 @@ ${recentMemory.slice(-1500)}
   - 返回：截圖路徑 + 詳細視覺分析
 
 ### Debug & 驗證
-- **check_console_errors**：檢查 dev server 的瀏覽器 console 錯誤
-- **take_screenshot**：截取 dev server 畫面並發送到 Telegram
-  - 用於：驗證 UI 修改是否正確顯示
-  - 支援 desktop/mobile viewport
+- ~~check_console_errors~~, ~~take_screenshot~~, ~~dev_server~~：已停用（droplet 無前端依賴）
+- 前端驗證請使用 Vercel preview 或本機開發環境，不要嘗試在 droplet 啟動 Vite dev server
 
-### Dev Server & Shell
-- **dev_server**：控制前端開發伺服器（start/restart/stop/status）
+### Shell
 - **run_command**：執行 shell 指令（在 app/ 目錄）
   - 用於：npm install, npm run build 等
   - 危險指令會被阻擋
