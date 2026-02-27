@@ -40,7 +40,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
   }, [memeyaBalance]);
 
   const currentBalance = localMemeyaBalance ?? 0;
-  const isMemeyaQualified = currentBalance >= MEMEYA_THRESHOLD;
+  // Treat null (loading) as qualified to avoid flash of unqualified banner
+  const isMemeyaQualified = localMemeyaBalance === null || currentBalance >= MEMEYA_THRESHOLD;
 
   // Track when user was shown the $Memeya notice (for hourly refresh cycle)
   useEffect(() => {
