@@ -37,6 +37,7 @@ agent/heartbeat-state.json
 agent/dashboard.html
 logs/
 memory/journal/
+memory/moltbook/*.json
 screenshots/
 *.png.bak
 

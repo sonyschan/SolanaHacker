@@ -65,11 +65,12 @@ export class ChatMode {
     this.ownerMentionInterval = 15 * 60 * 1000;
 
     // Moltbook posting timer (posts 1 meme per heartbeat, 2-3 hour cooldown)
-    this.lastMoltbookPost = null;
+    // Restore from posted.json so restarts don't bypass rate limit
     this.moltbookPostInterval = this._randomMoltbookPostInterval();
-    this.moltbookPostDoneDate = null; // YYYY-MM-DD when all memes posted for the day
+    this.moltbookPostDoneDate = null;
     this.moltbookSetupDone = false;
     this.moltbookIntroDone = false;
+    this.lastMoltbookPost = this._restoreMoltbookPostState();
 
     // Moltbook engagement timer (every 3-5 hours randomized)
     this.lastMoltbookEngage = Date.now(); // wait full interval after boot
@@ -1789,6 +1790,28 @@ ${recentMemory.slice(-1500)}
 
   _randomMoltbookPostInterval() {
     return (2 + Math.random() * 1) * 60 * 60 * 1000; // 2-3 hours
+  }
+
+  /**
+   * Restore Moltbook posting state from posted.json on startup.
+   * If memes were already posted today, returns Date.now() so the 2-3 hour
+   * cooldown applies — prevents rapid-fire posting after agent restart.
+   */
+  _restoreMoltbookPostState() {
+    try {
+      const postedPath = path.join(this.baseDir, 'memory/moltbook/posted.json');
+      if (!fs.existsSync(postedPath)) return null;
+      const posted = JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
+      const today = new Date().toISOString().slice(0, 10);
+      const todayPosted = posted[today] || [];
+      if (todayPosted.length > 0) {
+        console.log(`[ChatMode] Moltbook: restored ${todayPosted.length} posted memes for today, applying cooldown`);
+        return Date.now(); // pretend we just posted → cooldown kicks in
+      }
+    } catch (err) {
+      console.error('[ChatMode] _restoreMoltbookPostState error:', err.message);
+    }
+    return null;
   }
 
   _randomMoltbookEngageInterval() {
