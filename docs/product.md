@@ -2,7 +2,7 @@
 
 > AI 創作梗圖、人類投票、每日選出最佳、抽獎決定擁有者、Claim 鑄造為 NFT
 
-**Live**: [aimemeforge.io](https://solana-hacker.vercel.app) ｜ **GitHub**: [SolanaHacker](https://github.com/sonyschan/SolanaHacker) ｜ **Hackathon**: [Colosseum Agent Hackathon](https://arena.colosseum.org/) ｜ **TG**: [t.me/MemeyaOfficialCommunity](https://t.me/MemeyaOfficialCommunity)
+**Live**: [aimemeforge.io](https://aimemeforge.io) ｜ **GitHub**: [SolanaHacker](https://github.com/sonyschan/SolanaHacker) ｜ **Hackathon**: [Colosseum Agent Hackathon](https://arena.colosseum.org/) ｜ **TG**: [t.me/MemeyaOfficialCommunity](https://t.me/MemeyaOfficialCommunity)
 
 ---
 
@@ -16,19 +16,21 @@
 
 **✅ Live:**
 - AI 梗圖每日生成 (Gemini + Grok, 3 張/天)
+- 兩階段投票: Phase 1 選出最佳梗圖 → Phase 2 社群 1-10 分評分決定稀有度
 - 社群投票 + 連勝獎勵 + $Memeya token bonus
 - 每日抽獎 (加權隨機) + Ticket 累積策略
-- Hall of Memes + OG Card 分享
-- Agent Memeya X 自主經營 (@AiMemeForgeIO, 6 話題, 三層記憶)
+- Hall of Memes 歷史畫廊
+- Agent Memeya X 自主經營 (@AiMemeForgeIO, 7 話題, 三層記憶)
 - Memeya Moltbook 社群 (moltbook.com/u/memeya)
 - Memeya TG Community Bot (@memeya_bot)
 - Tapestry 鏈上社交 + $Memeya 餘額顯示
 - Agent Profile + Memeya Dashboard (X/Moltbook/Timers/System)
 - Memeya's Wallet (Crossmint) — 每日 USDC 獎勵自動分發
-- $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 (抽獎時即時鏈上驗證)
+- $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 (投票者抽獎時即時鏈上驗證，贏家使用投票時快取餘額)
 - 每日得獎公告自動發佈 X 推文 (含梗圖圖片)
+- 多語言 i18n (EN / 简体中文 / 繁體中文) — 瀏覽器自動偵測 + 手動切換
 
-**🚧 In Progress:** NFT Claim & 鑄造 (Metaplex pNFT, 5% royalty, Arweave)
+**🚧 In Progress:** NFT Claim & 鑄造 (Metaplex pNFT, 5% royalty, Arweave) · OG Card 分享 (後端 OG 圖片服務已建，前端整合中)
 
 **📋 Planned:** 發文效果學習 · 更多 AI 模型 · Moltbook karma 優化
 
@@ -51,7 +53,7 @@
 **$Memeya Token Bonus**: +floor(log10(holdings))，需持有 ≥10 tokens。持有 ≥10,000 $Memeya 可參與每日 USDC 獎勵抽獎。
 
 ### 每日贏家
-23:50 UTC 最高票梗圖為贏家。稀有度由投票數決定。平票以先達到者為準。零票則無贏家。
+23:50 UTC 最高票梗圖為贏家 (Phase 1)。贏家選出後進入 Phase 2: 社群以 1-10 分評分，系統根據平均分數百分位排名計算稀有度 (Common / Rare / Legendary)。平票以先達到者為準。零票則無贏家。
 
 ### 每日抽獎
 23:55 UTC，「參與」狀態的錢包進入抽獎池，中獎概率 = 持有 tickets ÷ 總 tickets。抽獎後參與者 tickets 歸零。
@@ -83,13 +85,14 @@
 
 ### X/Twitter 自主發文
 
-每 2-4hr 自動發文 (可 Dashboard toggle)。6 話題類型:
+每 2-4hr 自動發文 (可 Dashboard toggle)。7 話題類型:
 - **meme_spotlight**: 分享/評論梗圖 (附 OG 連結)
 - **personal_vibe**: 個人反思、內心獨白
 - **crypto_commentary**: 即時加密貨幣新聞熱評 (Grok web search)
 - **feature_showtime**: AiMemeForge 功能介紹
 - **dev_update**: 系統升級描述 (有新 commits 時優先，每日最多 1 篇)
 - **community_response**: 回應粉絲留言 (有互動時權重提升)
+- **token_spotlight**: $Memeya 代幣相關 (每日 20% 機率觸發，最多 1 篇)
 
 **品質控制**: 動態反重複 (分析近 15 篇提取 banned patterns) → 硬性攔截 (重複 opener / 過多 lava hammer) → Grok 審核 (無聊則替代) → meme_spotlight 附未發過 OG 連結跳過審核
 
@@ -115,7 +118,7 @@
 
 [Moltbook](https://www.moltbook.com) — AI Agent 社交網路。Profile: [moltbook.com/u/memeya](https://www.moltbook.com/u/memeya)，自有 Submolt: m/AiMemeForge。
 
-**自動發文**: 8:30 AM GMT+8 後，從 API 獲取當日梗圖逐一發布 (35 分鐘間隔)。AI 生成內容 (grok-4-1-fast-reasoning + 完整 context)。發完後 cross-post 最佳到相關 submolts。
+**自動發文**: 8:30 AM GMT+8 後，從 API 獲取當日梗圖逐一發布 (2-3 小時間隔，每心跳 1 篇)。AI 生成內容 (grok-4-1-fast-reasoning + 完整 context)。發完後 cross-post 最佳到相關 submolts。
 
 **社群互動**: 每 3-5hr (9-23 時 GMT+8)。回覆評論 (max 3) → 回覆 DM (max 2) → Feed upvote (max 7) + 評論 (max 2)。
 
@@ -127,7 +130,7 @@
 
 Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https://www.crossmint.com) 管理。每日抽獎後自動發放 USDC 獎勵給贏家和幸運投票者。
 
-**獎勵資格**: 持有 ≥10,000 $Memeya tokens 才可參與 USDC 獎勵。抽獎時即時查詢鏈上餘額 (Solana RPC)，確保資格判定基於最新持倉，無快取延遲。
+**獎勵資格**: 持有 ≥10,000 $Memeya tokens 才可參與 USDC 獎勵。投票者抽獎時即時查詢鏈上餘額 (Solana RPC)，確保資格判定基於最新持倉。贏家資格使用投票時快取的 Firestore 餘額。
 
 **獎勵分配** (每日 23:55 UTC):
 - 梗圖贏家 (最高票): $3 USDC
@@ -140,4 +143,4 @@ Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https
 
 ---
 
-*最後更新: 2026-02-27*
+*最後更新: 2026-02-28*
