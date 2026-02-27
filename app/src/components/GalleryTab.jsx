@@ -211,11 +211,18 @@ const GalleryTab = () => {
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
                         <span>❤️ {meme.votes?.selection?.yes || 0}</span>
                         {meme.finalRarity && (
-                          <span className={`px-1.5 py-0.5 rounded ${
-                            meme.finalRarity === 'legendary' ? 'bg-purple-500/20 text-purple-300' :
-                            meme.finalRarity === 'rare' ? 'bg-blue-500/20 text-blue-300' :
-                            'bg-gray-500/20 text-gray-300'
-                          }`}>
+                          <span className="px-1.5 py-0.5 rounded" style={{
+                            backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
+                              meme.finalRarity === 'epic' ? 'rgba(163,53,238,0.2)' :
+                              meme.finalRarity === 'rare' ? 'rgba(0,112,221,0.2)' :
+                              meme.finalRarity === 'uncommon' ? 'rgba(30,255,0,0.2)' :
+                              'rgba(169,169,169,0.2)',
+                            color: meme.finalRarity === 'legendary' ? '#FF8000' :
+                              meme.finalRarity === 'epic' ? '#A335EE' :
+                              meme.finalRarity === 'rare' ? '#0070DD' :
+                              meme.finalRarity === 'uncommon' ? '#1EFF00' :
+                              '#A9A9A9'
+                          }}>
                             {meme.finalRarity}
                           </span>
                         )}
@@ -289,11 +296,18 @@ const GalleryTab = () => {
                                 <span>{meme.votes?.selection?.yes || 0}</span>
                               </span>
                               {meme.finalRarity && (
-                                <span className={`px-2 py-0.5 rounded text-xs ${
-                                  meme.finalRarity === 'legendary' ? 'bg-purple-500/20 text-purple-300' :
-                                  meme.finalRarity === 'rare' ? 'bg-blue-500/20 text-blue-300' :
-                                  'bg-gray-500/20 text-gray-300'
-                                }`}>
+                                <span className="px-2 py-0.5 rounded text-xs" style={{
+                                  backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
+                                    meme.finalRarity === 'epic' ? 'rgba(163,53,238,0.2)' :
+                                    meme.finalRarity === 'rare' ? 'rgba(0,112,221,0.2)' :
+                                    meme.finalRarity === 'uncommon' ? 'rgba(30,255,0,0.2)' :
+                                    'rgba(169,169,169,0.2)',
+                                  color: meme.finalRarity === 'legendary' ? '#FF8000' :
+                                    meme.finalRarity === 'epic' ? '#A335EE' :
+                                    meme.finalRarity === 'rare' ? '#0070DD' :
+                                    meme.finalRarity === 'uncommon' ? '#1EFF00' :
+                                    '#A9A9A9'
+                                }}>
                                   {meme.finalRarity}
                                 </span>
                               )}
@@ -368,7 +382,13 @@ const GalleryTab = () => {
                   <div className="text-xs md:text-sm text-gray-400">Selection Votes</div>
                 </div>
                 <div className="bg-white/5 rounded-xl p-3 md:p-4 text-center">
-                  <div className="text-xl md:text-2xl font-bold text-purple-400">
+                  <div className="text-xl md:text-2xl font-bold" style={{
+                    color: selectedMeme.finalRarity === 'legendary' ? '#FF8000' :
+                      selectedMeme.finalRarity === 'epic' ? '#A335EE' :
+                      selectedMeme.finalRarity === 'rare' ? '#0070DD' :
+                      selectedMeme.finalRarity === 'uncommon' ? '#1EFF00' :
+                      '#A9A9A9'
+                  }}>
                     {selectedMeme.finalRarity || 'Pending'}
                   </div>
                   <div className="text-xs md:text-sm text-gray-400">Rarity Level</div>
