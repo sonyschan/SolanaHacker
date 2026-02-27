@@ -273,7 +273,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
         backdropOpacity="bg-black/80"
         closeOnBackdropClick={true}
         onClose={() => setShowMemeyaNotice(false)}
-        className="bg-gradient-to-br from-orange-600 to-yellow-600 rounded-2xl p-8 text-center max-w-md mx-auto"
+        className="bg-gradient-to-br from-orange-600 to-yellow-600 rounded-2xl p-8 text-center max-w-lg mx-auto"
       >
         <div className="text-5xl mb-4">&#129689;</div>
         <h3 className="text-2xl font-bold mb-3">{t('forge.memeyaNotice.title')}</h3>
