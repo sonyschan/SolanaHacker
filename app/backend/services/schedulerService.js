@@ -41,7 +41,7 @@ class SchedulerService {
       }
 
       // Generate memes using the existing controller
-      const req = { body: {} };
+      const req = { body: {}, query: {} };
       let result = null;
       const res = {
         json: (data) => { result = data; return data; },
@@ -49,9 +49,15 @@ class SchedulerService {
       };
 
       await memeController.generateDailyMemes(req, res);
-      console.log('✅ Daily memes generated successfully:', result);
 
-      // Log execution
+      // Check if controller returned an error via the fake res
+      if (result && result.error) {
+        console.error('❌ Daily meme generation returned error:', result.error);
+        await this.logTaskExecution('daily_memes', 'failed', result.error);
+        return result;
+      }
+
+      console.log('✅ Daily memes generated successfully:', result);
       await this.logTaskExecution('daily_memes', 'success');
 
       return result;
@@ -294,11 +300,11 @@ class SchedulerService {
   /**
    * Manual reward distribution for today's draw
    */
-  async runRewardDistribution() {
+  async runRewardDistribution(dateOverride) {
     console.log('💰 Running manual reward distribution...');
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = dateOverride || new Date().toISOString().split('T')[0];
       const draw = await dbUtils.getDocument(collections.LOTTERY_DRAWS, today);
 
       if (!draw || draw.status !== 'completed') {
@@ -632,7 +638,7 @@ class SchedulerService {
   /**
    * Trigger a task by name (called by API endpoint)
    */
-  async triggerTask(taskName) {
+  async triggerTask(taskName, options = {}) {
     console.log(`🔧 Executing task: ${taskName}`);
 
     switch (taskName) {
@@ -651,7 +657,7 @@ class SchedulerService {
       case 'voting_progress':
         return await this.checkVotingProgress();
       case 'reward_distribution':
-        return await this.runRewardDistribution();
+        return await this.runRewardDistribution(options.date);
       case 'recover_draw':
         throw new Error('recover_draw requires a date parameter — use POST /api/scheduler/recover/:date');
       default:
