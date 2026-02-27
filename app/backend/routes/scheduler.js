@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const schedulerService = require('../services/schedulerService');
+const rarityService = require('../services/rarityService');
 
 /**
  * @route GET /api/scheduler/status
@@ -285,6 +286,76 @@ router.get('/health', async (req, res) => {
         'Verify Firebase configuration'
       ]
     });
+  }
+});
+
+/**
+ * @route POST /api/scheduler/backfill-rarity
+ * @desc Recalculate finalRarity for all memes using percentile-based system
+ * @access Admin only
+ */
+router.post('/backfill-rarity', async (req, res) => {
+  try {
+    const dryRun = req.body.dryRun === true;
+    const { getFirestore, collections } = require('../config/firebase');
+    const db = getFirestore();
+
+    console.log(`🔄 Backfilling meme rarity${dryRun ? ' (DRY RUN)' : ''}...`);
+
+    const snapshot = await db.collection(collections.MEMES).get();
+    let updated = 0, skipped = 0, noScore = 0;
+    const changes = [];
+
+    for (const doc of snapshot.docs) {
+      const meme = doc.data();
+      const avgScore = meme.rarity?.averageScore;
+
+      if (typeof avgScore !== 'number' || avgScore <= 0) {
+        noScore++;
+        continue;
+      }
+
+      const result = await rarityService.calculateRarity(avgScore);
+      const newRarity = result.rarity.toLowerCase();
+      const oldRarity = (meme.finalRarity || '').toLowerCase();
+
+      if (newRarity === oldRarity) {
+        skipped++;
+        continue;
+      }
+
+      changes.push({
+        id: doc.id,
+        title: (meme.title || '').slice(0, 40),
+        avgScore,
+        percentile: result.percentile,
+        method: result.method,
+        old: oldRarity || '(none)',
+        new: newRarity,
+      });
+
+      if (!dryRun) {
+        await db.collection(collections.MEMES).doc(doc.id).update({
+          finalRarity: newRarity,
+        });
+      }
+      updated++;
+    }
+
+    console.log(`✅ Backfill done: ${updated} updated, ${skipped} unchanged, ${noScore} no score`);
+
+    res.json({
+      success: true,
+      dryRun,
+      updated,
+      skipped,
+      noScore,
+      total: snapshot.size,
+      changes,
+    });
+  } catch (error) {
+    console.error('❌ Backfill rarity failed:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
