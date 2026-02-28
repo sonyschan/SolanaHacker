@@ -6,6 +6,7 @@ import ForgeTab from './ForgeTab';
 import MemeModal from './MemeModal';
 import GalleryTab from './GalleryTab';
 import LanguageSwitcher from './LanguageSwitcher';
+import ReferralTab from './ReferralTab';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -43,7 +44,8 @@ const Dashboard = ({
     { id: 'forge', label: t('dashboard.tabs.forge'), icon: '\uD83E\uDD16', desc: t('dashboard.tabs.forgeDesc') },
     { id: 'gallery', label: t('dashboard.tabs.gallery'), icon: '\uD83C\uDFDB\uFE0F', desc: t('dashboard.tabs.galleryDesc') },
     { id: 'tickets', label: t('dashboard.tabs.tickets'), icon: '\uD83C\uDFAB', desc: t('dashboard.tabs.ticketsDesc') },
-    { id: 'wins', label: t('dashboard.tabs.wins'), icon: '\uD83C\uDFC6', desc: t('dashboard.tabs.winsDesc') }
+    { id: 'wins', label: t('dashboard.tabs.wins'), icon: '\uD83C\uDFC6', desc: t('dashboard.tabs.winsDesc') },
+    { id: 'referral', label: t('dashboard.tabs.referral'), icon: '\uD83E\uDD1D', desc: t('dashboard.tabs.referralDesc') }
   ];
 
   // Close hamburger menu or settings dropdown on ESC
@@ -818,6 +820,8 @@ const Dashboard = ({
         return <TicketsTabContent />;
       case 'wins':
         return <WinnersTabContent />;
+      case 'referral':
+        return <ReferralTab walletAddress={walletAddress} memeyaBalance={memeyaBalance} />;
       default:
         return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}
@@ -970,6 +974,15 @@ const Dashboard = ({
                         <span className="text-sm">{t('dashboard.settings.howItWorks')}</span>
                       </button>
 
+                      {/* Referral Program */}
+                      <button
+                        onClick={() => { setActiveTab('referral'); setIsSettingsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0 text-sm">{'\uD83E\uDD1D'}</span>
+                        <span className="text-sm text-cyan-400">{t('dashboard.settings.referral')}</span>
+                      </button>
+
                       {/* Buy $Memeya */}
                       <a
                         href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
@@ -1107,6 +1120,15 @@ const Dashboard = ({
               >
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">?</span>
                 <span className="text-sm font-medium">{t('dashboard.settings.howItWorks')}</span>
+              </button>
+
+              {/* Referral Program */}
+              <button
+                onClick={() => { setActiveTab('referral'); setIsMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <span className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-sm">{'\uD83E\uDD1D'}</span>
+                <span className="text-sm font-medium text-cyan-400">{t('dashboard.settings.referral')}</span>
               </button>
 
               {/* Buy $Memeya */}

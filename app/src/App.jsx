@@ -19,6 +19,19 @@ function App() {
   const [nftWins, setNftWins] = useState([]);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
+  // Capture ?ref= URL param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) {
+      localStorage.setItem('pendingReferrer', ref);
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('ref');
+      window.history.replaceState({}, '', url.pathname + url.hash);
+    }
+  }, []);
+
   // Fetch user data from API when wallet connects
   useEffect(() => {
     console.log("App useEffect: authenticated=", authenticated, "walletAddress=", walletAddress);
@@ -41,6 +54,30 @@ function App() {
           setVotingStreak(data.user.streakDays || 0);
           setLotteryOptIn(data.user.lotteryOptIn !== false);
           setNftWins(data.user.nftWins || []);
+
+          // Auto-submit pending referrer if user has none
+          if (!data.user.referredBy) {
+            const pendingRef = localStorage.getItem('pendingReferrer');
+            if (pendingRef && pendingRef !== walletAddress) {
+              try {
+                const refRes = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/set-referrer`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ referrerWallet: pendingRef })
+                });
+                const refData = await refRes.json();
+                if (refData.success) {
+                  console.log('Referrer set automatically:', pendingRef);
+                  localStorage.removeItem('pendingReferrer');
+                }
+              } catch (e) {
+                console.error('Auto set-referrer failed:', e);
+              }
+            }
+          } else {
+            // Already has referrer, clear pending
+            localStorage.removeItem('pendingReferrer');
+          }
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error);

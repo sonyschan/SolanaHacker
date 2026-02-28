@@ -117,7 +117,9 @@
       "tickets": "票券",
       "ticketsDesc": "管理参赛券",
       "wins": "赢家",
-      "winsDesc": "查看谁赢了"
+      "winsDesc": "查看谁赢了",
+      "referral": "推荐",
+      "referralDesc": "邀请赚奖励"
     },
     "nav": {
       "nextDraw": "下次梗图 & USDC 开奖",
@@ -132,7 +134,8 @@
       "buyMemeya": "购买 $Memeya",
       "github": "GitHub",
       "copyAddress": "复制地址",
-      "exportPrivateKey": "导出私钥"
+      "exportPrivateKey": "导出私钥",
+      "referral": "推荐计划"
     },
     "tickets": {
       "title": "你的抽奖票券",
@@ -237,6 +240,47 @@
       "totalDaily": "每日总发放",
       "comingSoon": "即将推出",
       "comingSoonDesc": "$Memeya 代币手续费分配 — 一部分 $Memeya 交易手续费将回馈给活跃投票者和代币持有者作为额外奖励。每日投票，持有 $Memeya，赚取更多。"
+    },
+    "referral": {
+      "title": "推荐计划",
+      "yourLink": "你的推荐链接",
+      "yourLinkDesc": "分享此链接邀请朋友。当他们赢得 USDC 时，你也能赚取奖励！",
+      "copyLink": "复制链接",
+      "linkCopied": "已复制！",
+      "shareOnX": "分享到 X",
+      "shareText": "加入 AI MemeForge — 投票 AI 迷因，每日赢取 USDC！使用我的推荐链接：",
+      "eliteRequired": "你需要持有 50K $Memeya（精英用户）才能获得推荐人奖励。你仍然可以分享链接！",
+      "eliteActive": "精英用户 — 你可从推荐人的奖金中赚取 10%",
+      "setReferrer": "设置推荐人",
+      "setReferrerDesc": "输入推荐你的人的钱包地址，赢得 USDC 时可获 20% 额外奖励。",
+      "referrerWallet": "推荐人钱包地址",
+      "setReferrerBtn": "设置推荐人",
+      "referrerLocked": "推荐人已设置",
+      "referrerLockedDesc": "推荐人",
+      "stats": "推荐统计",
+      "totalReferred": "总推荐数",
+      "l1Earnings": "L1 收益 (10%)",
+      "l2Earnings": "L2 收益 (5%)",
+      "referredUsers": "被推荐用户",
+      "wallet": "钱包",
+      "joined": "加入时间",
+      "usdcQualified": "USDC 资格",
+      "yourEarnings": "你的收益",
+      "noReferrals": "暂无推荐。分享链接开始吧！",
+      "howItWorks": "运作方式",
+      "howStep1": "A 推荐 B，B 推荐 C",
+      "howStep2": "C 赢得 $3 USDC 基础奖励",
+      "howStep3": "C 获得 $3.60（+20% 奖励，需 B 为精英用户）",
+      "howStep4": "B 获得 $0.30（10%，需 B 持有 50K $Memeya）",
+      "howStep5": "A 获得 $0.15（5%，需 A 持有 50K $Memeya）",
+      "howNote": "仅计算 2 级。精英 = 持有 50K+ $Memeya 代币。",
+      "errorSelfReferral": "不能推荐自己",
+      "errorAlreadySet": "推荐人已设置",
+      "errorNotFound": "推荐人钱包未找到",
+      "errorInvalidWallet": "无效的钱包地址",
+      "errorGeneric": "设置推荐人失败，请重试。",
+      "successSet": "推荐人设置成功！",
+      "pendingReferrer": "连接钱包后将自动设置推荐人"
     }
   },
   "forge": {

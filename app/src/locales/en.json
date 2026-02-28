@@ -117,7 +117,9 @@
       "tickets": "Tickets",
       "ticketsDesc": "Manage entries",
       "wins": "Winners",
-      "winsDesc": "Check who won"
+      "winsDesc": "Check who won",
+      "referral": "Referral",
+      "referralDesc": "Invite & earn"
     },
     "nav": {
       "nextDraw": "Next Meme & USDC Draw",
@@ -132,7 +134,8 @@
       "buyMemeya": "Buy $Memeya",
       "github": "GitHub",
       "copyAddress": "Copy address",
-      "exportPrivateKey": "Export Private Key"
+      "exportPrivateKey": "Export Private Key",
+      "referral": "Referral Program"
     },
     "tickets": {
       "title": "Your Lottery Tickets",
@@ -237,6 +240,47 @@
       "totalDaily": "Total daily payout",
       "comingSoon": "Coming Soon",
       "comingSoonDesc": "$Memeya token fee distribution \u2014 A portion of $Memeya trading fees will flow back to active voters and token holders as extra rewards. Vote daily, hold $Memeya, earn more."
+    },
+    "referral": {
+      "title": "Referral Program",
+      "yourLink": "Your Referral Link",
+      "yourLinkDesc": "Share this link to invite friends. When they win USDC, you earn too!",
+      "copyLink": "Copy Link",
+      "linkCopied": "Link Copied!",
+      "shareOnX": "Share on X",
+      "shareText": "Join me on AI MemeForge — vote on AI memes, win USDC daily! Use my referral link:",
+      "eliteRequired": "You need 50K $Memeya (Elite User) to earn referrer bonuses. You can still share your link!",
+      "eliteActive": "Elite User — You earn 10% from your referrals' winnings",
+      "setReferrer": "Set Your Referrer",
+      "setReferrerDesc": "Enter the wallet address of who referred you to earn 20% bonus on your USDC wins.",
+      "referrerWallet": "Referrer Wallet Address",
+      "setReferrerBtn": "Set Referrer",
+      "referrerLocked": "Your referrer is set",
+      "referrerLockedDesc": "Referred by",
+      "stats": "Referral Stats",
+      "totalReferred": "Total Referred",
+      "l1Earnings": "L1 Earnings (10%)",
+      "l2Earnings": "L2 Earnings (5%)",
+      "referredUsers": "Referred Users",
+      "wallet": "Wallet",
+      "joined": "Joined",
+      "usdcQualified": "USDC Qualified",
+      "yourEarnings": "Your Earnings",
+      "noReferrals": "No referrals yet. Share your link to get started!",
+      "howItWorks": "How It Works",
+      "howStep1": "A refers B, B refers C",
+      "howStep2": "C wins $3 USDC base reward",
+      "howStep3": "C gets $3.60 (+20% bonus, requires B to be Elite)",
+      "howStep4": "B gets $0.30 (10%, requires B to hold 50K $Memeya)",
+      "howStep5": "A gets $0.15 (5%, requires A to hold 50K $Memeya)",
+      "howNote": "Only 2 levels are counted. Elite = hold 50K+ $Memeya tokens.",
+      "errorSelfReferral": "You cannot refer yourself",
+      "errorAlreadySet": "Your referrer is already set",
+      "errorNotFound": "Referrer wallet not found",
+      "errorInvalidWallet": "Invalid wallet address",
+      "errorGeneric": "Failed to set referrer. Please try again.",
+      "successSet": "Referrer set successfully!",
+      "pendingReferrer": "Referrer will be set when you connect your wallet"
     }
   },
   "forge": {

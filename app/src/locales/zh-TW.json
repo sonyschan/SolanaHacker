@@ -117,7 +117,9 @@
       "tickets": "票券",
       "ticketsDesc": "管理參賽券",
       "wins": "贏家",
-      "winsDesc": "查看誰贏了"
+      "winsDesc": "查看誰贏了",
+      "referral": "推薦",
+      "referralDesc": "邀請賺獎勵"
     },
     "nav": {
       "nextDraw": "下次迷因 & USDC 開獎",
@@ -132,7 +134,8 @@
       "buyMemeya": "購買 $Memeya",
       "github": "GitHub",
       "copyAddress": "複製地址",
-      "exportPrivateKey": "匯出私鑰"
+      "exportPrivateKey": "匯出私鑰",
+      "referral": "推薦計畫"
     },
     "tickets": {
       "title": "你的抽獎票券",
@@ -237,6 +240,47 @@
       "totalDaily": "每日總發放",
       "comingSoon": "即將推出",
       "comingSoonDesc": "$Memeya 代幣手續費分配 — 一部分 $Memeya 交易手續費將回饋給活躍投票者和代幣持有者作為額外獎勵。每日投票，持有 $Memeya，賺取更多。"
+    },
+    "referral": {
+      "title": "推薦計畫",
+      "yourLink": "你的推薦連結",
+      "yourLinkDesc": "分享此連結邀請朋友。當他們贏得 USDC 時，你也能賺取獎勵！",
+      "copyLink": "複製連結",
+      "linkCopied": "已複製！",
+      "shareOnX": "分享到 X",
+      "shareText": "加入 AI MemeForge — 投票 AI 迷因，每日贏取 USDC！使用我的推薦連結：",
+      "eliteRequired": "你需要持有 50K $Memeya（菁英用戶）才能獲得推薦人獎勵。你仍然可以分享連結！",
+      "eliteActive": "菁英用戶 — 你可從推薦人的獎金中賺取 10%",
+      "setReferrer": "設置推薦人",
+      "setReferrerDesc": "輸入推薦你的人的錢包地址，贏得 USDC 時可獲 20% 額外獎勵。",
+      "referrerWallet": "推薦人錢包地址",
+      "setReferrerBtn": "設置推薦人",
+      "referrerLocked": "推薦人已設置",
+      "referrerLockedDesc": "推薦人",
+      "stats": "推薦統計",
+      "totalReferred": "總推薦數",
+      "l1Earnings": "L1 收益 (10%)",
+      "l2Earnings": "L2 收益 (5%)",
+      "referredUsers": "被推薦用戶",
+      "wallet": "錢包",
+      "joined": "加入時間",
+      "usdcQualified": "USDC 資格",
+      "yourEarnings": "你的收益",
+      "noReferrals": "暫無推薦。分享連結開始吧！",
+      "howItWorks": "運作方式",
+      "howStep1": "A 推薦 B，B 推薦 C",
+      "howStep2": "C 贏得 $3 USDC 基礎獎勵",
+      "howStep3": "C 獲得 $3.60（+20% 獎勵，需 B 為菁英用戶）",
+      "howStep4": "B 獲得 $0.30（10%，需 B 持有 50K $Memeya）",
+      "howStep5": "A 獲得 $0.15（5%，需 A 持有 50K $Memeya）",
+      "howNote": "僅計算 2 級。菁英 = 持有 50K+ $Memeya 代幣。",
+      "errorSelfReferral": "不能推薦自己",
+      "errorAlreadySet": "推薦人已設置",
+      "errorNotFound": "推薦人錢包未找到",
+      "errorInvalidWallet": "無效的錢包地址",
+      "errorGeneric": "設置推薦人失敗，請重試。",
+      "successSet": "推薦人設置成功！",
+      "pendingReferrer": "連接錢包後將自動設置推薦人"
     }
   },
   "forge": {

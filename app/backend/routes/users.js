@@ -4,6 +4,7 @@ const { getUserProfile, updateUserProfile, getUserTickets, getUserStats } = requ
 const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const { cacheResponse, TTL } = require('../utils/cache');
+const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const Joi = require('joi');
 
 // Validation schemas
@@ -48,14 +49,20 @@ router.get('/:wallet', async (req, res) => {
           totalVotes: 0,
           winCount: 0,
           level: 'Rookie',
-          isNewUser: true
+          isNewUser: true,
+          referredBy: null,
+          referralCount: 0
         }
       });
     }
-    
+
     res.json({
       success: true,
-      user: userProfile
+      user: {
+        ...userProfile,
+        referredBy: userProfile.referredBy || null,
+        referralCount: userProfile.referralCount || 0
+      }
     });
   } catch (error) {
     console.error('Get user profile error:', error);
@@ -306,6 +313,173 @@ router.post('/:wallet/refresh-memeya-balance', rateLimiter, async (req, res) => 
   } catch (error) {
     console.error('Refresh $Memeya balance error:', error.message);
     res.json({ success: false, error: 'Balance refresh temporarily unavailable' });
+  }
+});
+
+// ==================== Referral Endpoints ====================
+
+/**
+ * POST /api/users/:wallet/set-referrer - Set referrer (one-time, locked)
+ */
+router.post('/:wallet/set-referrer', rateLimiter, async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const { referrerWallet } = req.body;
+
+    if (!referrerWallet || typeof referrerWallet !== 'string') {
+      return res.status(400).json({ success: false, error: 'referrerWallet is required' });
+    }
+
+    // Validate Solana address format (base58, 32-44 chars)
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(referrerWallet)) {
+      return res.status(400).json({ success: false, error: 'Invalid referrer wallet address' });
+    }
+
+    // Block self-referral
+    if (referrerWallet === wallet) {
+      return res.status(400).json({ success: false, error: 'Cannot refer yourself' });
+    }
+
+    const db = getFirestore();
+    const admin = require('firebase-admin');
+
+    // Use transaction to prevent race condition (double-set referrer)
+    await db.runTransaction(async (txn) => {
+      const userRef = db.collection(collections.USERS).doc(wallet);
+      const referrerRef = db.collection(collections.USERS).doc(referrerWallet);
+      const referralRef = db.collection(collections.REFERRALS).doc(wallet);
+
+      const [userDoc, referrerDoc] = await Promise.all([
+        txn.get(userRef),
+        txn.get(referrerRef)
+      ]);
+
+      if (userDoc.exists && userDoc.data().referredBy) {
+        throw new Error('Referrer already set');
+      }
+      if (!referrerDoc.exists) {
+        throw new Error('Referrer wallet not found');
+      }
+
+      const now = new Date().toISOString();
+
+      txn.set(userRef, {
+        referredBy: referrerWallet,
+        referredBySetAt: now
+      }, { merge: true });
+
+      txn.set(referralRef, {
+        referrerWallet,
+        referredWallet: wallet,
+        createdAt: now,
+        totalReferrerEarnings: 0,
+        totalReferredBonus: 0,
+        totalL2Earnings: 0,
+        lastRewardAt: null
+      });
+
+      txn.set(referrerRef, {
+        referralCount: admin.firestore.FieldValue.increment(1)
+      }, { merge: true });
+    });
+
+    res.json({ success: true, message: 'Referrer set successfully' });
+  } catch (error) {
+    console.error('Set referrer error:', error);
+    // Surface transaction validation errors as 400s
+    if (error.message === 'Referrer already set' || error.message === 'Referrer wallet not found') {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    res.status(500).json({ success: false, error: 'Failed to set referrer' });
+  }
+});
+
+/**
+ * GET /api/users/:wallet/referrals - List referred users + stats
+ */
+router.get('/:wallet/referrals', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const db = getFirestore();
+
+    // Get all users referred by this wallet
+    const snap = await db.collection(collections.REFERRALS)
+      .where('referrerWallet', '==', wallet)
+      .get();
+
+    const referrals = snap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        wallet: d.referredWallet,
+        joinedAt: d.createdAt,
+        totalEarnings: d.totalReferrerEarnings || 0
+      };
+    });
+
+    // Get L2 earnings — totalL2Earnings is stored on each referral doc where
+    // this wallet is the referrer (e.g. referrals/B tracks A's L2 earnings
+    // from chains going through B). Sum across all L1 referral docs.
+    let l2Earnings = 0;
+    snap.docs.forEach(doc => {
+      l2Earnings += doc.data().totalL2Earnings || 0;
+    });
+
+    // Fetch memeyaBalance qualification for each referral (batch)
+    const referredWallets = referrals.map(r => r.wallet);
+    const userDocs = await Promise.all(
+      referredWallets.map(w => db.collection(collections.USERS).doc(w).get())
+    );
+    const enriched = referrals.map((r, i) => {
+      const userData = userDocs[i].exists ? userDocs[i].data() : {};
+      return {
+        ...r,
+        usdcQualified: (userData.memeyaBalance || 0) >= 10000,
+        maskedWallet: r.wallet.slice(0, 4) + '...' + r.wallet.slice(-4)
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        referrals: enriched,
+        count: enriched.length,
+        totalL1Earnings: referrals.reduce((sum, r) => sum + r.totalEarnings, 0),
+        totalL2Earnings: l2Earnings
+      }
+    });
+  } catch (error) {
+    console.error('Get referrals error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch referrals' });
+  }
+});
+
+/**
+ * GET /api/users/:wallet/referral-info - Lightweight referral status
+ */
+router.get('/:wallet/referral-info', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const db = getFirestore();
+
+    const userDoc = await db.collection(collections.USERS).doc(wallet).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+
+    const referralDoc = await db.collection(collections.REFERRALS).doc(wallet).get();
+    const referralData = referralDoc.exists ? referralDoc.data() : null;
+
+    res.json({
+      success: true,
+      data: {
+        referredBy: userData.referredBy || null,
+        referralCount: userData.referralCount || 0,
+        memeyaBalance: userData.memeyaBalance || 0,
+        isElite: (userData.memeyaBalance || 0) >= 50000,
+        referralBonus: referralData ? referralData.totalReferredBonus : 0
+      }
+    });
+  } catch (error) {
+    console.error('Get referral info error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch referral info' });
   }
 });
 
