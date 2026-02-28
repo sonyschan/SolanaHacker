@@ -1326,7 +1326,8 @@ const Dashboard = ({
                   { step: "1", icon: "\uD83E\uDD16", title: t('dashboard.howItWorks.step1Title'), desc: t('dashboard.howItWorks.step1Desc'), color: "from-cyan-400 to-blue-500" },
                   { step: "2", icon: "\uD83D\uDDF3\uFE0F", title: t('dashboard.howItWorks.step2Title'), desc: t('dashboard.howItWorks.step2Desc'), color: "from-purple-400 to-pink-500" },
                   { step: "3", icon: "\uD83C\uDFC6", title: t('dashboard.howItWorks.step3Title'), desc: t('dashboard.howItWorks.step3Desc'), color: "from-yellow-400 to-orange-500" },
-                  { step: "4", icon: "\uD83C\uDFA8", title: t('dashboard.howItWorks.step4Title'), desc: t('dashboard.howItWorks.step4Desc'), color: "from-green-400 to-emerald-500" }
+                  { step: "4", icon: "\uD83D\uDCB0", title: t('dashboard.howItWorks.step4Title'), desc: t('dashboard.howItWorks.step4Desc'), color: "from-emerald-400 to-teal-500" },
+                  { step: "5", icon: "\uD83C\uDFA8", title: t('dashboard.howItWorks.step5Title'), desc: t('dashboard.howItWorks.step5Desc'), color: "from-green-400 to-emerald-500" }
                 ].map((item) => (
                   <div key={item.step} className="flex items-start space-x-4">
                     <div className={`w-10 h-10 flex-shrink-0 bg-gradient-to-r ${item.color} rounded-lg flex items-center justify-center`}>
