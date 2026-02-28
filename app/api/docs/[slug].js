@@ -467,6 +467,7 @@ function sharedHeader(activeSlug) {
         <a href="${SITE_URL}#gallery">Gallery</a>
         <a href="${SITE_URL}#lottery">Lottery</a>
         <a href="${SITE_URL}/docs" class="active">Docs</a>
+        <a href="${SITE_URL}/#wiki">Wiki</a>
       </nav>
     </header>`;
 }
@@ -478,6 +479,7 @@ function sharedFooter() {
       <div class="footer-links">
         <a href="${SITE_URL}">Home</a>
         <a href="${SITE_URL}/docs">Docs</a>
+        <a href="${SITE_URL}/#wiki">Wiki</a>
         <a href="https://x.com/AiMemeForgeIO" target="_blank">Twitter</a>
         <a href="https://t.me/MemeyaOfficialCommunity" target="_blank">Telegram</a>
       </div>
@@ -626,6 +628,11 @@ ${sharedHeader('index')}
         <p>${c.desc}</p>
         <span class="arrow">Read more &rarr;</span>
       </a>`).join('')}
+      <a href="${SITE_URL}/#wiki" class="doc-card" style="border-color: rgba(168,85,247,0.3); background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(6,182,212,0.08));">
+        <h3>&#x1F4D6;&ensp;Wiki — Getting Started</h3>
+        <p>Interactive onboarding guide with how-to, tokenomics, roadmap &amp; FAQ — available in English, 简体中文, and 繁體中文.</p>
+        <span class="arrow">Open Wiki &rarr;</span>
+      </a>
     </div>
 
 ${sharedFooter()}`;

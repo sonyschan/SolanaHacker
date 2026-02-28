@@ -438,7 +438,9 @@
     "cta": {
       "title": "Ready to Start?",
       "desc": "Connect your wallet, vote for free, and start earning lottery tickets today.",
-      "button": "Start Voting"
+      "button": "Start Voting",
+      "docsNote": "Want deeper technical details?",
+      "docsLink": "Read the Docs"
     }
   },
   "agent": {
