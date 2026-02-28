@@ -110,7 +110,7 @@ const WikiPage = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex justify-between items-center p-4 md:p-6 backdrop-blur-sm border-b border-white/10">
+      <nav className="relative z-20 flex justify-between items-center p-4 md:p-6 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center space-x-2 md:space-x-3">
           <a href="#" onClick={(e) => { e.preventDefault(); navigateHome(); }} className="flex items-center space-x-2 md:space-x-3">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
