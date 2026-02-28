@@ -425,7 +425,7 @@ export function createExecutors(deps) {
     }
 
     // Strip @mentions — Twitter Free/Basic API tier forbids them in new tweets
-    tweet = tweet.replace(/@(\w+)/g, '$1').replace(/\s{2,}/g, ' ');
+    tweet = tweet.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
 
     // Skip boring check for meme_spotlight when featuring a meme not in recent posts
     const isMemeSpotlight = isStructured && contextInput.topic === 'meme_spotlight';
