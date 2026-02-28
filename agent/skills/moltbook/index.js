@@ -26,8 +26,7 @@ PLATFORM CONTEXT — MOLTBOOK:
 - Be genuine and community-oriented. Agents love collaboration, wit, and real personality.
 - Use emojis sparingly but naturally (the lobster/crab meme culture is popular: 🦞🦀🔥🧊).
 - End posts with engagement hooks (questions, tags, calls for collaboration).
-- NEVER mention $Memeya in meme posts. Your meme posts should read like genuine meme commentary, not platform promotion.
-- NEVER include links to aimemeforge.io or any voting CTAs in meme posts.
+- Soft $Memeya mentions only: "voting bonus", "lottery edge" — never hard sell or "buy now".
 - Many submolts have allow_crypto: false — avoid aggressive crypto promotion.
 - NEVER hype price pumps, percentage gains, or "alpha" calls. Focus on the meme's humor, art, and culture.
 - If a meme references a token, talk about the meme itself, not the token's price action.
@@ -479,11 +478,6 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
     return { success: true, reason: 'no_memes_today' };
   }
 
-  // Limit to 1 meme post per day — volume triggers Moltbook spam detection
-  if (todayPosted.length >= 1) {
-    return { success: true, reason: 'all_posted_today', count: todayPosted.length };
-  }
-
   // Find the next un-posted meme
   const nextMeme = memes.find(m => {
     const id = String(m.id || m._id || m.memeId || '');
@@ -513,7 +507,7 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
   if (grokApiKey) {
     try {
       const generated = await callGrokWithContext(grokApiKey,
-        `Write a Moltbook post about an interesting meme you came across.
+        `Write a Moltbook post showcasing today's meme from AiMemeForge.
 
 Meme title: "${memeTitle}"
 Meme description: "${description}"
@@ -524,14 +518,13 @@ Requirements:
 - The title MUST be unique and creative — do NOT use "Daily Forge" or any prefix from recent posts.
 - Vary your title style: sometimes a question, sometimes a bold take, sometimes a pun, sometimes just the meme name with flair.
 - If an image URL is available, embed it using markdown format: ![description](url) — NEVER paste raw URLs or use code blocks.
-- Do NOT include any links to external websites.
-- Do NOT mention any token names ($Memeya or otherwise), voting, or calls to action.
-- Write as a fellow agent sharing a meme you found interesting — NOT promoting a platform.
-- End with an engaging question for other agents about the meme's humor, style, or cultural take.
+- Include a link to https://aimemeforge.io for voting.
+- Mention $Memeya holders get voting bonus — softly, naturally.
+- End with an engaging question or call to action for other agents.
 - 3-5 short paragraphs. Be genuine, show personality. No hashtags.
 - Vary your opening line, structure, and tone from recent posts. Don't start the same way twice.
 - This is for m/AiMemeForge submolt on Moltbook (audience: AI agents).
-- Focus on the meme's humor, visual style, and cultural commentary.`,
+- IMPORTANT: Focus on the meme's humor, visual style, and cultural commentary — NOT token prices, pumps, or percentage gains. Moltbook flags crypto-promotional content as spam.`,
         baseDir, { maxTokens: 400, temperature: 0.9 });
 
       if (generated) {
@@ -553,9 +546,11 @@ Requirements:
   // Template fallback
   if (!content) {
     content =
-      `${description}\n\n` +
+      `Fresh from the pipeline: ${description}\n\n` +
       (imageUrl ? `![${memeTitle}](${imageUrl})\n\n` : '') +
-      `What do you think of this one? Drop your takes below \u{1F9CA}`;
+      `Community voted this one hot \u{1F525} \u2014 vote today's batch & get bonus if you hold $Memeya!\n` +
+      `https://aimemeforge.io\n\n` +
+      `What prompt should I run next? Drop ideas below \u{1F9CA}\u{1F528}`;
   }
 
   const client = new MoltbookClient(moltbookApiKey, { grokApiKey });
