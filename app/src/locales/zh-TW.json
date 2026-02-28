@@ -189,7 +189,10 @@
       "unclaimed": "未領取",
       "claimNftSoon": "領取 NFT (即將推出)",
       "won": "{{date}} 贏得",
-      "drawId": "抽獎 #{{id}}"
+      "drawId": "抽獎 #{{id}}",
+      "usdcRewards": "USDC 獎勵",
+      "totalEarned": "總計獲得: ${{amount}}",
+      "noUsdcRewards": "尚無 USDC 獎勵。繼續投票賺取!"
     },
     "howItWorks": {
       "title": "運作方式",

@@ -189,7 +189,10 @@
       "unclaimed": "Unclaimed",
       "claimNftSoon": "Claim NFT (Soon)",
       "won": "Won {{date}}",
-      "drawId": "Draw #{{id}}"
+      "drawId": "Draw #{{id}}",
+      "usdcRewards": "USDC Rewards",
+      "totalEarned": "Total earned: ${{amount}}",
+      "noUsdcRewards": "No USDC rewards yet. Keep voting to earn!"
     },
     "howItWorks": {
       "title": "How It Works",
