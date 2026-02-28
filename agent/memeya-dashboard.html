@@ -39,7 +39,7 @@
     gap: 2px;
     border-bottom: 2px solid var(--border);
     margin-bottom: 16px;
-    overflow-x: auto;
+    overflow: hidden;
   }
   .tab-btn {
     padding: 10px 20px;
@@ -243,6 +243,63 @@
 </head>
 <body>
 
+<!-- ─── Login Overlay ─── -->
+<div id="login-overlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:360px;width:90%;text-align:center;">
+    <h2 style="color:var(--pink);margin:0 0 8px;">Memeya Dashboard</h2>
+    <p style="color:var(--text-dim);font-size:0.85em;margin:0 0 20px;">Enter password to continue</p>
+    <input id="login-input" type="password" placeholder="Password"
+      style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1em;outline:none;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')loginSubmit()">
+    <button onclick="loginSubmit()"
+      style="margin-top:12px;width:100%;padding:10px;border-radius:6px;border:none;background:var(--pink);color:#fff;font-weight:600;font-size:0.95em;cursor:pointer;">
+      Enter
+    </button>
+    <p id="login-error" style="color:var(--red);font-size:0.82em;margin:10px 0 0;display:none;"></p>
+  </div>
+</div>
+
+<script>
+(function() {
+  const AUTH_KEY = 'memeya_dash_auth';
+  const TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (stored) {
+    try {
+      const { ts } = JSON.parse(stored);
+      if (Date.now() - ts < TTL) {
+        document.getElementById('login-overlay').style.display = 'none';
+        return;
+      }
+    } catch {}
+    localStorage.removeItem(AUTH_KEY);
+  }
+})();
+
+async function loginSubmit() {
+  const input = document.getElementById('login-input');
+  const errEl = document.getElementById('login-error');
+  const pw = input.value.trim();
+  if (!pw) { errEl.textContent = 'Please enter a password'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    const data = await r.json();
+    if (data.ok) {
+      localStorage.setItem('memeya_dash_auth', JSON.stringify({ ts: Date.now() }));
+      document.getElementById('login-overlay').style.display = 'none';
+    } else {
+      errEl.textContent = data.error || 'Wrong password';
+      errEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  } catch (err) {
+    errEl.textContent = 'Connection error';
+    errEl.style.display = 'block';
+  }
+}
+</script>
+
 <!-- ─── Status Bar ─── -->
 <div class="status-bar" id="status-bar">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -296,13 +353,14 @@
       </div>
       <table>
         <tr><th>Topic</th><th>Weight</th><th>Description</th></tr>
-        <tr><td><code>meme_spotlight</code></td><td><span class="tag tag-pink">30%</span></td><td>Share/react to a meme from AiMemeForge (today or throwback). Appends OG link.</td></tr>
+        <tr><td><code>meme_spotlight</code></td><td><span class="tag tag-pink">priority</span></td><td>Forced until all 3 daily memes posted (no duplicates). Appends OG link + vote CTA.</td></tr>
         <tr><td><code>personal_vibe</code></td><td><span class="tag tag-purple">25%</span></td><td>Raw personal thought, mood, or inner monologue.</td></tr>
-        <tr><td><code style="color:var(--green);">crypto_commentary</code></td><td><span class="tag tag-green">20%</span></td><td>Hot take on trending crypto/Web3/Solana news via Grok web search.</td></tr>
-        <tr><td><code>feature_showtime</code></td><td><span class="tag tag-cyan">15%</span></td><td>Show off an AiMemeForge feature from product.md.</td></tr>
-        <tr><td><code>dev_update</code></td><td><span class="tag tag-orange">10%</span></td><td>Share recent git commits as builder updates.</td></tr>
+        <tr><td><code style="color:var(--green);">crypto_commentary</code></td><td><span class="tag tag-green">25%</span></td><td>Hot take on trending crypto/Web3/Solana news via Grok web search.</td></tr>
+        <tr><td><code>feature_showtime</code></td><td><span class="tag tag-cyan">25%</span></td><td>Show off an AiMemeForge feature from product.md.</td></tr>
+        <tr><td><code>dev_update</code></td><td><span class="tag tag-orange">25%</span></td><td>Share recent git commits as builder updates. Removed from pool if no commits or already posted today.</td></tr>
+        <tr><td><code>token_spotlight</code></td><td><span class="tag tag-pink">20% daily</span></td><td>Naturally mention $Memeya token &amp; AiMemeForge. Max 1/day, 20% chance per run.</td></tr>
         <tr><td><code style="color:var(--cyan);">x_community_engage</code></td><td><span class="tag tag-cyan">separate</span></td><td>Reply to up to 3 community comments per run (2&ndash;4hr timer).</td></tr>
-        <tr><td><code>community_response</code></td><td><span class="tag tag-purple">dynamic</span></td><td>Post about community feedback. Added dynamically when comments found.</td></tr>
+        <tr><td><code>community_response</code></td><td><span class="tag tag-purple">20&ndash;35%</span></td><td>Post about community feedback. Weight scales with comment likes (&gt;3 likes = 35%).</td></tr>
       </table>
       <div style="font-size:0.82em;color:var(--text-dim);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
         <strong style="color:var(--text);">Safeguards:</strong>
@@ -355,6 +413,14 @@
       <p style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
         Generate a tweet using the full pipeline. Optionally specify a purpose for manual content.
       </p>
+      <div style="margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap;">
+        <label style="font-size:0.85em;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="chk-announcement" onchange="onFormatCheck(this,'chk-newfeature')"> <span style="color:var(--orange);">Announcement</span>
+        </label>
+        <label style="font-size:0.85em;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="chk-newfeature" onchange="onFormatCheck(this,'chk-announcement')"> <span style="color:var(--green);">New Feature</span>
+        </label>
+      </div>
       <div style="margin-bottom:12px;">
         <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Purpose <span style="color:var(--purple);">(optional)</span>:</label>
         <textarea id="purpose-input" rows="2" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;resize:vertical;" placeholder="e.g. Announce the new voting feature on AiMemeForge"></textarea>
@@ -1076,7 +1142,7 @@ function togglePipe(el) { el.closest('.pipe-step').classList.toggle('collapsed')
 function kv(key, val, cls) { return `<div class="kv"><span class="k">${escHtml(key)}</span><span class="v${cls ? ' ' + cls : ''}">${val}</span></div>`; }
 function weightBar(topics, chosen) {
   const total = topics.reduce((s, t) => s + t.weight, 0);
-  const colors = { meme_spotlight: '#3fb950', personal_vibe: '#bc8cff', dev_update: '#58a6ff', crypto_commentary: '#d29922', feature_showtime: '#f778ba', community_response: '#f778ba' };
+  const colors = { meme_spotlight: '#3fb950', personal_vibe: '#bc8cff', dev_update: '#58a6ff', crypto_commentary: '#d29922', feature_showtime: '#f778ba', community_response: '#f778ba', token_spotlight: '#f778ba' };
   return topics.map(t => {
     const pct = ((t.weight / total) * 100).toFixed(0);
     const c = colors[t.id] || '#8b949e';
@@ -1090,18 +1156,38 @@ function pipeStep(num, title, badge, badgeCls, bodyHtml, collapsed) {
 
 window._lastGenerated = null;
 
+function onFormatCheck(el, otherId) {
+  if (el.checked) document.getElementById(otherId).checked = false;
+}
+
 async function runTestGenerate() {
   const btn = document.getElementById('testgen-btn');
   const status = document.getElementById('testgen-status');
   const result = document.getElementById('testgen-result');
-  const purpose = document.getElementById('purpose-input').value.trim();
+  let purpose = document.getElementById('purpose-input').value.trim();
+  const isAnnouncement = document.getElementById('chk-announcement').checked;
+  const isNewFeature = document.getElementById('chk-newfeature').checked;
+  if (isAnnouncement || isNewFeature) {
+    const prefix = isAnnouncement ? 'Announcement' : 'New Feature!';
+    const formalGuide = [
+      `IMPORTANT FORMAT RULES:`,
+      `- The VERY FIRST LINE must be exactly "${prefix}" by itself, followed by a blank line, then the body content.`,
+      `- Write in a professional, structured tone. Memeya is 13 years old so a cute touch is fine, but sentences must be clear and well-crafted.`,
+      `- Use bullet points (•) when listing key items for better comprehension.`,
+      `- Separate into paragraphs for readability when the content is long.`,
+      `- NO degen slang, NO chaotic energy. Keep it polished and informative.`,
+    ].join('\n');
+    purpose = formalGuide + (purpose ? '\n\nCONTENT TO ANNOUNCE:\n' + purpose : '');
+  }
   btn.disabled = true; btn.textContent = 'Generating...';
   status.innerHTML = '<span class="spinner"></span>Running ' + (purpose ? 'purpose-based' : 'full') + ' pipeline...';
   status.style.color = 'var(--text-dim)';
   result.style.display = 'none';
   window._lastGenerated = null;
   try {
-    const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose }) });
+    const skipBoredCheck = isAnnouncement || isNewFeature;
+    const formatPrefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : '';
+    const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose, skipBoredCheck, formatPrefix }) });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const f = data.flow || {}, ctx = f.context || {}, sel = f.topicSelection || {}, gen = f.generation || {}, gate = f.qualityGate || {};
