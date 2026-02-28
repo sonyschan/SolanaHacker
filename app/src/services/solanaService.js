@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const FETCH_TIMEOUT = 8000; // 8s timeout for Phantom WebView
 
 /**
  * Fetch $Memeya token balance via backend proxy.
@@ -20,7 +21,13 @@ export async function getMemeyaBalance(walletAddress) {
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/memeya-balance`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const response = await fetch(
+      `${API_BASE_URL}/api/users/${walletAddress}/memeya-balance`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timer);
     const data = await response.json();
 
     if (data.success) {
@@ -32,10 +39,10 @@ export async function getMemeyaBalance(walletAddress) {
       return { balance, bonus };
     }
 
-    return null; // API error — don't overwrite existing state with 0
+    return null; // API returned success:false (RPC error) — keep existing state
   } catch (error) {
     console.error('Error fetching $Memeya balance:', error);
-    return null; // fetch failed — don't overwrite existing state with 0
+    return null; // fetch failed or timed out — keep existing state
   }
 }
 

@@ -269,11 +269,8 @@ router.get('/:wallet/memeya-balance', async (req, res) => {
       data: { balance, bonus }
     });
   } catch (error) {
-    console.error('Get $Memeya balance error:', error);
-    res.json({
-      success: true,
-      data: { balance: 0, bonus: 0 }
-    });
+    console.error('Get $Memeya balance error:', error.message);
+    res.json({ success: false, error: 'Balance check temporarily unavailable' });
   }
 });
 
@@ -307,11 +304,8 @@ router.post('/:wallet/refresh-memeya-balance', rateLimiter, async (req, res) => 
       data: { balance, bonus }
     });
   } catch (error) {
-    console.error('Refresh $Memeya balance error:', error);
-    res.json({
-      success: true,
-      data: { balance: 0, bonus: 0 }
-    });
+    console.error('Refresh $Memeya balance error:', error.message);
+    res.json({ success: false, error: 'Balance refresh temporarily unavailable' });
   }
 });
 

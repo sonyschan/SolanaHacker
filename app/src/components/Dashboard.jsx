@@ -84,10 +84,14 @@ const Dashboard = ({
 
       if (cacheExpired) {
         try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 8000);
           const res = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/refresh-memeya-balance`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: ctrl.signal,
           });
+          clearTimeout(t);
           const data = await res.json();
           if (data.success) {
             setMemeyaBalance(data.data.balance);
