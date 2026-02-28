@@ -6,8 +6,25 @@ const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
 const SECTIONS = ['onboarding', 'howto', 'tokenomics', 'roadmap', 'faq'];
 
+// Convert a UTC hour:minute to the user's local timezone, e.g. "7:55 AM (23:55 UTC)"
+const formatLocalTime = (utcHour, utcMinute = 0) => {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), utcHour, utcMinute));
+  const h = d.getHours(), m = d.getMinutes();
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const local = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  const utc = `${utcHour}:${String(utcMinute).padStart(2, '0')} UTC`;
+  return `${local} (${utc})`;
+};
+
 const WikiPage = () => {
   const { t } = useTranslation();
+
+  // Pre-compute local time strings for UTC events
+  const drawTime = formatLocalTime(23, 55);      // lottery draw
+  const memeGenTime = formatLocalTime(0, 0);      // new memes generated
+  const timeVars = { drawTime, memeGenTime };
   const [activeSection, setActiveSection] = useState('onboarding');
   const [openFaq, setOpenFaq] = useState(null);
   const [caCopied, setCaCopied] = useState(false);
@@ -55,7 +72,7 @@ const WikiPage = () => {
 
   const faqItems = [
     { q: t('wiki.faq.q1'), a: t('wiki.faq.a1') },
-    { q: t('wiki.faq.q2'), a: t('wiki.faq.a2') },
+    { q: t('wiki.faq.q2'), a: t('wiki.faq.a2', timeVars) },
     { q: t('wiki.faq.q3'), a: t('wiki.faq.a3') },
     { q: t('wiki.faq.q4'), a: t('wiki.faq.a4') },
     { q: t('wiki.faq.q5'), a: t('wiki.faq.a5') },
@@ -175,7 +192,7 @@ const WikiPage = () => {
 
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
               <h3 className="text-xl font-bold text-white">{t('wiki.onboarding.whatIsTitle')}</h3>
-              <p className="text-gray-400 leading-relaxed">{t('wiki.onboarding.whatIsDesc')}</p>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.onboarding.whatIsDesc', timeVars)}</p>
             </div>
 
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
@@ -231,7 +248,7 @@ const WikiPage = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-white mb-1">{t(`wiki.howto.step${step}Title`)}</h4>
-                    <p className="text-gray-400 text-sm leading-relaxed">{t(`wiki.howto.step${step}Desc`)}</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">{t(`wiki.howto.step${step}Desc`, timeVars)}</p>
                   </div>
                 </div>
               ))}
@@ -240,7 +257,7 @@ const WikiPage = () => {
             {/* Reward breakdown */}
             <div className="p-6 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 space-y-4">
               <h3 className="text-xl font-bold text-green-400">{t('wiki.howto.rewardsTitle')}</h3>
-              <p className="text-gray-400 leading-relaxed">{t('wiki.howto.rewardsDesc')}</p>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.howto.rewardsDesc', timeVars)}</p>
               <div className="flex flex-wrap gap-3 text-sm">
                 <span className="px-4 py-2 bg-green-500/20 rounded-lg text-green-300 font-medium">{t('wiki.howto.reward1')}</span>
                 <span className="px-4 py-2 bg-green-500/15 rounded-lg text-green-300 font-medium">{t('wiki.howto.reward2')}</span>
@@ -263,11 +280,11 @@ const WikiPage = () => {
                   <div className="text-gray-500">{t('wiki.howto.streakBonus')}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                  <div className="text-yellow-400 font-bold text-lg">+1~5</div>
+                  <div className="text-yellow-400 font-bold text-lg">+1~7</div>
                   <div className="text-gray-500">{t('wiki.howto.tokenBonus')}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-                  <div className="text-green-400 font-bold text-lg">25</div>
+                  <div className="text-green-400 font-bold text-lg">27</div>
                   <div className="text-gray-500">{t('wiki.howto.maxPerVote')}</div>
                 </div>
               </div>
@@ -295,11 +312,6 @@ const WikiPage = () => {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
-              <h3 className="text-xl font-bold text-white">{t('wiki.tokenomics.burnTitle')}</h3>
-              <p className="text-gray-400 leading-relaxed">{t('wiki.tokenomics.burnDesc')}</p>
             </div>
 
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
@@ -398,7 +410,7 @@ const WikiPage = () => {
                   </button>
                   {openFaq === idx && (
                     <div className="px-5 pb-5 bg-white/[0.03]">
-                      <p className="text-gray-400 leading-relaxed pt-3">{item.a}</p>
+                      <p className="text-gray-400 leading-relaxed pt-3 break-words">{item.a}</p>
                     </div>
                   )}
                 </div>
