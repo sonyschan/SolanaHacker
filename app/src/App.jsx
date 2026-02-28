@@ -3,6 +3,7 @@ import { useAuth } from "./hooks/useAuth";
 import HomePage from "./components/HomePage";
 import Dashboard from "./components/Dashboard";
 import AgentPage from "./components/AgentPage";
+import WikiPage from "./components/WikiPage";
 import Footer from "./components/Footer";
 import "./index.css";
 import "./styles/placeholders.css";
@@ -56,6 +57,8 @@ function App() {
     const urlHash = window.location.hash;
     if (urlHash === "#agent") {
       setCurrentView("agent");
+    } else if (urlHash === "#wiki") {
+      setCurrentView("wiki");
     } else if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else if (urlHash === "#dashboard") {
@@ -71,6 +74,8 @@ function App() {
       const urlHash = window.location.hash;
       if (urlHash === "#agent") {
         setCurrentView("agent");
+      } else if (urlHash === "#wiki") {
+        setCurrentView("wiki");
       } else if (urlHash === "#dashboard") {
         setCurrentView("dashboard");
       } else if (urlHash === "" || urlHash === "#") {
@@ -92,6 +97,8 @@ function App() {
       <div className="flex-grow">
         {currentView === "agent" ? (
           <AgentPage />
+        ) : currentView === "wiki" ? (
+          <WikiPage />
         ) : currentView === "home" ? (
           <HomePage
             walletConnected={authenticated}

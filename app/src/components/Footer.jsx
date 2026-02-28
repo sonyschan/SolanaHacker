@@ -37,16 +37,11 @@ const Footer = () => {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="https://colosseum.com/agent-hackathon/projects/memeforge"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-purple-400 transition-colors"
+                  href="#wiki"
+                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
                 >
-                  <span className="text-lg group-hover:scale-110 transition-transform">{'\uD83D\uDDF3\uFE0F'}</span>
-                  <span>{t('footer.voteOnColosseum')}</span>
-                  <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <span className="text-lg group-hover:scale-110 transition-transform">{'\uD83D\uDCD6'}</span>
+                  <span>{t('footer.wiki')}</span>
                 </a>
               </li>
               <li>
@@ -125,13 +120,11 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="https://colosseum.com/agent-hackathon"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-orange-400 transition-colors"
+                  href="#agent"
+                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-purple-400 transition-colors"
                 >
                   <span className="text-lg group-hover:scale-110 transition-transform">{'\uD83C\uDFDB\uFE0F'}</span>
-                  <span>{t('footer.colosseumHackathon')}</span>
+                  <span>{t('footer.hackathon')}</span>
                 </a>
               </li>
               <li>
