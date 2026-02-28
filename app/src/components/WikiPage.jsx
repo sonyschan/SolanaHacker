@@ -100,7 +100,7 @@ const WikiPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden relative">
+    <div className="min-h-screen bg-black text-white overflow-clip relative">
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
