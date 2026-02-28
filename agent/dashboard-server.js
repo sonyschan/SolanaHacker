@@ -88,6 +88,29 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
 
+  // ─── Auth endpoint ────────────────────────────────────────
+  if (req.method === 'POST' && req.url === '/api/auth') {
+    (async () => {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const pw = (body.password || '').trim();
+        const expected = (process.env.AGENT_NAME || '').trim();
+        if (!expected) {
+          jsonRes(res, { ok: false, error: 'AGENT_NAME not configured' }, 500);
+          return;
+        }
+        if (pw === expected) {
+          jsonRes(res, { ok: true });
+        } else {
+          jsonRes(res, { ok: false, error: 'Wrong password' }, 401);
+        }
+      } catch (err) {
+        jsonRes(res, { ok: false, error: err.message }, 400);
+      }
+    })();
+    return;
+  }
+
   // Health check
   if (req.method === 'GET' && req.url === '/health') {
     const uptimeMs = Date.now() - startedAt;
@@ -441,6 +464,8 @@ const server = http.createServer((req, res) => {
 
         const body = JSON.parse(await readBody(req) || '{}');
         const purpose = (body.purpose || '').trim();
+        const skipBoredCheck = !!body.skipBoredCheck;
+        const formatPrefix = (body.formatPrefix || '').trim();
 
         // Dynamic import x-context and index
         const { gatherContext, chooseTopic } = await import('./skills/x_twitter/x-context.js');
@@ -452,10 +477,19 @@ const server = http.createServer((req, res) => {
         let context = null;
 
         if (purpose) {
+          // Extract @handles, $tokens, and URLs that must appear in the output
+          const mentions = purpose.match(/@\w+/g) || [];
+          const tokens = purpose.match(/\$\w+/g) || [];
+          const urls = purpose.match(/https?:\/\/[^\s)]+/g) || [];
+          const mustInclude = [...mentions, ...tokens, ...urls];
+          const mustIncludeRule = mustInclude.length > 0
+            ? `\n\nMANDATORY — the following MUST appear exactly as-is in your output (do NOT omit or rephrase): ${mustInclude.join(', ')}`
+            : '';
+
           // Manual purpose mode — skip auto context/topic, no char limit
           topicChoice = {
             topic: 'manual_purpose',
-            prompt: `PURPOSE: ${purpose}\n\nWrite a post as Memeya about this. Be in character — smart, witty, degen energy. Make it engaging and personal.`,
+            prompt: `PURPOSE: ${purpose}${mustIncludeRule}\n\nWrite a post as Memeya about this. Be in character — smart, witty, degen energy. Make it engaging and personal.`,
             ogUrl: null,
             meta: { pool: [], last3Topics: [], priorityForced: null, devUpdateToday: false, antiRepeatTriggered: false, fallbackFrom: null },
           };
@@ -469,9 +503,17 @@ const server = http.createServer((req, res) => {
         let error = null;
 
         try {
-          result = await executors.generateTweet(topicChoice, { detailed: true, noCharLimit: !!purpose });
+          result = await executors.generateTweet(topicChoice, { detailed: true, noCharLimit: !!purpose, skipBoredCheck });
         } catch (err) {
           error = err.message;
+        }
+
+        // Force-prepend format prefix if Grok didn't include it
+        if (formatPrefix && result?.text) {
+          const textTrimmed = result.text.trimStart();
+          if (!textTrimmed.startsWith(formatPrefix)) {
+            result.text = `${formatPrefix}\n\n${textTrimmed}`;
+          }
         }
 
         jsonRes(res, {
@@ -615,7 +657,15 @@ const server = http.createServer((req, res) => {
         }
 
         const userClient = new TwitterApi({ appKey: ck, appSecret: cs, accessToken: at, accessSecret: as });
-        const { data } = await userClient.v2.tweet(result.text);
+        console.log(`[Spotlight] Posting tweet (${result.text.length} chars): ${result.text.slice(0, 150)}...`);
+        let data;
+        try {
+          ({ data } = await userClient.v2.tweet(result.text));
+        } catch (tweetErr) {
+          console.error(`[Spotlight] Tweet FAILED:`, tweetErr.message, tweetErr.data ? JSON.stringify(tweetErr.data) : '');
+          jsonRes(res, { error: tweetErr.message, detail: tweetErr.data || null, draft: result.text }, 403);
+          return;
+        }
         const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
         // Log to journal
@@ -711,6 +761,11 @@ const server = http.createServer((req, res) => {
         try {
           const { logPost } = await import('./skills/x_twitter/x-context.js');
           logPost(BASE_DIR, topic, text, url);
+        } catch { /* best-effort */ }
+
+        // Reset agent's auto X post timer via shared file
+        try {
+          fs.writeFileSync(path.join(__dirname, '.last-x-post-at'), String(Date.now()), 'utf-8');
         } catch { /* best-effort */ }
 
         // Share to TG community (raw HTTP API — no polling bot needed)
