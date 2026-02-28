@@ -53,7 +53,7 @@ const LanguageSwitcher = ({ variant = 'dropdown' }) => {
 
   // Dropdown variant
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-50" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200"
