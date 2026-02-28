@@ -291,7 +291,7 @@ export function createExecutors(deps) {
    * @param {{ detailed?: boolean }} opts
    *   - detailed: if true, return { text, originalDraft, verdict, isBored } instead of string
    */
-  async function generateTweet(contextInput, { detailed = false, noCharLimit = false } = {}) {
+  async function generateTweet(contextInput, { detailed = false, noCharLimit = false, skipBoredCheck = false } = {}) {
     const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) throw new Error('XAI_API_KEY not configured — cannot generate tweet');
 
@@ -392,14 +392,22 @@ export function createExecutors(deps) {
     const genModel = useLiveSearch ? 'grok-4-1-fast-non-reasoning + web_search' : 'grok-4-1-fast-reasoning';
 
     // Strip any URLs Grok may have included (we append the canonical one ourselves for OG preview)
+    // In noCharLimit mode (manual purpose), preserve user-specified URLs
     let cleaned = text
       .replace(/\[\[\d+\]\]\(https?:\/\/[^\)]*\)/g, '')  // Strip [[1]](url) citation references
       .replace(/\[\d+\]\(https?:\/\/[^\)]*\)/g, '')      // Strip [1](url) markdown links
-      .replace(/\[GLITCH\]/gi, '')                        // Strip [GLITCH] tags
-      .replace(/https?:\/\/aimemeforge\.io\S*/gi, '')
-      .replace(/aimemeforge\.io/gi, '')
-      .replace(/\s{2,}/g, ' ')                            // Collapse multiple spaces
-      .trim();
+      .replace(/\[GLITCH\]/gi, '');                       // Strip [GLITCH] tags
+    if (!noCharLimit) {
+      cleaned = cleaned
+        .replace(/https?:\/\/aimemeforge\.io\S*/gi, '')
+        .replace(/aimemeforge\.io/gi, '');
+    }
+    if (noCharLimit) {
+      // Preserve newlines but collapse multiple blank lines and trailing spaces
+      cleaned = cleaned.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    } else {
+      cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();  // Collapse all whitespace
+    }
 
     // Trim to 280 chars (leaving room for OG link + CTA if needed) — skip for noCharLimit
     const ogUrl = isStructured ? contextInput.ogUrl : null;
@@ -421,18 +429,19 @@ export function createExecutors(deps) {
     const memeAlreadyPosted = isMemeSpotlight && ogUrl
       ? recentPosts.some(p => typeof p === 'string' ? p.includes(ogUrl) : false)
       : false;
-    const skipBoringCheck = isMemeSpotlight && ogUrl && !memeAlreadyPosted;
+    const skipBoringCheck = skipBoredCheck || (isMemeSpotlight && ogUrl && !memeAlreadyPosted);
+    const skipReason = skipBoredCheck ? 'dashboard override' : 'unique meme';
 
     if (skipBoringCheck) {
       if (detailed) {
         return {
           text: tweet,
           originalDraft: tweet,
-          verdict: 'SKIP (unique meme)',
+          verdict: `SKIP (${skipReason})`,
           isBored: false,
           flow: {
             generation: { model: genModel, systemPrompt: systemPrompt, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
-            qualityGate: { model: 'skipped', checkPrompt: '(skipped — meme_spotlight with unique meme OG)', verdict: 'SKIP (unique meme)', isBored: false, boredReplacement: null },
+            qualityGate: { model: 'skipped', checkPrompt: `(skipped — ${skipReason})`, verdict: `SKIP (${skipReason})`, isBored: false, boredReplacement: null },
           },
         };
       }
@@ -690,6 +699,7 @@ export async function autoPost({ baseDir, grokApiKey }) {
     accessSecret,
   });
 
+  console.log(`[autoPost] Tweet text (${tweet.length} chars): ${tweet.slice(0, 200)}${tweet.length > 200 ? '...' : ''}`);
   try {
     const { data } = await userClient.v2.tweet(tweet);
     const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
@@ -725,6 +735,7 @@ export async function autoPost({ baseDir, grokApiKey }) {
 
     return { success: true, url, text: tweet, topic: topicChoice.topic };
   } catch (err) {
+    console.error(`[autoPost] Tweet FAILED: ${err.message}`, err.data ? JSON.stringify(err.data) : '');
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };
   }
 }
