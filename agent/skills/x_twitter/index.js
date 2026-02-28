@@ -424,6 +424,9 @@ export function createExecutors(deps) {
       tweet = suffix ? `${trimmed}${suffix}` : (cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned);
     }
 
+    // Strip @mentions — Twitter Free/Basic API tier forbids them in new tweets
+    tweet = tweet.replace(/@(\w+)/g, '$1').replace(/\s{2,}/g, ' ');
+
     // Skip boring check for meme_spotlight when featuring a meme not in recent posts
     const isMemeSpotlight = isStructured && contextInput.topic === 'meme_spotlight';
     const memeAlreadyPosted = isMemeSpotlight && ogUrl
