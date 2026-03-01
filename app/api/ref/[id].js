@@ -17,6 +17,7 @@ export default function handler(req, res) {
   }
 
   const ogImage = `${SITE_URL}/images/invite-to-win.png`;
+  const pageUrl = `${SITE_URL}/ref/${id}`;
   const referralUrl = `${SITE_URL}/?ref=${id}`;
 
   const html = `<!DOCTYPE html>
@@ -27,11 +28,11 @@ export default function handler(req, res) {
   <title>Join AI MemeForge — Vote, Win NFTs & USDC Daily</title>
   <meta name="description" content="Your friend invited you to AI MemeForge! Vote on daily AI memes for free, earn lottery tickets, and win NFT ownership + USDC rewards every day." />
 
-  <!-- Open Graph -->
+  <!-- Open Graph — no meta refresh so crawlers stay on this page -->
   <meta property="og:title" content="You're invited to AI MemeForge!" />
   <meta property="og:description" content="Vote on daily AI memes for free. Win NFT ownership + USDC rewards every day. Join now!" />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${referralUrl}" />
+  <meta property="og:url" content="${pageUrl}" />
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -44,9 +45,7 @@ export default function handler(req, res) {
   <meta name="twitter:description" content="Vote on daily AI memes for free. Win NFT ownership + USDC rewards every day." />
   <meta name="twitter:image" content="${ogImage}" />
 
-  <!-- Redirect real users to the SPA -->
-  <meta http-equiv="refresh" content="0;url=${referralUrl}" />
-  <link rel="canonical" href="${referralUrl}" />
+  <link rel="canonical" href="${pageUrl}" />
 </head>
 <body style="margin:0;padding:2rem;font-family:sans-serif;background:#1e3a8a;color:white;text-align:center;">
   <p>Redirecting to <a href="${referralUrl}" style="color:#06b6d4;">AI MemeForge</a>...</p>
