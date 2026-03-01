@@ -1,56 +1,65 @@
 {
-  "updatedAt": "2026-02-26T01:06:09.505Z",
+  "updatedAt": "2026-03-01T06:06:23.257Z",
   "activeHours": true,
   "sleepToday": false,
-  "gmtPlus8Hour": 9,
+  "gmtPlus8Hour": 14,
   "timers": {
     "ownerMention": {
       "label": "Owner Mention Check",
       "interval": "15m",
       "intervalMs": 900000,
-      "lastFired": 1772067719914,
-      "nextIn": "10m",
+      "lastFired": 1772344318686,
+      "nextIn": "0m",
       "enabled": true,
       "scope": "24/7"
     },
     "xPost": {
       "label": "X Post",
-      "interval": "2h 19m",
-      "intervalMs": 8361191.664640757,
-      "lastFired": 1772061060276,
-      "nextIn": "24m",
+      "interval": "2h 27m",
+      "intervalMs": 8847753.33313297,
+      "lastFired": 1772341850037,
+      "nextIn": "1h 31m",
       "enabled": true,
       "scope": "24/7"
     },
     "communityEngage": {
       "label": "X Community Engage",
-      "interval": "3h 12m",
-      "intervalMs": 11577518.488187721,
-      "lastFired": 1772057197256,
-      "nextIn": "13m",
+      "interval": "2h 56m",
+      "intervalMs": 10584780.270973943,
+      "lastFired": 1772343568486,
+      "nextIn": "2h 29m",
       "enabled": true,
       "scope": "24/7"
     },
     "moltbookPost": {
       "label": "Moltbook Post",
-      "interval": "35m cooldown",
-      "intervalMs": 2100000,
-      "lastFired": 1772065803135,
-      "nextIn": "done today",
+      "interval": "2h 23m",
+      "intervalMs": 8634221.954293983,
+      "lastFired": 1772343758788,
+      "nextIn": "2h 0m",
       "enabled": true,
       "scope": "after 8:30am GMT+8",
       "setupDone": true,
       "introDone": true,
-      "doneDate": "2026-02-26"
+      "doneDate": null
     },
     "moltbookEngage": {
       "label": "Moltbook Engage",
-      "interval": "4h 40m",
-      "intervalMs": 16828941.533501532,
-      "lastFired": 1772067604609,
-      "nextIn": "4h 34m",
+      "interval": "3h 3m",
+      "intervalMs": 10990392.939093286,
+      "lastFired": 1772334404289,
+      "nextIn": "3m",
       "enabled": true,
       "scope": "9-23 GMT+8"
+    },
+    "moltbookEcosystem": {
+      "label": "Moltbook Ecosystem",
+      "interval": "37h 24m",
+      "intervalMs": 134644012.76330248,
+      "lastFired": 1772267082282.6184,
+      "nextIn": "15h 42m",
+      "enabled": true,
+      "scope": "9-23 GMT+8 (every 1-2 days)"
     },
     "morningNews": {
       "label": "Morning News",
@@ -59,6 +68,15 @@
       "nextIn": "tomorrow 8am",
       "enabled": true,
       "scope": "8am GMT+8"
+    },
+    "winnerAnnouncement": {
+      "label": "Winner Announcement",
+      "interval": "5m",
+      "intervalMs": 300000,
+      "lastFired": null,
+      "nextIn": "now",
+      "enabled": true,
+      "scope": "23:30-00:30 UTC (after lottery)"
     },
     "distillMemory": {
       "label": "Memory Distill",
@@ -72,8 +90,8 @@
       "label": "Reflect/News",
       "interval": "60m",
       "intervalMs": 3600000,
-      "lastFired": 1772067604867,
-      "nextIn": "53m",
+      "lastFired": 1772341614296,
+      "nextIn": "0m",
       "enabled": true,
       "scope": "9-23 GMT+8"
     }
