@@ -43,8 +43,10 @@ export class TgCommunity {
     this.baseDir = baseDir;
     this.language = language; // 'en' or 'zh'
     this.label = label || (language === 'zh' ? 'CN' : 'EN');
+    this._token = token;
 
-    this.bot = new TelegramBot(token, { polling: true });
+    // Don't start polling yet — _init() will clear stale sessions first
+    this.bot = new TelegramBot(token, { polling: false });
     this.botUserId = null; // resolved via getMe()
     this.botUsername = null;
 
@@ -68,11 +70,25 @@ export class TgCommunity {
     // Track our own sent message IDs to detect replies to bot
     this._botMessageIds = new Set();
 
-
     this._init();
   }
 
   async _init() {
+    try {
+      // Force-clear any stale polling session from a previous process
+      // deleteWebhook with drop_pending_updates invalidates existing getUpdates
+      await fetch(`https://api.telegram.org/bot${this._token}/deleteWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ drop_pending_updates: true }),
+      });
+    } catch (err) {
+      console.warn(`[TgCommunity:${this.label}] deleteWebhook failed (non-fatal):`, err.message);
+    }
+
+    // Now safe to start polling — no other session active
+    this.bot.startPolling();
+
     try {
       const me = await this.bot.getMe();
       this.botUserId = me.id;

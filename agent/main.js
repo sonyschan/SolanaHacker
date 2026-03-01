@@ -2281,6 +2281,39 @@ ${projectInfo}<b>檔案數量:</b> ${files.length}
 }
 
 // ============================================
+//  PID Lockfile — prevent duplicate instances
+// ============================================
+
+const __filename2 = fileURLToPath(import.meta.url);
+const PID_FILE = path.join(path.dirname(__filename2), '.agent.pid');
+
+function acquireLock() {
+  // Check for stale lock
+  if (fs.existsSync(PID_FILE)) {
+    const oldPid = parseInt(fs.readFileSync(PID_FILE, 'utf-8').trim(), 10);
+    if (oldPid) {
+      try {
+        process.kill(oldPid, 0); // Check if process exists (signal 0 = no-op)
+        // Process is alive — abort
+        console.error(`[Agent] Another instance is running (PID ${oldPid}). Exiting.`);
+        console.error('[Agent] Use "systemctl restart solanahacker" — NEVER run "node main.js" manually.');
+        process.exit(1);
+      } catch {
+        // Process doesn't exist — stale lockfile, safe to continue
+        console.warn(`[Agent] Removing stale PID file (PID ${oldPid} not found)`);
+      }
+    }
+  }
+  fs.writeFileSync(PID_FILE, String(process.pid), 'utf-8');
+}
+
+function releaseLock() {
+  try { fs.unlinkSync(PID_FILE); } catch { /* already gone */ }
+}
+
+acquireLock();
+
+// ============================================
 //  Main Execution
 // ============================================
 
@@ -2290,12 +2323,14 @@ process.on('SIGINT', async () => {
   console.log('\nShutdown requested...');
   agent.isRunning = false;
   await agent.cleanup();
+  releaseLock();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   agent.isRunning = false;
   await agent.cleanup();
+  releaseLock();
   process.exit(0);
 });
 
@@ -2320,11 +2355,13 @@ agent.run().catch(async (error) => {
     } catch (standbyError) {
       console.error('Standby mode failed:', standbyError);
       await agent.cleanup();
+      releaseLock();
       process.exit(1);
     }
   } else {
     // Non-recoverable error - exit
     await agent.cleanup();
+    releaseLock();
     process.exit(1);
   }
 });
