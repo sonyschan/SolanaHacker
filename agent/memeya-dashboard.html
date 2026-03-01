@@ -415,10 +415,13 @@ async function loginSubmit() {
       </p>
       <div style="margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap;">
         <label style="font-size:0.85em;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;">
-          <input type="checkbox" id="chk-announcement" onchange="onFormatCheck(this,'chk-newfeature')"> <span style="color:var(--orange);">Announcement</span>
+          <input type="checkbox" id="chk-announcement" onchange="onFormatCheck(this)"> <span style="color:var(--orange);">Announcement</span>
         </label>
         <label style="font-size:0.85em;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;">
-          <input type="checkbox" id="chk-newfeature" onchange="onFormatCheck(this,'chk-announcement')"> <span style="color:var(--green);">New Feature</span>
+          <input type="checkbox" id="chk-newfeature" onchange="onFormatCheck(this)"> <span style="color:var(--green);">New Feature</span>
+        </label>
+        <label style="font-size:0.85em;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="chk-sysupgrade" onchange="onFormatCheck(this)"> <span style="color:var(--cyan);">System Upgrade</span>
         </label>
       </div>
       <div style="margin-bottom:12px;">
@@ -1156,8 +1159,8 @@ function pipeStep(num, title, badge, badgeCls, bodyHtml, collapsed) {
 
 window._lastGenerated = null;
 
-function onFormatCheck(el, otherId) {
-  if (el.checked) document.getElementById(otherId).checked = false;
+function onFormatCheck(el) {
+  if (el.checked) ['chk-announcement','chk-newfeature','chk-sysupgrade'].forEach(id => { if (id !== el.id) document.getElementById(id).checked = false; });
 }
 
 async function runTestGenerate() {
@@ -1167,8 +1170,9 @@ async function runTestGenerate() {
   let purpose = document.getElementById('purpose-input').value.trim();
   const isAnnouncement = document.getElementById('chk-announcement').checked;
   const isNewFeature = document.getElementById('chk-newfeature').checked;
-  if (isAnnouncement || isNewFeature) {
-    const prefix = isAnnouncement ? 'Announcement' : 'New Feature!';
+  const isSystemUpgrade = document.getElementById('chk-sysupgrade').checked;
+  if (isAnnouncement || isNewFeature || isSystemUpgrade) {
+    const prefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : 'System Upgrade';
     const formalGuide = [
       `IMPORTANT FORMAT RULES:`,
       `- The VERY FIRST LINE must be exactly "${prefix}" by itself, followed by a blank line, then the body content.`,
@@ -1185,8 +1189,8 @@ async function runTestGenerate() {
   result.style.display = 'none';
   window._lastGenerated = null;
   try {
-    const skipBoredCheck = isAnnouncement || isNewFeature || !!purpose;
-    const formatPrefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : '';
+    const skipBoredCheck = isAnnouncement || isNewFeature || isSystemUpgrade || !!purpose;
+    const formatPrefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : isSystemUpgrade ? 'System Upgrade' : '';
     const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose, skipBoredCheck, formatPrefix }) });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
