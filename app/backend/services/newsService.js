@@ -54,20 +54,24 @@ class NewsService {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      let prompt = `Today is ${today}. Search for 3 meme-worthy crypto/Web3 events from the PAST 12-24 hours.
+      let prompt = `Today is ${today}. Search for 3 meme-worthy events from the PAST 48 hours that crypto communities are talking about.
+
+PURPOSE: We create "Historical AI Memes" — memes that capture the most memorable moments shaping crypto and the world. If a major world event is dominating crypto sentiment right now, it MUST be included.
 
 CRITICAL: Each event MUST be from a DIFFERENT category. Pick exactly one from each:
 
 Category A — Token/Market Action:
-  Price pumps/dumps >20%, viral memecoin launches, liquidation cascades, exchange listing pumps
+  Price pumps/dumps >20%, viral memecoin launches, liquidation cascades, exchange listing pumps, major market crashes or rallies, AI/agent token surges or crashes (e.g. FET, RNDR, AI16Z, VIRTUAL)
 
-Category B — Industry & Tech News:
-  Protocol launches, hacks, major partnerships, AI×Web3 product announcements, exchange new features, regulatory moves, blockchain upgrades
+Category B — Macro, World Events & Tech Breakthroughs Impacting Crypto:
+  Geopolitical conflicts (wars, sanctions, diplomatic shifts), central bank decisions (rate cuts/hikes, QE), government regulations, trade wars, economic crises, major political events. Also: major AI developments (new model releases from OpenAI/Google/Anthropic, NVIDIA earnings, AI agent platform launches) that move AI token sentiment or spark Crypto Twitter discussion. Fallback: protocol launches, hacks, or industry partnerships if no macro/AI event is dominant.
 
 Category C — People & Culture:
-  Celebrity/influencer crypto moments, famous people speeches/tweets about crypto, CT drama, community milestones, viral crypto memes or cultural moments
+  Celebrity/influencer crypto moments, famous people speeches/tweets about crypto, AI founder statements (Sam Altman, Elon Musk on AI), CT drama, community milestones, viral crypto or AI memes, cultural moments
 
-Do NOT include old events unless they are specifically trending again TODAY.
+PRIORITY RULE: If a major geopolitical or macro event (war, financial crisis, regulatory crackdown) is dominating headlines and clearly affecting crypto prices or sentiment in the past 48 hours, it MUST take the Category B slot — do NOT substitute it with a minor industry story.
+
+Prefer events from the last 24 hours, but include events up to 48 hours old if they are still actively trending or developing.
 
 For each event, include the X (Twitter) handle of the key person or entity involved (e.g. @elonmusk, @solana, @VitalikButerin). Use null if no clear handle.
 

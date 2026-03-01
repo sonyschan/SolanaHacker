@@ -146,7 +146,7 @@ async function generateDailyMemes(req, res) {
 
     // Get crypto news (with anti-repetition context)
     const newsData = await newsService.getCryptoNews(recentThemes);
-    const categoryLabels = { A: 'Token/Market', B: 'Industry/Tech', C: 'People/Culture' };
+    const categoryLabels = { A: 'Token/Market', B: 'Macro/World', C: 'People/Culture' };
     console.log(`📰 News topics: ${newsData.map(n => `[${n.category || '?'}] ${n.title}`).join(' | ')}`);
     const cats = newsData.map(n => n.category).filter(Boolean);
     const uniqueCats = new Set(cats);
