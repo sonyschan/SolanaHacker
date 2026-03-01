@@ -768,19 +768,23 @@ const server = http.createServer((req, res) => {
           fs.writeFileSync(path.join(__dirname, '.last-x-post-at'), String(Date.now()), 'utf-8');
         } catch { /* best-effort */ }
 
-        // Share to TG community (raw HTTP API — no polling bot needed)
-        try {
-          const tgToken = process.env.TELEGRAM_COMMUNITY_BOT_TOKEN;
-          const tgChatId = process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity';
-          if (tgToken) {
-            const msg = `just dropped this on X 🔥\n\n${text}\n\n${url}`;
-            await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        // Share to TG community groups (raw HTTP API — no polling bot needed)
+        const tgGroups = [
+          { token: process.env.TELEGRAM_COMMUNITY_BOT_TOKEN, chatId: process.env.TELEGRAM_COMMUNITY_CHAT_ID || '@MemeyaOfficialCommunity', lang: 'en' },
+          { token: process.env.TELEGRAM_COMMUNITY_CN_BOT_TOKEN, chatId: process.env.TELEGRAM_COMMUNITY_CN_CHAT_ID || '@MemeyaCN', lang: 'zh' },
+        ];
+        for (const g of tgGroups) {
+          if (!g.token) continue;
+          try {
+            const intro = g.lang === 'zh' ? '剛在 X 上發了這個 🔥' : 'just dropped this on X 🔥';
+            const msg = `${intro}\n\n${text}\n\n${url}`;
+            await fetch(`https://api.telegram.org/bot${g.token}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: tgChatId, text: msg }),
+              body: JSON.stringify({ chat_id: g.chatId, text: msg }),
             });
-          }
-        } catch { /* TG share is best-effort */ }
+          } catch { /* TG share is best-effort */ }
+        }
 
         // Mirror to Tapestry (non-fatal)
         try {
