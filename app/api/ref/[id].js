@@ -16,7 +16,7 @@ export default function handler(req, res) {
     return res.end();
   }
 
-  const ogImage = `${SITE_URL}/images/invite-to-win-og.jpg`;
+  const ogImage = `${SITE_URL}/images/invite-to-win-og.jpg?v=2`;
   const pageUrl = `${SITE_URL}/ref/${id}`;
   const referralUrl = `${SITE_URL}/?ref=${id}`;
 
