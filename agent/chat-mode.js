@@ -1957,7 +1957,13 @@ ${recentMemory.slice(-1500)}
    */
   buildWinnerAnnouncementText(dist) {
     const fmtWallet = (w) => w ? `${w.slice(0, 4)}...${w.slice(-4)}` : '????...????';
-    const lines = ['AiMemeForge Daily Winners!\n'];
+
+    // Calculate round number (Round 1 = 2026-02-26)
+    const ROUND_ONE_DATE = new Date('2026-02-26T00:00:00Z');
+    const drawDate = dist.drawId ? new Date(dist.drawId + 'T00:00:00Z') : new Date();
+    const roundNum = Math.max(1, Math.round((drawDate - ROUND_ONE_DATE) / 86400000) + 1);
+
+    const lines = [`AiMemeForge Round ${roundNum} Winners!\n`];
 
     const winnerTransfer = (dist.transfers || []).find(t => t.type === 'winner');
     const voterTransfers = (dist.transfers || []).filter(t => t.type === 'voter');

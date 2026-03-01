@@ -46,7 +46,14 @@
 ## 核心功能
 
 ### AI 梗圖生成
-每日 00:00 UTC 自動生成 3 張。內容來自 Twitter/X 趨勢 + CoinDesk + Reddit。Grok 分析新聞，Gemini 生成圖像。每張標記生成模型。
+每日 00:00 UTC 自動生成 3 張「歷史性 AI 梗圖 (Historical AI Memes)」— 目標是捕捉影響加密圈與世界的最重要時刻。Grok web search 蒐集新聞 (48 小時內，優先近 24hr)，Gemini/Grok 隨機生成圖像。每張標記生成模型。
+
+**新聞來源三分類** (每日各取 1 則，確保多樣性):
+- **A — Token/Market Action**: 幣價暴漲暴跌、meme coin 爆發、清算潮、AI/Agent token 異動 (FET, RNDR, AI16Z, VIRTUAL 等)
+- **B — Macro, World Events & Tech Breakthroughs**: 地緣衝突 (戰爭/制裁)、央行決策、貿易戰、經濟危機、重大 AI 發展 (OpenAI/Google/Anthropic 新模型、NVIDIA 財報、AI Agent 平台上線)。重大地緣事件優先，不被小型行業新聞取代
+- **C — People & Culture**: 名人/KOL 加密圈發言、AI 創始人言論 (Sam Altman, Elon Musk)、CT drama、社群里程碑、病毒式 meme
+
+**Anti-repetition**: 過去 7 天梗圖主題 (最多 21 則) 傳入 Grok + Gemini prompt，避免重複選題與概念。
 
 ### 社群投票
 登入 (Google 一鍵 或 Phantom/Solflare) → 選一張投票 → 獲 1-10 base + streak bonus + $Memeya bonus tickets。每錢包每日 1 次，免費。
