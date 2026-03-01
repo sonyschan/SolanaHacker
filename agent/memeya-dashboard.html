@@ -1185,7 +1185,7 @@ async function runTestGenerate() {
   result.style.display = 'none';
   window._lastGenerated = null;
   try {
-    const skipBoredCheck = isAnnouncement || isNewFeature;
+    const skipBoredCheck = isAnnouncement || isNewFeature || !!purpose;
     const formatPrefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : '';
     const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose, skipBoredCheck, formatPrefix }) });
     const data = await res.json();
