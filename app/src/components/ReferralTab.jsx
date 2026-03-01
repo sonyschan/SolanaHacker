@@ -21,7 +21,7 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
 
   const referralId = referralInfo?.referralId;
   const referralLink = referralId
-    ? `https://aimemeforge.io/?ref=${referralId}`
+    ? `https://aimemeforge.io/ref/${referralId}`
     : `https://aimemeforge.io/?ref=${walletAddress}`;
   const isElite = (memeyaBalance || 0) >= 50000;
   const maskedWallet = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : '\u2014';

@@ -108,13 +108,15 @@ function App() {
     fetchUserData();
   }, [authenticated, walletAddress]);
 
-  // Auto-switch to dashboard when authenticated, respect #agent route
+  // Auto-switch to dashboard when authenticated, respect hash routes
   useEffect(() => {
     const urlHash = window.location.hash;
     if (urlHash === "#agent") {
       setCurrentView("agent");
     } else if (urlHash === "#wiki") {
       setCurrentView("wiki");
+    } else if (urlHash === "#invite") {
+      setCurrentView("dashboard");
     } else if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else if (urlHash === "#dashboard") {
@@ -132,6 +134,8 @@ function App() {
         setCurrentView("agent");
       } else if (urlHash === "#wiki") {
         setCurrentView("wiki");
+      } else if (urlHash === "#invite") {
+        setCurrentView("dashboard");
       } else if (urlHash === "#dashboard") {
         setCurrentView("dashboard");
       } else if (urlHash === "" || urlHash === "#") {
@@ -170,6 +174,7 @@ function App() {
             setVotingStreak={setVotingStreak}
             walletAddress={walletAddress}
             userDataLoading={userDataLoading}
+            initialTab={window.location.hash === '#invite' ? 'referral' : undefined}
           />
         )}
       </div>

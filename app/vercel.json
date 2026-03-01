@@ -25,7 +25,11 @@
       "destination": "/api/meme/:id"
     },
     {
-      "source": "/((?!api/|meme/|docs/|docs$|agent\\.json|robots\\.txt|llms\\.txt|feed\\.xml|sitemap\\.xml|favicon).*)",
+      "source": "/ref/:id",
+      "destination": "/api/ref/:id"
+    },
+    {
+      "source": "/((?!api/|meme/|ref/|docs/|docs$|agent\\.json|robots\\.txt|llms\\.txt|feed\\.xml|sitemap\\.xml|favicon).*)",
       "destination": "/index.html"
     }
   ]

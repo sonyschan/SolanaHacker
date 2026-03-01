@@ -19,11 +19,12 @@ const Dashboard = ({
   onDisconnectWallet,
   setUserTickets,
   setVotingStreak,
-  walletAddress
+  walletAddress,
+  initialTab
 }) => {
   const { t, i18n } = useTranslation();
   const { logout, walletName, shortAddress, hasEmbeddedWallet, exportWallet } = useAuth();
-  const [activeTab, setActiveTab] = useState('forge');
+  const [activeTab, setActiveTab] = useState(initialTab || 'forge');
   const [modalMeme, setModalMeme] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
