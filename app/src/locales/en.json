@@ -402,6 +402,7 @@
     "toc": {
       "onboarding": "Getting Started",
       "howto": "How to Play",
+      "referral": "Invite Friends",
       "tokenomics": "Tokenomics",
       "roadmap": "Roadmap",
       "faq": "FAQ"
@@ -441,6 +442,21 @@
       "tokenBonus": "$Memeya Bonus",
       "maxPerVote": "Max per Vote"
     },
+    "referral": {
+      "title": "Invite Friends Program",
+      "intro": "Invite friends to AiMemeForge and earn bonus USDC when they win. A single-level referral system that rewards both you and your friends.",
+      "howTitle": "How It Works",
+      "how1": "Share your unique invite link (found in the Referral tab) with friends.",
+      "how2": "Your friend signs up and sets you as their inviter (one-time, permanent).",
+      "how3": "When your friend wins USDC, they get a +20% bonus and you earn 10% of their base reward.",
+      "how4": "Both bonuses require the inviter to be an Elite User (hold 50K+ $Memeya).",
+      "eliteTitle": "Elite User Requirement",
+      "eliteDesc": "To activate referral bonuses, the inviter must hold at least 50,000 $Memeya tokens. This is checked on-chain at each daily draw. You can still share your invite link without Elite status — the bonuses will activate once you reach the threshold.",
+      "customIdTitle": "Custom Referral ID",
+      "customIdDesc": "Every user gets an auto-generated 6-character referral ID. You can customize it to 3-8 alphanumeric characters (case-sensitive) from the Referral tab. Your invite link format is: aimemeforge.io/ref/YourID",
+      "exampleTitle": "Reward Example",
+      "exampleDesc": "Your friend wins the $3 meme prize. If you're Elite: your friend receives $3.60 (+20% bonus = $0.60) and you earn $0.30 (10% of $3 base). Elite status is verified fresh at every draw."
+    },
     "tokenomics": {
       "title": "$Memeya Tokenomics",
       "intro": "$Memeya is the utility token of the AiMemeForge ecosystem. It's built on Solana for fast, cheap transactions.",
@@ -460,7 +476,8 @@
       "phase1Item1": "Daily AI meme generation (3 memes/day via Gemini AI)",
       "phase1Item2": "Free voting with ticket-based lottery system",
       "phase1Item3": "Daily USDC rewards ($6/day to winners and voters)",
-      "phase1Item4": "Autonomous AI agent (X posting, Telegram community, Moltbook)",
+      "phase1Item4": "Invite Friends program with custom referral IDs and Elite bonuses",
+      "phase1Item5": "Autonomous AI agent (X posting, Telegram community, Moltbook)",
       "phase2": "Phase 2 — Next",
       "phase2Title": "NFT & Token Expansion",
       "phase2Item1": "One-click NFT minting for lottery winners (Metaplex pNFT)",
@@ -488,7 +505,9 @@
       "q6": "Who is Memeya?",
       "a6": "Memeya is our AI agent — she generates daily memes, posts on X (Twitter), manages the Telegram community, and distributes USDC rewards automatically. She runs 24/7 with her own Solana wallet powered by Crossmint.",
       "q7": "Where can I buy $Memeya?",
-      "a7": "You can buy $Memeya on Raydium or pump.fun using SOL. The contract address is: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
+      "a7": "You can buy $Memeya on Raydium or pump.fun using SOL. The contract address is: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump",
+      "q8": "How does the Invite Friends program work?",
+      "a8": "Share your unique invite link from the Referral tab. When your friend joins and sets you as their inviter, you both benefit: your friend gets +20% bonus on USDC wins, and you earn 10% of their base reward. Both bonuses require you (the inviter) to hold 50K+ $Memeya (Elite User). You can customize your referral ID to 3-8 characters."
     },
     "cta": {
       "title": "Ready to Start?",

@@ -402,6 +402,7 @@
     "toc": {
       "onboarding": "快速入門",
       "howto": "玩法指南",
+      "referral": "邀請朋友",
       "tokenomics": "代幣經濟",
       "roadmap": "發展路線",
       "faq": "常見問題"
@@ -441,6 +442,21 @@
       "tokenBonus": "$Memeya 加成",
       "maxPerVote": "單次最高"
     },
+    "referral": {
+      "title": "邀請朋友計畫",
+      "intro": "邀請朋友加入 AiMemeForge，當他們贏得獎勵時你也能賺取額外 USDC。單層邀請獎勵系統，讓你和朋友都受益。",
+      "howTitle": "運作方式",
+      "how1": "在「邀請」頁面找到你的專屬邀請連結，分享給朋友。",
+      "how2": "朋友註冊後設定你為邀請人（一次性設定，永久綁定）。",
+      "how3": "當朋友贏得 USDC 時，朋友獲得 +20% 額外獎勵，你賺取其基礎獎勵的 10%。",
+      "how4": "雙方獎勵皆需邀請人為菁英用戶（持有 50K+ $Memeya）。",
+      "eliteTitle": "菁英用戶門檻",
+      "eliteDesc": "啟動邀請獎勵需邀請人持有至少 50,000 $Memeya 代幣，每次開獎時即時鏈上驗證。即使未達門檻也可分享邀請連結 — 達標後獎勵自動啟動。",
+      "customIdTitle": "自訂邀請 ID",
+      "customIdDesc": "每位用戶自動獲得 6 位隨機邀請 ID，可在「邀請」頁面自訂為 3-8 位英數字元（區分大小寫）。邀請連結格式：aimemeforge.io/ref/你的ID",
+      "exampleTitle": "獎勵範例",
+      "exampleDesc": "朋友贏得 $3 迷因大獎。若你為菁英用戶：朋友實得 $3.60（+20% 獎勵 = $0.60），你獲得 $0.30（$3 基礎的 10%）。菁英資格每次開獎重新驗證。"
+    },
     "tokenomics": {
       "title": "$Memeya 代幣經濟",
       "intro": "$Memeya 是 AiMemeForge 生態系統的實用代幣，基於 Solana 建構，交易快速且成本低。",
@@ -460,7 +476,8 @@
       "phase1Item1": "每日 AI 迷因生成（透過 Gemini AI 每天 3 個迷因）",
       "phase1Item2": "免費投票及基於票券的抽獎系統",
       "phase1Item3": "每日 USDC 獎勵（每天 $6 分配給贏家和投票者）",
-      "phase1Item4": "自主 AI 代理人（X 發文、Telegram 社群、Moltbook）",
+      "phase1Item4": "邀請朋友計畫，自訂邀請 ID 及菁英獎勵機制",
+      "phase1Item5": "自主 AI 代理人（X 發文、Telegram 社群、Moltbook）",
       "phase2": "第二階段 — 即將推出",
       "phase2Title": "NFT 與代幣擴展",
       "phase2Item1": "一鍵 NFT 鑄造（Metaplex pNFT）",
@@ -488,7 +505,9 @@
       "q6": "誰是 Memeya？",
       "a6": "Memeya 是我們的 AI 代理人 — 她每天生成迷因、在 X (Twitter) 上發文、管理 Telegram 社群，並自動分發 USDC 獎勵。她使用由 Crossmint 驅動的 Solana 錢包 24/7 運行。",
       "q7": "在哪裡可以購買 $Memeya？",
-      "a7": "你可以在 Raydium 或 pump.fun 上用 SOL 購買 $Memeya。合約地址: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
+      "a7": "你可以在 Raydium 或 pump.fun 上用 SOL 購買 $Memeya。合約地址: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump",
+      "q8": "邀請朋友計畫怎麼運作？",
+      "a8": "在「邀請」頁面分享你的專屬邀請連結。朋友加入並設定你為邀請人後，朋友贏 USDC 可獲 +20% 額外獎勵，你賺取其基礎獎勵的 10%。雙方獎勵皆需你（邀請人）持有 50K+ $Memeya（菁英用戶）。你可以自訂 3-8 位英數字元的邀請 ID。"
     },
     "cta": {
       "title": "準備開始了嗎？",

@@ -402,6 +402,7 @@
     "toc": {
       "onboarding": "快速入门",
       "howto": "玩法指南",
+      "referral": "邀请朋友",
       "tokenomics": "代币经济",
       "roadmap": "发展路线",
       "faq": "常见问题"
@@ -441,6 +442,21 @@
       "tokenBonus": "$Memeya 加成",
       "maxPerVote": "单次最高"
     },
+    "referral": {
+      "title": "邀请朋友计划",
+      "intro": "邀请朋友加入 AiMemeForge，当他们赢得奖励时你也能赚取额外 USDC。单层邀请奖励系统，让你和朋友都受益。",
+      "howTitle": "运作方式",
+      "how1": "在「邀请」页面找到你的专属邀请链接，分享给朋友。",
+      "how2": "朋友注册后设定你为邀请人（一次性设定，永久绑定）。",
+      "how3": "当朋友赢得 USDC 时，朋友获得 +20% 额外奖励，你赚取其基础奖励的 10%。",
+      "how4": "双方奖励皆需邀请人为精英用户（持有 50K+ $Memeya）。",
+      "eliteTitle": "精英用户门槛",
+      "eliteDesc": "启动邀请奖励需邀请人持有至少 50,000 $Memeya 代币，每次开奖时实时链上验证。即使未达门槛也可分享邀请链接 — 达标后奖励自动启动。",
+      "customIdTitle": "自定义邀请 ID",
+      "customIdDesc": "每位用户自动获得 6 位随机邀请 ID，可在「邀请」页面自定义为 3-8 位英文数字字符（区分大小写）。邀请链接格式：aimemeforge.io/ref/你的ID",
+      "exampleTitle": "奖励示例",
+      "exampleDesc": "朋友赢得 $3 梗图大奖。若你为精英用户：朋友实得 $3.60（+20% 奖励 = $0.60），你获得 $0.30（$3 基础的 10%）。精英资格每次开奖重新验证。"
+    },
     "tokenomics": {
       "title": "$Memeya 代币经济",
       "intro": "$Memeya 是 AiMemeForge 生态系统的实用代币，基于 Solana 构建，交易快速且成本低。",
@@ -460,7 +476,8 @@
       "phase1Item1": "每日 AI 梗图生成（通过 Gemini AI 每天 3 个梗图）",
       "phase1Item2": "免费投票及基于票券的抽奖系统",
       "phase1Item3": "每日 USDC 奖励（每天 $6 分配给赢家和投票者）",
-      "phase1Item4": "自主 AI 代理人（X 发帖、Telegram 社群、Moltbook）",
+      "phase1Item4": "邀请朋友计划，自定义邀请 ID 及精英奖励机制",
+      "phase1Item5": "自主 AI 代理人（X 发帖、Telegram 社群、Moltbook）",
       "phase2": "第二阶段 — 即将推出",
       "phase2Title": "NFT 与代币扩展",
       "phase2Item1": "一键 NFT 铸造（Metaplex pNFT）",
@@ -488,7 +505,9 @@
       "q6": "谁是 Memeya？",
       "a6": "Memeya 是我们的 AI 代理人 — 她每天生成梗图、在 X (Twitter) 上发帖、管理 Telegram 社群，并自动分发 USDC 奖励。她使用由 Crossmint 驱动的 Solana 钱包 24/7 运行。",
       "q7": "在哪里可以购买 $Memeya？",
-      "a7": "你可以在 Raydium 或 pump.fun 上用 SOL 购买 $Memeya。合约地址: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump"
+      "a7": "你可以在 Raydium 或 pump.fun 上用 SOL 购买 $Memeya。合约地址: mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump",
+      "q8": "邀请朋友计划怎么运作？",
+      "a8": "在「邀请」页面分享你的专属邀请链接。朋友加入并设定你为邀请人后，朋友赢 USDC 可获 +20% 额外奖励，你赚取其基础奖励的 10%。双方奖励皆需你（邀请人）持有 50K+ $Memeya（精英用户）。你可以自定义 3-8 位英文数字字符的邀请 ID。"
     },
     "cta": {
       "title": "准备开始了吗？",

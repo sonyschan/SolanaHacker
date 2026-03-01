@@ -4,7 +4,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
-const SECTIONS = ['onboarding', 'howto', 'tokenomics', 'roadmap', 'faq'];
+const SECTIONS = ['onboarding', 'howto', 'referral', 'tokenomics', 'roadmap', 'faq'];
 
 // Convert a UTC hour:minute to the user's local timezone, e.g. "7:55 AM (23:55 UTC)"
 const formatLocalTime = (utcHour, utcMinute = 0) => {
@@ -78,13 +78,14 @@ const WikiPage = () => {
     { q: t('wiki.faq.q5'), a: t('wiki.faq.a5') },
     { q: t('wiki.faq.q6'), a: t('wiki.faq.a6') },
     { q: t('wiki.faq.q7'), a: t('wiki.faq.a7') },
+    { q: t('wiki.faq.q8'), a: t('wiki.faq.a8') },
   ];
 
   const roadmapPhases = [
     {
       phase: t('wiki.roadmap.phase1'),
       title: t('wiki.roadmap.phase1Title'),
-      items: [t('wiki.roadmap.phase1Item1'), t('wiki.roadmap.phase1Item2'), t('wiki.roadmap.phase1Item3'), t('wiki.roadmap.phase1Item4')],
+      items: [t('wiki.roadmap.phase1Item1'), t('wiki.roadmap.phase1Item2'), t('wiki.roadmap.phase1Item3'), t('wiki.roadmap.phase1Item4'), t('wiki.roadmap.phase1Item5')],
       active: true,
     },
     {
@@ -291,7 +292,54 @@ const WikiPage = () => {
             </div>
           </section>
 
-          {/* Section 3: Tokenomics */}
+          {/* Section 3: Referral / Invite Friends */}
+          <section id="referral" ref={(el) => (sectionRefs.current.referral = el)} className="scroll-mt-24 space-y-8">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">
+                {t('wiki.referral.title')}
+              </h2>
+              <p className="text-gray-400 text-lg leading-relaxed">
+                {t('wiki.referral.intro')}
+              </p>
+            </div>
+
+            {/* How it works steps */}
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <h3 className="text-xl font-bold text-white">{t('wiki.referral.howTitle')}</h3>
+              <ol className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <li key={i} className="flex items-start gap-3 text-gray-400">
+                    <span className="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center flex-shrink-0 text-sm font-bold">{i}</span>
+                    <span>{t(`wiki.referral.how${i}`)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Elite requirement */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/30 space-y-4">
+              <h3 className="text-xl font-bold text-pink-400">{t('wiki.referral.eliteTitle')}</h3>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.referral.eliteDesc')}</p>
+            </div>
+
+            {/* Custom ID */}
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <h3 className="text-xl font-bold text-white">{t('wiki.referral.customIdTitle')}</h3>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.referral.customIdDesc')}</p>
+            </div>
+
+            {/* Example */}
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <h3 className="text-xl font-bold text-white">{t('wiki.referral.exampleTitle')}</h3>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.referral.exampleDesc')}</p>
+              <div className="flex flex-wrap gap-3 text-sm">
+                <span className="px-4 py-2 bg-pink-500/20 rounded-lg text-pink-300 font-medium">+20% → $0.60</span>
+                <span className="px-4 py-2 bg-rose-500/15 rounded-lg text-rose-300 font-medium">10% → $0.30</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 4: Tokenomics (was 3) */}
           <section id="tokenomics" ref={(el) => (sectionRefs.current.tokenomics = el)} className="scroll-mt-24 space-y-8">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">

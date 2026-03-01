@@ -27,6 +27,7 @@
 - Agent Profile + Memeya Dashboard (X/Moltbook/Timers/System)
 - Memeya's Wallet (Crossmint) — 每日 USDC 獎勵自動分發
 - $Memeya Token Gate — 持有 10K 門檻參與 USDC 獎勵 (投票者抽獎時即時鏈上驗證，贏家使用投票時快取餘額)
+- 邀請朋友計畫 — 自訂短 ID 邀請連結 + 菁英用戶 (50K $Memeya) 賺取 10% 邀請獎勵 + 被邀請者 +20% USDC 加成
 - 每日得獎公告自動發佈 X 推文 (含梗圖圖片)
 - 多語言 i18n (EN / 简体中文 / 繁體中文) — 瀏覽器自動偵測 + 手動切換
 
@@ -59,6 +60,25 @@
 23:55 UTC，「參與」狀態的錢包進入抽獎池，中獎概率 = 持有 tickets ÷ 總 tickets。抽獎後參與者 tickets 歸零。
 
 **Ticket 累積策略**: 預設「參與」(每日抽獎，抽後歸零)。可 toggle「不參與」(保留累積)。策略型玩家累積 tickets 後在喜歡的梗圖那天切回參與，大幅提高中獎率。
+
+### 邀請朋友 (Invite Friends)
+
+單層邀請獎勵計畫。每位用戶獲得專屬短連結 `aimemeforge.io/ref/{ID}`，ID 為 3-8 位英數字元，系統自動生成或用戶自訂。
+
+**邀請流程**: 分享連結 → 朋友註冊 → 設定邀請人 (一次性鎖定) → 邀請人成為菁英用戶後，雙方享獎勵加成。
+
+**菁英用戶 (Elite)**: 持有 ≥50,000 $Memeya。邀請人資格在每次開獎時即時鏈上驗證。
+
+**獎勵機制** (於每日 USDC 分配後執行):
+- 被邀請者贏 USDC 時: 獲得 +20% 額外獎勵 (需邀請人為菁英)
+- 邀請人: 獲得被邀請者基礎獎勵的 10% (需自身為菁英)
+- 範例: 被邀請者贏 $3 → 被邀請者實得 $3.60，邀請人獲 $0.30
+
+**自訂邀請 ID**: 3-8 字元 `[a-zA-Z0-9]`，區分大小寫。系統預設產生 6 位隨機 ID，用戶可隨時修改 (受保留字過濾)。
+
+**社群分享**: 邀請連結附帶自訂 OG 圖片 (`invite-to-win-og.jpg`)，分享至 X/Facebook 時自動顯示預覽圖。Vercel Serverless Function 處理 OG meta + JS 重導。
+
+**`#invite` 快捷入口**: 已登入用戶開啟 `aimemeforge.io/#invite` 直接跳至邀請 Tab。
 
 ### NFT Claim (開發中)
 贏家可 Claim → Arweave 永久儲存 → Metaplex pNFT 鑄造 (~0.01 SOL gas)。未 Claim 則記錄在 Firestore 不上鏈。
@@ -143,4 +163,4 @@ Memeya 擁有自己的鏈上錢包，透過 [Crossmint Agentic Wallet SDK](https
 
 ---
 
-*最後更新: 2026-02-28*
+*最後更新: 2026-03-01*
