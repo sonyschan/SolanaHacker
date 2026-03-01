@@ -48,6 +48,7 @@ export class ChatMode {
     // Autonomous X posting timer (2-4 hours randomized)
     // Persist across restarts via .last-x-post-at file
     this.xPostInterval = this._randomXInterval();
+    this.bootTime = Date.now();
     const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
     try {
       const ts = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10);
@@ -1827,6 +1828,9 @@ ${recentMemory.slice(-1500)}
    * No active window — Memeya serves global users, not just GMT+8.
    */
   async maybePostToX() {
+    // Boot cooldown — never post within first 5 minutes after restart
+    if (Date.now() - this.bootTime < 5 * 60 * 1000) return;
+
     // Check kill switch — dashboard toggle controls this file
     const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
     if (!fs.existsSync(flagPath)) return; // Autonomous X posting disabled
