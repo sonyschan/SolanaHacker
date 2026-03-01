@@ -22,10 +22,9 @@ const TOTAL_PAYOUT = WINNER_REWARD + VOTER_1_REWARD + VOTER_2_REWARD; // $6
 const MIN_BALANCE = TOTAL_PAYOUT;    // Skip distribution below this
 const LOW_BALANCE_ALERT = 10; // TG alert threshold
 
-// Referral program constants
+// Referral program constants (single-level only)
 const REFERRAL_BONUS_PCT = 0.20;          // 20% extra for referred winners
-const REFERRER_L1_REWARD_PCT = 0.10;      // 10% of base to L1 referrer
-const REFERRER_L2_REWARD_PCT = 0.05;      // 5% of base to L2 referrer
+const REFERRER_REWARD_PCT = 0.10;         // 10% of base to referrer
 const REFERRER_MEMEYA_THRESHOLD = 50000;  // 50K $Memeya "Elite User"
 
 // ==================== TG Alert ====================
@@ -342,23 +341,17 @@ async function distributeRewards(drawResult, options = {}) {
 // ==================== Referral Logic ====================
 
 /**
- * Look up referral chain for a wallet: L1 referrer and L2 referrer.
- * Returns { l1: wallet|null, l2: wallet|null }
+ * Look up direct referrer for a wallet.
+ * Returns referrer wallet address or null.
  */
-async function getReferralChain(wallet) {
-  const l1Doc = await dbUtils.getDocument(collections.REFERRALS, wallet);
-  if (!l1Doc) return { l1: null, l2: null };
-
-  const l1 = l1Doc.referrerWallet;
-  const l2Doc = await dbUtils.getDocument(collections.REFERRALS, l1);
-  const l2 = l2Doc ? l2Doc.referrerWallet : null;
-
-  return { l1, l2 };
+async function getReferrer(wallet) {
+  const doc = await dbUtils.getDocument(collections.REFERRALS, wallet);
+  return doc ? doc.referrerWallet : null;
 }
 
 /**
- * Process referral bonuses for a single reward recipient.
- * Returns { recipientBonus, referralTransfers[], referralErrors[] }
+ * Process referral bonus for a single reward recipient (single-level).
+ * Returns { recipientBonus, referralTransfers[], referralErrors[], remaining }
  */
 async function processReferralBonuses(recipientWallet, baseAmount, remaining) {
   const referralTransfers = [];
@@ -367,103 +360,56 @@ async function processReferralBonuses(recipientWallet, baseAmount, remaining) {
   let localRemaining = remaining;
 
   try {
-    const { l1, l2 } = await getReferralChain(recipientWallet);
-    if (!l1) return { recipientBonus: 0, referralTransfers: [], referralErrors: [], remaining: localRemaining };
+    const referrer = await getReferrer(recipientWallet);
+    if (!referrer) return { recipientBonus: 0, referralTransfers: [], referralErrors: [], remaining: localRemaining };
 
-    // Check L1 referrer's $Memeya balance (fresh RPC)
-    let l1Balance = 0;
+    // Check referrer's $Memeya balance (fresh RPC)
+    let refBalance = 0;
     try {
-      l1Balance = await getMemeyaBalance(l1);
-      await dbUtils.setDocument(collections.USERS, l1, {
-        memeyaBalance: l1Balance,
+      refBalance = await getMemeyaBalance(referrer);
+      await dbUtils.setDocument(collections.USERS, referrer, {
+        memeyaBalance: refBalance,
         memeyaBalanceUpdatedAt: new Date().toISOString()
       });
     } catch (err) {
-      console.warn(`⚠️ RPC failed for L1 referrer ${l1.slice(0, 4)}...${l1.slice(-4)}: ${err.message}`);
+      console.warn(`⚠️ RPC failed for referrer ${referrer.slice(0, 4)}...${referrer.slice(-4)}: ${err.message}`);
     }
 
-    if (l1Balance < REFERRER_MEMEYA_THRESHOLD) {
-      console.log(`⏭️ L1 referrer ${l1.slice(0, 4)}...${l1.slice(-4)} holds ${l1Balance.toLocaleString()} $Memeya (need ${REFERRER_MEMEYA_THRESHOLD}) — no referral bonuses`);
+    if (refBalance < REFERRER_MEMEYA_THRESHOLD) {
+      console.log(`⏭️ Referrer ${referrer.slice(0, 4)}...${referrer.slice(-4)} holds ${refBalance.toLocaleString()} $Memeya (need ${REFERRER_MEMEYA_THRESHOLD}) — no referral bonuses`);
       return { recipientBonus: 0, referralTransfers: [], referralErrors: [], remaining: localRemaining };
     }
 
-    // L1 is Elite → recipient gets 20% bonus
+    // Referrer is Elite → recipient gets 20% bonus
     recipientBonus = +(baseAmount * REFERRAL_BONUS_PCT).toFixed(2);
 
-    // L1 referrer gets 10% of base
-    const l1Reward = +(baseAmount * REFERRER_L1_REWARD_PCT).toFixed(2);
-    if (l1Reward > 0 && localRemaining >= l1Reward) {
+    // Referrer gets 10% of base
+    const refReward = +(baseAmount * REFERRER_REWARD_PCT).toFixed(2);
+    if (refReward > 0 && localRemaining >= refReward) {
       try {
-        const result = await crossmintService.sendUsdc(l1, l1Reward);
+        const result = await crossmintService.sendUsdc(referrer, refReward);
         referralTransfers.push({
-          type: 'referrer_l1_bonus',
-          wallet: l1,
-          amount: l1Reward,
+          type: 'referrer_bonus',
+          wallet: referrer,
+          amount: refReward,
           txSignature: result.txSignature,
           triggeredBy: recipientWallet
         });
-        localRemaining -= l1Reward;
-        console.log(`✅ L1 referrer bonus: $${l1Reward} → ${l1.slice(0, 4)}...${l1.slice(-4)} (from ${recipientWallet.slice(0, 4)}...${recipientWallet.slice(-4)})`);
+        localRemaining -= refReward;
+        console.log(`✅ Referrer bonus: $${refReward} → ${referrer.slice(0, 4)}...${referrer.slice(-4)} (from ${recipientWallet.slice(0, 4)}...${recipientWallet.slice(-4)})`);
 
-        // Update referral doc with L1 referrer earnings (totalReferredBonus updated after recipient transfer)
+        // Update referral doc earnings
         const db = getFirestore();
         await db.collection(collections.REFERRALS).doc(recipientWallet).update({
-          totalReferrerEarnings: require('firebase-admin').firestore.FieldValue.increment(l1Reward),
+          totalReferrerEarnings: require('firebase-admin').firestore.FieldValue.increment(refReward),
           lastRewardAt: new Date().toISOString()
         });
       } catch (err) {
-        console.error(`❌ L1 referrer transfer failed for ${l1}:`, err.message);
-        referralErrors.push({ type: 'referrer_l1_bonus', wallet: l1, error: err.message });
+        console.error(`❌ Referrer transfer failed for ${referrer}:`, err.message);
+        referralErrors.push({ type: 'referrer_bonus', wallet: referrer, error: err.message });
       }
-    } else if (l1Reward > 0) {
-      console.log(`⚠️ Insufficient balance ($${localRemaining}) for L1 referrer bonus $${l1Reward} — skipping`);
-    }
-
-    // Check L2 referrer
-    if (l2) {
-      let l2Balance = 0;
-      try {
-        l2Balance = await getMemeyaBalance(l2);
-        await dbUtils.setDocument(collections.USERS, l2, {
-          memeyaBalance: l2Balance,
-          memeyaBalanceUpdatedAt: new Date().toISOString()
-        });
-      } catch (err) {
-        console.warn(`⚠️ RPC failed for L2 referrer ${l2.slice(0, 4)}...${l2.slice(-4)}: ${err.message}`);
-      }
-
-      if (l2Balance >= REFERRER_MEMEYA_THRESHOLD) {
-        const l2Reward = +(baseAmount * REFERRER_L2_REWARD_PCT).toFixed(2);
-        if (l2Reward > 0 && localRemaining >= l2Reward) {
-          try {
-            const result = await crossmintService.sendUsdc(l2, l2Reward);
-            referralTransfers.push({
-              type: 'referrer_l2_bonus',
-              wallet: l2,
-              amount: l2Reward,
-              txSignature: result.txSignature,
-              triggeredBy: recipientWallet
-            });
-            localRemaining -= l2Reward;
-            console.log(`✅ L2 referrer bonus: $${l2Reward} → ${l2.slice(0, 4)}...${l2.slice(-4)} (from ${recipientWallet.slice(0, 4)}...${recipientWallet.slice(-4)})`);
-
-            // Track L2 earnings on the L1→L2 referral doc
-            const l1RefDoc = await getFirestore().collection(collections.REFERRALS).doc(l1).get();
-            if (l1RefDoc.exists) {
-              await getFirestore().collection(collections.REFERRALS).doc(l1).update({
-                totalL2Earnings: require('firebase-admin').firestore.FieldValue.increment(l2Reward)
-              });
-            }
-          } catch (err) {
-            console.error(`❌ L2 referrer transfer failed for ${l2}:`, err.message);
-            referralErrors.push({ type: 'referrer_l2_bonus', wallet: l2, error: err.message });
-          }
-        } else if (l2Reward > 0) {
-          console.log(`⚠️ Insufficient balance ($${localRemaining}) for L2 referrer bonus $${l2Reward} — skipping`);
-        }
-      } else {
-        console.log(`⏭️ L2 referrer ${l2.slice(0, 4)}...${l2.slice(-4)} holds ${l2Balance.toLocaleString()} $Memeya — below Elite threshold`);
-      }
+    } else if (refReward > 0) {
+      console.log(`⚠️ Insufficient balance ($${localRemaining}) for referrer bonus $${refReward} — skipping`);
     }
   } catch (err) {
     console.error(`❌ Referral bonus processing failed for ${recipientWallet}:`, err.message);
@@ -580,5 +526,5 @@ module.exports = {
   distributeRewards,
   getHistory,
   getDistribution,
-  config: { MIN_BALANCE, LOW_BALANCE_ALERT, WINNER_REWARD, VOTER_1_REWARD, VOTER_2_REWARD, TOTAL_PAYOUT, REFERRAL_BONUS_PCT, REFERRER_L1_REWARD_PCT, REFERRER_L2_REWARD_PCT, REFERRER_MEMEYA_THRESHOLD }
+  config: { MIN_BALANCE, LOW_BALANCE_ALERT, WINNER_REWARD, VOTER_1_REWARD, VOTER_2_REWARD, TOTAL_PAYOUT, REFERRAL_BONUS_PCT, REFERRER_REWARD_PCT, REFERRER_MEMEYA_THRESHOLD }
 };

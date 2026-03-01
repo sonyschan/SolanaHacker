@@ -374,7 +374,6 @@ router.post('/:wallet/set-referrer', rateLimiter, async (req, res) => {
         createdAt: now,
         totalReferrerEarnings: 0,
         totalReferredBonus: 0,
-        totalL2Earnings: 0,
         lastRewardAt: null
       });
 
@@ -416,14 +415,6 @@ router.get('/:wallet/referrals', async (req, res) => {
       };
     });
 
-    // Get L2 earnings — totalL2Earnings is stored on each referral doc where
-    // this wallet is the referrer (e.g. referrals/B tracks A's L2 earnings
-    // from chains going through B). Sum across all L1 referral docs.
-    let l2Earnings = 0;
-    snap.docs.forEach(doc => {
-      l2Earnings += doc.data().totalL2Earnings || 0;
-    });
-
     // Fetch memeyaBalance qualification for each referral (batch)
     const referredWallets = referrals.map(r => r.wallet);
     const userDocs = await Promise.all(
@@ -443,8 +434,7 @@ router.get('/:wallet/referrals', async (req, res) => {
       data: {
         referrals: enriched,
         count: enriched.length,
-        totalL1Earnings: referrals.reduce((sum, r) => sum + r.totalEarnings, 0),
-        totalL2Earnings: l2Earnings
+        totalEarnings: referrals.reduce((sum, r) => sum + r.totalEarnings, 0)
       }
     });
   } catch (error) {

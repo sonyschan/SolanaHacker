@@ -191,18 +191,14 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white/5 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-cyan-400">{referrals?.count || 0}</div>
             <div className="text-xs text-gray-400 mt-1">{t('dashboard.referral.totalReferred')}</div>
           </div>
           <div className="bg-white/5 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-green-400">${(referrals?.totalL1Earnings || 0).toFixed(2)}</div>
-            <div className="text-xs text-gray-400 mt-1">{t('dashboard.referral.l1Earnings')}</div>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400">${(referrals?.totalL2Earnings || 0).toFixed(2)}</div>
-            <div className="text-xs text-gray-400 mt-1">{t('dashboard.referral.l2Earnings')}</div>
+            <div className="text-2xl font-bold text-green-400">${(referrals?.totalEarnings || 0).toFixed(2)}</div>
+            <div className="text-xs text-gray-400 mt-1">{t('dashboard.referral.referrerEarnings')}</div>
           </div>
         </div>
 
@@ -270,10 +266,6 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
           <div className="flex items-start gap-3 text-yellow-400">
             <span className="text-yellow-400 font-bold mt-0.5">4.</span>
             <span>{t('dashboard.referral.howStep4')}</span>
-          </div>
-          <div className="flex items-start gap-3 text-purple-400">
-            <span className="text-purple-400 font-bold mt-0.5">5.</span>
-            <span>{t('dashboard.referral.howStep5')}</span>
           </div>
         </div>
 
