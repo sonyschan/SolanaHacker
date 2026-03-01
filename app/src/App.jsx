@@ -19,16 +19,35 @@ function App() {
   const [nftWins, setNftWins] = useState([]);
   const [userDataLoading, setUserDataLoading] = useState(false);
 
-  // Capture ?ref= URL param on mount
+  // Capture ?ref= URL param on mount (supports both referral IDs and wallet addresses)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
-    if (ref && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) {
-      localStorage.setItem('pendingReferrer', ref);
-      // Clean URL
+    if (!ref) return;
+
+    const cleanUrl = () => {
       const url = new URL(window.location.href);
       url.searchParams.delete('ref');
       window.history.replaceState({}, '', url.pathname + url.hash);
+    };
+
+    if (/^[a-zA-Z0-9]{3,8}$/.test(ref) && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) {
+      // Short referral ID — resolve to wallet via API
+      fetch(`${API_BASE_URL}/api/referral/${ref}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.wallet) {
+            localStorage.setItem('pendingReferrer', data.wallet);
+          }
+        })
+        .catch(console.error)
+        .finally(cleanUrl);
+    } else if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ref)) {
+      // Raw wallet address (backward compat)
+      localStorage.setItem('pendingReferrer', ref);
+      cleanUrl();
+    } else {
+      cleanUrl();
     }
   }, []);
 

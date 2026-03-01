@@ -13,7 +13,16 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
   const [setReferrerLoading, setSetReferrerLoading] = useState(false);
   const [setReferrerMsg, setSetReferrerMsg] = useState(null);
 
-  const referralLink = `https://aimemeforge.io/?ref=${walletAddress}`;
+  // Referral ID editing state
+  const [editingId, setEditingId] = useState(false);
+  const [newIdInput, setNewIdInput] = useState('');
+  const [idError, setIdError] = useState(null);
+  const [idSaving, setIdSaving] = useState(false);
+
+  const referralId = referralInfo?.referralId;
+  const referralLink = referralId
+    ? `https://aimemeforge.io/?ref=${referralId}`
+    : `https://aimemeforge.io/?ref=${walletAddress}`;
   const isElite = (memeyaBalance || 0) >= 50000;
   const maskedWallet = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : '\u2014';
 
@@ -42,15 +51,50 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  // Save custom referral ID
+  const handleSaveId = async () => {
+    const id = newIdInput.trim();
+    if (!/^[a-zA-Z0-9]{3,8}$/.test(id)) {
+      setIdError(t('dashboard.referral.idInvalid'));
+      return;
+    }
+    setIdSaving(true);
+    setIdError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/set-referral-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referralId: id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReferralInfo(prev => ({ ...prev, referralId: data.referralId }));
+        setEditingId(false);
+        setNewIdInput('');
+        setIdError(null);
+      } else {
+        setIdError(data.error?.includes('taken') ? t('dashboard.referral.idTaken') : data.error || t('dashboard.referral.idInvalid'));
+      }
+    } catch {
+      setIdError(t('dashboard.referral.errorGeneric'));
+    } finally {
+      setIdSaving(false);
+    }
+  };
+
   const handleSetReferrer = async () => {
     if (!referrerInput.trim()) return;
-    const wallet = referrerInput.trim();
+    const input = referrerInput.trim();
 
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
+    // Accept either referral ID (3-8 alphanumeric) or wallet address (32-44 base58)
+    const isWallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input);
+    const isReferralId = /^[a-zA-Z0-9]{3,8}$/.test(input);
+
+    if (!isWallet && !isReferralId) {
       setSetReferrerMsg({ type: 'error', text: t('dashboard.referral.errorInvalidWallet') });
       return;
     }
-    if (wallet === walletAddress) {
+    if (isWallet && input === walletAddress) {
       setSetReferrerMsg({ type: 'error', text: t('dashboard.referral.errorSelfReferral') });
       return;
     }
@@ -61,12 +105,16 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
       const res = await fetch(`${API_BASE_URL}/api/users/${walletAddress}/set-referrer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referrerWallet: wallet })
+        body: JSON.stringify({ referrerWallet: input })
       });
       const data = await res.json();
       if (data.success) {
         setSetReferrerMsg({ type: 'success', text: t('dashboard.referral.successSet') });
-        setReferralInfo(prev => ({ ...prev, referredBy: wallet }));
+        // Re-fetch to get resolved wallet address (input may be a referral ID)
+        fetch(`${API_BASE_URL}/api/users/${walletAddress}/referral-info`)
+          .then(r => r.json())
+          .then(info => { if (info.success) setReferralInfo(info.data); })
+          .catch(() => {});
         setReferrerInput('');
       } else {
         const errorKey = data.error?.includes('yourself') ? 'errorSelfReferral'
@@ -101,6 +149,53 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
           <h3 className="text-xl font-bold">{t('dashboard.referral.yourLink')}</h3>
         </div>
         <p className="text-gray-400 text-sm mb-4">{t('dashboard.referral.yourLinkDesc')}</p>
+
+        {/* Referral ID display + edit */}
+        {referralId && !editingId && (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-gray-400">ID:</span>
+            <span className="font-mono text-cyan-300 text-sm font-bold">{referralId}</span>
+            <button
+              onClick={() => { setEditingId(true); setNewIdInput(referralId); setIdError(null); }}
+              className="text-gray-500 hover:text-cyan-400 transition-colors p-1"
+              title={t('dashboard.referral.editId')}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
+        )}
+        {editingId && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newIdInput}
+                onChange={(e) => { setNewIdInput(e.target.value); setIdError(null); }}
+                placeholder={t('dashboard.referral.idPlaceholder')}
+                maxLength={8}
+                className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none w-40"
+              />
+              <button
+                onClick={handleSaveId}
+                disabled={idSaving || !newIdInput.trim()}
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 transition-all disabled:opacity-50"
+              >
+                {idSaving ? '...' : t('dashboard.referral.saveId')}
+              </button>
+              <button
+                onClick={() => { setEditingId(false); setIdError(null); }}
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-all"
+              >
+                {t('dashboard.referral.cancelEdit')}
+              </button>
+            </div>
+            {idError && (
+              <div className="mt-2 text-sm text-red-400">{idError}</div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <div className="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-2.5 font-mono text-sm text-cyan-300 truncate">
@@ -159,7 +254,7 @@ const ReferralTab = ({ walletAddress, memeyaBalance }) => {
                 type="text"
                 value={referrerInput}
                 onChange={(e) => setReferrerInput(e.target.value)}
-                placeholder={t('dashboard.referral.referrerWallet')}
+                placeholder={t('dashboard.referral.referrerPlaceholder')}
                 className="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none"
               />
               <button

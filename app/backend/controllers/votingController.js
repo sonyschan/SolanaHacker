@@ -1,8 +1,60 @@
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
 const rarityService = require('../services/rarityService');
 const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 const tapestryService = require('../services/tapestryService');
+
+/**
+ * Generate a random 6-char alphanumeric referral ID (case-sensitive)
+ * Uses crypto.randomBytes for secure randomness
+ */
+function generateReferralId(length = 6) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = crypto.randomBytes(length);
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % chars.length];
+  }
+  return result;
+}
+
+/**
+ * Create a referral ID for a wallet, with retry on collision
+ * Must be called inside a transaction context or with its own transaction
+ */
+async function createReferralIdForWallet(wallet, transaction = null) {
+  const db = getFirestore();
+  const maxAttempts = 5;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const id = generateReferralId();
+    const idRef = db.collection(collections.REFERRAL_IDS).doc(id);
+
+    if (transaction) {
+      const idDoc = await transaction.get(idRef);
+      if (!idDoc.exists) {
+        transaction.set(idRef, {
+          wallet,
+          createdAt: new Date().toISOString(),
+          isCustom: false
+        });
+        return id;
+      }
+    } else {
+      const idDoc = await idRef.get();
+      if (!idDoc.exists) {
+        await idRef.set({
+          wallet,
+          createdAt: new Date().toISOString(),
+          isCustom: false
+        });
+        return id;
+      }
+    }
+  }
+  throw new Error('Failed to generate unique referral ID after max attempts');
+}
 
 /**
  * Award tickets to user after rarity vote
@@ -42,6 +94,15 @@ async function awardVotingTickets(walletAddress) {
         // New user: streak starts at 1
         streakBonus = Math.min(1, 10);
         ticketsEarned = baseTickets + streakBonus + tokenBonus;
+
+        // Generate referral ID for new user
+        let referralId;
+        try {
+          referralId = await createReferralIdForWallet(walletAddress, transaction);
+        } catch (e) {
+          console.error('Failed to create referral ID for new user:', e.message);
+        }
+
         transaction.set(userRef, {
           id: walletAddress,
           walletAddress,
@@ -54,6 +115,7 @@ async function awardVotingTickets(walletAddress) {
             memeyaBalance: tokenAmount,
             memeyaBalanceUpdatedAt: new Date().toISOString(),
           }),
+          ...(referralId && { referralId }),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -435,5 +497,8 @@ module.exports = {
   canUserVote,
   // Aliases for routes
   getVotingResults,
-  checkVotingEligibility
+  checkVotingEligibility,
+  // Referral ID helpers
+  generateReferralId,
+  createReferralIdForWallet
 };

@@ -91,6 +91,26 @@ app.use('/api/og', ogRoutes);
 app.use('/api/tapestry', tapestryRoutes);
 app.use('/api/rewards', rewardRoutes);
 
+// Referral ID resolution endpoint
+app.get('/api/referral/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || id.length < 3 || id.length > 8 || !/^[a-zA-Z0-9]+$/.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid referral ID format' });
+    }
+    const { getFirestore, collections } = require('./config/firebase');
+    const db = getFirestore();
+    const doc = await db.collection(collections.REFERRAL_IDS).doc(id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Referral ID not found' });
+    }
+    res.json({ success: true, wallet: doc.data().wallet });
+  } catch (error) {
+    console.error('Referral ID lookup error:', error);
+    res.status(500).json({ success: false, error: 'Failed to resolve referral ID' });
+  }
+});
+
 // Global stats endpoint (cached 10min — 3x .count() queries are expensive)
 const { cacheResponse, TTL } = require('./utils/cache');
 app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) => {

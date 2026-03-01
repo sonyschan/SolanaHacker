@@ -80,7 +80,8 @@ const collections = {
   VOTING_PROGRESS: 'voting_progress',
   SCHEDULER_STATUS: 'scheduler_status',
   REWARD_DISTRIBUTIONS: 'reward_distributions',
-  REFERRALS: 'referrals'
+  REFERRALS: 'referrals',
+  REFERRAL_IDS: 'referral_ids'
 };
 
 /**

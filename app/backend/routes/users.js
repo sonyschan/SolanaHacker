@@ -4,7 +4,8 @@ const { getUserProfile, updateUserProfile, getUserTickets, getUserStats } = requ
 const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaService');
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const { cacheResponse, TTL } = require('../utils/cache');
-const { getFirestore, collections, dbUtils } = require('../config/firebase');
+const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
+const { createReferralIdForWallet } = require('../controllers/votingController');
 const Joi = require('joi');
 
 // Validation schemas
@@ -61,7 +62,8 @@ router.get('/:wallet', async (req, res) => {
       user: {
         ...userProfile,
         referredBy: userProfile.referredBy || null,
-        referralCount: userProfile.referralCount || 0
+        referralCount: userProfile.referralCount || 0,
+        referralId: userProfile.referralId || null
       }
     });
   } catch (error) {
@@ -316,10 +318,87 @@ router.post('/:wallet/refresh-memeya-balance', rateLimiter, async (req, res) => 
   }
 });
 
+// ==================== Referral ID Endpoints ====================
+
+const REFERRAL_ID_BLOCKLIST = ['admin', 'test', 'null', 'undefined', 'api', 'app', 'www', 'help', 'root', 'user', 'mod'];
+
+/**
+ * POST /api/users/:wallet/set-referral-id - Set custom referral ID
+ */
+router.post('/:wallet/set-referral-id', rateLimiter, async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const { referralId } = req.body;
+
+    if (!referralId || typeof referralId !== 'string') {
+      return res.status(400).json({ success: false, error: 'referralId is required' });
+    }
+
+    // Validate format: 3-8 alphanumeric chars
+    if (!/^[a-zA-Z0-9]{3,8}$/.test(referralId)) {
+      return res.status(400).json({ success: false, error: '3-8 alphanumeric characters required' });
+    }
+
+    // Check blocklist
+    if (REFERRAL_ID_BLOCKLIST.includes(referralId.toLowerCase())) {
+      return res.status(400).json({ success: false, error: 'This ID is reserved' });
+    }
+
+    const db = getFirestore();
+
+    await db.runTransaction(async (txn) => {
+      // Check new ID doesn't already exist
+      const newIdRef = db.collection(collections.REFERRAL_IDS).doc(referralId);
+      const newIdDoc = await txn.get(newIdRef);
+      if (newIdDoc.exists) {
+        throw new Error('ID_TAKEN');
+      }
+
+      // Get user doc
+      const userRef = db.collection(collections.USERS).doc(wallet);
+      const userDoc = await txn.get(userRef);
+      if (!userDoc.exists) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const userData = userDoc.data();
+      const oldId = userData.referralId;
+
+      // Delete old referral ID mapping if exists
+      if (oldId) {
+        const oldIdRef = db.collection(collections.REFERRAL_IDS).doc(oldId);
+        txn.delete(oldIdRef);
+      }
+
+      // Create new referral ID mapping
+      txn.set(newIdRef, {
+        wallet,
+        createdAt: new Date().toISOString(),
+        isCustom: true
+      });
+
+      // Update user doc
+      txn.update(userRef, { referralId });
+    });
+
+    res.json({ success: true, referralId });
+  } catch (error) {
+    if (error.message === 'ID_TAKEN') {
+      return res.status(409).json({ success: false, error: 'This ID is already taken' });
+    }
+    if (error.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    console.error('Set referral ID error:', error);
+    res.status(500).json({ success: false, error: 'Failed to set referral ID' });
+  }
+});
+
 // ==================== Referral Endpoints ====================
 
 /**
  * POST /api/users/:wallet/set-referrer - Set referrer (one-time, locked)
+ * Accepts referrerWallet as either a wallet address (32-44 chars base58) or a referral ID (3-8 chars alphanumeric)
  */
 router.post('/:wallet/set-referrer', rateLimiter, async (req, res) => {
   try {
@@ -330,23 +409,33 @@ router.post('/:wallet/set-referrer', rateLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: 'referrerWallet is required' });
     }
 
-    // Validate Solana address format (base58, 32-44 chars)
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(referrerWallet)) {
-      return res.status(400).json({ success: false, error: 'Invalid referrer wallet address' });
+    const db = getFirestore();
+    const input = referrerWallet.trim();
+    let resolvedWallet;
+
+    // Determine if input is a referral ID (3-8 alphanumeric) or wallet address (32-44 base58)
+    if (/^[a-zA-Z0-9]{3,8}$/.test(input) && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input)) {
+      // Looks like a referral ID — resolve it
+      const idDoc = await db.collection(collections.REFERRAL_IDS).doc(input).get();
+      if (!idDoc.exists) {
+        return res.status(400).json({ success: false, error: 'Referrer not found' });
+      }
+      resolvedWallet = idDoc.data().wallet;
+    } else if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input)) {
+      resolvedWallet = input;
+    } else {
+      return res.status(400).json({ success: false, error: 'Invalid referrer ID or wallet address' });
     }
 
     // Block self-referral
-    if (referrerWallet === wallet) {
+    if (resolvedWallet === wallet) {
       return res.status(400).json({ success: false, error: 'Cannot refer yourself' });
     }
-
-    const db = getFirestore();
-    const admin = require('firebase-admin');
 
     // Use transaction to prevent race condition (double-set referrer)
     await db.runTransaction(async (txn) => {
       const userRef = db.collection(collections.USERS).doc(wallet);
-      const referrerRef = db.collection(collections.USERS).doc(referrerWallet);
+      const referrerRef = db.collection(collections.USERS).doc(resolvedWallet);
       const referralRef = db.collection(collections.REFERRALS).doc(wallet);
 
       const [userDoc, referrerDoc] = await Promise.all([
@@ -364,12 +453,12 @@ router.post('/:wallet/set-referrer', rateLimiter, async (req, res) => {
       const now = new Date().toISOString();
 
       txn.set(userRef, {
-        referredBy: referrerWallet,
+        referredBy: resolvedWallet,
         referredBySetAt: now
       }, { merge: true });
 
       txn.set(referralRef, {
-        referrerWallet,
+        referrerWallet: resolvedWallet,
         referredWallet: wallet,
         createdAt: now,
         totalReferrerEarnings: 0,
@@ -445,14 +534,34 @@ router.get('/:wallet/referrals', async (req, res) => {
 
 /**
  * GET /api/users/:wallet/referral-info - Lightweight referral status
+ * Auto-generates referralId for existing users who don't have one yet
  */
 router.get('/:wallet/referral-info', async (req, res) => {
   try {
     const { wallet } = req.params;
     const db = getFirestore();
 
-    const userDoc = await db.collection(collections.USERS).doc(wallet).get();
+    const userRef = db.collection(collections.USERS).doc(wallet);
+    const userDoc = await userRef.get();
     const userData = userDoc.exists ? userDoc.data() : {};
+
+    // Auto-generate referralId for existing users who don't have one
+    let referralId = userData.referralId || null;
+    if (userDoc.exists && !referralId) {
+      try {
+        referralId = await db.runTransaction(async (txn) => {
+          const freshUser = await txn.get(userRef);
+          if (freshUser.data()?.referralId) {
+            return freshUser.data().referralId;
+          }
+          const newId = await createReferralIdForWallet(wallet, txn);
+          txn.update(userRef, { referralId: newId });
+          return newId;
+        });
+      } catch (e) {
+        console.error('Auto-generate referral ID failed:', e.message);
+      }
+    }
 
     const referralDoc = await db.collection(collections.REFERRALS).doc(wallet).get();
     const referralData = referralDoc.exists ? referralDoc.data() : null;
@@ -460,6 +569,7 @@ router.get('/:wallet/referral-info', async (req, res) => {
     res.json({
       success: true,
       data: {
+        referralId,
         referredBy: userData.referredBy || null,
         referralCount: userData.referralCount || 0,
         memeyaBalance: userData.memeyaBalance || 0,
