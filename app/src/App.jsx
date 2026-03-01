@@ -115,11 +115,7 @@ function App() {
       setCurrentView("agent");
     } else if (urlHash === "#wiki") {
       setCurrentView("wiki");
-    } else if (urlHash === "#invite") {
-      setCurrentView("dashboard");
     } else if (authenticated && walletAddress) {
-      setCurrentView("dashboard");
-    } else if (urlHash === "#dashboard") {
       setCurrentView("dashboard");
     } else {
       setCurrentView("home");
@@ -134,10 +130,8 @@ function App() {
         setCurrentView("agent");
       } else if (urlHash === "#wiki") {
         setCurrentView("wiki");
-      } else if (urlHash === "#invite") {
-        setCurrentView("dashboard");
-      } else if (urlHash === "#dashboard") {
-        setCurrentView("dashboard");
+      } else if (urlHash === "#invite" || urlHash === "#dashboard") {
+        setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       } else if (urlHash === "" || urlHash === "#") {
         setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       }
