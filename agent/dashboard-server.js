@@ -516,6 +516,9 @@ const server = http.createServer((req, res) => {
           }
         }
 
+        // Reset X post timer — dashboard is actively composing
+        try { fs.writeFileSync(path.join(__dirname, '.last-x-post-at'), String(Date.now()), 'utf-8'); } catch { /* best-effort */ }
+
         jsonRes(res, {
           topic: topicChoice.topic,
           prompt: topicChoice.prompt,
