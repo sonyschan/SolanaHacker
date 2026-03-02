@@ -745,11 +745,12 @@ export async function fetchOwnerMentions() {
         const appClient = new TwitterApi(bearerToken);
         const result = await appClient.v2.search(`community_id:${COMMUNITY_ID}`, {
           max_results: 20,
-          'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
+          'tweet.fields': 'created_at,conversation_id,author_id',
           'user.fields': 'username',
-          expansions: 'author_id,referenced_tweets.id',
+          expansions: 'author_id',
+          sort_order: 'recency',
         });
-        // parseTweets already filters to trustedLower usernames only
+        // parseTweets filters to trustedLower usernames; parentTweet will be null for community posts
         parseTweets(result.data?.data, result.data?.includes);
       } catch (err) {
         console.error('[x-context] fetchOwnerMentions community search error:', err.message);
