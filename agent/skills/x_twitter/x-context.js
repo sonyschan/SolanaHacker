@@ -11,7 +11,6 @@ import { execSync } from 'child_process';
 
 const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const SITE_URL = 'https://aimemeforge.io';
-const COMMUNITY_ID = '2025765989582004365';
 const OWN_USERNAME = 'AiMemeForgeIO';
 export const TRUSTED_OWNER_USERNAMES = ['h2crypto_eth'];
 
@@ -535,130 +534,6 @@ function buildPrompt(topic, context) {
     default:
       return { prompt: `Share what's on your mind.${journalBlock}`, ogUrl: null };
   }
-}
-
-// ─── Community Engagement ────────────────────────────────────
-
-/**
- * Fetch latest posts from our X community + their replies.
- * Returns posts with comments, excluding Memeya's own posts and replies.
- * @returns {Promise<Array<{ tweetId, authorUsername, text, replies: Array<{ tweetId, authorUsername, text, likes }> }>>}
- */
-export async function fetchCommunityPosts() {
-  const bearerToken = process.env.X_BEARER_TOKEN;
-  if (!bearerToken) return [];
-
-  let TwitterApi;
-  try {
-    const mod = await import('twitter-api-v2');
-    TwitterApi = mod.default?.TwitterApi || mod.TwitterApi;
-  } catch { return []; }
-
-  const appClient = new TwitterApi(bearerToken);
-
-  try {
-    // Get Memeya's user ID to filter self
-    const me = await appClient.v2.userByUsername(OWN_USERNAME);
-    const ownUserId = me.data?.id;
-
-    // Search for recent posts in the community
-    const result = await appClient.v2.search(`community_id:${COMMUNITY_ID}`, {
-      max_results: 10,
-      'tweet.fields': 'created_at,public_metrics,author_id,conversation_id',
-      'user.fields': 'username,name',
-      expansions: 'author_id',
-      sort_order: 'recency',
-    });
-
-    if (!result.data?.data?.length) return [];
-
-    // Build user lookup
-    const users = {};
-    for (const u of (result.data?.includes?.users || [])) {
-      users[u.id] = { username: u.username, name: u.name };
-    }
-
-    // Filter out Memeya's own posts, take top 5
-    const posts = result.data.data
-      .filter(t => t.author_id !== ownUserId)
-      .slice(0, 5);
-
-    // For each post, fetch up to 5 latest replies
-    const postsWithReplies = [];
-    for (const post of posts) {
-      const author = users[post.author_id] || { username: 'unknown', name: 'Unknown' };
-      const entry = {
-        tweetId: post.id,
-        authorUsername: author.username,
-        authorName: author.name,
-        text: post.text,
-        likes: post.public_metrics?.like_count || 0,
-        replies: [],
-      };
-
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const repliesRes = await fetch(
-          `https://api.twitter.com/2/tweets/search/recent?query=conversation_id:${post.id}&max_results=10&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=username`,
-          { headers: { Authorization: `Bearer ${bearerToken}` }, signal: controller.signal }
-        );
-        clearTimeout(timeout);
-
-        if (repliesRes.ok) {
-          const repliesData = await repliesRes.json();
-          const replyUsers = {};
-          for (const u of (repliesData?.includes?.users || [])) {
-            replyUsers[u.id] = u.username;
-          }
-
-          entry.replies = (repliesData.data || [])
-            // Exclude own replies and the original post itself
-            .filter(r => {
-              const username = replyUsers[r.author_id] || '';
-              return r.id !== post.id && username.toLowerCase() !== OWN_USERNAME.toLowerCase();
-            })
-            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-            .slice(0, 5)
-            .map(r => ({
-              tweetId: r.id,
-              authorUsername: replyUsers[r.author_id] || 'unknown',
-              text: r.text,
-              likes: r.public_metrics?.like_count || 0,
-            }));
-        }
-      } catch { /* graceful — skip replies for this post */ }
-
-      postsWithReplies.push(entry);
-    }
-
-    return postsWithReplies;
-  } catch (err) {
-    console.error('[x-context] fetchCommunityPosts error:', err.message);
-    return [];
-  }
-}
-
-/**
- * Load IDs of tweets Memeya has already replied to (from journal).
- * Prevents duplicate replies across heartbeats.
- */
-export function loadRepliedTweetIds(baseDir, daysBack = 3) {
-  const ids = new Set();
-  try {
-    const diaryDir = path.join(baseDir, 'memory/journal/memeya');
-    if (!fs.existsSync(diaryDir)) return ids;
-    const files = fs.readdirSync(diaryDir)
-      .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
-      .sort()
-      .slice(-daysBack);
-    for (const file of files) {
-      const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
-      const matches = content.matchAll(/- Replied to tweet: (\d+)/g);
-      for (const m of matches) ids.add(m[1]);
-    }
-  } catch { /* ignore */ }
-  return ids;
 }
 
 /**
