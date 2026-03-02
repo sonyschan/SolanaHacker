@@ -334,12 +334,11 @@ export class ChatMode {
   }
 
   /**
-   * Check if within active hours (09:00-24:00 GMT+8)
-   * Note: 08:00 is reserved for morning news only
+   * Check if within active hours (08:00-24:00 GMT+8)
    */
   isActiveHours() {
     const hour = this.getGMT8Hour();
-    return hour >= 9 && hour <= 23;
+    return hour >= 8 && hour <= 23;
   }
 
   /**
@@ -2422,7 +2421,7 @@ ${recentMemory.slice(-1500)}
       return;
     }
 
-    // Check morning news BEFORE active hours gate (8am is outside 9-23 window)
+    // Check morning news (8am GMT+8)
     if (this.isMorningNewsTime()) {
       await this.doMorningNews();
       return;
