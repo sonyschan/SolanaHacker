@@ -1178,13 +1178,7 @@ export async function ownerMentionHandler({ baseDir, grokApiKey }) {
 
       if (replyText.length > 280) replyText = replyText.slice(0, 277) + '...';
 
-      // Post reply
-      const { data } = await userClient.v2.tweet(replyText, {
-        reply: { in_reply_to_tweet_id: mention.mentionTweetId },
-      });
-      const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
-
-      // Extract TODO if task detected
+      // Extract TODO if task detected (before reply attempt — saves even if reply fails)
       const taskText = taskMatch ? taskMatch[1].trim() : 'none';
       let todo = null;
       if (taskText.toLowerCase() !== 'none') {
@@ -1193,8 +1187,20 @@ export async function ownerMentionHandler({ baseDir, grokApiKey }) {
         todo = taskText;
       }
 
-      // Log to journal with ownerMentionId for duplicate prevention
-      logPost(baseDir, 'owner_mention_reply', replyText, url, {
+      // Post reply
+      let url = null;
+      try {
+        const { data } = await userClient.v2.tweet(replyText, {
+          reply: { in_reply_to_tweet_id: mention.mentionTweetId },
+        });
+        url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
+      } catch (replyErr) {
+        // 403 = community post or protected tweet — can't reply via API
+        console.warn(`[ownerMentionHandler] Reply failed for ${mention.mentionTweetId} (${replyErr.message}), logging as seen`);
+      }
+
+      // Log to journal with ownerMentionId for duplicate prevention (even if reply failed)
+      logPost(baseDir, url ? 'owner_mention_reply' : 'owner_mention_seen', url ? replyText : `Saw @${mention.authorUsername}'s mention, generated reply but could not post: ${replyText}`, url, {
         replyTo: mention.authorUsername,
         replyToTweet: mention.mentionTweetId,
         ownerMentionId: mention.mentionTweetId,
@@ -1209,9 +1215,13 @@ export async function ownerMentionHandler({ baseDir, grokApiKey }) {
         todo,
       });
 
-      console.log(`[ownerMentionHandler] Replied to @${mention.authorUsername}: ${replyText}${todo ? ` [TODO: ${todo}]` : ''}`);
+      console.log(`[ownerMentionHandler] ${url ? 'Replied to' : 'Processed (no reply)'} @${mention.authorUsername}: ${replyText}${todo ? ` [TODO: ${todo}]` : ''}`);
     } catch (err) {
+      // Log unrecoverable errors as seen to prevent infinite retry
       console.error(`[ownerMentionHandler] Error processing mention ${mention.mentionTweetId}: ${err.message}`);
+      logPost(baseDir, 'owner_mention_seen', `Error processing @${mention.authorUsername}'s mention: ${err.message}`, null, {
+        ownerMentionId: mention.mentionTweetId,
+      });
     }
   }
 
