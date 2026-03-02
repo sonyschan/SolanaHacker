@@ -741,20 +741,18 @@ export async function fetchOwnerMentions() {
     // Source 2: Community posts from trusted owner accounts (no @mention needed)
     const bearerToken = process.env.X_BEARER_TOKEN;
     if (bearerToken) {
-      const appClient = new TwitterApi(bearerToken);
-      for (const owner of TRUSTED_OWNER_USERNAMES) {
-        try {
-          const result = await appClient.v2.search(`from:${owner} community_id:${COMMUNITY_ID}`, {
-            max_results: 10,
-            'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
-            'user.fields': 'username',
-            expansions: 'author_id,referenced_tweets.id',
-            sort_order: 'recency',
-          });
-          parseTweets(result.data?.data, result.data?.includes);
-        } catch (err) {
-          console.error(`[x-context] fetchOwnerMentions community search for ${owner} error:`, err.message);
-        }
+      try {
+        const appClient = new TwitterApi(bearerToken);
+        const result = await appClient.v2.search(`community_id:${COMMUNITY_ID}`, {
+          max_results: 20,
+          'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
+          'user.fields': 'username',
+          expansions: 'author_id,referenced_tweets.id',
+        });
+        // parseTweets already filters to trustedLower usernames only
+        parseTweets(result.data?.data, result.data?.includes);
+      } catch (err) {
+        console.error('[x-context] fetchOwnerMentions community search error:', err.message);
       }
     }
 
