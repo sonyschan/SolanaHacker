@@ -6,6 +6,7 @@ const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
 const memeIdeaService = require('../services/memeIdeaService');
 const memeStrategyService = require('../services/memeStrategyService');
+const memeNarrativeService = require('../services/memeNarrativeService');
 
 // Multi-model image generation pool
 const AI_IMAGE_MODELS = [
@@ -126,6 +127,7 @@ async function getRecentMemeThemes() {
       templateId: m.metadata?.templateId || null,
       archetype: m.metadata?.archetype || null,
       strategyId: m.metadata?.strategyId || null,
+      narrativeId: m.metadata?.narrativeId || null,
       caption: m.metadata?.memeIdea?.caption || null,
     }));
 
@@ -232,10 +234,16 @@ async function generateDailyMemes(req, res) {
       });
       console.log(`🎯 Meme ${i+1}: strategy="${strategy.strategy_id}" (${strategy.strategy_name})`);
 
-      // 7b. Generate meme idea (with strategy)
+      // 7a3. Select narrative
+      const narrative = memeNarrativeService.selectNarrative({
+        newsEvent: newsItem, template, recentMemes: recentThemes, category: newsItem.category
+      });
+      console.log(`📖 Meme ${i+1}: narrative="${narrative.narrative_id}" (${narrative.narrative_name}) phrase="${narrative.selectedPhrase}"`);
+
+      // 7b. Generate meme idea (with strategy + narrative)
       let memeIdea;
       try {
-        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy);
+        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy, narrative);
       } catch (err) {
         console.error(`⚠️ Meme ${i+1} idea generation failed:`, err.message);
         memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
@@ -272,7 +280,7 @@ async function generateDailyMemes(req, res) {
           // Retry — keep template + strategy, rewrite caption + twist
           console.log(`🔄 Meme ${i+1} retry #${retry+1}: ${(evaluation.fix_suggestions || []).slice(0, 3).join('; ')}`);
           try {
-            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy);
+            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy, narrative);
           } catch (retryErr) {
             console.error(`⚠️ Meme ${i+1} retry #${retry+1} failed:`, retryErr.message);
             break;
@@ -333,6 +341,11 @@ async function generateDailyMemes(req, res) {
           archetype: template.archetype || null,
           strategyId: strategy.strategy_id,
           strategyName: strategy.strategy_name,
+          narrativeId: narrative.narrative_id,
+          narrativeName: narrative.narrative_name,
+          narrativePhrase: narrative.selectedPhrase,
+          narrativeEmotion: narrative.emotion,
+          narrativeRole: narrative.trader_role,
           memeIdea: {
             caption: memeIdea.caption,
             caption_slots: memeIdea.caption_slots,
@@ -366,6 +379,7 @@ async function generateDailyMemes(req, res) {
         title: memeDoc.title,
         templateId: template.id,
         strategyId: strategy.strategy_id,
+        narrativeId: narrative.narrative_id,
         caption: memeIdea.caption,
       });
 

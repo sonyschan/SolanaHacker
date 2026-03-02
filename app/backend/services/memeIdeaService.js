@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const templates = require('../data/meme-templates.json');
 const strategyService = require('./memeStrategyService');
+const narrativeService = require('./memeNarrativeService');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -113,7 +114,7 @@ function formatSlotLimits(template) {
 /**
  * Generate a meme idea using LLM. Caption-first, slot-based limits.
  */
-async function generateMemeIdea(event, template, recentThemes = [], strategy = null) {
+async function generateMemeIdea(event, template, recentThemes = [], strategy = null, narrative = null) {
   const newsTitle = event.title || event;
 
   let recentContext = '';
@@ -164,6 +165,7 @@ MEME GRAMMAR RULES (MANDATORY):
 5. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
 6. The caption must work WITH the template visual — don't describe the image in the caption.
 ${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
+${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
 ${strategyService.formatPunchlineLibrary()}
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
@@ -195,7 +197,7 @@ OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
  * Retry a meme idea — keep template_id, visual_description, event_angle.
  * Only rewrite caption, caption_slots, twist (editor pass).
  */
-async function retryMemeIdea(previousIdea, fixSuggestions, template, strategy = null) {
+async function retryMemeIdea(previousIdea, fixSuggestions, template, strategy = null, narrative = null) {
   const suggestionsText = (fixSuggestions || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
   const slotLimitsText = formatSlotLimits(template);
 
@@ -225,6 +227,7 @@ FORBIDDEN PATTERNS:
 
 RULES: First-person POV. Use phrases crypto traders actually say on Twitter — no formal language. Caption = immediate emotional reaction, not description. Setup + twist, no joke explanation.
 ${strategy ? `\nSTRATEGY (KEEP THIS — do NOT change the comedy angle): ${strategy.strategy_name}\n${strategy.definition}\n` : ''}
+${narrative ? `\nNARRATIVE (KEEP THIS — maintain the emotional tone): ${narrative.narrative_name}\nEMOTION: ${narrative.emotion} | ROLE: ${narrative.trader_role}\nINSPIRATION PHRASE (do NOT copy verbatim): "${narrative.selectedPhrase}"\n` : ''}
 ${strategyService.formatPunchlineLibrary()}
 
 IMPORTANT: Make the rewritten caption MORE ORIGINAL than the previous attempt. Use a different punchline pattern or angle.
