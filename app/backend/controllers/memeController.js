@@ -123,6 +123,7 @@ async function getRecentMemeThemes() {
       tags: m.tags || [],
       newsSource: m.newsSource || '',
       templateId: m.metadata?.templateId || null,
+      archetype: m.metadata?.archetype || null,
     }));
 
     console.log(`🔄 Loaded ${themes.length} recent meme themes for anti-repetition`);
@@ -298,6 +299,7 @@ async function generateDailyMemes(req, res) {
           styleMode,
           templateId: template.id,
           templateName: template.name,
+          archetype: template.archetype || null,
           memeIdea: {
             caption: memeIdea.caption,
             caption_slots: memeIdea.caption_slots,
