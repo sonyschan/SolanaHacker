@@ -254,6 +254,11 @@ Respond with ONLY this JSON:
   // Preserve fields that should not change
   memeIdea.visual_description = memeIdea.visual_description || previousIdea.visual_description;
   memeIdea.event_angle = memeIdea.event_angle || previousIdea.event_angle;
+  // Guard: if LLM echoed the placeholder, reconstruct caption from slots
+  if (!memeIdea.caption || memeIdea.caption === 'Rewritten caption') {
+    const slotValues = Object.values(memeIdea.caption_slots || {}).filter(Boolean);
+    memeIdea.caption = slotValues.length > 0 ? slotValues.join(' | ') : previousIdea.caption;
+  }
   return memeIdea;
 }
 
