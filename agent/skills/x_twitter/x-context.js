@@ -676,6 +676,153 @@ export function saveTodo(baseDir, item, source) {
   }
 }
 
+// ─── Diary Schedule: Slot-aware Topic Selection ─────────────
+
+/**
+ * Choose topic + prompt for a specific diary slot.
+ * Called from autoPost when diarySlot is provided.
+ * @param {string} diarySlot - one of: news_digest, meme_forge, flex_1, flex_2
+ * @param {object} context - gathered context from gatherContext()
+ * @returns {{ topic, prompt, ogUrl, memeImages?, subTopic?, useLiveSearch?, meta }}
+ */
+export function chooseTopicForSlot(diarySlot, context) {
+  switch (diarySlot) {
+    case 'news_digest': {
+      const { prompt, ogUrl } = buildDiaryPrompt('news_digest', context);
+      return { topic: 'news_digest', prompt, ogUrl, useLiveSearch: true, subTopic: null, meta: { slot: diarySlot } };
+    }
+
+    case 'meme_forge': {
+      const { todayMemes } = context;
+      // Collect up to 3 meme image URLs for multi-image tweet
+      const memeImages = todayMemes
+        .filter(m => m.imageUrl)
+        .slice(0, 3)
+        .map(m => ({ url: m.imageUrl, id: m.id, title: m.title || m.topText || 'Untitled' }));
+
+      const { prompt, ogUrl } = buildDiaryPrompt('meme_forge', context);
+      return { topic: 'meme_forge', prompt, ogUrl: ogUrl || SITE_URL, memeImages, subTopic: null, meta: { slot: diarySlot, imageCount: memeImages.length } };
+    }
+
+    case 'flex_1': {
+      const pool = ['personal_vibe', 'dev_update', 'feature_showtime'];
+      const sub = pickFlexTopic(pool, context);
+      const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
+      return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
+    }
+
+    case 'flex_2': {
+      const pool = ['community_response', 'token_spotlight', 'personal_vibe'];
+      const sub = pickFlexTopic(pool, context);
+      const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
+      return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
+    }
+
+    default: {
+      // Fallback: use existing chooseTopic
+      return chooseTopic(context);
+    }
+  }
+}
+
+/**
+ * Pick a flex topic from a pool, avoiding topics already used today and
+ * falling back based on data availability.
+ */
+function pickFlexTopic(pool, context) {
+  const { commits, comments, recentPosts, productDoc } = context;
+
+  // Extract today's topics from journal (use GMT+8 to match diary schedule)
+  const todayStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+  const todayTopics = recentPosts
+    .filter(p => p.timestamp && p.timestamp.startsWith(todayStr))
+    .map(p => p.topic)
+    .filter(Boolean);
+
+  // Filter: not used today + data available
+  const available = pool.filter(t => {
+    if (todayTopics.includes(t)) return false;
+    if (t === 'dev_update' && commits.length === 0) return false;
+    if (t === 'community_response' && (!comments || comments.length === 0)) return false;
+    if (t === 'feature_showtime' && !productDoc) return false;
+    return true;
+  });
+
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+  // Fallback
+  return 'personal_vibe';
+}
+
+/**
+ * Wrap existing buildPrompt() with diary framing per topic.
+ */
+function buildDiaryPrompt(topic, context) {
+  const DIARY_FRAME = `DIARY FRAMING: Write as a work diary entry — genuine, in-the-moment, like you're narrating your day.`;
+
+  switch (topic) {
+    case 'news_digest': {
+      const { prompt: base, ogUrl } = buildPrompt('crypto_commentary', context);
+      const diaryPrompt = [
+        `TOPIC: Morning crypto news scan — your daily intel report.`,
+        `You just scanned hundreds of crypto articles over your morning brew. Share what actually matters.`,
+        `Write like a morning report entry — direct, opinionated, no fluff.`,
+        DIARY_FRAME,
+        ``,
+        `Use your real-time knowledge to find the most interesting crypto news from today.`,
+        context.journal ? `\nRecent journal reflections:\n${context.journal.slice(-800)}` : '',
+      ].filter(Boolean).join('\n');
+      return { prompt: diaryPrompt, ogUrl: null };
+    }
+
+    case 'meme_forge': {
+      const { todayMemes } = context;
+      const memeCount = todayMemes.filter(m => m.imageUrl).length;
+      const memeList = todayMemes.slice(0, 3).map(m => {
+        const title = m.title || m.topText || 'Untitled';
+        return `- "${title}"${m.newsSource ? ` (${m.newsSource})` : ''}`;
+      }).join('\n');
+
+      if (memeCount === 0) {
+        // No memes yet — text-only "memes in progress" post
+        return {
+          prompt: [
+            `TOPIC: Forge status update — memes are still cooking.`,
+            `Today's batch isn't ready yet. Tease what's coming.`,
+            `Mention that new memes drop daily on aimemeforge.io.`,
+            DIARY_FRAME,
+            `Keep it short and intriguing. No image today.`,
+          ].join('\n'),
+          ogUrl: SITE_URL,
+        };
+      }
+
+      return {
+        prompt: [
+          `TOPIC: Forge report — today's batch is ready.`,
+          `You just finished forging ${memeCount} meme${memeCount > 1 ? 's' : ''} today:`,
+          memeList,
+          ``,
+          `Reference the collection as a whole, not individual memes one by one.`,
+          `End with a CTA to check them out and vote on aimemeforge.io.`,
+          DIARY_FRAME,
+          `Keep your text under 220 chars — images and link will be attached automatically.`,
+          `Do NOT include any URL yourself. Just write the tweet text.`,
+        ].join('\n'),
+        ogUrl: SITE_URL,
+      };
+    }
+
+    default: {
+      // For flex topics, add diary framing to existing prompt
+      const { prompt: base, ogUrl } = buildPrompt(topic, context);
+      const diaryPrompt = base + `\n\n${DIARY_FRAME}`;
+      return { prompt: diaryPrompt, ogUrl };
+    }
+  }
+}
+
 // ─── Post Logging ───────────────────────────────────────────
 
 /**

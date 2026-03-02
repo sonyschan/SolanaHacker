@@ -45,17 +45,19 @@ export class ChatMode {
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
     this.lastNewsSentAt = 0; // 4-hour cooldown for news search
 
-    // Autonomous X posting timer (2-4 hours randomized)
-    // Persist across restarts via .last-x-post-at file
-    this.xPostInterval = this._randomXInterval();
+    // Diary schedule — replaces random X posting timer
     this.bootTime = Date.now();
-    const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
+    this.diarySchedule = this._loadOrResetDiarySchedule();
+    this._lastDiaryFireTime = 0;
+    this._lastDiaryWrittenPostAt = 0;
+    // Initialize from .last-x-post-at so restarts don't miscount diary posts as manual
     try {
-      const ts = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10);
-      this.lastXPost = ts && ts > 0 ? ts : Date.now();
-    } catch {
-      this.lastXPost = Date.now();
-    }
+      const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
+      if (fs.existsSync(lastPostFile)) {
+        this._lastSeenManualPost = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10) || 0;
+      }
+    } catch { /* ignore */ }
+    if (!this._lastSeenManualPost) this._lastSeenManualPost = 0;
 
     // Community engagement removed — X API doesn't support replying to community posts (403)
 
@@ -1775,11 +1777,67 @@ ${recentMemory.slice(-1500)}
   }
 
 
+  // ─── Diary Schedule Helpers ──────────────────────────────────
+
   /**
-   * Random interval for X posting: 2-4 hours in ms
+   * Get "YYYY-MM-DD" in GMT+8.
    */
-  _randomXInterval() {
-    return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+  _todayGMT8() {
+    const now = new Date();
+    const gmt8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    return gmt8.toISOString().slice(0, 10);
+  }
+
+  /**
+   * Get current fractional hour in GMT+8 (e.g. 9.5 = 09:30).
+   */
+  _getGMT8Hour() {
+    const now = new Date();
+    const gmt8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    return gmt8.getUTCHours() + gmt8.getUTCMinutes() / 60;
+  }
+
+  /**
+   * Load diary schedule from file, or create fresh if new day.
+   */
+  _loadOrResetDiarySchedule() {
+    const schedPath = path.join(this.baseDir, 'agent', '.diary-schedule.json');
+    const today = this._todayGMT8();
+    try {
+      if (fs.existsSync(schedPath)) {
+        const data = JSON.parse(fs.readFileSync(schedPath, 'utf-8'));
+        if (data.date === today) return data;
+      }
+    } catch (err) {
+      console.warn('[ChatMode] Failed to load diary schedule, creating fresh:', err.message);
+    }
+    // Fresh schedule for today
+    const sched = {
+      date: today,
+      slots: {
+        reward_recap: { window: [8, 8], status: 'external' },
+        news_digest:  { window: [9, 10], status: 'pending' },
+        meme_forge:   { window: [12, 13], status: 'pending' },
+        flex_1:       { window: [15, 16], status: 'pending' },
+        flex_2:       { window: [18, 19], status: 'pending' },
+      },
+      manualPostCount: 0,
+    };
+    this._saveDiarySchedule(sched);
+    console.log(`[ChatMode] Diary schedule created for ${today}`);
+    return sched;
+  }
+
+  /**
+   * Persist diary schedule to disk.
+   */
+  _saveDiarySchedule(sched) {
+    try {
+      const schedPath = path.join(this.baseDir, 'agent', '.diary-schedule.json');
+      fs.writeFileSync(schedPath, JSON.stringify(sched, null, 2));
+    } catch (err) {
+      console.warn('[ChatMode] Failed to save diary schedule:', err.message);
+    }
   }
 
   _randomMoltbookPostInterval() {
@@ -1817,8 +1875,8 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
-   * Autonomous X posting — runs independently on its own 2-4 hour timer.
-   * No active window — Memeya serves global users, not just GMT+8.
+   * Diary-scheduled X posting — fires slots at their designated windows.
+   * Replaces the old random 2-4 hour timer.
    */
   async maybePostToX() {
     // Boot cooldown — never post within first 5 minutes after restart
@@ -1828,73 +1886,139 @@ ${recentMemory.slice(-1500)}
     const flagPath = path.join(this.baseDir, 'agent', '.memeya-x-enabled');
     if (!fs.existsSync(flagPath)) return; // Autonomous X posting disabled
 
-    const now = Date.now();
+    // Day rollover — reset schedule if date changed
+    const today = this._todayGMT8();
+    if (this.diarySchedule.date !== today) {
+      this.diarySchedule = this._loadOrResetDiarySchedule();
+    }
 
-    // Check if dashboard manually posted — shared file resets our timer
+    // Detect manual dashboard posts → increment manualPostCount
     const lastPostFile = path.join(this.baseDir, 'agent', '.last-x-post-at');
     try {
       const ts = parseInt(fs.readFileSync(lastPostFile, 'utf-8').trim(), 10);
-      if (ts && ts > this.lastXPost) {
-        this.lastXPost = ts;
-        this.xPostInterval = this._randomXInterval();
-        console.log('[ChatMode] Timer reset — dashboard manual post detected');
+      if (ts && ts > this._lastSeenManualPost) {
+        // If this timestamp doesn't match what we wrote ourselves, it's a dashboard post
+        if (!this._lastDiaryWrittenPostAt || Math.abs(ts - this._lastDiaryWrittenPostAt) > 2000) {
+          this.diarySchedule.manualPostCount = (this.diarySchedule.manualPostCount || 0) + 1;
+          this._saveDiarySchedule(this.diarySchedule);
+          console.log(`[ChatMode] Manual post detected, count now: ${this.diarySchedule.manualPostCount}`);
+        }
+        this._lastSeenManualPost = ts;
       }
     } catch { /* file doesn't exist or invalid — ignore */ }
 
-    if (now - this.lastXPost < this.xPostInterval) return; // Not time yet
+    const currentHour = this._getGMT8Hour();
+    const slots = this.diarySchedule.slots;
+    const slotOrder = ['news_digest', 'meme_forge', 'flex_1', 'flex_2'];
 
-    this.lastXPost = now;
-    this.xPostInterval = this._randomXInterval(); // Randomize next interval
+    // Count total posts today (done slots + manual posts)
+    const doneCount = Object.values(slots).filter(s => s.status === 'done').length;
+    const totalPostsToday = doneCount + (this.diarySchedule.manualPostCount || 0);
 
-    // Persist timer across restarts
-    try { fs.writeFileSync(path.join(this.baseDir, 'agent', '.last-x-post-at'), String(now), 'utf-8'); } catch { /* best-effort */ }
+    for (const slotId of slotOrder) {
+      const slot = slots[slotId];
+      if (!slot || slot.status !== 'pending') continue;
 
-    console.log('[ChatMode] maybePostToX: attempting autonomous X post...');
+      const [winStart, winEnd] = slot.window;
 
-    try {
-      const { autoPost } = await import('./skills/x_twitter/index.js');
-      const result = await autoPost({
-        baseDir: this.baseDir,
-        grokApiKey: this.grokApiKey,
-      });
+      // Not yet — window hasn't started
+      if (currentHour < winStart) continue;
 
-      if (result.success) {
-        console.log(`[ChatMode] X post success: ${result.topic} → ${result.url}`);
-        try {
-          await this.telegram.sendDevlog(
-            `🐦 <b>Memeya posted to X!</b>\n` +
-            `Topic: <code>${result.topic}</code>\n` +
-            `${result.text}\n` +
-            `<a href="${result.url}">View tweet</a>`
-          );
-        } catch (e) {
-          console.error('[ChatMode] Telegram notification failed:', e.message);
-        }
-        // Share to TG community groups
-        for (const bot of [this.tgCommunity, this.tgCommunityCN]) {
-          if (!bot) continue;
-          try {
-            await bot.shareXPost(result.text, result.url);
-          } catch (e) {
-            console.error(`[ChatMode] TG community share failed (${bot.label}):`, e.message);
-          }
-        }
-      } else {
-        console.log(`[ChatMode] X post skipped: ${result.reason}`);
-        if (result.draft) {
+      // Too late — mark missed (30-min grace after window end)
+      if (currentHour > winEnd + 0.5) {
+        slot.status = 'missed';
+        this._saveDiarySchedule(this.diarySchedule);
+        console.log(`[ChatMode] Diary slot ${slotId}: missed (window ${winStart}-${winEnd}, now ${currentHour.toFixed(1)})`);
+        continue;
+      }
+
+      // Skip flex_2 if 5+ posts today
+      if (slotId === 'flex_2' && totalPostsToday >= 5) {
+        slot.status = 'skipped';
+        this._saveDiarySchedule(this.diarySchedule);
+        console.log(`[ChatMode] Diary slot flex_2: skipped (${totalPostsToday} posts today)`);
+        continue;
+      }
+
+      // Randomize fire time within window (persist _readyAt so it's stable across heartbeats)
+      if (!slot._readyAt) {
+        // Random minute within the window
+        const windowMinutes = (winEnd - winStart) * 60;
+        const offsetMinutes = Math.floor(Math.random() * Math.max(windowMinutes, 30));
+        slot._readyAt = winStart + offsetMinutes / 60;
+        this._saveDiarySchedule(this.diarySchedule);
+      }
+
+      if (currentHour < slot._readyAt) continue; // Not ready yet
+
+      // Fire this slot!
+      console.log(`[ChatMode] Diary slot ${slotId}: firing at ${currentHour.toFixed(2)} GMT+8...`);
+      this._lastDiaryFireTime = Date.now();
+
+      try {
+        const { autoPost } = await import('./skills/x_twitter/index.js');
+        const result = await autoPost({
+          baseDir: this.baseDir,
+          grokApiKey: this.grokApiKey,
+          diarySlot: slotId,
+        });
+
+        if (result.success) {
+          slot.status = 'done';
+          this._saveDiarySchedule(this.diarySchedule);
+          console.log(`[ChatMode] Diary slot ${slotId} done: ${result.topic} → ${result.url}`);
+
+          // Persist last-x-post-at for dashboard coordination
+          const postAt = Date.now();
+          this._lastDiaryWrittenPostAt = postAt;
+          this._lastSeenManualPost = postAt;
+          try { fs.writeFileSync(path.join(this.baseDir, 'agent', '.last-x-post-at'), String(postAt), 'utf-8'); } catch { /* best-effort */ }
+
           try {
             await this.telegram.sendDevlog(
-              `🐦 <b>X draft (not posted)</b>\n` +
-              `Reason: ${result.reason}\n` +
-              `Draft: ${result.draft}`
+              `🐦 <b>Memeya posted to X!</b>\n` +
+              `Slot: <code>${slotId}</code> | Topic: <code>${result.topic}</code>\n` +
+              `${result.text}\n` +
+              `<a href="${result.url}">View tweet</a>`
             );
           } catch (e) {
             console.error('[ChatMode] Telegram notification failed:', e.message);
           }
+          // Share to TG community groups
+          for (const bot of [this.tgCommunity, this.tgCommunityCN]) {
+            if (!bot) continue;
+            try {
+              await bot.shareXPost(result.text, result.url);
+            } catch (e) {
+              console.error(`[ChatMode] TG community share failed (${bot.label}):`, e.message);
+            }
+          }
+        } else {
+          slot.status = 'failed';
+          slot._failReason = result.reason;
+          this._saveDiarySchedule(this.diarySchedule);
+          console.log(`[ChatMode] Diary slot ${slotId} failed: ${result.reason}`);
+          if (result.draft) {
+            try {
+              await this.telegram.sendDevlog(
+                `🐦 <b>X draft (not posted)</b>\n` +
+                `Slot: ${slotId} | Reason: ${result.reason}\n` +
+                `Draft: ${result.draft}`
+              );
+            } catch (e) {
+              console.error('[ChatMode] Telegram notification failed:', e.message);
+            }
+          }
         }
+      } catch (err) {
+        slot.status = 'failed';
+        slot._failReason = err.message;
+        this._saveDiarySchedule(this.diarySchedule);
+        console.error(`[ChatMode] Diary slot ${slotId} error:`, err.message);
       }
-    } catch (err) {
-      console.error('[ChatMode] maybePostToX error:', err.message);
+
+      // Fire at most ONE slot per heartbeat
+      return;
     }
   }
 
@@ -2046,6 +2170,12 @@ ${recentMemory.slice(-1500)}
 
       console.log(`[ChatMode] Winner announcement posted: ${postJson.url}`);
 
+      // Mark reward_recap slot as done in diary schedule
+      if (this.diarySchedule && this.diarySchedule.slots && this.diarySchedule.slots.reward_recap) {
+        this.diarySchedule.slots.reward_recap.status = 'done';
+        this._saveDiarySchedule(this.diarySchedule);
+      }
+
       // Mark in-memory to prevent duplicate tweets if PATCH fails
       this._announcedDrawIds.add(drawId);
 
@@ -2065,9 +2195,7 @@ ${recentMemory.slice(-1500)}
         console.error('[ChatMode] Failed to mark xAnnounced (will retry on restart):', patchErr.message);
       }
 
-      // 6. Reset X post timer to avoid collision
-      this.lastXPost = Date.now();
-      this.xPostInterval = this._randomXInterval();
+      // 6. Update last-x-post-at so dashboard knows a post just happened
       try { fs.writeFileSync(path.join(this.baseDir, 'agent', '.last-x-post-at'), String(Date.now()), 'utf-8'); } catch { /* best-effort */ }
 
       // 7. TG devlog notification
@@ -2488,14 +2616,19 @@ ${recentMemory.slice(-1500)}
             enabled: true,
             scope: '24/7',
           },
-          xPost: {
-            label: 'X Post',
-            interval: fmt(this.xPostInterval),
-            intervalMs: this.xPostInterval,
-            lastFired: this.lastXPost || null,
-            nextIn: fmt(this.xPostInterval - (now - (this.lastXPost || 0))),
+          xDiary: {
+            label: 'X Diary Schedule',
+            date: this.diarySchedule?.date || null,
+            slots: Object.fromEntries(
+              Object.entries(this.diarySchedule?.slots || {}).map(([id, s]) => [id, {
+                window: s.window,
+                status: s.status,
+                readyAt: s._readyAt || null,
+              }])
+            ),
+            manualPostCount: this.diarySchedule?.manualPostCount || 0,
             enabled: xEnabled,
-            scope: '24/7',
+            scope: 'scheduled daily slots',
           },
           moltbookPost: {
             label: 'Moltbook Post',

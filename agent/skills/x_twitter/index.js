@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { gatherContext, chooseTopic, logPost, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
+import { gatherContext, chooseTopic, chooseTopicForSlot, logPost, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
 const MEMEYA_PROMPT_BASE = `You are Memeya, the digital blacksmith who owns and runs AiMemeForge.
@@ -356,8 +356,12 @@ export function createExecutors(deps) {
     // Build system prompt with core values + long-term memory
     const systemPrompt = buildSystemPrompt(baseDir);
 
-    // Use web search model for crypto_commentary to get live news
-    const useLiveSearch = isStructured && contextInput.topic === 'crypto_commentary';
+    // Use web search model for crypto_commentary / news_digest to get live news
+    const useLiveSearch = isStructured && (
+      contextInput.topic === 'crypto_commentary' ||
+      contextInput.topic === 'news_digest' ||
+      contextInput.useLiveSearch === true
+    );
 
     let text;
     if (useLiveSearch) {
@@ -661,11 +665,15 @@ export function createExecutors(deps) {
  * @param {{ baseDir: string, grokApiKey: string }} deps
  * @returns {{ success: boolean, url?: string, text?: string, topic?: string, reason?: string, draft?: string }}
  */
-export async function autoPost({ baseDir, grokApiKey }) {
+export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
   const context = await gatherContext(baseDir, { grokApiKey });
-  const topicChoice = chooseTopic(context);
 
-  console.log(`[autoPost] Topic: ${topicChoice.topic}`);
+  // Route to slot-aware or legacy topic selection
+  const topicChoice = diarySlot
+    ? chooseTopicForSlot(diarySlot, context)
+    : chooseTopic(context);
+
+  console.log(`[autoPost] Topic: ${topicChoice.topic}${diarySlot ? ` (slot: ${diarySlot})` : ''}`);
 
   // Create a temporary executor to access generateTweet with the right baseDir
   const executors = createExecutors({ workDir: path.join(baseDir, 'agent') });
@@ -702,9 +710,42 @@ export async function autoPost({ baseDir, grokApiKey }) {
     accessSecret,
   });
 
+  // Multi-image upload (for meme_forge slot)
+  let mediaIds = [];
+  if (topicChoice.memeImages && topicChoice.memeImages.length > 0) {
+    console.log(`[autoPost] Uploading ${topicChoice.memeImages.length} meme images...`);
+    for (const img of topicChoice.memeImages) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const imgRes = await fetch(img.url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!imgRes.ok) { console.warn(`[autoPost] Image fetch failed (HTTP ${imgRes.status}): ${img.url}`); continue; }
+        const buf = Buffer.from(await imgRes.arrayBuffer());
+        if (buf.length > 5 * 1024 * 1024) { console.warn(`[autoPost] Image too large (${(buf.length / 1024 / 1024).toFixed(1)}MB), skipping: ${img.url}`); continue; }
+        const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+        const mimeType = ct.split(';')[0].trim();
+        const allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedMime.includes(mimeType)) { console.warn(`[autoPost] Unexpected MIME type ${mimeType}, skipping: ${img.url}`); continue; }
+        const mediaId = await userClient.v1.uploadMedia(buf, { mimeType });
+        mediaIds.push(mediaId);
+        console.log(`[autoPost] Uploaded image: ${img.title} → ${mediaId}`);
+      } catch (imgErr) {
+        console.warn(`[autoPost] Image upload failed (non-fatal): ${imgErr.message}`);
+      }
+    }
+    if (mediaIds.length === 0) {
+      console.log('[autoPost] All image uploads failed, posting text-only');
+    }
+  }
+
   console.log(`[autoPost] Tweet text (${tweet.length} chars): ${tweet.slice(0, 200)}${tweet.length > 200 ? '...' : ''}`);
   try {
-    const { data } = await userClient.v2.tweet(tweet);
+    const tweetPayload = { text: tweet };
+    if (mediaIds.length > 0) {
+      tweetPayload.media = { media_ids: mediaIds };
+    }
+    const { data } = await userClient.v2.tweet(tweetPayload);
     const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
     logPost(baseDir, topicChoice.topic, tweet, url);
@@ -736,7 +777,7 @@ export async function autoPost({ baseDir, grokApiKey }) {
       console.warn('[autoPost] Tapestry mirror failed (non-fatal):', tapErr.message);
     }
 
-    return { success: true, url, text: tweet, topic: topicChoice.topic };
+    return { success: true, url, text: tweet, topic: topicChoice.topic, subTopic: topicChoice.subTopic || null };
   } catch (err) {
     console.error(`[autoPost] Tweet FAILED: ${err.message}`, err.data ? JSON.stringify(err.data) : '');
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };

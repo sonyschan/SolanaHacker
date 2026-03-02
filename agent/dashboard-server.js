@@ -736,23 +736,27 @@ const server = http.createServer((req, res) => {
           accessSecret,
         });
 
-        // Handle optional image attachment
+        // Handle image attachments — supports both single (legacy) and multi-image
+        const images = body.images || (body.imageBase64 ? [{ base64: body.imageBase64, mimeType: body.imageMimeType }] : []);
         let mediaIds = undefined;
-        if (body.imageBase64) {
-          try {
-            const allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            const mimeType = allowedMime.includes(body.imageMimeType) ? body.imageMimeType : 'image/jpeg';
-            const imgBuffer = Buffer.from(body.imageBase64, 'base64');
-            if (imgBuffer.length > 5 * 1024 * 1024) {
-              jsonRes(res, { error: 'Image too large (max 5 MB)' }, 400);
-              return;
+        if (images.length > 0) {
+          const allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+          const uploaded = [];
+          for (const img of images.slice(0, 4)) { // Twitter max 4 images
+            try {
+              const mimeType = allowedMime.includes(img.mimeType) ? img.mimeType : 'image/jpeg';
+              const imgBuffer = Buffer.from(img.base64, 'base64');
+              if (imgBuffer.length > 5 * 1024 * 1024) {
+                console.warn('[Dashboard] Image too large, skipping');
+                continue;
+              }
+              const mediaId = await userClient.v1.uploadMedia(imgBuffer, { mimeType });
+              uploaded.push(mediaId);
+            } catch (imgErr) {
+              console.warn(`[Dashboard] Image upload failed (non-fatal): ${imgErr.message}`);
             }
-            const mediaId = await userClient.v1.uploadMedia(imgBuffer, { mimeType });
-            mediaIds = [mediaId];
-          } catch (imgErr) {
-            jsonRes(res, { error: `Image upload failed: ${imgErr.message}` }, 500);
-            return;
           }
+          if (uploaded.length > 0) mediaIds = uploaded;
         }
 
         const tweetPayload = { text };
