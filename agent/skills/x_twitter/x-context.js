@@ -738,22 +738,18 @@ export async function fetchOwnerMentions() {
       console.error('[x-context] fetchOwnerMentions mention timeline error:', err.message);
     }
 
-    // Source 2: Community posts from trusted owner accounts (no @mention needed)
-    const bearerToken = process.env.X_BEARER_TOKEN;
-    if (bearerToken) {
+    // Source 2: Owner tweets that address Memeya (by name or @mention), even without @AiMemeForgeIO tag
+    for (const owner of TRUSTED_OWNER_USERNAMES) {
       try {
-        const appClient = new TwitterApi(bearerToken);
-        const result = await appClient.v2.search(`community_id:${COMMUNITY_ID}`, {
-          max_results: 20,
-          'tweet.fields': 'created_at,conversation_id,author_id',
+        const result = await userClient.v2.search(`from:${owner} (Memeya OR AiMemeForge OR @${OWN_USERNAME})`, {
+          max_results: 10,
+          'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
           'user.fields': 'username',
-          expansions: 'author_id',
-          sort_order: 'recency',
+          expansions: 'author_id,referenced_tweets.id',
         });
-        // parseTweets filters to trustedLower usernames; parentTweet will be null for community posts
         parseTweets(result.data?.data, result.data?.includes);
       } catch (err) {
-        console.error('[x-context] fetchOwnerMentions community search error:', err.message);
+        console.error(`[x-context] fetchOwnerMentions search for ${owner} error:`, err.message);
       }
     }
 
