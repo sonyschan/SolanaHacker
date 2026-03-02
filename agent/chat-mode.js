@@ -2519,8 +2519,8 @@ ${recentMemory.slice(-1500)}
     // Write timer state for dashboard visibility
     this.writeTimerState();
 
-    // Owner mention check runs on its own 15-min timer
-    await this.maybeCheckOwnerMentions();
+    // Owner mention check disabled — X is shadow-banning @AiMemeForgeIO replies
+    // await this.maybeCheckOwnerMentions();
 
     // Autonomous X posting runs on its own timer, independent of heartbeat logic
     await this.maybePostToX();
