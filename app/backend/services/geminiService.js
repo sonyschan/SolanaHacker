@@ -3,20 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const storageService = require('./storageService');
 
-// 10 distinct art styles for meme generation
-const MEME_STYLES = [
-  'Classic 2D Illustration',
-  'Retro Pixel Art',
-  'Cyberpunk Neon',
-  'Hyper-Realism',
-  'Abstract Glitch Art',
-  'Classic Oil Painting',
-  '3D Clay Toy',
-  'Ink Wash Zen',
-  'Street Graffiti',
-  'Modern Flat Design'
-];
-
 class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -31,43 +17,14 @@ class GeminiService {
     });
   }
 
-  async generateMemePrompt(newsContent, recentThemes = []) {
+  async generateMemeTitle(memeIdea) {
+    const context = typeof memeIdea === 'string'
+      ? memeIdea.substring(0, 150)
+      : `${memeIdea.caption || ''} — ${memeIdea.event_angle || ''}`.substring(0, 150);
     try {
-      let prompt = `Based on this crypto/tech news: "${newsContent}"
+      const prompt = `Generate a short, catchy meme title in 2-5 words only.
 
-Create a funny, engaging meme concept that would appeal to crypto and tech enthusiasts.
-Include:
-1. A brief description of the visual scene
-2. Any text that should appear on the meme
-3. The emotional tone (funny, ironic, relatable, etc.)
-
-Keep it appropriate and avoid controversial content.`;
-
-      if (recentThemes.length > 0) {
-        const themesList = recentThemes
-          .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
-          .join('\n');
-        prompt += `\n\nIMPORTANT — AVOID REPETITION:
-These meme themes were used in the past 7 days — create something DIFFERENT:
-${themesList}
-
-Your meme must have a FRESH angle, not rehash the topics above.`;
-      }
-
-      const result = await this.textModel.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
-      console.error('Error generating meme prompt:', error);
-      throw new Error(`Failed to generate meme prompt: ${error.message}`);
-    }
-  }
-
-  async generateMemeTitle(memePrompt) {
-    try {
-      const prompt = `Generate a short, catchy meme title in 2-5 words only. 
-
-Meme concept: "${memePrompt.substring(0, 150)}"
+Meme concept: "${context}"
 
 Requirements:
 - Maximum 5 words
@@ -91,23 +48,18 @@ Title:`;
       
       // Fallback if title is too long or empty
       if (!title || title.length > 50) {
-        const words = memePrompt.split(' ').slice(0, 3);
+        const fallback = typeof memeIdea === 'string' ? memeIdea : (memeIdea.caption || '');
+        const words = fallback.split(' ').slice(0, 3);
         title = words.join(' ').replace(/[^a-zA-Z0-9 ]/g, '');
       }
-      
+
       return title || 'AI Meme';
     } catch (error) {
       console.error('Error generating meme title:', error);
-      // Fallback title generation
-      const words = memePrompt.split(' ').slice(0, 3);
+      const fallback = typeof memeIdea === 'string' ? memeIdea : (memeIdea.caption || '');
+      const words = fallback.split(' ').slice(0, 3);
       return words.join(' ').replace(/[^a-zA-Z0-9 ]/g, '') || 'AI Meme';
     }
-  }
-
-  // Pick N unique random styles from MEME_STYLES
-  pickRandomStyles(count = 3) {
-    const shuffled = [...MEME_STYLES].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
   }
 
   // Weighted random helper for tag count distribution
@@ -130,14 +82,18 @@ Title:`;
     return 2;
   }
 
-  async generateMemeTags(memePrompt, newsSource) {
+  async generateMemeTags(memeIdea, newsSource) {
     try {
       const tagCount = this.weightedRandomTagCount();
       console.log(`🏷️ Generating ${tagCount} tags...`);
 
+      const memeContext = typeof memeIdea === 'string'
+        ? memeIdea.substring(0, 300)
+        : `Caption: "${memeIdea.caption || ''}" | Template: ${memeIdea.template_id || ''} | Emotion: ${memeIdea.emotion || ''} | Angle: ${memeIdea.event_angle || ''}`.substring(0, 300);
+
       const prompt = `Analyze this meme and extract exactly ${tagCount} descriptive tags.
 
-Meme concept: "${memePrompt.substring(0, 300)}"
+Meme concept: "${memeContext}"
 News context: "${newsSource}"
 
 Requirements:
@@ -169,11 +125,15 @@ Output as JSON array only:
     }
   }
 
-  async generateMemeDescription(memePrompt, newsSource) {
+  async generateMemeDescription(memeIdea, newsSource) {
     try {
+      const memeContext = typeof memeIdea === 'string'
+        ? memeIdea.substring(0, 200)
+        : `Caption: "${memeIdea.caption || ''}" | Twist: ${memeIdea.twist || ''}`.substring(0, 200);
+
       const prompt = `Write a brief, fun meme description in 1-2 sentences (max 120 characters).
 
-Meme concept: "${memePrompt.substring(0, 200)}"
+Meme concept: "${memeContext}"
 News topic: "${newsSource}"
 
 Requirements:
@@ -203,24 +163,9 @@ Description:`;
     }
   }
 
-  async generateMemeImage(prompt, style = 'Classic 2D Illustration') {
+  async generateMemeImage(imagePrompt) {
     try {
-      // Enhanced prompt with specific art style
-      const imagePrompt = `Create a high-quality meme image: ${prompt}
-
-**ART STYLE: ${style}**
-- Render this meme in the "${style}" art style
-- The style should be clearly recognizable and distinct
-
-Technical requirements:
-- Square aspect ratio (1:1)
-- Bold, readable text overlay if text is needed
-- High contrast colors for visual impact
-- NFT-quality artwork suitable for collection
-- 1024x1024 pixels resolution
-- Clean composition with balanced visual elements`;
-
-      console.log(`🎨 Generating meme in "${style}" style...`);
+      console.log(`🎨 Generating meme image...`);
       
       // Use actual Gemini API for image generation
       const result = await this.imageModel.generateContent(imagePrompt);
@@ -316,91 +261,10 @@ Technical requirements:
       return {
         success: false,
         error: error.message,
-        imagePrompt: prompt,
+        imagePrompt: imagePrompt,
         fallbackUrl: 'https://via.placeholder.com/512x512/ef4444/ffffff?text=Generation+Failed',
         note: 'Image generation failed - using error placeholder'
       };
-    }
-  }
-
-  async generateDailyMemes(newsData, count = 3, imageGenerators = null, recentThemes = [], tokenSymbols = []) {
-    try {
-      const memes = [];
-
-      // Pick unique random styles for today's memes
-      const todaysStyles = this.pickRandomStyles(count);
-      console.log(`🎨 Today's art styles: ${todaysStyles.join(', ')}`);
-
-      for (let i = 0; i < count; i++) {
-        const newsItem = newsData[i] || newsData[0];
-        const style = todaysStyles[i];
-
-        const memePrompt = await this.generateMemePrompt(newsItem.title || newsItem, recentThemes);
-
-        // Use external image generator if provided, otherwise default to Gemini
-        let imageData;
-        let aiModelName = 'gemini-3-pro-image-preview';
-        if (imageGenerators && imageGenerators[i]) {
-          imageData = await imageGenerators[i].service.generateMemeImage(memePrompt, style);
-          aiModelName = imageGenerators[i].modelName;
-        } else {
-          imageData = await this.generateMemeImage(memePrompt, style);
-        }
-
-        // Generate title, description, and tags
-        const title = await this.generateMemeTitle(memePrompt);
-        const description = await this.generateMemeDescription(memePrompt, newsItem.title || 'Crypto News');
-        const tags = await this.generateMemeTags(memePrompt, newsItem.title || 'Crypto News');
-
-        const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
-
-        // Add "memecoin" tag if this meme is about a specific token
-        if (tokenSymbol && !tags.includes('memecoin')) {
-          tags.push('memecoin');
-        }
-
-        memes.push({
-          id: `meme_${Date.now()}_${i}`,
-          title: title,
-          description: description,
-          prompt: memePrompt,
-          imageUrl: imageData.imageUrl || imageData.fallbackUrl,
-          newsSource: newsItem.title || 'Crypto News',
-          tokenSymbol: tokenSymbol,
-          xHandle: newsItem.x_handle || null,
-          generatedAt: new Date().toISOString(),
-          type: 'daily',
-          status: 'active',
-          style: style,
-          tags: tags,
-          votes: {
-            selection: { yes: 0, no: 0 },
-            rarity: { common: 0, rare: 0, legendary: 0 }
-          },
-          metadata: {
-            originalNews: newsItem.title || newsItem,
-            aiModel: aiModelName,
-            artStyle: style,
-            imageGenerated: imageData.success,
-            fileSize: imageData.fileSize || 0,
-            storageLocation: imageData.storageLocation || 'unknown',
-            environment: imageData.environment || {},
-            tagsCount: tags.length,
-            tokenSymbol: tokenSymbol,
-            xHandle: newsItem.x_handle || null
-          },
-          rarity: 'unknown'
-        });
-
-        // Add delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      console.log(`✅ Generated ${memes.length} daily memes with styles, tags, and descriptions`);
-      return memes;
-    } catch (error) {
-      console.error('Error generating daily memes:', error);
-      throw new Error(`Failed to generate daily memes: ${error.message}`);
     }
   }
 

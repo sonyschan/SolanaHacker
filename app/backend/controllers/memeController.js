@@ -4,6 +4,7 @@ const geminiService = require('../services/geminiService');
 const grokImageService = require('../services/grokImageService');
 const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
+const memeIdeaService = require('../services/memeIdeaService');
 
 // Multi-model image generation pool
 const AI_IMAGE_MODELS = [
@@ -24,12 +25,12 @@ function fixImageUrl(meme) {
 }
 
 /**
- * Generate meme using Gemini API
+ * Generate meme using Gemini API (ad-hoc endpoint)
  */
 async function generateMeme(req, res) {
   try {
     const { prompt, theme, style = 'funny' } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({
         success: false,
@@ -37,20 +38,28 @@ async function generateMeme(req, res) {
       });
     }
 
-    console.log('🎨 Generating meme with Gemini API...');
-    
-    // Use the Gemini service
-    const memePrompt = await geminiService.generateMemePrompt(prompt);
-    const imageData = await geminiService.generateMemeImage(memePrompt);
-    
+    console.log('🎨 Generating ad-hoc meme with Gemini API...');
+
+    // Build a simple image prompt directly from user input
+    const imagePrompt = `Create a meme image based on this concept: ${prompt}
+
+Style: ${style}
+Technical requirements:
+- Square aspect ratio (1:1)
+- Bold, readable text overlay if text is needed
+- High contrast colors for visual impact
+- 1024x1024 pixels resolution`;
+
+    const imageData = await geminiService.generateMemeImage(imagePrompt);
+
     const memeId = uuidv4();
     const timestamp = new Date().toISOString();
-    
+
     const memeData = {
       id: memeId,
       title: `AI Meme ${memeId.slice(0, 8)}`,
-      prompt: memePrompt,
-      imageUrl: imageData.fallbackUrl, // Placeholder for now
+      prompt: prompt,
+      imageUrl: imageData.imageUrl || imageData.fallbackUrl,
       theme: theme || 'general',
       style,
       generatedAt: timestamp,
@@ -62,16 +71,18 @@ async function generateMeme(req, res) {
       },
       metadata: {
         originalPrompt: prompt,
-        aiModel: 'gemini-1.5-flash',
-        generatedPrompt: memePrompt
+        aiModel: 'gemini-3-pro-image-preview',
+        imageGenerated: imageData.success,
+        fileSize: imageData.fileSize || 0,
+        storageLocation: imageData.storageLocation || 'unknown'
       }
     };
 
     // Save to Firestore
     await dbUtils.setDocument(collections.MEMES, memeId, memeData);
-    
-    console.log(`✅ Meme generated and saved: ${memeId}`);
-    
+
+    console.log(`✅ Ad-hoc meme generated and saved: ${memeId}`);
+
     res.json({
       success: true,
       meme: memeData
@@ -111,6 +122,7 @@ async function getRecentMemeThemes() {
       title: m.title,
       tags: m.tags || [],
       newsSource: m.newsSource || '',
+      templateId: m.metadata?.templateId || null,
     }));
 
     console.log(`🔄 Loaded ${themes.length} recent meme themes for anti-repetition`);
@@ -122,13 +134,13 @@ async function getRecentMemeThemes() {
 }
 
 /**
- * Generate daily memes
+ * Generate daily memes — template-based, caption-first pipeline
  */
 async function generateDailyMemes(req, res) {
   try {
-    console.log('📅 Starting daily meme generation...');
+    console.log('📅 Starting daily meme generation (template pipeline)...');
 
-    // Check if memes already exist for today (prevent duplicates)
+    // 1. Duplicate check (unchanged)
     const today = new Date().toISOString().split("T")[0];
     const startOfDay = new Date(today + "T00:00:00.000Z");
     const endOfDay = new Date(today + "T23:59:59.999Z");
@@ -141,10 +153,13 @@ async function generateDailyMemes(req, res) {
       return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
     }
 
-    // Fetch recent meme themes for anti-repetition
+    // 2. Fetch recent themes + extract recentTemplateIds
     const recentThemes = await getRecentMemeThemes();
+    const recentTemplateIds = recentThemes
+      .map(t => t.templateId)
+      .filter(Boolean);
 
-    // Get crypto news (with anti-repetition context)
+    // 3. Get crypto news (with anti-repetition context)
     const newsData = await newsService.getCryptoNews(recentThemes);
     const categoryLabels = { A: 'Token/Market', B: 'Macro/World', C: 'People/Culture' };
     console.log(`📰 News topics: ${newsData.map(n => `[${n.category || '?'}] ${n.title}`).join(' | ')}`);
@@ -156,34 +171,152 @@ async function generateDailyMemes(req, res) {
       console.log(`✅ Category diversity: ${cats.map(c => categoryLabels[c] || c).join(', ')}`);
     }
 
-    // Extract token symbols from news headlines (parallel)
+    // 4. Extract token symbols (parallel, unchanged)
     const tokenSymbols = await Promise.all(
       newsData.slice(0, 3).map(n => newsService.extractTokenSymbol(n.title))
     );
-    const symbolLog = tokenSymbols.map((t, i) => t ? `$${t.symbol}` : '-').join(', ');
+    const symbolLog = tokenSymbols.map((t) => t ? `$${t.symbol}` : '-').join(', ');
     console.log(`🪙 Token symbols: ${symbolLog}`);
 
-    // Random model selection per meme
+    // 5. Random image model per meme (unchanged)
     const imageGenerators = Array.from({ length: 3 }, () =>
       AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)]
     );
     console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
 
-    // Generate 3 memes based on news (with anti-repetition context + token symbols)
-    const dailyMemes = await geminiService.generateDailyMemes(newsData, 3, imageGenerators, recentThemes, tokenSymbols);
-    
-    // Save each meme to Firestore
+    // 6. Style modes: 2× meme_native + 1× random stylized, shuffled
+    const stylizedOptions = ['stylized_illustration', 'stylized_pixel'];
+    const styleModes = [
+      'meme_native',
+      'meme_native',
+      stylizedOptions[Math.floor(Math.random() * stylizedOptions.length)]
+    ].sort(() => Math.random() - 0.5);
+    console.log(`🎨 Style modes: ${styleModes.join(', ')}`);
+
+    // 7. Generate each meme through the new pipeline
     const savedMemes = [];
-    for (const meme of dailyMemes) {
-      await dbUtils.setDocument(collections.MEMES, meme.id, {
-        ...meme,
+    for (let i = 0; i < 3; i++) {
+      const newsItem = newsData[i] || newsData[0];
+      const styleMode = styleModes[i];
+      const generator = imageGenerators[i];
+      const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
+
+      // 7a. Select template
+      const template = memeIdeaService.selectTemplate(newsItem, recentTemplateIds);
+      console.log(`🎭 Meme ${i+1}: template="${template.id}" (${template.name})`);
+
+      // 7b. Generate meme idea
+      let memeIdea;
+      try {
+        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes);
+      } catch (err) {
+        console.error(`⚠️ Meme ${i+1} idea generation failed:`, err.message);
+        memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
+      }
+
+      // 7c. Evaluate meme idea (quality gate)
+      let evaluation = { pass: true, total: 16, scores: {} };
+      try {
+        evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
+        console.log(`📊 Meme ${i+1} quality: ${evaluation.total}/20 ${evaluation.pass ? '✅' : '❌'}`);
+
+        // If fail, retry once with corrective hints
+        if (!evaluation.pass && evaluation.corrective_hints) {
+          console.log(`🔄 Meme ${i+1} retry with hints: ${evaluation.corrective_hints}`);
+          try {
+            memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, evaluation.corrective_hints);
+            evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
+            console.log(`📊 Meme ${i+1} retry quality: ${evaluation.total}/20 ${evaluation.pass ? '✅' : '⚠️ force-pass'}`);
+          } catch (retryErr) {
+            console.error(`⚠️ Meme ${i+1} retry failed:`, retryErr.message);
+          }
+          // Force-pass after 1 retry
+          evaluation.pass = true;
+        }
+      } catch (evalErr) {
+        console.error(`⚠️ Meme ${i+1} evaluation failed:`, evalErr.message);
+      }
+
+      // 7d. Build image prompt
+      const imagePrompt = memeIdeaService.buildImagePrompt(memeIdea, styleMode);
+
+      // 7e. Generate image
+      let imageData;
+      if (generator) {
+        imageData = await generator.service.generateMemeImage(imagePrompt);
+      } else {
+        imageData = await geminiService.generateMemeImage(imagePrompt);
+      }
+
+      // 7f. Generate title, description, tags
+      const newsSource = newsItem.title || 'Crypto News';
+      const title = await geminiService.generateMemeTitle(memeIdea);
+      const description = await geminiService.generateMemeDescription(memeIdea, newsSource);
+      const tags = await geminiService.generateMemeTags(memeIdea, newsSource);
+
+      // Add "memecoin" tag if specific token
+      if (tokenSymbol && !tags.includes('memecoin')) {
+        tags.push('memecoin');
+      }
+
+      // 7g. Build meme document
+      const memeDoc = {
+        id: `meme_${Date.now()}_${i}`,
+        title,
+        description,
+        prompt: memeIdea.caption || imagePrompt,
+        imageUrl: imageData.imageUrl || imageData.fallbackUrl,
+        newsSource,
+        tokenSymbol,
+        xHandle: newsItem.x_handle || null,
+        generatedAt: new Date().toISOString(),
         type: 'daily',
         status: 'active',
-      });
-      savedMemes.push(meme);
+        style: styleMode,
+        tags,
+        votes: {
+          selection: { yes: 0, no: 0 },
+          rarity: { common: 0, rare: 0, legendary: 0 }
+        },
+        metadata: {
+          originalNews: newsItem.title || newsItem,
+          aiModel: generator ? generator.modelName : 'gemini-3-pro-image-preview',
+          styleMode,
+          templateId: template.id,
+          templateName: template.name,
+          memeIdea: {
+            caption: memeIdea.caption,
+            caption_slots: memeIdea.caption_slots,
+            visual_description: memeIdea.visual_description,
+            emotion: memeIdea.emotion,
+            twist: memeIdea.twist,
+            event_angle: memeIdea.event_angle
+          },
+          qualityScore: evaluation.total || 0,
+          qualityPass: evaluation.pass !== false,
+          imageGenerated: imageData.success,
+          fileSize: imageData.fileSize || 0,
+          storageLocation: imageData.storageLocation || 'unknown',
+          environment: imageData.environment || {},
+          tagsCount: tags.length,
+          tokenSymbol,
+          xHandle: newsItem.x_handle || null
+        },
+        rarity: 'unknown'
+      };
+
+      // 7h. Save to Firestore
+      await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
+      savedMemes.push(memeDoc);
+
+      // 7i. Push template to recentTemplateIds for batch anti-repetition
+      recentTemplateIds.push(template.id);
+
+      // 7j. Rate limit delay
+      if (i < 2) await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    console.log(`✅ Generated ${savedMemes.length} daily memes`);
+    console.log(`✅ Generated ${savedMemes.length} daily memes (template pipeline)`);
 
     res.json({
       success: true,

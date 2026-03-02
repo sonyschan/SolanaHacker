@@ -1,0 +1,122 @@
+[
+  {
+    "id": "drake",
+    "name": "Drake Approve/Reject",
+    "caption_format": "two_panel",
+    "emotion_tags": ["smug", "dismissive", "preferring"],
+    "suitability_tags": ["comparison", "preference", "upgrade", "market", "token"],
+    "layout_guidance": "Two-panel meme. Top panel: character rejecting/disliking something (hand up, looking away). Bottom panel: character approving/pointing at the preferred thing (smiling, nodding). Each panel has text on the right side."
+  },
+  {
+    "id": "distracted_boyfriend",
+    "name": "Distracted Boyfriend",
+    "caption_format": "three_label",
+    "emotion_tags": ["tempted", "jealous", "unfaithful"],
+    "suitability_tags": ["switching", "temptation", "betrayal", "culture", "hype"],
+    "layout_guidance": "Three characters walking on a street. Boyfriend looking back at another person (the temptation) while his girlfriend (the current thing) looks disapproved. Each character is labeled with text."
+  },
+  {
+    "id": "expanding_brain",
+    "name": "Expanding Brain",
+    "caption_format": "multi_panel",
+    "emotion_tags": ["enlightened", "ironic", "ascending"],
+    "suitability_tags": ["escalation", "levels", "macro", "galaxy_brain", "regulation"],
+    "layout_guidance": "Four panels stacked vertically. Each panel shows a brain getting progressively larger/more glowing. Left side has increasingly 'enlightened' (actually absurd) text options. The last panel is the most ridiculous take presented as genius."
+  },
+  {
+    "id": "wojak",
+    "name": "Wojak / Feels Guy",
+    "caption_format": "single_caption",
+    "emotion_tags": ["despair", "cope", "pain", "numb"],
+    "suitability_tags": ["loss", "crash", "market", "bagholding", "pain"],
+    "layout_guidance": "Simple line-drawn character (Wojak) with exaggerated sad/coping expression. Bold text caption above or below. Can show mask (happy outside, crying inside) variant. Minimalist style, raw emotion."
+  },
+  {
+    "id": "this_is_fine",
+    "name": "This Is Fine",
+    "caption_format": "single_caption",
+    "emotion_tags": ["denial", "calm", "burning"],
+    "suitability_tags": ["crash", "disaster", "market", "chaos", "denial"],
+    "layout_guidance": "Cartoon dog sitting at a table drinking coffee in a room engulfed in flames. Speech bubble says 'This is fine.' Can modify the fire or what's burning to match the topic."
+  },
+  {
+    "id": "trade_offer",
+    "name": "Trade Offer",
+    "caption_format": "two_section",
+    "emotion_tags": ["scheming", "transactional", "confident"],
+    "suitability_tags": ["deal", "exchange", "proposal", "token", "airdrop"],
+    "layout_guidance": "Person in business attire presenting a 'trade offer' with two sections: 'I receive:' on one side and 'You receive:' on the other. The deal is comically unfair. Bold text labels for each side."
+  },
+  {
+    "id": "always_has_been",
+    "name": "Always Has Been",
+    "caption_format": "two_speaker",
+    "emotion_tags": ["revelation", "betrayal", "conspiratorial"],
+    "suitability_tags": ["realization", "truth", "macro", "conspiracy", "systemic"],
+    "layout_guidance": "Two astronauts in space looking at Earth. First astronaut has a revelation ('Wait, it's all X?'). Second astronaut behind him with a gun says 'Always has been.' Earth can show relevant imagery."
+  },
+  {
+    "id": "npc_chad",
+    "name": "NPC vs Chad",
+    "caption_format": "two_panel",
+    "emotion_tags": ["confident", "dismissive", "based"],
+    "suitability_tags": ["contrast", "culture", "mentality", "normie_vs_degen"],
+    "layout_guidance": "Split panel. Left: gray NPC (non-player character) face with generic/conformist opinion. Right: muscular Chad character with bold/contrarian take. Text above each character."
+  },
+  {
+    "id": "two_buttons",
+    "name": "Two Buttons / Sweating Guy",
+    "caption_format": "two_choice",
+    "emotion_tags": ["anxious", "torn", "sweating"],
+    "suitability_tags": ["dilemma", "choice", "market", "indecision", "fomo"],
+    "layout_guidance": "Sweating person staring at two large buttons, each labeled with a conflicting choice. The person is visibly distressed about which to press. Exaggerated sweat drops."
+  },
+  {
+    "id": "bell_curve",
+    "name": "Bell Curve / Midwit",
+    "caption_format": "three_tier",
+    "emotion_tags": ["ironic", "smug", "zen"],
+    "suitability_tags": ["wisdom", "macro", "contrarian", "simplicity"],
+    "layout_guidance": "Bell curve/normal distribution chart. Left tail (low IQ): simple, correct take. Middle peak (midwit): overthinking, wrong take. Right tail (genius): same simple take as left. Characters at each position."
+  },
+  {
+    "id": "spongebob_mocking",
+    "name": "Mocking SpongeBob",
+    "caption_format": "alternating_case",
+    "emotion_tags": ["mocking", "sarcastic", "dismissive"],
+    "suitability_tags": ["mockery", "bad_take", "culture", "cringe"],
+    "layout_guidance": "SpongeBob character in a contorted, chicken-like pose. Text above in aLtErNaTiNg CaSe mocking a statement. Simple image, all emphasis on the mocking text."
+  },
+  {
+    "id": "surprised_pikachu",
+    "name": "Surprised Pikachu",
+    "caption_format": "setup_punchline",
+    "emotion_tags": ["shocked", "obvious", "predictable"],
+    "suitability_tags": ["predictable_outcome", "market", "obvious", "crash"],
+    "layout_guidance": "Setup text describing an obviously bad decision, followed by the predictable bad outcome, with Pikachu's shocked face (mouth open, wide eyes). The joke is that the outcome was completely predictable."
+  },
+  {
+    "id": "astronaut_earth",
+    "name": "Astronaut Looking at Earth",
+    "caption_format": "single_caption",
+    "emotion_tags": ["contemplative", "existential", "cosmic"],
+    "suitability_tags": ["perspective", "big_picture", "macro", "philosophical"],
+    "layout_guidance": "Single astronaut floating in space, looking down at Earth. Reflective visor shows something relevant. Caption text overlay. Contemplative mood, sense of scale."
+  },
+  {
+    "id": "gigachad",
+    "name": "GigaChad",
+    "caption_format": "single_caption",
+    "emotion_tags": ["alpha", "unbothered", "dominant"],
+    "suitability_tags": ["confidence", "culture", "flex", "winning", "chad_move"],
+    "layout_guidance": "Hyper-masculine GigaChad character (chiseled jaw, perfect physique) doing something with supreme confidence. Caption describes the based/chad behavior. Black and white or high contrast photo style."
+  },
+  {
+    "id": "clown_makeup",
+    "name": "Clown Putting On Makeup",
+    "caption_format": "multi_panel",
+    "emotion_tags": ["self_deprecating", "foolish", "escalating"],
+    "suitability_tags": ["bad_decisions", "escalation", "self_own", "market", "aping"],
+    "layout_guidance": "Four panels showing a person progressively applying clown makeup. Each panel has text describing an increasingly foolish decision. Final panel is full clown face with the worst decision. Sequence of self-owns."
+  }
+]

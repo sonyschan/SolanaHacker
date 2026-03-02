@@ -9,11 +9,9 @@ class GrokImageService {
     this.model = 'grok-imagine-image-pro';
   }
 
-  async generateMemeImage(prompt, style = 'Classic 2D Illustration') {
+  async generateMemeImage(imagePrompt) {
     try {
-      const imagePrompt = `Create a high-quality meme image: ${prompt}\n\nART STYLE: ${style}\nSquare 1:1 aspect ratio, bold readable text, high contrast, NFT-quality.`;
-
-      console.log(`🎨 [Grok] Generating meme in "${style}" style...`);
+      console.log(`🎨 [Grok] Generating meme image...`);
 
       const response = await fetch(`${this.baseUrl}/images/generations`, {
         method: 'POST',
@@ -99,7 +97,7 @@ class GrokImageService {
       return {
         success: false,
         error: error.message,
-        imagePrompt: prompt,
+        imagePrompt: imagePrompt,
         fallbackUrl: 'https://via.placeholder.com/512x512/ef4444/ffffff?text=Grok+Generation+Failed',
         note: 'Grok image generation failed - using error placeholder'
       };
