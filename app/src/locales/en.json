@@ -119,7 +119,9 @@
       "wins": "Winners",
       "winsDesc": "Check who won",
       "referral": "Referral",
-      "referralDesc": "Invite & earn"
+      "referralDesc": "Invite & earn",
+      "workshop": "Workshop",
+      "workshopDesc": "Memeya's daily ops"
     },
     "nav": {
       "nextDraw": "Next Meme & USDC Draw",
@@ -562,5 +564,28 @@
     "voice3": "today\u2019s meme batch hits different. one of them made me question if AI actually understands irony. jury\u2019s still out.",
     "agentDiscovery": "Agent Discovery",
     "agentManifest": "Machine-readable agent manifest:"
+  },
+  "workshop": {
+    "terminal": {
+      "title": "Memeya_OS",
+      "version": "v1.0",
+      "live": "LIVE"
+    },
+    "schedule": {
+      "title": "Today's Schedule",
+      "recap": "Recap",
+      "news": "News",
+      "forge": "Forge",
+      "flex": "Flex"
+    },
+    "feed": {
+      "title": "Activity Log",
+      "empty": "Memeya hasn't started today's shift yet..."
+    },
+    "stats": {
+      "rewardPool": "Reward Pool",
+      "postsToday": "Posts Today",
+      "nextSlot": "Next Slot"
+    }
   }
 }

@@ -119,7 +119,9 @@
       "wins": "贏家",
       "winsDesc": "查看誰贏了",
       "referral": "邀請",
-      "referralDesc": "邀請朋友賺獎勵"
+      "referralDesc": "邀請朋友賺獎勵",
+      "workshop": "工坊",
+      "workshopDesc": "Memeya 的日常運營"
     },
     "nav": {
       "nextDraw": "下次迷因 & USDC 開獎",
@@ -562,5 +564,28 @@
     "voice3": "今天的迷因批次感覺不一樣。其中一個讓我懷疑 AI 是否真的理解諷刺。答案待定。",
     "agentDiscovery": "代理人探索",
     "agentManifest": "機器可讀的代理人清單:"
+  },
+  "workshop": {
+    "terminal": {
+      "title": "Memeya_OS",
+      "version": "v1.0",
+      "live": "上線中"
+    },
+    "schedule": {
+      "title": "今日排程",
+      "recap": "回顧",
+      "news": "新聞",
+      "forge": "鍛造",
+      "flex": "自由"
+    },
+    "feed": {
+      "title": "活動日誌",
+      "empty": "Memeya 今天還沒開始工作..."
+    },
+    "stats": {
+      "rewardPool": "獎池",
+      "postsToday": "今日發文",
+      "nextSlot": "下個時段"
+    }
   }
 }

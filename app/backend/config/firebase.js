@@ -81,7 +81,8 @@ const collections = {
   SCHEDULER_STATUS: 'scheduler_status',
   REWARD_DISTRIBUTIONS: 'reward_distributions',
   REFERRALS: 'referrals',
-  REFERRAL_IDS: 'referral_ids'
+  REFERRAL_IDS: 'referral_ids',
+  MEMEYA_WORKSHOP: 'memeya_workshop'
 };
 
 /**

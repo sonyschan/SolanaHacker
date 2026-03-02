@@ -18,6 +18,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { syncToBackend } from './skills/x_twitter/x-context.js';
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const GROK_RESPONSES_URL = 'https://api.x.ai/v1/responses'; // For web search
@@ -2701,6 +2702,9 @@ ${recentMemory.slice(-1500)}
 
       const statePath = path.join(this.baseDir, 'agent', '.timer-state.json');
       fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+
+      // Sync workshop data to Cloud Run (fire-and-forget, deduped by hash)
+      syncToBackend(this.baseDir).catch(() => {});
     } catch (err) {
       // Non-critical — don't let timer state writing break the heartbeat
       console.warn('[ChatMode] Failed to write timer state:', err.message);

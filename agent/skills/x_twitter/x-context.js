@@ -14,6 +14,8 @@ const SITE_URL = 'https://aimemeforge.io';
 const OWN_USERNAME = 'AiMemeForgeIO';
 export const TRUSTED_OWNER_USERNAMES = ['h2crypto_eth'];
 
+let _lastSyncHash = '';
+
 
 // ─── Data Gathering ─────────────────────────────────────────
 
@@ -823,6 +825,64 @@ function buildDiaryPrompt(topic, context) {
   }
 }
 
+// ─── Workshop Sync ──────────────────────────────────────────
+
+/**
+ * Sync today's journal + schedule to Cloud Run backend for the Workshop tab.
+ * Fire-and-forget — never blocks the posting flow.
+ */
+export async function syncToBackend(baseDir) {
+  try {
+    const dateStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+    const diaryDir = path.join(baseDir, 'memory/journal/memeya');
+    const diaryPath = path.join(diaryDir, `${dateStr}.md`);
+    const schedPath = path.join(baseDir, 'agent', '.diary-schedule.json');
+
+    // Parse journal entries
+    const entries = [];
+    if (fs.existsSync(diaryPath)) {
+      const content = fs.readFileSync(diaryPath, 'utf-8');
+      const blocks = content.split(/^## /m).filter(Boolean);
+      for (const block of blocks) {
+        const timeMatch = block.match(/^(\d{2}:\d{2}:\d{2})/);
+        const topicMatch = block.match(/- Topic: (.+)/);
+        const postedMatch = block.match(/- Posted: (.+)/);
+        const urlMatch = block.match(/- URL: (.+)/);
+        entries.push({
+          time: timeMatch ? timeMatch[1] : '',
+          topic: topicMatch ? topicMatch[1].trim() : block.includes('Comment Review') ? 'comment_review' : 'other',
+          text: postedMatch ? postedMatch[1].trim() : block.slice(0, 200).trim(),
+          url: urlMatch ? urlMatch[1].trim() : null,
+        });
+      }
+    }
+
+    // Read schedule
+    let schedule = {};
+    if (fs.existsSync(schedPath)) {
+      try { schedule = JSON.parse(fs.readFileSync(schedPath, 'utf-8')); } catch { /* ignore */ }
+    }
+
+    // Simple dedup: hash entries count + schedule status to avoid redundant syncs
+    const hash = `${entries.length}:${JSON.stringify(schedule.slots || {})}`;
+    if (hash === _lastSyncHash) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    await fetch(`${BACKEND_URL}/api/memeya/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateStr, entries, schedule }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    _lastSyncHash = hash;
+    console.log(`[sync] Workshop data synced (${entries.length} entries)`);
+  } catch (err) {
+    console.error('[sync] Workshop sync failed:', err.message);
+  }
+}
+
 // ─── Post Logging ───────────────────────────────────────────
 
 /**
@@ -842,6 +902,9 @@ export function logPost(baseDir, topic, text, url, extra = {}) {
     if (extra.ownerMentionId) entry += `- Owner mention processed: ${extra.ownerMentionId}\n`;
     entry += '\n';
     fs.appendFileSync(diaryPath, entry);
+
+    // Fire-and-forget sync to Workshop backend
+    syncToBackend(baseDir).catch(() => {});
   } catch (err) {
     console.error('[x-context] logPost error:', err.message);
   }

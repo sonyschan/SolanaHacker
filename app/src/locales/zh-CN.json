@@ -119,7 +119,9 @@
       "wins": "赢家",
       "winsDesc": "查看谁赢了",
       "referral": "推荐",
-      "referralDesc": "邀请赚奖励"
+      "referralDesc": "邀请赚奖励",
+      "workshop": "工坊",
+      "workshopDesc": "Memeya 的日常运营"
     },
     "nav": {
       "nextDraw": "下次梗图 & USDC 开奖",
@@ -562,5 +564,28 @@
     "voice3": "今天的梗图批次感觉不一样。其中一个让我怀疑 AI 是否真的理解讽刺。答案待定。",
     "agentDiscovery": "代理人发现",
     "agentManifest": "机器可读的代理人清单:"
+  },
+  "workshop": {
+    "terminal": {
+      "title": "Memeya_OS",
+      "version": "v1.0",
+      "live": "在线"
+    },
+    "schedule": {
+      "title": "今日排程",
+      "recap": "回顾",
+      "news": "新闻",
+      "forge": "锻造",
+      "flex": "自由"
+    },
+    "feed": {
+      "title": "活动日志",
+      "empty": "Memeya 今天还没开始工作..."
+    },
+    "stats": {
+      "rewardPool": "奖池",
+      "postsToday": "今日发文",
+      "nextSlot": "下个时段"
+    }
   }
 }
