@@ -140,16 +140,35 @@ async function generateDailyMemes(req, res) {
   try {
     console.log('📅 Starting daily meme generation (template pipeline)...');
 
-    // 1. Duplicate check (unchanged)
+    // 1. Daily run lock (Firestore transaction to prevent race conditions)
     const today = new Date().toISOString().split("T")[0];
+    const db = getFirestore();
+    const runRef = db.collection('meme_runs').doc(today);
+
+    const canProceed = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(runRef);
+      if (doc.exists && doc.data().status === 'completed') {
+        return false;
+      }
+      tx.set(runRef, { status: 'in_progress', startedAt: new Date().toISOString(), date: today });
+      return true;
+    });
+
+    if (!canProceed) {
+      console.log("ℹ️ Daily meme run already completed for today (lock)");
+      return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true });
+    }
+
+    // Secondary check: count existing memes (belt + suspenders)
     const startOfDay = new Date(today + "T00:00:00.000Z");
     const endOfDay = new Date(today + "T23:59:59.999Z");
-    const existingSnapshot = await getFirestore().collection(collections.MEMES).where("type", "==", "daily")
+    const existingSnapshot = await db.collection(collections.MEMES).where("type", "==", "daily")
       .where("generatedAt", ">=", startOfDay.toISOString())
       .where("generatedAt", "<=", endOfDay.toISOString())
       .get();
     if (!existingSnapshot.empty && existingSnapshot.size >= 3) {
       console.log("ℹ️ Daily memes already exist for today ("+existingSnapshot.size+" found), skipping generation");
+      await runRef.update({ status: 'completed', completedAt: new Date().toISOString(), note: 'memes already existed' });
       return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
     }
 
@@ -184,20 +203,15 @@ async function generateDailyMemes(req, res) {
     );
     console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
 
-    // 6. Style modes: 2× meme_native + 1× random stylized, shuffled
-    const stylizedOptions = ['stylized_illustration', 'stylized_pixel'];
-    const styleModes = [
-      'meme_native',
-      'meme_native',
-      stylizedOptions[Math.floor(Math.random() * stylizedOptions.length)]
-    ].sort(() => Math.random() - 0.5);
-    console.log(`🎨 Style modes: ${styleModes.join(', ')}`);
+    // 6. Style mode: default meme_native for all daily memes
+    // Use explicit styleMode parameter for stylized variants (e.g. ad-hoc endpoint)
+    const styleMode = 'meme_native';
+    console.log(`🎨 Style mode: ${styleMode}`);
 
     // 7. Generate each meme through the new pipeline
     const savedMemes = [];
     for (let i = 0; i < 3; i++) {
       const newsItem = newsData[i] || newsData[0];
-      const styleMode = styleModes[i];
       const generator = imageGenerators[i];
       const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
 
@@ -214,19 +228,19 @@ async function generateDailyMemes(req, res) {
         memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
       }
 
-      // 7c. Evaluate meme idea (quality gate)
-      let evaluation = { pass: true, total: 16, scores: {} };
+      // 7c. Evaluate meme idea (quality gate, 0-100 scale)
+      let evaluation = { pass: true, score: 80, scores: {} };
       try {
         evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
-        console.log(`📊 Meme ${i+1} quality: ${evaluation.total}/20 ${evaluation.pass ? '✅' : '❌'}`);
+        console.log(`📊 Meme ${i+1} quality: ${evaluation.score}/100 ${evaluation.pass ? '✅' : '❌'}`);
 
-        // If fail, retry once with corrective hints
-        if (!evaluation.pass && evaluation.corrective_hints) {
-          console.log(`🔄 Meme ${i+1} retry with hints: ${evaluation.corrective_hints}`);
+        // If fail, retry once — keep template, rewrite caption + twist only
+        if (!evaluation.pass && evaluation.fix_suggestions?.length > 0) {
+          console.log(`🔄 Meme ${i+1} retry: ${evaluation.fix_suggestions.join('; ')}`);
           try {
-            memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, evaluation.corrective_hints);
+            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template);
             evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
-            console.log(`📊 Meme ${i+1} retry quality: ${evaluation.total}/20 ${evaluation.pass ? '✅' : '⚠️ force-pass'}`);
+            console.log(`📊 Meme ${i+1} retry quality: ${evaluation.score}/100 ${evaluation.pass ? '✅' : '⚠️ force-pass'}`);
           } catch (retryErr) {
             console.error(`⚠️ Meme ${i+1} retry failed:`, retryErr.message);
           }
@@ -292,7 +306,7 @@ async function generateDailyMemes(req, res) {
             twist: memeIdea.twist,
             event_angle: memeIdea.event_angle
           },
-          qualityScore: evaluation.total || 0,
+          qualityScore: evaluation.score || 0,
           qualityPass: evaluation.pass !== false,
           imageGenerated: imageData.success,
           fileSize: imageData.fileSize || 0,
@@ -318,6 +332,14 @@ async function generateDailyMemes(req, res) {
 
     console.log(`✅ Generated ${savedMemes.length} daily memes (template pipeline)`);
 
+    // Mark daily run as completed
+    await runRef.update({
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      memeCount: savedMemes.length,
+      memeIds: savedMemes.map(m => m.id)
+    });
+
     res.json({
       success: true,
       message: `Generated ${savedMemes.length} daily memes`,
@@ -326,6 +348,11 @@ async function generateDailyMemes(req, res) {
 
   } catch (error) {
     console.error('❌ Error generating daily memes:', error);
+    // Reset run lock on failure so retry is possible
+    const failDate = new Date().toISOString().split("T")[0];
+    await getFirestore().collection('meme_runs').doc(failDate)
+      .update({ status: 'failed', error: error.message, failedAt: new Date().toISOString() })
+      .catch(() => {});
     res.status(500).json({
       success: false,
       error: 'Failed to generate daily memes',

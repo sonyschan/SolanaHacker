@@ -5,7 +5,10 @@
     "caption_format": "two_panel",
     "emotion_tags": ["smug", "dismissive", "preferring"],
     "suitability_tags": ["comparison", "preference", "upgrade", "market", "token"],
-    "layout_guidance": "Two-panel meme. Top panel: character rejecting/disliking something (hand up, looking away). Bottom panel: character approving/pointing at the preferred thing (smiling, nodding). Each panel has text on the right side."
+    "layout_guidance": "Two-panel meme. Top panel: character rejecting/disliking something (hand up, looking away). Bottom panel: character approving/pointing at the preferred thing (smiling, nodding). Each panel has text on the right side.",
+    "slot_limits": { "reject": 35, "approve": 35 },
+    "max_lines": 2,
+    "layout_instructions": "PANEL 1 (TOP HALF): Character looking away, hand up in disapproval. Text on RIGHT side: '{reject}'. PANEL 2 (BOTTOM HALF): Same character smiling and pointing approvingly. Text on RIGHT side: '{approve}'. TEXT STYLE: Big bold white meme text with black outline. Clear horizontal divider between panels."
   },
   {
     "id": "distracted_boyfriend",
@@ -13,7 +16,10 @@
     "caption_format": "three_label",
     "emotion_tags": ["tempted", "jealous", "unfaithful"],
     "suitability_tags": ["switching", "temptation", "betrayal", "culture", "hype"],
-    "layout_guidance": "Three characters walking on a street. Boyfriend looking back at another person (the temptation) while his girlfriend (the current thing) looks disapproved. Each character is labeled with text."
+    "layout_guidance": "Three characters walking on a street. Boyfriend looking back at another person (the temptation) while his girlfriend (the current thing) looks disapproved. Each character is labeled with text.",
+    "slot_limits": { "boyfriend": 20, "other_person": 20, "girlfriend": 20 },
+    "max_lines": 3,
+    "layout_instructions": "SINGLE SCENE: Three characters on a street. BOYFRIEND (center, looking back): Label BELOW '{boyfriend}'. OTHER PERSON (left, being looked at): Label BELOW '{other_person}'. GIRLFRIEND (right, disapproving): Label BELOW '{girlfriend}'. TEXT STYLE: Bold white labels with black outline below each character."
   },
   {
     "id": "expanding_brain",
@@ -21,7 +27,10 @@
     "caption_format": "multi_panel",
     "emotion_tags": ["enlightened", "ironic", "ascending"],
     "suitability_tags": ["escalation", "levels", "macro", "galaxy_brain", "regulation"],
-    "layout_guidance": "Four panels stacked vertically. Each panel shows a brain getting progressively larger/more glowing. Left side has increasingly 'enlightened' (actually absurd) text options. The last panel is the most ridiculous take presented as genius."
+    "layout_guidance": "Four panels stacked vertically. Each panel shows a brain getting progressively larger/more glowing. Left side has increasingly 'enlightened' (actually absurd) text options. The last panel is the most ridiculous take presented as genius.",
+    "slot_limits": { "panel_1": 30, "panel_2": 30, "panel_3": 30, "panel_4": 30 },
+    "max_lines": 4,
+    "layout_instructions": "4 ROWS stacked vertically. ROW 1: Small normal brain on RIGHT, text on LEFT '{panel_1}'. ROW 2: Glowing brain on RIGHT, text on LEFT '{panel_2}'. ROW 3: Bright illuminated brain on RIGHT, text on LEFT '{panel_3}'. ROW 4: Cosmic exploding brain on RIGHT, text on LEFT '{panel_4}'. TEXT STYLE: Bold readable text on left, brain images on right. Each row clearly separated."
   },
   {
     "id": "wojak",
@@ -29,7 +38,10 @@
     "caption_format": "single_caption",
     "emotion_tags": ["despair", "cope", "pain", "numb"],
     "suitability_tags": ["loss", "crash", "market", "bagholding", "pain"],
-    "layout_guidance": "Simple line-drawn character (Wojak) with exaggerated sad/coping expression. Bold text caption above or below. Can show mask (happy outside, crying inside) variant. Minimalist style, raw emotion."
+    "layout_guidance": "Simple line-drawn character (Wojak) with exaggerated sad/coping expression. Bold text caption above or below. Can show mask (happy outside, crying inside) variant. Minimalist style, raw emotion.",
+    "slot_limits": { "caption": 60 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: Wojak character (simple line-drawn sad face) centered. TOP TEXT: '{caption}' in big bold white Impact font with black outline. Minimalist background. The character's expression should match the caption mood."
   },
   {
     "id": "this_is_fine",
@@ -37,7 +49,10 @@
     "caption_format": "single_caption",
     "emotion_tags": ["denial", "calm", "burning"],
     "suitability_tags": ["crash", "disaster", "market", "chaos", "denial"],
-    "layout_guidance": "Cartoon dog sitting at a table drinking coffee in a room engulfed in flames. Speech bubble says 'This is fine.' Can modify the fire or what's burning to match the topic."
+    "layout_guidance": "Cartoon dog sitting at a table drinking coffee in a room engulfed in flames. Speech bubble says 'This is fine.' Can modify the fire or what's burning to match the topic.",
+    "slot_limits": { "caption": 50 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: Cartoon dog sitting calmly at table with coffee, room on fire. SPEECH BUBBLE or TOP TEXT: '{caption}'. TEXT STYLE: Bold text in speech bubble or big white Impact font with black outline overlaid on image."
   },
   {
     "id": "trade_offer",
@@ -45,7 +60,10 @@
     "caption_format": "two_section",
     "emotion_tags": ["scheming", "transactional", "confident"],
     "suitability_tags": ["deal", "exchange", "proposal", "token", "airdrop"],
-    "layout_guidance": "Person in business attire presenting a 'trade offer' with two sections: 'I receive:' on one side and 'You receive:' on the other. The deal is comically unfair. Bold text labels for each side."
+    "layout_guidance": "Person in business attire presenting a 'trade offer' with two sections: 'I receive:' on one side and 'You receive:' on the other. The deal is comically unfair. Bold text labels for each side.",
+    "slot_limits": { "i_receive": 35, "you_receive": 35 },
+    "max_lines": 2,
+    "layout_instructions": "HEADER: 'Trade Offer' at top. Person in center with confident expression. LEFT SECTION: 'I receive:' header, then '{i_receive}'. RIGHT SECTION: 'You receive:' header, then '{you_receive}'. TEXT STYLE: Big bold white text with black outline for each section. The deal should visually look lopsided/unfair."
   },
   {
     "id": "always_has_been",
@@ -53,7 +71,10 @@
     "caption_format": "two_speaker",
     "emotion_tags": ["revelation", "betrayal", "conspiratorial"],
     "suitability_tags": ["realization", "truth", "macro", "conspiracy", "systemic"],
-    "layout_guidance": "Two astronauts in space looking at Earth. First astronaut has a revelation ('Wait, it's all X?'). Second astronaut behind him with a gun says 'Always has been.' Earth can show relevant imagery."
+    "layout_guidance": "Two astronauts in space looking at Earth. First astronaut has a revelation ('Wait, it's all X?'). Second astronaut behind him with a gun says 'Always has been.' Earth can show relevant imagery.",
+    "slot_limits": { "speaker_1": 40, "speaker_2": 30 },
+    "max_lines": 2,
+    "layout_instructions": "TWO ASTRONAUTS in space, Earth below. ASTRONAUT 1 (foreground, looking at Earth): Speech bubble '{speaker_1}'. ASTRONAUT 2 (behind, aiming gun): Speech bubble '{speaker_2}'. TEXT STYLE: Bold white text in speech bubbles with black outline. Earth visible below."
   },
   {
     "id": "npc_chad",
@@ -61,7 +82,10 @@
     "caption_format": "two_panel",
     "emotion_tags": ["confident", "dismissive", "based"],
     "suitability_tags": ["contrast", "culture", "mentality", "normie_vs_degen"],
-    "layout_guidance": "Split panel. Left: gray NPC (non-player character) face with generic/conformist opinion. Right: muscular Chad character with bold/contrarian take. Text above each character."
+    "layout_guidance": "Split panel. Left: gray NPC (non-player character) face with generic/conformist opinion. Right: muscular Chad character with bold/contrarian take. Text above each character.",
+    "slot_limits": { "reject": 35, "approve": 35 },
+    "max_lines": 2,
+    "layout_instructions": "SPLIT PANEL (left/right). LEFT HALF: Gray NPC face (blank, expressionless). TEXT ABOVE: '{reject}'. RIGHT HALF: Muscular Chad character (confident jaw). TEXT ABOVE: '{approve}'. TEXT STYLE: Big bold white text with black outline above each character. Clear vertical divider."
   },
   {
     "id": "two_buttons",
@@ -69,7 +93,10 @@
     "caption_format": "two_choice",
     "emotion_tags": ["anxious", "torn", "sweating"],
     "suitability_tags": ["dilemma", "choice", "market", "indecision", "fomo"],
-    "layout_guidance": "Sweating person staring at two large buttons, each labeled with a conflicting choice. The person is visibly distressed about which to press. Exaggerated sweat drops."
+    "layout_guidance": "Sweating person staring at two large buttons, each labeled with a conflicting choice. The person is visibly distressed about which to press. Exaggerated sweat drops.",
+    "slot_limits": { "button_1": 25, "button_2": 25 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: Sweating person with hand hovering over two large buttons. BUTTON 1 (left): Label '{button_1}'. BUTTON 2 (right): Label '{button_2}'. TEXT STYLE: Bold text directly ON each button. Character shows extreme anxiety with visible sweat drops."
   },
   {
     "id": "bell_curve",
@@ -77,7 +104,10 @@
     "caption_format": "three_tier",
     "emotion_tags": ["ironic", "smug", "zen"],
     "suitability_tags": ["wisdom", "macro", "contrarian", "simplicity"],
-    "layout_guidance": "Bell curve/normal distribution chart. Left tail (low IQ): simple, correct take. Middle peak (midwit): overthinking, wrong take. Right tail (genius): same simple take as left. Characters at each position."
+    "layout_guidance": "Bell curve/normal distribution chart. Left tail (low IQ): simple, correct take. Middle peak (midwit): overthinking, wrong take. Right tail (genius): same simple take as left. Characters at each position.",
+    "slot_limits": { "low_iq": 30, "midwit": 35, "genius": 30 },
+    "max_lines": 3,
+    "layout_instructions": "Bell curve spanning full width. LEFT TAIL: Simple happy character, text below '{low_iq}'. CENTER PEAK: Stressed character with glasses, text below '{midwit}'. RIGHT TAIL: Zen/enlightened character, text below '{genius}'. TEXT STYLE: Bold text below each character position. Left and right characters look calm; middle looks stressed."
   },
   {
     "id": "spongebob_mocking",
@@ -85,7 +115,10 @@
     "caption_format": "alternating_case",
     "emotion_tags": ["mocking", "sarcastic", "dismissive"],
     "suitability_tags": ["mockery", "bad_take", "culture", "cringe"],
-    "layout_guidance": "SpongeBob character in a contorted, chicken-like pose. Text above in aLtErNaTiNg CaSe mocking a statement. Simple image, all emphasis on the mocking text."
+    "layout_guidance": "SpongeBob character in a contorted, chicken-like pose. Text above in aLtErNaTiNg CaSe mocking a statement. Simple image, all emphasis on the mocking text.",
+    "slot_limits": { "mocking_text": 60 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: SpongeBob in mocking chicken pose (contorted body). TOP TEXT in aLtErNaTiNg CaSe: '{mocking_text}'. TEXT STYLE: Big bold white Impact font with black outline. The text is the main focus, SpongeBob image below."
   },
   {
     "id": "surprised_pikachu",
@@ -93,7 +126,10 @@
     "caption_format": "setup_punchline",
     "emotion_tags": ["shocked", "obvious", "predictable"],
     "suitability_tags": ["predictable_outcome", "market", "obvious", "crash"],
-    "layout_guidance": "Setup text describing an obviously bad decision, followed by the predictable bad outcome, with Pikachu's shocked face (mouth open, wide eyes). The joke is that the outcome was completely predictable."
+    "layout_guidance": "Setup text describing an obviously bad decision, followed by the predictable bad outcome, with Pikachu's shocked face (mouth open, wide eyes). The joke is that the outcome was completely predictable.",
+    "slot_limits": { "setup": 45, "punchline": 35 },
+    "max_lines": 2,
+    "layout_instructions": "TOP TEXT: Setup statement '{setup}'. BOTTOM: Pikachu with shocked face (wide open mouth, round eyes). BOTTOM TEXT (optional): '{punchline}'. TEXT STYLE: Big bold white Impact font with black outline, top and bottom. Pikachu's shocked reaction is the visual punchline."
   },
   {
     "id": "astronaut_earth",
@@ -101,7 +137,10 @@
     "caption_format": "single_caption",
     "emotion_tags": ["contemplative", "existential", "cosmic"],
     "suitability_tags": ["perspective", "big_picture", "macro", "philosophical"],
-    "layout_guidance": "Single astronaut floating in space, looking down at Earth. Reflective visor shows something relevant. Caption text overlay. Contemplative mood, sense of scale."
+    "layout_guidance": "Single astronaut floating in space, looking down at Earth. Reflective visor shows something relevant. Caption text overlay. Contemplative mood, sense of scale.",
+    "slot_limits": { "caption": 60 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: Astronaut floating in space, Earth visible below. TOP or BOTTOM TEXT: '{caption}'. TEXT STYLE: Big bold white Impact font with black outline. Contemplative mood, visor can reflect relevant imagery."
   },
   {
     "id": "gigachad",
@@ -109,7 +148,10 @@
     "caption_format": "single_caption",
     "emotion_tags": ["alpha", "unbothered", "dominant"],
     "suitability_tags": ["confidence", "culture", "flex", "winning", "chad_move"],
-    "layout_guidance": "Hyper-masculine GigaChad character (chiseled jaw, perfect physique) doing something with supreme confidence. Caption describes the based/chad behavior. Black and white or high contrast photo style."
+    "layout_guidance": "Hyper-masculine GigaChad character (chiseled jaw, perfect physique) doing something with supreme confidence. Caption describes the based/chad behavior. Black and white or high contrast photo style.",
+    "slot_limits": { "caption": 60 },
+    "max_lines": 2,
+    "layout_instructions": "SINGLE PANEL: GigaChad character (chiseled jaw, muscular) with supreme confidence. TOP or BOTTOM TEXT: '{caption}'. TEXT STYLE: Big bold white Impact font with black outline. High contrast, black and white or dramatic lighting."
   },
   {
     "id": "clown_makeup",
@@ -117,6 +159,9 @@
     "caption_format": "multi_panel",
     "emotion_tags": ["self_deprecating", "foolish", "escalating"],
     "suitability_tags": ["bad_decisions", "escalation", "self_own", "market", "aping"],
-    "layout_guidance": "Four panels showing a person progressively applying clown makeup. Each panel has text describing an increasingly foolish decision. Final panel is full clown face with the worst decision. Sequence of self-owns."
+    "layout_guidance": "Four panels showing a person progressively applying clown makeup. Each panel has text describing an increasingly foolish decision. Final panel is full clown face with the worst decision. Sequence of self-owns.",
+    "slot_limits": { "panel_1": 30, "panel_2": 30, "panel_3": 30, "panel_4": 30 },
+    "max_lines": 4,
+    "layout_instructions": "4 PANELS in 2x2 grid. PANEL 1 (top-left): Person starting makeup. TEXT: '{panel_1}'. PANEL 2 (top-right): More makeup applied. TEXT: '{panel_2}'. PANEL 3 (bottom-left): Nearly full clown. TEXT: '{panel_3}'. PANEL 4 (bottom-right): Full clown face. TEXT: '{panel_4}'. TEXT STYLE: Bold white text with black outline on each panel. Each panel shows escalating foolishness."
   }
 ]

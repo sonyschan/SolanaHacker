@@ -21,7 +21,7 @@ const CRYPTO_TERMS = [
   'ngmi', 'gmi', 'lfg', 'iykyk', 'ct', 'frens'
 ];
 
-// Style modes replacing old 10 art styles
+// Style modes — meme_native is the default for daily memes
 const STYLE_MODES = {
   meme_native: 'Classic internet meme style. Simple, bold, instantly readable. White Impact font text with black outline. No artistic flourishes — looks like it was made in 2 minutes on imgflip.',
   stylized_illustration: 'Clean digital illustration style. Slightly polished but still meme-readable. Vibrant colors, clear composition. Think modern meme art — better than MS Paint but not trying to be gallery art.',
@@ -43,50 +43,46 @@ function selectTemplate(event, recentTemplateIds = []) {
   const eventText = (event.title || event).toLowerCase();
   const category = event.category || null;
 
-  // Count recent template usage
   const usageCounts = {};
   for (const id of recentTemplateIds) {
     usageCounts[id] = (usageCounts[id] || 0) + 1;
   }
 
   const scored = templates.map(t => {
-    // Block templates used >=2 times in past 7 days
     if ((usageCounts[t.id] || 0) >= 2) return { template: t, score: -1 };
 
     let score = 0;
-
-    // Suitability tag matching against event text
     for (const tag of t.suitability_tags) {
       if (eventText.includes(tag)) score += 2;
     }
-
-    // Emotion tag matching
     for (const tag of t.emotion_tags) {
       if (eventText.includes(tag)) score += 1;
     }
-
-    // Category bonus
     if (category && CATEGORY_BONUSES[category]) {
       if (CATEGORY_BONUSES[category].includes(t.id)) score += 3;
     }
-
-    // Small random factor to break ties
     score += Math.random() * 0.5;
 
     return { template: t, score };
   });
 
-  // Sort descending, filter out blocked
   scored.sort((a, b) => b.score - a.score);
   const best = scored.find(s => s.score >= 0);
-
   return best ? best.template : templates[Math.floor(Math.random() * templates.length)];
 }
 
+// Format slot limits for LLM prompt
+function formatSlotLimits(template) {
+  if (!template.slot_limits) return '';
+  return Object.entries(template.slot_limits)
+    .map(([slot, maxChars]) => `  - ${slot}: max ${maxChars} characters`)
+    .join('\n');
+}
+
 /**
- * Generate a meme idea using LLM. Caption-first, meme grammar enforced.
+ * Generate a meme idea using LLM. Caption-first, slot-based limits.
  */
-async function generateMemeIdea(event, template, recentThemes = [], corrective_hints = null) {
+async function generateMemeIdea(event, template, recentThemes = []) {
   const newsTitle = event.title || event;
 
   let recentContext = '';
@@ -98,10 +94,8 @@ async function generateMemeIdea(event, template, recentThemes = [], corrective_h
     recentContext = `\nAVOID these recent themes — make something FRESH:\n${themesList}\n`;
   }
 
-  let hintsSection = '';
-  if (corrective_hints) {
-    hintsSection = `\nPREVIOUS ATTEMPT FAILED. Fix these issues:\n${corrective_hints}\n`;
-  }
+  const slotLimitsText = formatSlotLimits(template);
+  const maxLines = template.max_lines || 2;
 
   const prompt = `You are a Crypto Twitter meme lord. Generate a meme idea for the "${template.name}" template.
 
@@ -109,19 +103,22 @@ NEWS EVENT: "${newsTitle}"
 TEMPLATE: ${template.name}
 TEMPLATE FORMAT: ${template.caption_format}
 TEMPLATE LAYOUT: ${template.layout_guidance}
-${recentContext}${hintsSection}
+${recentContext}
+CAPTION SLOT LIMITS (MANDATORY — respect character limits per slot):
+${slotLimitsText}
+Overall: No more than ${maxLines} lines of main text${maxLines > 2 ? ' (multi-panel template)' : ''}.
+
 MEME GRAMMAR RULES (MANDATORY):
 1. First-person POV required — use me/my/I/we (e.g., "me buying the dip", "my portfolio after")
 2. Use crypto-native terms — ape, degen, ngmi, rekt, hodl, rug, pump, fomo, etc.
 3. Setup + twist structure — the joke needs a punchline or ironic reversal
-4. Maximum 15 words in the caption (total across all panels/slots)
-5. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
-6. The caption must work WITH the template visual — don't describe the image in the caption.
+4. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
+5. The caption must work WITH the template visual — don't describe the image in the caption.
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
   "template_id": "${template.id}",
-  "caption": "The main caption text (max 15 words)",
+  "caption": "The main caption text (summary across all slots)",
   "caption_slots": ${getCaptionSlotsExample(template)},
   "visual_description": "Brief description of what the image should show beyond the standard template layout",
   "emotion": "primary emotion (one word)",
@@ -133,23 +130,76 @@ OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
   const response = await result.response;
   let text = response.text().trim();
 
-  // Extract JSON from response
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('No JSON in meme idea response');
   }
 
   const memeIdea = JSON.parse(jsonMatch[0]);
-  memeIdea.template_id = template.id; // Ensure correct template_id
+  memeIdea.template_id = template.id;
+  return memeIdea;
+}
+
+/**
+ * Retry a meme idea — keep template_id, visual_description, event_angle.
+ * Only rewrite caption, caption_slots, twist (editor pass).
+ */
+async function retryMemeIdea(previousIdea, fixSuggestions, template) {
+  const suggestionsText = (fixSuggestions || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
+  const slotLimitsText = formatSlotLimits(template);
+
+  const prompt = `You are a Crypto Twitter meme lord. REWRITE this meme's caption and twist. Keep the same template and angle.
+
+TEMPLATE: ${template.name} (${template.id})
+ORIGINAL CAPTION: "${previousIdea.caption}"
+ORIGINAL CAPTION SLOTS: ${JSON.stringify(previousIdea.caption_slots)}
+ORIGINAL TWIST: "${previousIdea.twist}"
+EVENT ANGLE (KEEP THIS): "${previousIdea.event_angle}"
+VISUAL DESCRIPTION (KEEP THIS): "${previousIdea.visual_description}"
+
+ISSUES TO FIX:
+${suggestionsText}
+
+CAPTION SLOT LIMITS:
+${slotLimitsText}
+
+RULES: First-person POV, crypto-native terms, setup + twist, no joke explanation.
+
+Respond with ONLY this JSON:
+{
+  "template_id": "${template.id}",
+  "caption": "Rewritten caption",
+  "caption_slots": ${getCaptionSlotsExample(template)},
+  "visual_description": "${previousIdea.visual_description || ''}",
+  "emotion": "primary emotion",
+  "twist": "Rewritten twist",
+  "event_angle": "${previousIdea.event_angle || ''}"
+}`;
+
+  const result = await textModel.generateContent(prompt);
+  const response = await result.response;
+  let text = response.text().trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON in retry meme idea response');
+  }
+
+  const memeIdea = JSON.parse(jsonMatch[0]);
+  memeIdea.template_id = template.id;
+  // Preserve fields that should not change
+  memeIdea.visual_description = memeIdea.visual_description || previousIdea.visual_description;
+  memeIdea.event_angle = memeIdea.event_angle || previousIdea.event_angle;
   return memeIdea;
 }
 
 /**
  * Evaluate a meme idea using LLM quality gate.
- * Returns { pass, score, scores, corrective_hints? }
+ * Scores 0-100 (4 criteria × 1-5, normalized). Pass ≥ 80.
+ * Returns { pass, score, scores, failure_reasons[], fix_suggestions[] }
  */
 async function evaluateMemeIdea(memeIdea) {
-  const prompt = `Rate this crypto meme idea on 4 criteria (1-5 each, 20 max).
+  const prompt = `Rate this crypto meme idea on 4 criteria (1-5 each).
 
 TEMPLATE: ${memeIdea.template_id}
 CAPTION: "${memeIdea.caption}"
@@ -157,13 +207,11 @@ CAPTION SLOTS: ${JSON.stringify(memeIdea.caption_slots)}
 EMOTION: ${memeIdea.emotion}
 TWIST: ${memeIdea.twist}
 
-SCORING CRITERIA:
-1. template_familiarity: Does the caption fit how this meme template is actually used on the internet? (not just technically correct, but culturally correct)
+SCORING CRITERIA (1-5 each):
+1. template_familiarity: Does the caption fit how this meme template is actually used on the internet? (culturally correct, not just technically correct)
 2. caption_punchiness: Is it short, punchy, and immediately funny? No filler words?
 3. crypto_nativeness: Does it sound like Crypto Twitter, not a corporate marketing team?
 4. immediacy: Does it connect to a real, current event in a specific (not generic) way?
-
-PASS THRESHOLD: Total >= 16/20
 
 Respond with ONLY this JSON:
 {
@@ -173,9 +221,9 @@ Respond with ONLY this JSON:
     "crypto_nativeness": 0,
     "immediacy": 0
   },
-  "total": 0,
-  "pass": true,
-  "corrective_hints": "If fail, specific hints to improve. If pass, empty string."
+  "raw_total": 0,
+  "failure_reasons": ["list specific problems if any criteria scored <= 2, otherwise empty array"],
+  "fix_suggestions": ["actionable fixes for each failure_reason, otherwise empty array"]
 }`;
 
   const result = await textModel.generateContent(prompt);
@@ -184,71 +232,99 @@ Respond with ONLY this JSON:
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return { pass: true, score: 16, scores: {}, corrective_hints: '' };
+    return { pass: true, score: 80, scores: {}, failure_reasons: [], fix_suggestions: [] };
   }
 
   const evaluation = JSON.parse(jsonMatch[0]);
-  evaluation.pass = evaluation.total >= 16;
+  // Normalize raw_total (4-20) to 0-100 scale
+  const rawTotal = evaluation.raw_total || Object.values(evaluation.scores || {}).reduce((a, b) => a + b, 0);
+  evaluation.score = Math.round((rawTotal / 20) * 100);
+  evaluation.pass = evaluation.score >= 80;
+  evaluation.failure_reasons = evaluation.failure_reasons || [];
+  evaluation.fix_suggestions = evaluation.fix_suggestions || [];
   return evaluation;
 }
 
 /**
  * Build image prompt from meme idea + style mode. Pure function.
+ * Uses layout_instructions for panel-by-panel positioning.
  */
 function buildImagePrompt(memeIdea, styleMode = 'meme_native') {
   const template = templates.find(t => t.id === memeIdea.template_id);
-  const layoutGuidance = template ? template.layout_guidance : '';
+  const layoutInstructions = template?.layout_instructions || template?.layout_guidance || '';
   const styleInstruction = STYLE_MODES[styleMode] || STYLE_MODES.meme_native;
 
   const hasSlots = memeIdea.caption_slots && Object.keys(memeIdea.caption_slots).length > 0;
-  const captionText = hasSlots
-    ? Object.entries(memeIdea.caption_slots).map(([k, v]) => `${k}: "${v}"`).join(', ')
-    : `"${memeIdea.caption}"`;
+
+  // Build per-slot text placement from layout_instructions
+  let captionPlacement;
+  if (hasSlots) {
+    // Replace {slot_name} placeholders in layout_instructions with actual text
+    captionPlacement = layoutInstructions;
+    for (const [slot, text] of Object.entries(memeIdea.caption_slots)) {
+      captionPlacement = captionPlacement.replace(`{${slot}}`, text);
+    }
+  } else {
+    captionPlacement = layoutInstructions.replace(/\{[^}]+\}/g, memeIdea.caption || '');
+  }
 
   return `Create a meme image using the "${memeIdea.template_id}" meme template format.
 
-TEMPLATE LAYOUT: ${layoutGuidance}
-
-CAPTION/TEXT ON IMAGE: ${captionText}
+LAYOUT AND TEXT PLACEMENT:
+${captionPlacement}
 
 VISUAL DETAILS: ${memeIdea.visual_description || ''}
 EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
+MANDATORY TEXT STYLING:
+- All text must be BIG BOLD meme text with black outline (or black shadow)
+- Text must be clearly legible against the background
+- Use Impact font style or similarly bold, readable font
+
 Technical requirements:
 - Square aspect ratio (1:1)
-- Bold, readable text overlay — text must be clearly legible
 - High contrast colors for visual impact
 - 1024x1024 pixels resolution
 - The meme template format must be immediately recognizable`;
 }
 
 /**
- * Validate caption against meme grammar rules. Pure function.
+ * Validate caption against slot limits and meme grammar. Pure function.
+ * Checks per-slot character limits, first-person POV, and crypto terms.
  */
-function validateCaption(caption) {
-  const words = caption.trim().split(/\s+/);
-  const wordCount = words.length;
-  const lowerCaption = caption.toLowerCase();
+function validateCaption(memeIdea, template) {
   const issues = [];
 
-  // Word count check
-  if (wordCount > 15) {
-    issues.push(`Caption is ${wordCount} words (max 15)`);
+  // Per-slot character limit check
+  if (template?.slot_limits && memeIdea.caption_slots) {
+    for (const [slot, maxChars] of Object.entries(template.slot_limits)) {
+      const slotText = memeIdea.caption_slots[slot];
+      if (!slotText) {
+        issues.push(`Slot '${slot}' is empty (required by template)`);
+      } else if (slotText.length > maxChars) {
+        issues.push(`Slot '${slot}' is ${slotText.length} chars (max ${maxChars})`);
+      }
+    }
   }
 
-  // First-person check
+  // First-person check (across all text)
+  const allText = memeIdea.caption_slots
+    ? Object.values(memeIdea.caption_slots).join(' ')
+    : (memeIdea.caption || '');
+  const lowerText = allText.toLowerCase();
+
   const firstPersonTerms = ['me ', 'my ', 'i ', 'we ', 'our ', "i'm", "i've", "we're", 'myself'];
-  const hasFirstPerson = firstPersonTerms.some(t => lowerCaption.includes(t));
+  const hasFirstPerson = firstPersonTerms.some(t => lowerText.includes(t));
   if (!hasFirstPerson) {
     issues.push('Missing first-person POV (me/my/I/we)');
   }
 
-  // Crypto-native term check
+  // Crypto-native term check (≥1)
   const hasCryptoTerm = CRYPTO_TERMS.some(t => {
     const regex = new RegExp(`\\b${t}\\b`, 'i');
-    return regex.test(caption);
+    return regex.test(allText);
   });
   if (!hasCryptoTerm) {
     issues.push('No crypto-native terms found');
@@ -256,8 +332,7 @@ function validateCaption(caption) {
 
   return {
     valid: issues.length === 0,
-    issues,
-    wordCount
+    issues
   };
 }
 
@@ -292,6 +367,7 @@ function getCaptionSlotsExample(template) {
 module.exports = {
   selectTemplate,
   generateMemeIdea,
+  retryMemeIdea,
   evaluateMemeIdea,
   buildImagePrompt,
   validateCaption,
