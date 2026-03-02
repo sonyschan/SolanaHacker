@@ -691,53 +691,71 @@ export async function fetchOwnerMentions() {
     const ownUserId = me.data?.id;
     if (!ownUserId) return [];
 
-    const result = await userClient.v2.userMentionTimeline(ownUserId, {
-      max_results: 20,
-      'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
-      'user.fields': 'username',
-      expansions: 'author_id,referenced_tweets.id',
-    });
-
-    if (!result.data?.data?.length) return [];
-
-    // Build user lookup from includes
-    const users = {};
-    for (const u of (result.data?.includes?.users || [])) {
-      users[u.id] = u.username;
-    }
-
-    // Build referenced tweet lookup from includes
-    const refTweets = {};
-    for (const t of (result.data?.includes?.tweets || [])) {
-      refTweets[t.id] = t;
-    }
-
-    // Filter to trusted usernames only
     const trustedLower = TRUSTED_OWNER_USERNAMES.map(u => u.toLowerCase());
+    const seenIds = new Set();
     const mentions = [];
-    for (const tweet of result.data.data) {
-      const authorUsername = users[tweet.author_id] || '';
-      if (!trustedLower.includes(authorUsername.toLowerCase())) continue;
 
-      // Find parent tweet (the tweet being replied to)
-      let parentTweet = null;
-      const repliedRef = (tweet.referenced_tweets || []).find(r => r.type === 'replied_to');
-      if (repliedRef && refTweets[repliedRef.id]) {
-        const parent = refTweets[repliedRef.id];
-        parentTweet = {
-          id: parent.id,
-          text: parent.text,
-          authorUsername: users[parent.author_id] || 'unknown',
-        };
+    const parseTweets = (data, includes) => {
+      if (!data?.length) return;
+      const users = {};
+      for (const u of (includes?.users || [])) users[u.id] = u.username;
+      const refTweets = {};
+      for (const t of (includes?.tweets || [])) refTweets[t.id] = t;
+
+      for (const tweet of data) {
+        if (seenIds.has(tweet.id)) continue;
+        const authorUsername = users[tweet.author_id] || '';
+        if (!trustedLower.includes(authorUsername.toLowerCase())) continue;
+        seenIds.add(tweet.id);
+
+        let parentTweet = null;
+        const repliedRef = (tweet.referenced_tweets || []).find(r => r.type === 'replied_to');
+        if (repliedRef && refTweets[repliedRef.id]) {
+          const parent = refTweets[repliedRef.id];
+          parentTweet = { id: parent.id, text: parent.text, authorUsername: users[parent.author_id] || 'unknown' };
+        }
+
+        mentions.push({
+          mentionTweetId: tweet.id,
+          authorUsername,
+          text: tweet.text,
+          conversationId: tweet.conversation_id,
+          parentTweet,
+        });
       }
+    };
 
-      mentions.push({
-        mentionTweetId: tweet.id,
-        authorUsername,
-        text: tweet.text,
-        conversationId: tweet.conversation_id,
-        parentTweet,
+    // Source 1: Mention timeline (@AiMemeForgeIO mentions from trusted accounts)
+    try {
+      const result = await userClient.v2.userMentionTimeline(ownUserId, {
+        max_results: 20,
+        'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
+        'user.fields': 'username',
+        expansions: 'author_id,referenced_tweets.id',
       });
+      parseTweets(result.data?.data, result.data?.includes);
+    } catch (err) {
+      console.error('[x-context] fetchOwnerMentions mention timeline error:', err.message);
+    }
+
+    // Source 2: Community posts from trusted owner accounts (no @mention needed)
+    const bearerToken = process.env.X_BEARER_TOKEN;
+    if (bearerToken) {
+      const appClient = new TwitterApi(bearerToken);
+      for (const owner of TRUSTED_OWNER_USERNAMES) {
+        try {
+          const result = await appClient.v2.search(`from:${owner} community_id:${COMMUNITY_ID}`, {
+            max_results: 10,
+            'tweet.fields': 'created_at,conversation_id,author_id,referenced_tweets',
+            'user.fields': 'username',
+            expansions: 'author_id,referenced_tweets.id',
+            sort_order: 'recency',
+          });
+          parseTweets(result.data?.data, result.data?.includes);
+        } catch (err) {
+          console.error(`[x-context] fetchOwnerMentions community search for ${owner} error:`, err.message);
+        }
+      }
     }
 
     return mentions;
