@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const templates = require('../data/meme-templates.json');
+const strategyService = require('./memeStrategyService');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -23,7 +24,7 @@ const CRYPTO_TERMS = [
 
 // Style modes — meme_native is the default for daily memes
 const STYLE_MODES = {
-  meme_native: 'Classic internet meme style. Intentionally low resolution look. Slight compression artifacts. Flat colors. MS Paint aesthetic. NOT cinematic. NOT 3D render. NOT polished. White Impact font text with black outline.',
+  meme_native: 'Classic internet meme style. Intentionally low resolution look. Slight compression artifacts. Flat colors. MS Paint aesthetic. Imperfect hand-drawn look. Uneven line art. Slightly awkward proportions. Low effort meme vibe. Mild JPEG artifacts. NOT cinematic. NOT realistic 3D. NOT polished illustration. White Impact font text with black outline.',
   stylized_illustration: 'Clean digital illustration style. Slightly polished but still meme-readable. Vibrant colors, clear composition. Think modern meme art — better than MS Paint but not trying to be gallery art.',
   stylized_pixel: 'Retro pixel art style, 16-bit aesthetic. Chunky pixels, limited color palette. Nostalgic gaming vibes. Text in pixel font or bold overlay.'
 };
@@ -112,7 +113,7 @@ function formatSlotLimits(template) {
 /**
  * Generate a meme idea using LLM. Caption-first, slot-based limits.
  */
-async function generateMemeIdea(event, template, recentThemes = []) {
+async function generateMemeIdea(event, template, recentThemes = [], strategy = null) {
   const newsTitle = event.title || event;
 
   let recentContext = '';
@@ -162,6 +163,8 @@ MEME GRAMMAR RULES (MANDATORY):
 4. Setup + twist structure — the joke needs a punchline or ironic reversal
 5. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
 6. The caption must work WITH the template visual — don't describe the image in the caption.
+${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
+${strategyService.formatPunchlineLibrary()}
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
@@ -192,7 +195,7 @@ OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
  * Retry a meme idea — keep template_id, visual_description, event_angle.
  * Only rewrite caption, caption_slots, twist (editor pass).
  */
-async function retryMemeIdea(previousIdea, fixSuggestions, template) {
+async function retryMemeIdea(previousIdea, fixSuggestions, template, strategy = null) {
   const suggestionsText = (fixSuggestions || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
   const slotLimitsText = formatSlotLimits(template);
 
@@ -221,6 +224,10 @@ FORBIDDEN PATTERNS:
 - Use fragments, not full sentences.
 
 RULES: First-person POV. Use phrases crypto traders actually say on Twitter — no formal language. Caption = immediate emotional reaction, not description. Setup + twist, no joke explanation.
+${strategy ? `\nSTRATEGY (KEEP THIS — do NOT change the comedy angle): ${strategy.strategy_name}\n${strategy.definition}\n` : ''}
+${strategyService.formatPunchlineLibrary()}
+
+IMPORTANT: Make the rewritten caption MORE ORIGINAL than the previous attempt. Use a different punchline pattern or angle.
 
 Respond with ONLY this JSON:
 {
@@ -252,24 +259,36 @@ Respond with ONLY this JSON:
 
 /**
  * Evaluate a meme idea using LLM quality gate.
- * Scores 0-100 (4 criteria × 1-5, normalized). Pass ≥ 80.
+ * v3: 6 criteria, twist_strength+originality weighted double. Max 40, pass >= 82.
  * Returns { pass, score, scores, failure_reasons[], fix_suggestions[] }
  */
-async function evaluateMemeIdea(memeIdea) {
-  const prompt = `Rate this crypto meme idea on 4 criteria (1-5 each).
+async function evaluateMemeIdea(memeIdea, recentCaptions = [], strategy = null) {
+  // Build recent captions context for originality check
+  let recentCaptionsText = '';
+  if (recentCaptions.length > 0) {
+    recentCaptionsText = `\nRECENT CAPTIONS (for originality check — new caption must be meaningfully different):\n${recentCaptions.slice(0, 15).map(c => `- "${c}"`).join('\n')}\n`;
+  }
+
+  let strategyText = '';
+  if (strategy) {
+    strategyText = `\nSTRATEGY USED: ${strategy.strategy_name} — ${strategy.definition}\n`;
+  }
+
+  const prompt = `Rate this crypto meme idea on 6 criteria (1-5 each).
 
 TEMPLATE: ${memeIdea.template_id}
 CAPTION: "${memeIdea.caption}"
 CAPTION SLOTS: ${JSON.stringify(memeIdea.caption_slots)}
 EMOTION: ${memeIdea.emotion}
 TWIST: ${memeIdea.twist}
-
+${strategyText}${recentCaptionsText}
 SCORING CRITERIA (1-5 each):
 1. template_familiarity: Does the caption fit how this meme template is actually used on the internet? (culturally correct, not just technically correct)
 2. caption_punchiness: Each slot MUST be <= 6 words. Score 1 if any slot exceeds 6 words. Is it a short punchy phrase (like "Buying the dip") or a wordy sentence? Immediate emotional reaction > description.
 3. crypto_nativeness: Does it sound like phrases crypto traders actually say on Twitter? Not formal or corporate language?
 4. immediacy: Does it connect to a real, current event in a specific (not generic) way?
 5. twist_strength: Does the caption contain irony, contradiction, or unexpected reaction? (1-5, WEIGHTED DOUBLE)
+6. originality_score: Is this caption meaningfully different from RECENT CAPTIONS? If semantically too close to any recent caption, score <=2. If clearly different angle/punchline, score 4-5. (1-5, WEIGHTED DOUBLE)
 
 Respond with ONLY this JSON:
 {
@@ -278,7 +297,8 @@ Respond with ONLY this JSON:
     "caption_punchiness": 0,
     "crypto_nativeness": 0,
     "immediacy": 0,
-    "twist_strength": 0
+    "twist_strength": 0,
+    "originality_score": 0
   },
   "raw_total": 0,
   "failure_reasons": ["list specific problems if any criteria scored <= 2, otherwise empty array"],
@@ -295,16 +315,17 @@ Respond with ONLY this JSON:
   }
 
   const evaluation = JSON.parse(jsonMatch[0]);
-  // Normalize with twist_strength weighted double: 4×5 + 1×5×2 = 30 max
+  // v3 weighting: 4 base×5 + twist×2 + originality×2 = 40 max
   const scores = evaluation.scores || {};
   const weightedTotal = (scores.template_familiarity || 0)
     + (scores.caption_punchiness || 0)
     + (scores.crypto_nativeness || 0)
     + (scores.immediacy || 0)
-    + (scores.twist_strength || 0) * 2;
-  const maxWeighted = 30;
+    + (scores.twist_strength || 0) * 2
+    + (scores.originality_score || 0) * 2;
+  const maxWeighted = 40;
   evaluation.score = Math.round((weightedTotal / maxWeighted) * 100);
-  evaluation.pass = evaluation.score >= 80;
+  evaluation.pass = evaluation.score >= 82;
   evaluation.failure_reasons = evaluation.failure_reasons || [];
   evaluation.fix_suggestions = evaluation.fix_suggestions || [];
 
@@ -316,6 +337,16 @@ Respond with ONLY this JSON:
       evaluation.pass = false;
       evaluation.failure_reasons.push('Invalid grammar pattern: My + verb-ing');
       evaluation.fix_suggestions.push(`Rewrite slot "${slot}": avoid "My + verb-ing" pattern`);
+    }
+  }
+
+  // Hard fail: low originality (code-level)
+  if ((scores.originality_score || 0) <= 2) {
+    evaluation.pass = false;
+    if (!evaluation.failure_reasons.includes('Low originality vs recent captions')) {
+      evaluation.failure_reasons.push('Low originality vs recent captions');
+      evaluation.fix_suggestions.push(`Change angle using strategy: ${strategy?.strategy_name || 'any'}`);
+      evaluation.fix_suggestions.push('Use different punchline pattern');
     }
   }
 
@@ -386,6 +417,25 @@ function validateCaption(memeIdea, template) {
     }
   }
 
+  // Per-slot word count check (<= 6 words)
+  if (memeIdea.caption_slots) {
+    for (const [slot, text] of Object.entries(memeIdea.caption_slots)) {
+      if (text && text.split(/\s+/).filter(Boolean).length > 6) {
+        issues.push(`Slot '${slot}' exceeds 6 words`);
+      }
+    }
+  }
+
+  // Per-slot forbidden pattern check
+  const myVerbingRegex = /^my\s+\w+ing\b/i;
+  if (memeIdea.caption_slots) {
+    for (const [slot, text] of Object.entries(memeIdea.caption_slots)) {
+      if (text && myVerbingRegex.test(text)) {
+        issues.push(`Slot '${slot}' uses forbidden "My + verb-ing" pattern`);
+      }
+    }
+  }
+
   // First-person check (across all text)
   const allText = memeIdea.caption_slots
     ? Object.values(memeIdea.caption_slots).join(' ')
@@ -398,13 +448,16 @@ function validateCaption(memeIdea, template) {
     issues.push('Missing first-person POV (me/my/I/we)');
   }
 
-  // Crypto-native term check (≥1)
+  // Crypto-native term check (≥1 crypto term OR strategy punchline pattern)
   const hasCryptoTerm = CRYPTO_TERMS.some(t => {
     const regex = new RegExp(`\\b${t}\\b`, 'i');
     return regex.test(allText);
   });
-  if (!hasCryptoTerm) {
-    issues.push('No crypto-native terms found');
+  const hasPunchline = strategyService.PUNCHLINE_LIBRARY.some(p =>
+    lowerText.includes(p.toLowerCase())
+  );
+  if (!hasCryptoTerm && !hasPunchline) {
+    issues.push('No crypto-native terms or punchline patterns found');
   }
 
   return {

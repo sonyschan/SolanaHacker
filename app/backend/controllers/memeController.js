@@ -5,6 +5,7 @@ const grokImageService = require('../services/grokImageService');
 const storageService = require('../services/storageService');
 const newsService = require('../services/newsService');
 const memeIdeaService = require('../services/memeIdeaService');
+const memeStrategyService = require('../services/memeStrategyService');
 
 // Multi-model image generation pool
 const AI_IMAGE_MODELS = [
@@ -124,6 +125,8 @@ async function getRecentMemeThemes() {
       newsSource: m.newsSource || '',
       templateId: m.metadata?.templateId || null,
       archetype: m.metadata?.archetype || null,
+      strategyId: m.metadata?.strategyId || null,
+      caption: m.metadata?.memeIdea?.caption || null,
     }));
 
     console.log(`🔄 Loaded ${themes.length} recent meme themes for anti-repetition`);
@@ -220,36 +223,64 @@ async function generateDailyMemes(req, res) {
       const template = memeIdeaService.selectTemplate(newsItem, recentTemplateIds);
       console.log(`🎭 Meme ${i+1}: template="${template.id}" (${template.name})`);
 
-      // 7b. Generate meme idea
+      // 7a2. Select strategy (v3)
+      const strategy = memeStrategyService.selectStrategy({
+        newsEvent: newsItem,
+        template,
+        recentMemes: recentThemes,
+        category: newsItem.category
+      });
+      console.log(`🎯 Meme ${i+1}: strategy="${strategy.strategy_id}" (${strategy.strategy_name})`);
+
+      // 7b. Generate meme idea (with strategy)
       let memeIdea;
       try {
-        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes);
+        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy);
       } catch (err) {
         console.error(`⚠️ Meme ${i+1} idea generation failed:`, err.message);
         memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
       }
 
-      // 7c. Evaluate meme idea (quality gate, 0-100 scale)
-      let evaluation = { pass: true, score: 80, scores: {} };
-      try {
-        evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
-        console.log(`📊 Meme ${i+1} quality: ${evaluation.score}/100 ${evaluation.pass ? '✅' : '❌'}`);
+      // 7c. Evaluate + validate loop (max 2 retries, no force-pass)
+      const recentCaptions = recentThemes
+        .map(t => t.caption)
+        .filter(Boolean)
+        .slice(0, 15);
+      let evaluation = { pass: true, score: 82, scores: {} };
+      const MAX_RETRIES = 2;
+      for (let retry = 0; retry <= MAX_RETRIES; retry++) {
+        try {
+          // Evaluate (LLM quality gate)
+          evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea, recentCaptions, strategy);
 
-        // If fail, retry once — keep template, rewrite caption + twist only
-        if (!evaluation.pass && evaluation.fix_suggestions?.length > 0) {
-          console.log(`🔄 Meme ${i+1} retry: ${evaluation.fix_suggestions.join('; ')}`);
-          try {
-            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template);
-            evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea);
-            console.log(`📊 Meme ${i+1} retry quality: ${evaluation.score}/100 ${evaluation.pass ? '✅' : '⚠️ force-pass'}`);
-          } catch (retryErr) {
-            console.error(`⚠️ Meme ${i+1} retry failed:`, retryErr.message);
+          // Validate caption (code-level checks)
+          const validation = memeIdeaService.validateCaption(memeIdea, template);
+          if (!validation.valid) {
+            evaluation.pass = false;
+            evaluation.failure_reasons = evaluation.failure_reasons || [];
+            evaluation.fix_suggestions = evaluation.fix_suggestions || [];
+            for (const issue of validation.issues) {
+              evaluation.failure_reasons.push(issue);
+              evaluation.fix_suggestions.push(`Fix: ${issue}`);
+            }
           }
-          // Force-pass after 1 retry
-          evaluation.pass = true;
+
+          console.log(`📊 Meme ${i+1}${retry > 0 ? ` retry #${retry}` : ''} quality: ${evaluation.score}/100 ${evaluation.pass ? '✅' : '❌'}${evaluation.scores?.originality_score ? ` orig=${evaluation.scores.originality_score}` : ''}`);
+
+          if (evaluation.pass || retry === MAX_RETRIES) break;
+
+          // Retry — keep template + strategy, rewrite caption + twist
+          console.log(`🔄 Meme ${i+1} retry #${retry+1}: ${(evaluation.fix_suggestions || []).slice(0, 3).join('; ')}`);
+          try {
+            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy);
+          } catch (retryErr) {
+            console.error(`⚠️ Meme ${i+1} retry #${retry+1} failed:`, retryErr.message);
+            break;
+          }
+        } catch (evalErr) {
+          console.error(`⚠️ Meme ${i+1} evaluation failed:`, evalErr.message);
+          break;
         }
-      } catch (evalErr) {
-        console.error(`⚠️ Meme ${i+1} evaluation failed:`, evalErr.message);
       }
 
       // 7d. Build image prompt
@@ -300,6 +331,8 @@ async function generateDailyMemes(req, res) {
           templateId: template.id,
           templateName: template.name,
           archetype: template.archetype || null,
+          strategyId: strategy.strategy_id,
+          strategyName: strategy.strategy_name,
           memeIdea: {
             caption: memeIdea.caption,
             caption_slots: memeIdea.caption_slots,
@@ -310,6 +343,8 @@ async function generateDailyMemes(req, res) {
           },
           qualityScore: evaluation.score || 0,
           qualityPass: evaluation.pass !== false,
+          qualityScores: evaluation.scores || {},
+          originalityScore: evaluation.scores?.originality_score || null,
           imageGenerated: imageData.success,
           fileSize: imageData.fileSize || 0,
           storageLocation: imageData.storageLocation || 'unknown',
@@ -325,8 +360,14 @@ async function generateDailyMemes(req, res) {
       await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
       savedMemes.push(memeDoc);
 
-      // 7i. Push template to recentTemplateIds for batch anti-repetition
+      // 7i. Push to recent lists for batch anti-repetition
       recentTemplateIds.push(template.id);
+      recentThemes.unshift({
+        title: memeDoc.title,
+        templateId: template.id,
+        strategyId: strategy.strategy_id,
+        caption: memeIdea.caption,
+      });
 
       // 7j. Rate limit delay
       if (i < 2) await new Promise(resolve => setTimeout(resolve, 2000));
