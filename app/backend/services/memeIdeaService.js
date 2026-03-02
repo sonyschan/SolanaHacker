@@ -108,12 +108,18 @@ CAPTION SLOT LIMITS (MANDATORY — respect character limits per slot):
 ${slotLimitsText}
 Overall: No more than ${maxLines} lines of main text${maxLines > 2 ? ' (multi-panel template)' : ''}.
 
+CRITICAL RULE:
+Each caption slot MUST be <= 6 words. Prefer short phrases, not full sentences.
+Examples of GOOD captions: "Buying the dip", "Getting liquidated again", "My long position", "Still buying"
+Examples of BAD captions: "My portfolio after degen dip buy", "Me when I see the market crash and buy more"
+
 MEME GRAMMAR RULES (MANDATORY):
 1. First-person POV required — use me/my/I/we (e.g., "me buying the dip", "my portfolio after")
-2. Use crypto-native terms — ape, degen, ngmi, rekt, hodl, rug, pump, fomo, etc.
-3. Setup + twist structure — the joke needs a punchline or ironic reversal
-4. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
-5. The caption must work WITH the template visual — don't describe the image in the caption.
+2. Use phrases crypto traders actually say on Twitter. Avoid formal or explanatory language.
+3. Caption should feel like immediate emotional reaction, not description.
+4. Setup + twist structure — the joke needs a punchline or ironic reversal
+5. DO NOT explain the joke. No "when you realize" or "that moment when" — just the caption.
+6. The caption must work WITH the template visual — don't describe the image in the caption.
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
@@ -163,7 +169,10 @@ ${suggestionsText}
 CAPTION SLOT LIMITS:
 ${slotLimitsText}
 
-RULES: First-person POV, crypto-native terms, setup + twist, no joke explanation.
+CRITICAL RULE: Each caption slot MUST be <= 6 words. Short phrases, not sentences.
+GOOD: "Buying the dip" / BAD: "My portfolio after degen dip buy"
+
+RULES: First-person POV. Use phrases crypto traders actually say on Twitter — no formal language. Caption = immediate emotional reaction, not description. Setup + twist, no joke explanation.
 
 Respond with ONLY this JSON:
 {
@@ -209,8 +218,8 @@ TWIST: ${memeIdea.twist}
 
 SCORING CRITERIA (1-5 each):
 1. template_familiarity: Does the caption fit how this meme template is actually used on the internet? (culturally correct, not just technically correct)
-2. caption_punchiness: Is it short, punchy, and immediately funny? No filler words?
-3. crypto_nativeness: Does it sound like Crypto Twitter, not a corporate marketing team?
+2. caption_punchiness: Each slot MUST be <= 6 words. Score 1 if any slot exceeds 6 words. Is it a short punchy phrase (like "Buying the dip") or a wordy sentence? Immediate emotional reaction > description.
+3. crypto_nativeness: Does it sound like phrases crypto traders actually say on Twitter? Not formal or corporate language?
 4. immediacy: Does it connect to a real, current event in a specific (not generic) way?
 
 Respond with ONLY this JSON:
