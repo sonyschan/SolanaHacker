@@ -584,8 +584,9 @@
     },
     "stats": {
       "rewardPool": "奖池",
-      "postsToday": "今日发文",
-      "nextSlot": "下个时段"
+      "postsToday": "今日 X 发文",
+      "nextSlot": "下个时段",
+      "nextPlan": "下个计划"
     }
   }
 }

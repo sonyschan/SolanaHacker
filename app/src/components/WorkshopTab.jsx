@@ -240,32 +240,6 @@ const WorkshopTab = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getSlotStatus = (slotId, slot) => {
-    if (!slot) return 'pending';
-    return slot.status || 'pending';
-  };
-
-  const StatusDot = ({ status }) => {
-    switch (status) {
-      case 'done':
-      case 'posted':
-        return <span className="text-green-400 text-xs">&#10003;</span>;
-      case 'pending':
-        return <span className="w-2.5 h-2.5 rounded-full bg-gray-500/50 border border-gray-500/50 inline-block" />;
-      case 'next':
-      case 'ready':
-        return <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block animate-pulse" />;
-      case 'missed':
-        return <span className="text-red-400/50 text-xs">&#10007;</span>;
-      case 'skipped':
-        return <span className="text-gray-500 text-xs">&mdash;</span>;
-      case 'external':
-        return <span className="text-yellow-400 text-xs">&#10003;</span>;
-      default:
-        return <span className="w-2.5 h-2.5 rounded-full bg-gray-600 inline-block" />;
-    }
-  };
-
   return (
     <div className="space-y-4 md:space-y-6">
 
@@ -318,30 +292,6 @@ const WorkshopTab = () => {
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             @AiMemeForgeIO
           </a>
-        </div>
-      </div>
-
-      {/* B. Today's Schedule — Slot Timeline */}
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 md:p-5">
-        <h3 className="text-sm font-bold text-gray-300 mb-4">{t('workshop.schedule.title')}</h3>
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
-          {Object.entries(SLOT_META).map(([slotId, meta], i, arr) => {
-            const slot = slots[slotId];
-            const status = getSlotStatus(slotId, slot);
-            const label = t(`workshop.schedule.${slotId === 'reward_recap' ? 'recap' : slotId === 'news_digest' ? 'news' : slotId === 'meme_forge' ? 'forge' : 'flex'}`);
-            return (
-              <React.Fragment key={slotId}>
-                <div className="flex flex-col items-center min-w-[60px] flex-shrink-0">
-                  <StatusDot status={status} />
-                  <span className={`text-[10px] mt-1.5 font-medium ${meta.color}`}>{meta.time}</span>
-                  <span className="text-[10px] text-gray-500 mt-0.5">{label}</span>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="flex-1 min-w-[16px] h-px bg-white/10 mt-[-12px]" />
-                )}
-              </React.Fragment>
-            );
-          })}
         </div>
       </div>
 
@@ -443,17 +393,17 @@ const WorkshopTab = () => {
           </div>
           <div className="text-[10px] text-gray-600">USDC</div>
         </div>
-        {/* Posts Today */}
+        {/* X Posts Today — count only entries with a url (actual X posts) */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.postsToday')}</div>
           <div className="text-lg font-bold text-cyan-400">
-            {stats.postsToday || entries.length || 0}
+            {entries.filter(e => e.url).length}
           </div>
           <div className="text-[10px] text-gray-600">tweets</div>
         </div>
-        {/* Next Slot */}
+        {/* Next Plan */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextSlot')}</div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextPlan')}</div>
           <div className="text-lg font-bold text-orange-400">
             {stats.nextSlot ? SLOT_META[stats.nextSlot.id]?.time || '--' : '--'}
           </div>

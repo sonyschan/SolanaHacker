@@ -584,8 +584,9 @@
     },
     "stats": {
       "rewardPool": "Reward Pool",
-      "postsToday": "Posts Today",
-      "nextSlot": "Next Slot"
+      "postsToday": "X Posts Today",
+      "nextSlot": "Next Slot",
+      "nextPlan": "Next Plan"
     }
   }
 }
