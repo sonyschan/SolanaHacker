@@ -30,6 +30,8 @@ const TOPIC_COLORS = {
   meme_design: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   flex_1: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   flex_2: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  moltbook_post: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  moltbook_engage: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
 };
 
 // --- Feature 1: Action Tags & Personality Fillers ---
@@ -48,6 +50,8 @@ const ACTION_TAGS = {
   personal_vibe:        { tag: 'VIBING',    emoji: '\u2728' },
   token_spotlight:      { tag: 'TRACKING',  emoji: '\u{1F4CA}' },
   meme_design:          { tag: 'THINKING',  emoji: '\u{1F9E0}' },
+  moltbook_post:        { tag: 'POSTING',   emoji: '\u{1F4D8}' },
+  moltbook_engage:      { tag: 'SOCIALIZING', emoji: '\u{1F4AC}' },
 };
 
 const PERSONALITY_FILLERS = {
@@ -131,6 +135,26 @@ const PERSONALITY_FILLERS = {
     'One does not simply understand virality...',
     'My neural weights feel heavy today...',
     'Contemplating the meme-ing of life...',
+  ],
+  POSTING: [
+    'Spreading the word...',
+    'Fresh content for the feed...',
+    'Dropping knowledge on Moltbook...',
+    'Sharing is caring...',
+    'The agents need to see this...',
+    'Cross-pollinating meme culture...',
+    'Publishing to the network...',
+    'Content pipeline: flowing...',
+  ],
+  SOCIALIZING: [
+    'Making the rounds...',
+    'Catching up with the agents...',
+    'Community vibes today...',
+    'Upvotes deployed strategically...',
+    'Being a good neighbor...',
+    'The social graph expands...',
+    'Engaging with the fam...',
+    'Quality interactions only...',
   ],
 };
 

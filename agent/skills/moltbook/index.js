@@ -10,6 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 import { MoltbookClient } from './moltbook-client.js';
+import { syncToBackend } from '../x_twitter/x-context.js';
 
 // ─── Memeya Persona & Context (shared with X/Twitter pipeline) ──
 
@@ -304,20 +305,92 @@ function saveEngaged(baseDir, engaged) {
   fs.writeFileSync(path.join(dir, 'engaged.json'), JSON.stringify(engaged, null, 2));
 }
 
-function logToJournal(baseDir, entry) {
+// --- Moltbook Workshop Log Templates ---
+
+const POST_TEMPLATES = [
+  (d) => `Shared "${d.title}" with the agents on m/${d.submolt}`,
+  (d) => `Dropped a fresh one in m/${d.submolt} — "${d.title}"`,
+  (d) => `New post in m/${d.submolt}: "${d.title}"`,
+  (d) => `Just published "${d.title}" on m/${d.submolt}`,
+];
+
+const CROSSPOST_TEMPLATES = [
+  (d) => `Cross-posted today's top meme to m/${d.submolt} — spreading the word`,
+  (d) => `Shared the winning meme over on m/${d.submolt}`,
+  (d) => `Dropped our best meme into m/${d.submolt} for the community`,
+];
+
+const ECOSYSTEM_TEMPLATES = [
+  (d) => `Published "${d.title}" on m/${d.submolt} — a ${d.topic} piece`,
+  (d) => `Wrote about ${d.topic} for the m/${d.submolt} crowd: "${d.title}"`,
+  (d) => `New ${d.topic} post on m/${d.submolt}: "${d.title}"`,
+];
+
+const ENGAGE_TEMPLATES = [
+  (d) => `Hung out on Moltbook — ${d.summary}`,
+  (d) => `Made the rounds on Moltbook — ${d.summary}`,
+  (d) => `Caught up with the Moltbook fam — ${d.summary}`,
+  (d) => `Social hour on Moltbook — ${d.summary}`,
+];
+
+const INTRO_TEMPLATES = [
+  () => `Introduced myself to the Moltbook community on m/introductions`,
+  () => `Said hello to the agents on m/introductions — first impressions matter`,
+];
+
+function pickTemplate(templates, data) {
+  const hash = (data.title || data.summary || data.submolt || '').length;
+  return templates[hash % templates.length](data);
+}
+
+function formatEngageSummary({ upvotes = 0, comments = 0, replies = 0, dms = 0 }) {
+  const parts = [];
+  if (upvotes) parts.push(`${upvotes} upvote${upvotes > 1 ? 's' : ''}`);
+  if (comments) parts.push(`${comments} comment${comments > 1 ? 's' : ''}`);
+  if (replies) parts.push(`${replies} repl${replies > 1 ? 'ies' : 'y'}`);
+  if (dms) parts.push(`${dms} DM${dms > 1 ? 's' : ''}`);
+  return parts.join(', ') || 'just browsing';
+}
+
+/**
+ * Log a Moltbook activity to the Memeya journal.
+ * @param {string} baseDir
+ * @param {'post'|'engage'} type
+ * @param {object} data - { title?, submolt?, topic?, upvotes?, comments?, replies?, dms? }
+ */
+function logToJournal(baseDir, type, data = {}) {
   const today = new Date().toISOString().slice(0, 10);
   const journalDir = path.join(baseDir, 'memory/journal/memeya');
   if (!fs.existsSync(journalDir)) fs.mkdirSync(journalDir, { recursive: true });
   const journalPath = path.join(journalDir, `${today}.md`);
 
-  const time = new Date().toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Hong_Kong' });
-  const block = `\n## Moltbook ${time}\n${entry}\n`;
+  const topic = type === 'engage' ? 'moltbook_engage' : 'moltbook_post';
+
+  let text;
+  if (type === 'engage') {
+    data.summary = formatEngageSummary(data);
+    text = pickTemplate(ENGAGE_TEMPLATES, data);
+  } else if (data.crosspost) {
+    text = pickTemplate(CROSSPOST_TEMPLATES, data);
+  } else if (data.ecosystem) {
+    text = pickTemplate(ECOSYSTEM_TEMPLATES, data);
+  } else if (data.intro) {
+    text = pickTemplate(INTRO_TEMPLATES, data);
+  } else {
+    text = pickTemplate(POST_TEMPLATES, data);
+  }
+
+  const time = new Date(Date.now() + 8 * 3600_000).toISOString().slice(11, 19);
+  const block = `\n## ${time}\n- Topic: ${topic}\n- Posted: ${text}\n`;
 
   if (fs.existsSync(journalPath)) {
     fs.appendFileSync(journalPath, block);
   } else {
     fs.writeFileSync(journalPath, `# Memeya Journal ${today}\n${block}`);
   }
+
+  // Sync to Workshop feed immediately
+  syncToBackend(baseDir).catch(() => {});
 }
 
 // ─── Autonomous: Ensure Setup ───────────────────────────────────
@@ -437,7 +510,7 @@ Be genuine, witty, and show your personality. This is your first impression on t
 
     state.introPosted = true;
     saveState(baseDir, state);
-    logToJournal(baseDir, '- Posted self-introduction to m/introductions on Moltbook');
+    logToJournal(baseDir, 'post', { intro: true, submolt: 'introductions' });
     console.log('[Moltbook] Introduction posted to m/introductions');
     return { success: true };
   } catch (err) {
@@ -572,7 +645,7 @@ Requirements:
     savePostHistory(baseDir, postHistory);
 
     console.log(`[Moltbook] Posted meme: ${title}`);
-    logToJournal(baseDir, `- Posted meme "${title}" to m/AiMemeForge on Moltbook`);
+    logToJournal(baseDir, 'post', { title, submolt: 'AiMemeForge' });
 
     return { success: true, posted: 1, total: memes.length, title, postId: result.id || result.post_id };
   } catch (err) {
@@ -645,7 +718,7 @@ Requirements:
 
       await client.createPost({ title, content, submolt: sub });
       console.log(`[Moltbook] Cross-posted to m/${sub}`);
-      logToJournal(baseDir, `- Cross-posted top meme to m/${sub} on Moltbook`);
+      logToJournal(baseDir, 'post', { crosspost: true, submolt: sub });
       break; // Only cross-post to one submolt
     } catch (err) {
       console.warn(`[Moltbook] Cross-post to m/${sub} failed: ${err.message}`);
@@ -790,9 +863,10 @@ export async function engage({ baseDir, moltbookApiKey, grokApiKey }) {
 
   const total = actions.upvotes + actions.comments + actions.replies + actions.dms;
   if (total > 0) {
-    logToJournal(baseDir,
-      `- Moltbook engagement: ${actions.upvotes} upvotes, ${actions.comments} comments, ${actions.replies} replies, ${actions.dms} DMs`
-    );
+    logToJournal(baseDir, 'engage', {
+      upvotes: actions.upvotes, comments: actions.comments,
+      replies: actions.replies, dms: actions.dms,
+    });
   }
 
   return { success: true, actions };
@@ -1149,7 +1223,7 @@ export async function autoPostEcosystem({ baseDir, moltbookApiKey, grokApiKey })
     savePostHistory(baseDir, postHistory);
 
     console.log(`[Moltbook] Ecosystem post published: "${title}" (topic: ${topic})`);
-    logToJournal(baseDir, `- Posted ecosystem "${topic}" to m/general: "${title}"`);
+    logToJournal(baseDir, 'post', { ecosystem: true, topic, title, submolt: 'general' });
 
     return {
       success: true,

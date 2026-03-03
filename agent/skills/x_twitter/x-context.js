@@ -124,7 +124,7 @@ export function loadRecentPosts(baseDir, maxPosts = 15) {
       const content = fs.readFileSync(path.join(diaryDir, file), 'utf-8');
       const blocks = content.split(/^## /m).filter(Boolean);
       for (const block of blocks.reverse()) {
-        const timeMatch = block.match(/^(\d{2}:\d{2}:\d{2})/);
+        const timeMatch = block.match(/(?:^|\s)(\d{2}:\d{2}:\d{2})/);
         const postedMatch = block.match(/- Posted: (.+)/);
         const topicMatch = block.match(/- Topic: (.+)/);
         const urlMatch = block.match(/- URL: (.+)/);
@@ -844,7 +844,7 @@ export async function syncToBackend(baseDir) {
       const content = fs.readFileSync(diaryPath, 'utf-8');
       const blocks = content.split(/^## /m).filter(Boolean);
       for (const block of blocks) {
-        const timeMatch = block.match(/^(\d{2}:\d{2}:\d{2})/);
+        const timeMatch = block.match(/(?:^|\s)(\d{2}:\d{2}:\d{2})/);
         const topicMatch = block.match(/- Topic: (.+)/);
         const postedMatch = block.match(/- Posted: (.+)/);
         const urlMatch = block.match(/- URL: (.+)/);
