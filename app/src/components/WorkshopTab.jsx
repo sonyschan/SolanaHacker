@@ -411,27 +411,6 @@ const WorkshopTab = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* CTA: Vote Free -> Win Memes & Earn USDC */}
-      {setActiveTab && (
-        <button
-          onClick={() => setActiveTab('forge')}
-          className="w-full bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/30 hover:to-cyan-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🗳️</span>
-              <div className="text-left">
-                <p className="font-bold text-white group-hover:text-purple-300 transition-colors">{t('workshop.cta.voteTitle')}</p>
-                <p className="text-xs text-gray-400">{t('workshop.cta.voteDesc')}</p>
-              </div>
-            </div>
-            <svg className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-      )}
-
       {/* D. Stats Footer */}
       <div className="grid grid-cols-3 gap-3">
         {/* Reward Pool with float-up animation */}
@@ -466,6 +445,27 @@ const WorkshopTab = ({ setActiveTab }) => {
           </div>
         </div>
       </div>
+
+      {/* CTA: Vote Free -> Win Memes & Earn USDC */}
+      {setActiveTab && (
+        <button
+          onClick={() => setActiveTab('forge')}
+          className="w-full bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/30 hover:to-cyan-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🗳️</span>
+              <div className="text-left">
+                <p className="font-bold text-white group-hover:text-purple-300 transition-colors">{t('workshop.cta.voteTitle')}</p>
+                <p className="text-xs text-gray-400">{t('workshop.cta.voteDesc')}</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+      )}
 
       {/* Animations & Visual FX */}
       <style>{`
