@@ -300,6 +300,20 @@ class SchedulerService {
       });
 
       await batch.commit();
+
+      // Clean up old ticket snapshots (older than 7 days)
+      const cutoffDate = oneWeekAgo.toISOString().split('T')[0];
+      const oldSnapshots = await db.collection(collections.USER_TICKETS)
+        .where('date', '<', cutoffDate)
+        .get();
+
+      if (!oldSnapshots.empty) {
+        const snapBatch = db.batch();
+        oldSnapshots.forEach(doc => snapBatch.delete(doc.ref));
+        await snapBatch.commit();
+        console.log(`🗑️ Deleted ${oldSnapshots.size} old ticket snapshots`);
+      }
+
       console.log('✅ Weekly cleanup completed');
 
       await this.logTaskExecution('weekly_cleanup', 'success');
@@ -475,7 +489,7 @@ class SchedulerService {
 
     console.log(`👥 Found ${voterWallets.size} voters on ${targetDate}`);
 
-    // Pick lottery winner — use ticket-weighted selection if tickets are available
+    // Pick lottery winner — 3-tier ticket lookup
     const voterArray = [...voterWallets].filter(w => {
       const user = allUsers.find(u => u.id === w);
       return user && user.lotteryOptIn !== false;
@@ -487,16 +501,30 @@ class SchedulerService {
     let ticketSource = 'none';
 
     if (voterArray.length > 0) {
-      // Build ticket map from current user data
-      const voterTickets = voterArray.map(wallet => {
-        const user = allUsers.find(u => u.id === wallet);
-        return { wallet, tickets: user?.weeklyTickets || 0 };
-      });
+      let voterTickets = [];
+
+      // Tier 1: Try saved snapshot from the draw date
+      const snapshot = await dbUtils.getDocument(collections.USER_TICKETS, targetDate);
+      if (snapshot && snapshot.tickets && Object.keys(snapshot.tickets).length > 0) {
+        ticketSource = 'snapshot';
+        voterTickets = voterArray.map(wallet => ({
+          wallet,
+          tickets: snapshot.tickets[wallet] || 0
+        }));
+        console.log(`📸 Using ticket snapshot from ${targetDate} (${snapshot.participantCount} participants, ${snapshot.totalTickets} total)`);
+      } else {
+        // Tier 2: Use current weeklyTickets (works if recovery runs before next draw resets them)
+        voterTickets = voterArray.map(wallet => {
+          const user = allUsers.find(u => u.id === wallet);
+          return { wallet, tickets: user?.weeklyTickets || 0 };
+        });
+      }
+
       totalTickets = voterTickets.reduce((sum, v) => sum + v.tickets, 0);
 
       if (totalTickets > 0) {
-        // Weighted random selection (same algorithm as lotteryController.runDailyLottery)
-        ticketSource = 'weighted';
+        // Weighted random selection
+        if (ticketSource !== 'snapshot') ticketSource = 'weighted';
         const rand = Math.floor(Math.random() * totalTickets);
         let cumulative = 0;
         for (const v of voterTickets) {
@@ -514,7 +542,7 @@ class SchedulerService {
           winnerTickets = last.tickets;
         }
       } else {
-        // All tickets already reset — equal-weight random
+        // Tier 3: All tickets 0 — equal-weight random
         ticketSource = 'equal_weight';
         totalTickets = voterArray.length;
         winnerTickets = 1;

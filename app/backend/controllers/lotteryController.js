@@ -36,6 +36,32 @@ function getTodayId() {
   return new Date().toISOString().split('T')[0];
 }
 
+/**
+ * Save a snapshot of participant ticket counts before the reset.
+ * Stored in USER_TICKETS/{YYYY-MM-DD} so recoverDraw can use real weights.
+ */
+async function saveTicketSnapshot(date, participants) {
+  const tickets = {};
+  let totalTickets = 0;
+  for (const p of participants) {
+    const t = p.weeklyTickets || 0;
+    if (t > 0) {
+      tickets[p.id] = t;
+      totalTickets += t;
+    }
+  }
+
+  await dbUtils.setDocument(collections.USER_TICKETS, date, {
+    date,
+    savedAt: new Date().toISOString(),
+    tickets,
+    participantCount: Object.keys(tickets).length,
+    totalTickets
+  });
+
+  console.log(`📸 Ticket snapshot saved for ${date}: ${Object.keys(tickets).length} participants, ${totalTickets} total tickets`);
+}
+
 // ==================== Core ====================
 
 /**
@@ -183,6 +209,13 @@ async function runDailyLottery() {
       claimed: false
     })
   });
+
+  // 7b. Save ticket snapshot before reset (non-fatal)
+  try {
+    await saveTicketSnapshot(today, participants);
+  } catch (snapErr) {
+    console.error('⚠️ Ticket snapshot failed (non-fatal):', snapErr.message);
+  }
 
   // 8. Reset participants' tickets (batch max 500)
   const BATCH_LIMIT = 500;
@@ -389,6 +422,7 @@ async function getRecentWinners(limit = 10) {
 
 module.exports = {
   runDailyLottery,
+  saveTicketSnapshot,
   toggleLotteryOptIn,
   getCurrentLottery,
   getLotteryHistory,
