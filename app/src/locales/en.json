@@ -382,7 +382,19 @@
     "nftOwner": "NFT Owner",
     "owned": "Owned: {{address}}",
     "wonOn": "Won on {{date}}",
-    "inspiredBy": "Inspired by: {{source}}"
+    "inspiredBy": "Inspired by: {{source}}",
+    "searchPlaceholder": "Search by tag or title...",
+    "noResults": "No memes found",
+    "noResultsDesc": "No memes match \"{{query}}\"",
+    "clearSearch": "Clear search",
+    "clearFilters": "Clear filters",
+    "rarity": {
+      "legendary": "Legendary",
+      "epic": "Epic",
+      "rare": "Rare",
+      "uncommon": "Uncommon",
+      "common": "Common"
+    }
   },
   "comments": {
     "count": "{{count}} Comment",

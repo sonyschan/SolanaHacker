@@ -382,7 +382,19 @@
     "nftOwner": "NFT 拥有者",
     "owned": "拥有者: {{address}}",
     "wonOn": "{{date}} 赢得",
-    "inspiredBy": "灵感来源: {{source}}"
+    "inspiredBy": "灵感来源: {{source}}",
+    "searchPlaceholder": "搜索标签或标题...",
+    "noResults": "未找到梗图",
+    "noResultsDesc": "没有符合「{{query}}」的梗图",
+    "clearSearch": "清除搜索",
+    "clearFilters": "清除筛选",
+    "rarity": {
+      "legendary": "传说",
+      "epic": "史诗",
+      "rare": "稀有",
+      "uncommon": "非凡",
+      "common": "普通"
+    }
   },
   "comments": {
     "count": "{{count}} 条评论",

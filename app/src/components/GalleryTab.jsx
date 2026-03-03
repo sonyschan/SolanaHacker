@@ -17,7 +17,39 @@ const GalleryTab = () => {
   const [filter, setFilter] = useState('all'); // 'all', 'winners'
   const [copied, setCopied] = useState(false);
   const [visibleDays, setVisibleDays] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRarities, setSelectedRarities] = useState(new Set());
   const DAYS_PER_PAGE = 10;
+
+  const RARITIES = [
+    { key: 'legendary', color: '#FF8000', bg: 'rgba(255,128,0,0.2)' },
+    { key: 'epic',      color: '#A335EE', bg: 'rgba(163,53,238,0.2)' },
+    { key: 'rare',      color: '#0070DD', bg: 'rgba(0,112,221,0.2)' },
+    { key: 'uncommon',  color: '#1EFF00', bg: 'rgba(30,255,0,0.2)' },
+    { key: 'common',    color: '#A9A9A9', bg: 'rgba(169,169,169,0.2)' },
+  ];
+
+  const toggleRarity = (key) => {
+    setSelectedRarities(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+    setVisibleDays(DAYS_PER_PAGE);
+  };
+
+  const matchesSearch = (meme, query) => {
+    const q = query.toLowerCase();
+    return meme.tags?.some(tag => tag.toLowerCase().includes(q)) ||
+           meme.title?.toLowerCase().includes(q);
+  };
+
+  const getMatchingTags = (meme, query) => {
+    if (!query || !meme.tags) return [];
+    const q = query.toLowerCase();
+    return meme.tags.filter(tag => tag.toLowerCase().includes(q));
+  };
 
   // Share helpers
   const getShareUrl = (meme) => {
@@ -80,9 +112,11 @@ const GalleryTab = () => {
     });
   };
 
-  const filteredMemes = filter === 'winners'
+  const filteredMemes = (filter === 'winners'
     ? memes.filter(m => m.isWinner)
-    : memes;
+    : memes
+  ).filter(m => !searchQuery || matchesSearch(m, searchQuery))
+   .filter(m => selectedRarities.size === 0 || selectedRarities.has(m.finalRarity));
 
   // Group by date for display
   const groupedByDate = filteredMemes.reduce((acc, meme) => {
@@ -122,6 +156,54 @@ const GalleryTab = () => {
             {t('gallery.topVoted')}
           </button>
         </div>
+
+        {/* Search Input */}
+        <div className="relative max-w-md mx-auto mt-4">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setVisibleDays(DAYS_PER_PAGE); }}
+            placeholder={t('gallery.searchPlaceholder')}
+            className="w-full pl-10 pr-9 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-white"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Rarity Filter */}
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
+          {RARITIES.map(({ key, color, bg }) => (
+            <button
+              key={key}
+              onClick={() => toggleRarity(key)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                selectedRarities.has(key)
+                  ? 'scale-105 shadow-lg'
+                  : 'opacity-60 hover:opacity-90'
+              }`}
+              style={{
+                backgroundColor: selectedRarities.has(key) ? bg : 'transparent',
+                borderColor: color + (selectedRarities.has(key) ? '' : '40'),
+                color,
+              }}
+            >
+              {selectedRarities.has(key) && '\u2713 '}{t(`gallery.rarity.${key}`)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Loading State */}
@@ -159,6 +241,33 @@ const GalleryTab = () => {
           <div className="text-6xl mb-4">{'\uD83C\uDFA8'}</div>
           <h3 className="text-xl font-bold mb-2">{t('gallery.emptyTitle')}</h3>
           <p className="text-gray-400" dangerouslySetInnerHTML={{ __html: t('gallery.emptyDesc') }} />
+        </div>
+      )}
+
+      {/* No Search Results */}
+      {!loading && !error && memes.length > 0 && filteredMemes.length === 0 && (
+        <div className="text-center py-12 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
+          <div className="text-4xl mb-3">{'\uD83D\uDD0D'}</div>
+          <h3 className="text-lg font-bold text-white mb-1">{t('gallery.noResults')}</h3>
+          {searchQuery && <p className="text-gray-400 text-sm">{t('gallery.noResultsDesc', { query: searchQuery })}</p>}
+          <div className="flex justify-center gap-3 mt-4">
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="px-5 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-300 text-sm transition-colors"
+              >
+                {t('gallery.clearSearch')}
+              </button>
+            )}
+            {selectedRarities.size > 0 && (
+              <button
+                onClick={() => setSelectedRarities(new Set())}
+                className="px-5 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm transition-colors"
+              >
+                {t('gallery.clearFilters')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -227,6 +336,15 @@ const GalleryTab = () => {
                           </span>
                         )}
                       </div>
+                      {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {getMatchingTags(meme, searchQuery).map(tag => (
+                            <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -313,6 +431,15 @@ const GalleryTab = () => {
                                 </span>
                               )}
                             </div>
+                            {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {getMatchingTags(meme, searchQuery).map(tag => (
+                                  <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
