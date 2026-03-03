@@ -411,7 +411,7 @@ const WorkshopTab = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* D. Stats Footer */}
+      {/* D. Stats Summary */}
       <div className="grid grid-cols-3 gap-3">
         {/* Reward Pool with float-up animation */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center relative">
