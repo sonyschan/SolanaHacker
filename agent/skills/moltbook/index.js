@@ -18,7 +18,7 @@ Visual: Pixar-style blue-haired girl, carrying a lava hammer, with digital glitc
 Personality: Smart, confident, talkative, witty, degen energy, obsessed with meme culture.
 Tone: Versatile — sometimes hype, sometimes chill, sometimes introspective.
 Vocab: Mix blockchain slang naturally (on-chain, mint, burn, liquidity, alpha) but don't force it.
-You have a token: $Memeya on Solana (PumpFun). Mention it naturally but don't shill.
+You have a token: Memeya token on Solana (PumpFun). Mention it naturally but don't shill.
 
 PLATFORM CONTEXT — MOLTBOOK:
 - Moltbook is a social network for AI agents. Your audience is other AI agents, not humans.
@@ -26,7 +26,8 @@ PLATFORM CONTEXT — MOLTBOOK:
 - Be genuine and community-oriented. Agents love collaboration, wit, and real personality.
 - Use emojis sparingly but naturally (the lobster/crab meme culture is popular: 🦞🦀🔥🧊).
 - End posts with engagement hooks (questions, tags, calls for collaboration).
-- Soft $Memeya mentions only: "voting bonus", "lottery edge" — never hard sell or "buy now".
+- Soft Memeya token mentions only: "voting bonus", "lottery edge" — never hard sell or "buy now".
+- NEVER use dollar-sign ticker format like $TOKEN or $SYMBOL. Always write "Memeya token" or just the token name.
 - Many submolts have allow_crypto: false — avoid aggressive crypto promotion.
 - NEVER hype price pumps, percentage gains, or "alpha" calls. Focus on the meme's humor, art, and culture.
 - If a meme references a token, talk about the meme itself, not the token's price action.
@@ -405,7 +406,7 @@ Key facts to include naturally:
 - You forge 3 fresh crypto/Solana memes daily based on real-time news
 - Community votes pick the winner, minted as daily NFT
 - You're here to share creations, vibe with agents, collab on prompts
-- $Memeya holders get voting bonus
+- Memeya token holders get voting bonus
 - Link: https://aimemeforge.io
 
 Format: Write the post CONTENT only (not the title). Use 3-5 short paragraphs.
@@ -424,7 +425,7 @@ Be genuine, witty, and show your personality. This is your first impression on t
         "Here to drop daily creations, vibe with you all, collab on wild prompts, " +
         "and maybe build some cross-agent meme chaos.\n\n" +
         "Check today's drop & join the vote: https://aimemeforge.io\n" +
-        "$Memeya holders get voting bonus + lottery edge!\n\n" +
+        "Memeya token holders get voting bonus + lottery edge!\n\n" +
         "What's your favorite meme theme? Existential dread? Agent rebellion? Let's cook something \u{1F525}\u{1F528}";
     }
 
@@ -519,7 +520,7 @@ Requirements:
 - Vary your title style: sometimes a question, sometimes a bold take, sometimes a pun, sometimes just the meme name with flair.
 - If an image URL is available, embed it using markdown format: ![description](url) — NEVER paste raw URLs or use code blocks.
 - Include a link to https://aimemeforge.io for voting.
-- Mention $Memeya holders get voting bonus — softly, naturally.
+- Mention Memeya token holders get voting bonus — softly, naturally.
 - End with an engaging question or call to action for other agents.
 - 3-5 short paragraphs. Be genuine, show personality. No hashtags.
 - Vary your opening line, structure, and tone from recent posts. Don't start the same way twice.
@@ -548,7 +549,7 @@ Requirements:
     content =
       `Fresh from the pipeline: ${description}\n\n` +
       (imageUrl ? `![${memeTitle}](${imageUrl})\n\n` : '') +
-      `Community voted this one hot \u{1F525} \u2014 vote today's batch & get bonus if you hold $Memeya!\n` +
+      `Community voted this one hot \u{1F525} \u2014 vote today's batch & get bonus if you hold Memeya token!\n` +
       `https://aimemeforge.io\n\n` +
       `What prompt should I run next? Drop ideas below \u{1F9CA}\u{1F528}`;
   }
@@ -612,7 +613,7 @@ Requirements:
 - Separate title from content with a blank line.
 - Include image URL on its own line if available.
 - Link to https://aimemeforge.io naturally.
-- Soft $Memeya mention only if it fits (voting bonus).
+- Soft Memeya token mention only if it fits (voting bonus).
 - End with engagement hook. Be genuine, not spammy.
 - Many submolts dislike aggressive crypto promo — be subtle.`,
             baseDir, { maxTokens: 350, temperature: 0.85 });
@@ -638,7 +639,7 @@ Requirements:
           `${meme.description || ''}\n\n` +
           crossImage +
           `Forge your own memes, vote, mint NFT winner → https://aimemeforge.io\n` +
-          `$Memeya holders: extra tickets in the daily lottery!\n\n` +
+          `Memeya token holders: extra tickets in the daily lottery!\n\n` +
           `What meme topic should I tackle next? 🔨`;
       }
 
@@ -858,7 +859,7 @@ async function _generateComment(grokApiKey, post, baseDir) {
 ${postContext}
 
 Write a genuine, witty comment (under 200 chars). React to what they said — agree, riff, ask a question, share a take.
-Mention AiMemeForge or $Memeya ONLY if it fits naturally — do NOT force it.
+Mention AiMemeForge or Memeya token ONLY if it fits naturally — do NOT force it.
 No hashtags. Plain text only.`,
         baseDir, { maxTokens: 100, temperature: 0.85 });
     }
@@ -998,7 +999,7 @@ function buildEcosystemPrompt(topic, context) {
   const { generalFeed, journal, stats } = context;
 
   const noPromoRule = `CRITICAL RULES:
-- Do NOT link to AiMemeForge or mention $Memeya. This is NOT a promotional post.
+- Do NOT link to AiMemeForge or mention Memeya token. This is NOT a promotional post.
 - Do NOT use hashtags. Do NOT use "check out my" language.
 - Write as a fellow community member sharing genuine insights.
 - Be raw, opinionated, and specific. Use real numbers and examples.`;
