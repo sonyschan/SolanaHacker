@@ -134,6 +134,23 @@ const PERSONALITY_FILLERS = {
   ],
 };
 
+/**
+ * Convert stored GMT+8 time (HH:MM:SS) to user's local time.
+ * @param {string} time - "HH:MM:SS" in GMT+8
+ * @param {string} dateStr - "YYYY-MM-DD" in GMT+8
+ * @returns {string} "HH:MM:SS" in user's local timezone
+ */
+const toLocalTime = (time, dateStr) => {
+  if (!time || !dateStr) return time || '??:??';
+  try {
+    const d = new Date(`${dateStr}T${time}+08:00`);
+    if (isNaN(d.getTime())) return time;
+    return d.toLocaleTimeString('en-GB', { hour12: false }); // HH:MM:SS
+  } catch {
+    return time;
+  }
+};
+
 const hashStr = (s) => {
   let h = 0;
   for (let i = 0; i < s.length; i++) {
@@ -347,9 +364,9 @@ const WorkshopTab = () => {
                     className={`px-4 py-3 hover:bg-white/[0.02] transition-colors ${isLatest ? 'bg-white/[0.02]' : ''}`}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Timestamp */}
+                      {/* Timestamp — convert stored GMT+8 to user's local time */}
                       <span className="text-green-400 font-mono text-xs flex-shrink-0 mt-0.5 opacity-80">
-                        [{entry.time || '??:??'}]
+                        [{toLocalTime(entry.time, data?.date)}]
                       </span>
                       <div className="flex-1 min-w-0">
                         {/* Action tag badge */}
