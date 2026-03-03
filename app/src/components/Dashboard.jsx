@@ -50,6 +50,11 @@ const Dashboard = ({
     { id: 'referral', label: t('dashboard.tabs.referral'), icon: '\uD83E\uDD1D', desc: t('dashboard.tabs.referralDesc') }
   ];
 
+  // Scroll to top on tab change
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [activeTab]);
+
   // Close hamburger menu or settings dropdown on ESC
   useEffect(() => {
     if (!isMenuOpen && !isSettingsOpen) return;
