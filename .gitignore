@@ -49,6 +49,10 @@ screenshots/
 .vscode/
 .idea/
 
+# === Internal Docs ===
+docs/TDD.md
+docs/virtuals-acp-strategy.md
+
 # === Backups ===
 *.bak
 *.orig
