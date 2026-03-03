@@ -12,6 +12,13 @@ Standard CTA banners between sections use this structure:
 - Layout: flex row with icon (text-2xl), title (font-bold) + description (text-xs text-gray-400), and right chevron arrow
 - Group hover: title color shift + chevron `translate-x-1`
 
+## Workshop Feed Topics
+
+When adding a new activity topic to the Workshop feed, register it in all 3 maps in `WorkshopTab.jsx`:
+1. `TOPIC_COLORS` — background/text/border color classes
+2. `ACTION_TAGS` — tag label + emoji (e.g. `{ tag: 'POSTING', emoji: '📘' }`)
+3. `PERSONALITY_FILLERS` — array of 8 filler strings for the tag (add new key if tag is new)
+
 <claude-mem-context>
 # Recent Activity
 
