@@ -358,7 +358,9 @@
       "lotteryDraw": "每日 23:55 UTC 開獎",
       "nftSoon": "NFT 鑄造即將推出!",
       "browseGallery": "瀏覽畫廊",
+      "browseGalleryDesc": "探索過往的經典迷因",
       "manageTickets": "管理抽獎券",
+      "manageTicketsDesc": "選擇今晚開獎的策略",
       "viewResults": "查看結果與統計"
     }
   },

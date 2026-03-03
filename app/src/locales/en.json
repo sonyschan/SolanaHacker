@@ -358,7 +358,9 @@
       "lotteryDraw": "Daily lottery draw at 23:55 UTC",
       "nftSoon": "NFT minting coming soon!",
       "browseGallery": "Browse Gallery",
+      "browseGalleryDesc": "Explore legendary memes from days past",
       "manageTickets": "Manage Tickets",
+      "manageTicketsDesc": "Choose your lottery strategy for tonight's draw",
       "viewResults": "View Results & Stats"
     }
   },

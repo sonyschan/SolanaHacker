@@ -706,24 +706,44 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-              {setActiveTab && (
-                <>
-                  <button
-                    onClick={() => setActiveTab('gallery')}
-                    className="px-5 py-3 bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/40 hover:border-amber-500/60 rounded-xl font-bold hover:scale-105 transition-all text-amber-300"
-                  >
-                    🏛️ {t('forge.completed.browseGallery')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('tickets')}
-                    className="px-5 py-3 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/40 hover:border-purple-500/60 rounded-xl font-bold hover:scale-105 transition-all text-purple-300"
-                  >
-                    🎫 {t('forge.completed.manageTickets')}
-                  </button>
-                </>
-              )}
-            </div>
+            {setActiveTab && (
+              <div className="space-y-3 mb-4 max-w-lg mx-auto">
+                <button
+                  onClick={() => setActiveTab('gallery')}
+                  className="w-full bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/30 hover:to-cyan-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🏛️</span>
+                      <div className="text-left">
+                        <p className="font-bold text-white group-hover:text-purple-300 transition-colors">{t('forge.completed.browseGallery')}</p>
+                        <p className="text-xs text-gray-400">{t('forge.completed.browseGalleryDesc')}</p>
+                      </div>
+                    </div>
+                    <svg className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('tickets')}
+                  className="w-full bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/30 hover:to-cyan-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎫</span>
+                      <div className="text-left">
+                        <p className="font-bold text-white group-hover:text-purple-300 transition-colors">{t('forge.completed.manageTickets')}</p>
+                        <p className="text-xs text-gray-400">{t('forge.completed.manageTicketsDesc')}</p>
+                      </div>
+                    </div>
+                    <svg className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            )}
             <button
               onClick={resetVoting}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform"

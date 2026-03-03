@@ -358,7 +358,9 @@
       "lotteryDraw": "每日 23:55 UTC 开奖",
       "nftSoon": "NFT 铸造即将推出!",
       "browseGallery": "浏览画廊",
+      "browseGalleryDesc": "探索过往的经典梗图",
       "manageTickets": "管理抽奖券",
+      "manageTicketsDesc": "选择今晚开奖的策略",
       "viewResults": "查看结果与统计"
     }
   },
