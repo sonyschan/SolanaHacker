@@ -551,7 +551,7 @@ Your knowledge:\n${knowledge}`,
       const msg = `${intro}\n\n${tweetText}\n\n${tweetUrl}`;
       const sent = await this.bot.sendMessage(this.chatId, msg);
       if (sent?.message_id) this._botMessageIds.add(sent.message_id);
-      this._logToJournal('X Post Shared', `${tweetText}\n${tweetUrl}`);
+      if (this.label !== 'CN') this._logToJournal('X Post Shared', `${tweetText}\n${tweetUrl}`);
       console.log(`[TgCommunity:${this.label}] Shared X post to group: ${tweetUrl}`);
     } catch (err) {
       console.error(`[TgCommunity:${this.label}] shareXPost error:`, err.message);

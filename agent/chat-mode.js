@@ -1985,13 +1985,12 @@ ${recentMemory.slice(-1500)}
           } catch (e) {
             console.error('[ChatMode] Telegram notification failed:', e.message);
           }
-          // Share to TG community groups
-          for (const bot of [this.tgCommunity, this.tgCommunityCN]) {
-            if (!bot) continue;
+          // Share Announcement posts to TG community (EN only)
+          if (/announcement/i.test(result.text) && this.tgCommunity) {
             try {
-              await bot.shareXPost(result.text, result.url);
+              await this.tgCommunity.shareXPost(result.text, result.url);
             } catch (e) {
-              console.error(`[ChatMode] TG community share failed (${bot.label}):`, e.message);
+              console.error(`[ChatMode] TG community share failed:`, e.message);
             }
           }
         } else {
