@@ -5,11 +5,39 @@ import LanguageSwitcher from './LanguageSwitcher';
 
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 
+const TICKER_TAGS = {
+  news_digest: { tag: 'SCANNING', color: 'text-blue-400' },
+  crypto_commentary: { tag: 'SCANNING', color: 'text-blue-400' },
+  meme_spotlight: { tag: 'FORGING', color: 'text-purple-400' },
+  meme_forge: { tag: 'FORGING', color: 'text-purple-400' },
+  winner_announcement: { tag: 'EARNING', color: 'text-yellow-400' },
+  reward_recap: { tag: 'EARNING', color: 'text-yellow-400' },
+  community_response: { tag: 'LISTENING', color: 'text-cyan-400' },
+  comment_review: { tag: 'LISTENING', color: 'text-cyan-400' },
+  dev_update: { tag: 'BUILDING', color: 'text-green-400' },
+  feature_showtime: { tag: 'BUILDING', color: 'text-green-400' },
+  personal_vibe: { tag: 'VIBING', color: 'text-gray-400' },
+  token_spotlight: { tag: 'TRACKING', color: 'text-yellow-400' },
+  meme_design: { tag: 'THINKING', color: 'text-violet-400' },
+};
+
+const getTickerTag = (topic) => TICKER_TAGS[topic] || { tag: 'VIBING', color: 'text-gray-400' };
+
+const toLocalHHMM = (time, dateStr) => {
+  if (!time || !dateStr) return '';
+  try {
+    const d = new Date(`${dateStr}T${time}+08:00`);
+    return isNaN(d.getTime()) ? time.slice(0, 5) : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch { return time.slice(0, 5); }
+};
+
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [weeklyVoters, setWeeklyVoters] = useState(0);
   const [totalMemes, setTotalMemes] = useState(0);
   const [caCopied, setCaCopied] = useState(false);
+  const [workshop, setWorkshop] = useState(null);
+  const [tickerIdx, setTickerIdx] = useState(0);
 
   const copyCA = useCallback(() => {
     navigator.clipboard.writeText(MEMEYA_TOKEN_CA);
@@ -32,6 +60,37 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
     };
     fetchStats();
   }, []);
+
+  // Fetch Memeya workshop activity for homepage ticker
+  useEffect(() => {
+    const load = () => {
+      fetch("https://memeforge-api-836651762884.asia-southeast1.run.app/api/memeya/workshop")
+        .then(r => r.json())
+        .then(setWorkshop)
+        .catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 120000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Rotate ticker entries (newest first)
+  const tickerEntries = workshop?.entries?.length ? [...workshop.entries].reverse() : [];
+  useEffect(() => {
+    if (tickerEntries.length <= 1) return;
+    const timer = setInterval(() => {
+      setTickerIdx(prev => (prev + 1) % tickerEntries.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [tickerEntries.length]);
+
+  const safeTickerIdx = tickerEntries.length ? tickerIdx % tickerEntries.length : 0;
+  const currentTickerEntry = tickerEntries[safeTickerIdx];
+  const tickerTag = currentTickerEntry ? getTickerTag(currentTickerEntry.topic) : null;
+  const isChinese = i18n.language?.startsWith('zh');
+  const tickerText = currentTickerEntry
+    ? (isChinese ? (currentTickerEntry.text_zh || currentTickerEntry.text || '') : (currentTickerEntry.text_en || currentTickerEntry.text || ''))
+    : '';
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
@@ -59,17 +118,6 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         </div>
 
         <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-          <div className="hidden lg:flex items-center space-x-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-              <span className="text-sm text-gray-400">{t('home.nav.live')}</span>
-            </div>
-            <div className="text-sm">
-              <span className="text-cyan-400 font-bold">{weeklyVoters}</span>
-              <span className="text-gray-500 ml-1">{t('home.nav.votersThisWeek')}</span>
-            </div>
-          </div>
-
           <a
             href="#wiki"
             className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
@@ -109,6 +157,30 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <p className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 tracking-wide bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
             {t('home.hero.subtitle')}
           </p>
+
+          {/* Memeya Activity Ticker */}
+          {currentTickerEntry && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
+                <img
+                  src="/images/memeya-avatar.png"
+                  alt="Memeya"
+                  className="w-8 h-8 rounded-full ring-2 ring-green-500/30 flex-shrink-0"
+                />
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden homepage-ticker-line" key={safeTickerIdx}>
+                  <span className="text-green-500/70 flex-shrink-0">{'>'}</span>
+                  <span className="text-gray-600 flex-shrink-0 hidden sm:inline">
+                    [{toLocalHHMM(currentTickerEntry.time, workshop?.date)}]
+                  </span>
+                  <span className={`flex-shrink-0 text-xs font-bold ${tickerTag.color}`}>
+                    {tickerTag.tag}
+                  </span>
+                  <span className="text-gray-400 truncate">{tickerText}</span>
+                  <span className="text-green-500/70 homepage-ticker-cursor flex-shrink-0">&#9608;</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
             <Trans i18nKey="home.hero.desc">
@@ -351,6 +423,39 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           </div>
         </div>
       </div>
+
+      {/* Ticker animations */}
+      <style>{`
+        .homepage-ticker-line {
+          animation: hpTickerFadeIn 0.6s ease-out;
+        }
+        @keyframes hpTickerFadeIn {
+          from { opacity: 0; transform: translateX(10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .homepage-ticker-cursor {
+          animation: hpTickerBlink 1s step-end infinite;
+        }
+        @keyframes hpTickerBlink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .homepage-scanline {
+          position: relative;
+        }
+        .homepage-scanline::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            transparent 0px, transparent 1px,
+            rgba(255,255,255,0.015) 1px, rgba(255,255,255,0.015) 2px
+          );
+          pointer-events: none;
+          border-radius: inherit;
+        }
+      `}</style>
     </div>
   );
 };
