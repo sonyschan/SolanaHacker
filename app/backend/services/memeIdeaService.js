@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const templates = require('../data/meme-templates.json');
 const strategyService = require('./memeStrategyService');
 const narrativeService = require('./memeNarrativeService');
+const v1Legacy = require('./memeV1Legacy');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -37,27 +38,55 @@ const CATEGORY_BONUSES = {
   C: ['distracted_boyfriend', 'npc_chad', 'gigachad', 'spongebob_mocking']
 };
 
-/**
- * Compute soft cooldown weight for an archetype based on recent usage.
- * Never fully blocks — just reduces probability.
- */
-function getArchetypeCooldownWeight(archetype, recentTemplateIds) {
-  if (!archetype || recentTemplateIds.length === 0) return 1.0;
+const MS_PER_DAY = 86400000;
 
-  // Build archetype lookup from templates
-  const templateArchetypeMap = {};
-  for (const t of templates) {
-    templateArchetypeMap[t.id] = t.archetype;
+/**
+ * Select a V1 art style not used in the last 7 days.
+ * Returns { id, name, prompt, nftTier }.
+ */
+function selectArtStyle(recentThemes = []) {
+  const now = Date.now();
+  const recentStyleIds = recentThemes
+    .filter(t => t.artStyleId && t.generatedAt)
+    .filter(t => (now - Date.parse(t.generatedAt)) < 7 * MS_PER_DAY)
+    .map(t => t.artStyleId);
+  return v1Legacy.pickFreshStyle(recentStyleIds);
+}
+
+/**
+ * Compute soft cooldown weight for an archetype based on date-aware recency.
+ * Uses actual generatedAt timestamps instead of array position.
+ */
+function getArchetypeCooldownWeight(archetype, recentThemes) {
+  if (!archetype || !recentThemes || recentThemes.length === 0) return 1.0;
+
+  const now = Date.now();
+  let minDaysAgo = Infinity;
+
+  for (const theme of recentThemes) {
+    if (theme.archetype !== archetype) continue;
+    if (!theme.generatedAt) continue;
+    const daysAgo = (now - Date.parse(theme.generatedAt)) / MS_PER_DAY;
+    if (daysAgo < minDaysAgo) minDaysAgo = daysAgo;
   }
 
-  // Check recency of this archetype in recent template usage
-  for (let i = 0; i < recentTemplateIds.length; i++) {
-    const recentArchetype = templateArchetypeMap[recentTemplateIds[i]];
-    if (recentArchetype === archetype) {
-      if (i < 3) return 0.1;   // most recent 3 entries (~24h)
-      if (i < 9) return 0.4;   // entries 4-9 (~72h)
-      return 1.0;
-    }
+  if (minDaysAgo < 3) return 0.05;  // near-block: 95% reduction
+  if (minDaysAgo < 7) return 0.2;   // heavy: 80% reduction
+  return 1.0;
+}
+
+/**
+ * Hard block any template reused within 14 days.
+ * Returns 0 (hard block) or 1.0 (no penalty).
+ */
+function getTemplateBlockWeight(templateId, recentThemes) {
+  if (!templateId || !recentThemes || recentThemes.length === 0) return 1.0;
+
+  const now = Date.now();
+  for (const theme of recentThemes) {
+    if (theme.templateId !== templateId) continue;
+    if (!theme.generatedAt) continue;
+    if ((now - Date.parse(theme.generatedAt)) / MS_PER_DAY < 14) return 0;  // hard block
   }
 
   return 1.0;
@@ -67,17 +96,15 @@ function getArchetypeCooldownWeight(archetype, recentTemplateIds) {
  * Select a template based on event content, category, and anti-repetition.
  * Pure function (deterministic scoring + small random tiebreaker).
  */
-function selectTemplate(event, recentTemplateIds = []) {
+function selectTemplate(event, recentThemes = []) {
   const eventText = (event.title || event).toLowerCase();
   const category = event.category || null;
 
-  const usageCounts = {};
-  for (const id of recentTemplateIds) {
-    usageCounts[id] = (usageCounts[id] || 0) + 1;
-  }
-
   const scored = templates.map(t => {
-    if ((usageCounts[t.id] || 0) >= 2) return { template: t, score: -1 };
+    // Hard block: template used within 14 days
+    if (getTemplateBlockWeight(t.id, recentThemes) === 0) {
+      return { template: t, score: -1 };
+    }
 
     let score = 0;
     for (const tag of t.suitability_tags) {
@@ -89,9 +116,8 @@ function selectTemplate(event, recentTemplateIds = []) {
     if (category && CATEGORY_BONUSES[category]) {
       if (CATEGORY_BONUSES[category].includes(t.id)) score += 3;
     }
-    // Archetype cooldown — soft penalty for recently-used archetypes
-    const archetypeWeight = getArchetypeCooldownWeight(t.archetype, recentTemplateIds);
-    score *= archetypeWeight;
+    // Archetype cooldown — date-aware soft penalty
+    score *= getArchetypeCooldownWeight(t.archetype, recentThemes);
 
     score += Math.random() * 0.5;
 
@@ -365,10 +391,11 @@ Respond with ONLY this JSON:
  * Build image prompt from meme idea + style mode. Pure function.
  * Uses layout_instructions for panel-by-panel positioning.
  */
-function buildImagePrompt(memeIdea, styleMode = 'meme_native') {
+function buildImagePrompt(memeIdea, artStyle = null) {
   const template = templates.find(t => t.id === memeIdea.template_id);
   const layoutInstructions = template?.layout_instructions || template?.layout_guidance || '';
-  const styleInstruction = STYLE_MODES[styleMode] || STYLE_MODES.meme_native;
+  // Use V1 art style prompt if provided, otherwise fall back to meme_native
+  const styleInstruction = artStyle?.prompt || STYLE_MODES.meme_native;
 
   const hasSlots = memeIdea.caption_slots && Object.keys(memeIdea.caption_slots).length > 0;
 
@@ -502,13 +529,227 @@ function getCaptionSlotsExample(template) {
   }
 }
 
+/**
+ * Check if a meme qualifies for NFT minting based on visual uniqueness rules.
+ * Rule 1: template not reused within 14 days
+ * Rule 2: archetype not reused within 7 days (unless all 4 archetypes exhausted)
+ */
+function checkMintEligibility(templateId, archetype, recentThemes) {
+  const now = Date.now();
+
+  // Rule 1: template not used in 14 days
+  const templateUsedIn14d = recentThemes.some(t =>
+    t.templateId === templateId &&
+    t.generatedAt &&
+    (now - Date.parse(t.generatedAt)) < 14 * MS_PER_DAY
+  );
+  if (templateUsedIn14d) {
+    return { mintEligible: false, mintReason: 'visual_template_id repeated within 14 days' };
+  }
+
+  // Rule 2: archetype not used in 7 days
+  const archetypeUsedIn7d = recentThemes.some(t =>
+    t.archetype === archetype &&
+    t.generatedAt &&
+    (now - Date.parse(t.generatedAt)) < 7 * MS_PER_DAY
+  );
+  if (archetypeUsedIn7d) {
+    // Fallback: if all 4 archetypes exhausted in 7-day window, allow
+    const allArchetypes = [...new Set(templates.map(t => t.archetype).filter(Boolean))];
+    const usedArchetypes7d = new Set(
+      recentThemes
+        .filter(t => t.archetype && t.generatedAt && (now - Date.parse(t.generatedAt)) < 7 * MS_PER_DAY)
+        .map(t => t.archetype)
+    );
+    if (allArchetypes.every(a => usedArchetypes7d.has(a))) {
+      return { mintEligible: true, mintReason: null };
+    }
+    return { mintEligible: false, mintReason: 'visual_archetype repeated within 7 days' };
+  }
+
+  return { mintEligible: true, mintReason: null };
+}
+
+/**
+ * Generate an original meme idea (Mode B) — no template, free composition.
+ * Uses V2 caption rules (≤6 words/slot, first-person, crypto-native)
+ * but lets the AI compose the visual scene freely.
+ */
+async function generateOriginalMemeIdea(event, recentThemes = [], strategy = null, narrative = null) {
+  const newsTitle = event.title || event;
+
+  let recentContext = '';
+  if (recentThemes.length > 0) {
+    const themesList = recentThemes
+      .slice(0, 10)
+      .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
+      .join('\n');
+    recentContext = `\nAVOID these recent themes — make something FRESH:\n${themesList}\n`;
+  }
+
+  const prompt = `You are a Crypto Twitter meme lord AND a creative visual artist. Generate an ORIGINAL meme concept — no template, free composition.
+
+NEWS EVENT: "${newsTitle}"
+${recentContext}
+CAPTION RULES (MANDATORY):
+- Simple top_text + bottom_text layout (classic meme format)
+- Each slot MUST be <= 6 words. Short punchy phrases, not sentences.
+- First-person POV required — use me/my/I/we
+- Use phrases crypto traders actually say on Twitter
+- Setup + twist structure — the joke needs a punchline or ironic reversal
+- DO NOT explain the joke
+
+FORBIDDEN PATTERNS:
+- NO "My + verb-ing" (e.g., "My buying", "My holding")
+- NO "My portfolio after ..."
+- NO explanatory words: "because", "therefore", "caused by"
+- Use fragments, not full sentences.
+
+VISUAL SCENE (THIS IS THE KEY — be creative):
+- Describe a vivid, original visual scene that MAKES the joke work
+- Think beyond standard meme templates — invent the composition
+- The scene should be memorable, shareable, visually striking
+- Include character poses, expressions, environment, key visual elements
+- The visual_description should be detailed enough to generate a unique image
+${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
+${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
+${strategyService.formatPunchlineLibrary()}
+
+OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
+{
+  "caption": "Summary caption (top + bottom combined)",
+  "caption_slots": {"top_text": "setup phrase", "bottom_text": "punchline phrase"},
+  "visual_description": "Detailed creative scene description — characters, poses, environment, key visual elements. This directs the entire image composition.",
+  "emotion": "primary emotion (one word)",
+  "twist": "What makes this funny — the ironic reversal or punchline",
+  "event_angle": "How this connects to the news event"
+}`;
+
+  const result = await textModel.generateContent(prompt);
+  const response = await result.response;
+  let text = response.text().trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON in original meme idea response');
+  }
+
+  const memeIdea = JSON.parse(jsonMatch[0]);
+  memeIdea.template_id = null; // Mode B: no template
+  return memeIdea;
+}
+
+/**
+ * Retry an original meme idea — keep visual_description + event_angle.
+ * Rewrite caption, caption_slots, twist.
+ */
+async function retryOriginalMemeIdea(previousIdea, fixSuggestions, strategy = null, narrative = null) {
+  const suggestionsText = (fixSuggestions || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
+
+  const prompt = `You are a Crypto Twitter meme lord. REWRITE this original meme's caption and twist. Keep the visual scene and angle.
+
+ORIGINAL CAPTION: "${previousIdea.caption}"
+ORIGINAL CAPTION SLOTS: ${JSON.stringify(previousIdea.caption_slots)}
+ORIGINAL TWIST: "${previousIdea.twist}"
+EVENT ANGLE (KEEP THIS): "${previousIdea.event_angle}"
+VISUAL DESCRIPTION (KEEP THIS): "${previousIdea.visual_description}"
+
+ISSUES TO FIX:
+${suggestionsText}
+
+CRITICAL RULE: Each caption slot MUST be <= 6 words. Short phrases, not sentences.
+GOOD: "Buying the dip" / BAD: "My portfolio after degen dip buy"
+
+FORBIDDEN PATTERNS:
+- NO "My + verb-ing" (e.g., "My buying", "My holding")
+- NO "My portfolio after ..."
+- NO explanatory words: "because", "therefore", "caused by"
+- Use fragments, not full sentences.
+
+RULES: First-person POV. Crypto Twitter language. Immediate emotional reaction, not description. Setup + twist.
+${strategy ? `\nSTRATEGY (KEEP THIS): ${strategy.strategy_name}\n${strategy.definition}\n` : ''}
+${narrative ? `\nNARRATIVE (KEEP THIS): ${narrative.narrative_name}\nEMOTION: ${narrative.emotion} | ROLE: ${narrative.trader_role}\n` : ''}
+${strategyService.formatPunchlineLibrary()}
+
+IMPORTANT: Make the rewritten caption MORE ORIGINAL. Use a different punchline pattern.
+
+Respond with ONLY this JSON:
+{
+  "caption": "Rewritten caption",
+  "caption_slots": {"top_text": "rewritten setup", "bottom_text": "rewritten punchline"},
+  "visual_description": "${(previousIdea.visual_description || '').replace(/"/g, '\\"')}",
+  "emotion": "primary emotion",
+  "twist": "Rewritten twist",
+  "event_angle": "${(previousIdea.event_angle || '').replace(/"/g, '\\"')}"
+}`;
+
+  const result = await textModel.generateContent(prompt);
+  const response = await result.response;
+  let text = response.text().trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON in retry original meme idea response');
+  }
+
+  const memeIdea = JSON.parse(jsonMatch[0]);
+  memeIdea.template_id = null; // Mode B: no template
+  memeIdea.visual_description = memeIdea.visual_description || previousIdea.visual_description;
+  memeIdea.event_angle = memeIdea.event_angle || previousIdea.event_angle;
+  if (!memeIdea.caption || memeIdea.caption === 'Rewritten caption') {
+    const slotValues = Object.values(memeIdea.caption_slots || {}).filter(Boolean);
+    memeIdea.caption = slotValues.length > 0 ? slotValues.join(' | ') : previousIdea.caption;
+  }
+  return memeIdea;
+}
+
+/**
+ * Build image prompt for Mode B originals — V1-style free composition.
+ * Uses visual_description as primary composition + V1 art style.
+ */
+function buildOriginalImagePrompt(memeIdea, artStyle) {
+  const topText = memeIdea.caption_slots?.top_text || '';
+  const bottomText = memeIdea.caption_slots?.bottom_text || '';
+  const styleInstruction = artStyle?.prompt || STYLE_MODES.meme_native;
+
+  return `Create an original meme image with a unique, creative composition.
+
+VISUAL SCENE (primary — this defines the entire image):
+${memeIdea.visual_description || 'A vivid crypto-themed scene'}
+
+EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
+
+ART STYLE: ${styleInstruction}
+
+TEXT OVERLAY:
+${topText ? `- TOP: "${topText}" — bold text at the top of the image` : ''}
+${bottomText ? `- BOTTOM: "${bottomText}" — bold text at the bottom of the image` : ''}
+
+MANDATORY TEXT STYLING:
+- All text must be BIG BOLD meme text with black outline (or black shadow)
+- Text must be clearly legible against the background
+- Use Impact font style or similarly bold, readable font
+
+Technical requirements:
+- Square aspect ratio (1:1)
+- High contrast colors for visual impact
+- NFT-quality artwork suitable for collection
+- 1024x1024 pixels resolution
+- Clean composition with balanced visual elements`;
+}
+
 module.exports = {
   selectTemplate,
+  selectArtStyle,
   generateMemeIdea,
+  generateOriginalMemeIdea,
   retryMemeIdea,
+  retryOriginalMemeIdea,
   evaluateMemeIdea,
   buildImagePrompt,
+  buildOriginalImagePrompt,
   validateCaption,
+  checkMintEligibility,
   STYLE_MODES,
   CRYPTO_TERMS
 };

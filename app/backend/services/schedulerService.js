@@ -133,11 +133,29 @@ class SchedulerService {
         return { skipped: true, reason: 'No active voting period' };
       }
 
-      const results = await this.calculateVotingResults(activePeriod.memeIds);
+      let results = await this.calculateVotingResults(activePeriod.memeIds);
 
-      // Defensive: warn if all memes in the voting period were deleted/missing
-      if (Object.keys(results).length === 0) {
-        console.warn(`⚠️ All ${activePeriod.memeIds.length} memes in voting period are missing (deleted?). Meme IDs: ${activePeriod.memeIds.join(', ')}`);
+      // Fallback: if all original memes were deleted, try finding today's memes by date
+      if (Object.keys(results).length === 0 && activePeriod.memeIds.length > 0) {
+        console.warn(`⚠️ All ${activePeriod.memeIds.length} memes in voting period are missing (deleted?). Original IDs: ${activePeriod.memeIds.join(', ')}`);
+        console.warn('🔄 Falling back to date-based meme query...');
+
+        const fallbackMemes = await this.getMemesForDate(activePeriod.date);
+        if (fallbackMemes.length > 0) {
+          const fallbackIds = fallbackMemes.map(m => m.id);
+          console.log(`✅ Found ${fallbackMemes.length} replacement memes for ${activePeriod.date}: ${fallbackIds.join(', ')}`);
+          results = await this.calculateVotingResults(fallbackIds);
+
+          // Update voting period with new memeIds, preserve originals for audit
+          await dbUtils.updateDocument(collections.VOTING_PERIODS, activePeriod.id, {
+            memeIds: fallbackIds,
+            originalMemeIds: activePeriod.memeIds,
+            memeIdsFallbackAt: new Date().toISOString()
+          });
+          activePeriod.memeIds = fallbackIds;
+        } else {
+          console.warn(`⚠️ No fallback memes found for ${activePeriod.date} either`);
+        }
       }
 
       const winningMeme = this.selectWinningMeme(results);
@@ -359,12 +377,12 @@ class SchedulerService {
    * Recover a failed lottery draw for a specific date
    * Finds memes for that date, determines winner, updates draw record
    */
-  async recoverDraw(targetDate) {
-    console.log(`🔧 Recovering lottery draw for ${targetDate}...`);
+  async recoverDraw(targetDate, { force = false } = {}) {
+    console.log(`🔧 Recovering lottery draw for ${targetDate}${force ? ' (FORCE)' : ''}...`);
 
     // 1. Check existing draw
     const existingDraw = await dbUtils.getDocument(collections.LOTTERY_DRAWS, targetDate);
-    if (existingDraw && existingDraw.status === 'completed') {
+    if (existingDraw && existingDraw.status === 'completed' && !force) {
       return { skipped: true, reason: 'Draw already completed', draw: existingDraw };
     }
 
@@ -457,16 +475,54 @@ class SchedulerService {
 
     console.log(`👥 Found ${voterWallets.size} voters on ${targetDate}`);
 
-    // Pick a random voter as the lottery winner (since original tickets are gone)
+    // Pick lottery winner — use ticket-weighted selection if tickets are available
     const voterArray = [...voterWallets].filter(w => {
       const user = allUsers.find(u => u.id === w);
       return user && user.lotteryOptIn !== false;
     });
 
     let lotteryWinner = null;
+    let winnerTickets = 0;
+    let totalTickets = 0;
+    let ticketSource = 'none';
+
     if (voterArray.length > 0) {
-      const randIdx = Math.floor(Math.random() * voterArray.length);
-      lotteryWinner = voterArray[randIdx];
+      // Build ticket map from current user data
+      const voterTickets = voterArray.map(wallet => {
+        const user = allUsers.find(u => u.id === wallet);
+        return { wallet, tickets: user?.weeklyTickets || 0 };
+      });
+      totalTickets = voterTickets.reduce((sum, v) => sum + v.tickets, 0);
+
+      if (totalTickets > 0) {
+        // Weighted random selection (same algorithm as lotteryController.runDailyLottery)
+        ticketSource = 'weighted';
+        const rand = Math.floor(Math.random() * totalTickets);
+        let cumulative = 0;
+        for (const v of voterTickets) {
+          cumulative += v.tickets;
+          if (rand < cumulative) {
+            lotteryWinner = v.wallet;
+            winnerTickets = v.tickets;
+            break;
+          }
+        }
+        // Safety fallback
+        if (!lotteryWinner) {
+          const last = voterTickets[voterTickets.length - 1];
+          lotteryWinner = last.wallet;
+          winnerTickets = last.tickets;
+        }
+      } else {
+        // All tickets already reset — equal-weight random
+        ticketSource = 'equal_weight';
+        totalTickets = voterArray.length;
+        winnerTickets = 1;
+        const randIdx = Math.floor(Math.random() * voterArray.length);
+        lotteryWinner = voterArray[randIdx];
+      }
+
+      console.log(`🎰 Selection: ${ticketSource}, winner=${lotteryWinner}, tickets=${winnerTickets}/${totalTickets}`);
     }
 
     // 7. Update lottery draw record
@@ -475,13 +531,14 @@ class SchedulerService {
       date: targetDate,
       drawTime: new Date().toISOString(),
       winnerWallet: lotteryWinner,
-      winnerTickets: 0,
+      winnerTickets,
       totalParticipants: voterArray.length,
-      totalTickets: 0,
+      totalTickets,
       winningMemeId: winningMeme.id,
       status: lotteryWinner ? 'completed' : 'no_participants',
       recovered: true,
-      recoveredAt: new Date().toISOString()
+      recoveredAt: new Date().toISOString(),
+      ticketSource
     };
     await dbUtils.setDocument(collections.LOTTERY_DRAWS, targetDate, drawData);
 
@@ -515,8 +572,9 @@ class SchedulerService {
 
     console.log(`✅ Draw recovered for ${targetDate}. Winner: ${lotteryWinner || 'none'}, Meme: ${winningMeme.id}`);
 
-    // 9. Chain reward distribution if draw completed
-    if (drawData.status === 'completed') {
+    // 9. Chain reward distribution if draw completed (skip if force re-recovery already distributed)
+    const alreadyRewarded = force && existingDraw?.rewardResult?.status === 'completed';
+    if (drawData.status === 'completed' && !alreadyRewarded) {
       try {
         const configDoc = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, 'config');
         const rewardEnabled = configDoc?.rewardEnabled !== false;
@@ -535,6 +593,9 @@ class SchedulerService {
         console.error('⚠️ Reward distribution failed (non-fatal):', rewardErr.message);
         drawData.rewardError = rewardErr.message;
       }
+    } else if (alreadyRewarded) {
+      console.log('💰 Skipping rewards — already distributed in previous recovery');
+      drawData.rewardResult = existingDraw.rewardResult;
     }
 
     await this.logTaskExecution('recover_draw', 'success');
@@ -547,6 +608,25 @@ class SchedulerService {
     const today = new Date().toISOString().split('T')[0];
     const startOfDay = new Date(today + 'T00:00:00.000Z').toISOString();
     const endOfDay = new Date(today + 'T23:59:59.999Z').toISOString();
+
+    const db = getFirestore();
+    const snapshot = await db.collection(collections.MEMES)
+      .where('type', '==', 'daily')
+      .where('generatedAt', '>=', startOfDay)
+      .where('generatedAt', '<=', endOfDay)
+      .get();
+
+    const memes = [];
+    snapshot.forEach(doc => {
+      memes.push({ id: doc.id, ...doc.data() });
+    });
+
+    return memes;
+  }
+
+  async getMemesForDate(dateStr) {
+    const startOfDay = new Date(dateStr + 'T00:00:00.000Z').toISOString();
+    const endOfDay = new Date(dateStr + 'T23:59:59.999Z').toISOString();
 
     const db = getFirestore();
     const snapshot = await db.collection(collections.MEMES)

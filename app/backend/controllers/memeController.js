@@ -102,18 +102,18 @@ Technical requirements:
 
 /**
  * Fetch recent meme themes from Firestore for anti-repetition.
- * Returns last 7 days of daily memes (up to 21).
+ * Returns last 14 days of daily memes (up to 42).
  */
 async function getRecentMemeThemes() {
   try {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
+    cutoff.setDate(cutoff.getDate() - 14);
 
     const recentMemes = await dbUtils.queryWithOrderAndLimit(
       collections.MEMES,
       'generatedAt',
       'desc',
-      21,
+      42,
       [
         { field: 'type', operator: '==', value: 'daily' },
         { field: 'generatedAt', operator: '>=', value: cutoff.toISOString() },
@@ -129,6 +129,8 @@ async function getRecentMemeThemes() {
       strategyId: m.metadata?.strategyId || null,
       narrativeId: m.metadata?.narrativeId || null,
       caption: m.metadata?.memeIdea?.caption || null,
+      artStyleId: m.metadata?.artStyleId || null,
+      generatedAt: m.generatedAt || null,
     }));
 
     console.log(`🔄 Loaded ${themes.length} recent meme themes for anti-repetition`);
@@ -144,7 +146,7 @@ async function getRecentMemeThemes() {
  */
 async function generateDailyMemes(req, res) {
   try {
-    console.log('📅 Starting daily meme generation (template pipeline)...');
+    console.log('📅 Starting daily meme generation (V3: template + original pipeline)...');
 
     // 1. Daily run lock (Firestore transaction to prevent race conditions)
     const today = new Date().toISOString().split("T")[0];
@@ -178,11 +180,8 @@ async function generateDailyMemes(req, res) {
       return res.json({ success: true, message: "Memes already generated for today", alreadyExists: true, count: existingSnapshot.size });
     }
 
-    // 2. Fetch recent themes + extract recentTemplateIds
+    // 2. Fetch recent themes (14-day window with generatedAt for date-aware cooldowns)
     const recentThemes = await getRecentMemeThemes();
-    const recentTemplateIds = recentThemes
-      .map(t => t.templateId)
-      .filter(Boolean);
 
     // 3. Get crypto news (with anti-repetition context)
     const newsData = await newsService.getCryptoNews(recentThemes);
@@ -209,47 +208,65 @@ async function generateDailyMemes(req, res) {
     );
     console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
 
-    // 6. Style mode: default meme_native for all daily memes
-    // Use explicit styleMode parameter for stylized variants (e.g. ad-hoc endpoint)
-    const styleMode = 'meme_native';
-    console.log(`🎨 Style mode: ${styleMode}`);
-
-    // 7. Generate each meme through the new pipeline
+    // 6. Generate each meme: 2× Mode A (template + art style) + 1× Mode B (art-first original)
     const savedMemes = [];
     for (let i = 0; i < 3; i++) {
+      const isOriginalMode = (i === 2); // 3rd meme is Mode B: Art-first Original
       const newsItem = newsData[i] || newsData[0];
       const generator = imageGenerators[i];
       const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
 
-      // 7a. Select template
-      const template = memeIdeaService.selectTemplate(newsItem, recentTemplateIds);
-      console.log(`🎭 Meme ${i+1}: template="${template.id}" (${template.name})`);
+      // Per-meme art style selection (fresh style, avoiding 7-day repeats)
+      const artStyle = memeIdeaService.selectArtStyle(recentThemes);
+      console.log(`🎨 Meme ${i+1}: art style="${artStyle.name}" (${artStyle.id})${isOriginalMode ? ' [Mode B: original]' : ''}`);
 
-      // 7a2. Select strategy (v3)
-      const strategy = memeStrategyService.selectStrategy({
-        newsEvent: newsItem,
-        template,
-        recentMemes: recentThemes,
-        category: newsItem.category
-      });
-      console.log(`🎯 Meme ${i+1}: strategy="${strategy.strategy_id}" (${strategy.strategy_name})`);
+      let template = null;
+      let strategy, narrative, memeIdea;
 
-      // 7a3. Select narrative
-      const narrative = memeNarrativeService.selectNarrative({
-        newsEvent: newsItem, template, recentMemes: recentThemes, category: newsItem.category
-      });
-      console.log(`📖 Meme ${i+1}: narrative="${narrative.narrative_id}" (${narrative.narrative_name}) phrase="${narrative.selectedPhrase}"`);
+      if (isOriginalMode) {
+        // ── Mode B: Art-first Original ──────────────────────────
+        console.log(`🎭 Meme ${i+1}: mode=original (no template, free composition)`);
 
-      // 7b. Generate meme idea (with strategy + narrative)
-      let memeIdea;
-      try {
-        memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy, narrative);
-      } catch (err) {
-        console.error(`⚠️ Meme ${i+1} idea generation failed:`, err.message);
-        memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
+        strategy = memeStrategyService.selectStrategy({
+          newsEvent: newsItem, template: null, recentMemes: recentThemes, category: newsItem.category
+        });
+        console.log(`🎯 Meme ${i+1}: strategy="${strategy.strategy_id}" (${strategy.strategy_name})`);
+
+        narrative = memeNarrativeService.selectNarrative({
+          newsEvent: newsItem, template: null, recentMemes: recentThemes, category: newsItem.category
+        });
+        console.log(`📖 Meme ${i+1}: narrative="${narrative.narrative_id}" (${narrative.narrative_name}) phrase="${narrative.selectedPhrase}"`);
+
+        try {
+          memeIdea = await memeIdeaService.generateOriginalMemeIdea(newsItem, recentThemes, strategy, narrative);
+        } catch (err) {
+          console.error(`⚠️ Meme ${i+1} original idea generation failed:`, err.message);
+          memeIdea = { template_id: null, caption: newsItem.title || 'crypto moment', caption_slots: { top_text: '', bottom_text: '' }, visual_description: 'A crypto trader staring at charts', emotion: 'funny', twist: '', event_angle: '' };
+        }
+      } else {
+        // ── Mode A: Template + Art Style ────────────────────────
+        template = memeIdeaService.selectTemplate(newsItem, recentThemes);
+        console.log(`🎭 Meme ${i+1}: template="${template.id}" (${template.name})`);
+
+        strategy = memeStrategyService.selectStrategy({
+          newsEvent: newsItem, template, recentMemes: recentThemes, category: newsItem.category
+        });
+        console.log(`🎯 Meme ${i+1}: strategy="${strategy.strategy_id}" (${strategy.strategy_name})`);
+
+        narrative = memeNarrativeService.selectNarrative({
+          newsEvent: newsItem, template, recentMemes: recentThemes, category: newsItem.category
+        });
+        console.log(`📖 Meme ${i+1}: narrative="${narrative.narrative_id}" (${narrative.narrative_name}) phrase="${narrative.selectedPhrase}"`);
+
+        try {
+          memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy, narrative);
+        } catch (err) {
+          console.error(`⚠️ Meme ${i+1} idea generation failed:`, err.message);
+          memeIdea = { template_id: template.id, caption: newsItem.title || 'crypto moment', caption_slots: {}, visual_description: '', emotion: 'funny', twist: '', event_angle: '' };
+        }
       }
 
-      // 7c. Evaluate + validate loop (max 2 retries, no force-pass)
+      // 6c. Evaluate + validate loop (max 2 retries)
       const recentCaptions = recentThemes
         .map(t => t.caption)
         .filter(Boolean)
@@ -258,11 +275,10 @@ async function generateDailyMemes(req, res) {
       const MAX_RETRIES = 2;
       for (let retry = 0; retry <= MAX_RETRIES; retry++) {
         try {
-          // Evaluate (LLM quality gate)
           evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea, recentCaptions, strategy);
 
-          // Validate caption (code-level checks)
-          const validation = memeIdeaService.validateCaption(memeIdea, template);
+          // Validate caption (code-level checks) — pass null template for Mode B
+          const validation = memeIdeaService.validateCaption(memeIdea, isOriginalMode ? null : template);
           if (!validation.valid) {
             evaluation.pass = false;
             evaluation.failure_reasons = evaluation.failure_reasons || [];
@@ -277,10 +293,13 @@ async function generateDailyMemes(req, res) {
 
           if (evaluation.pass || retry === MAX_RETRIES) break;
 
-          // Retry — keep template + strategy, rewrite caption + twist
           console.log(`🔄 Meme ${i+1} retry #${retry+1}: ${(evaluation.fix_suggestions || []).slice(0, 3).join('; ')}`);
           try {
-            memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy, narrative);
+            if (isOriginalMode) {
+              memeIdea = await memeIdeaService.retryOriginalMemeIdea(memeIdea, evaluation.fix_suggestions, strategy, narrative);
+            } else {
+              memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy, narrative);
+            }
           } catch (retryErr) {
             console.error(`⚠️ Meme ${i+1} retry #${retry+1} failed:`, retryErr.message);
             break;
@@ -291,10 +310,12 @@ async function generateDailyMemes(req, res) {
         }
       }
 
-      // 7d. Build image prompt
-      const imagePrompt = memeIdeaService.buildImagePrompt(memeIdea, styleMode);
+      // 6d. Build image prompt (Mode A vs Mode B)
+      const imagePrompt = isOriginalMode
+        ? memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
+        : memeIdeaService.buildImagePrompt(memeIdea, artStyle);
 
-      // 7e. Generate image
+      // 6e. Generate image
       let imageData;
       if (generator) {
         imageData = await generator.service.generateMemeImage(imagePrompt);
@@ -302,18 +323,17 @@ async function generateDailyMemes(req, res) {
         imageData = await geminiService.generateMemeImage(imagePrompt);
       }
 
-      // 7f. Generate title, description, tags
+      // 6f. Generate title, description, tags
       const newsSource = newsItem.title || 'Crypto News';
       const title = await geminiService.generateMemeTitle(memeIdea);
       const description = await geminiService.generateMemeDescription(memeIdea, newsSource);
       const tags = await geminiService.generateMemeTags(memeIdea, newsSource);
 
-      // Add "memecoin" tag if specific token
       if (tokenSymbol && !tags.includes('memecoin')) {
         tags.push('memecoin');
       }
 
-      // 7g. Build meme document
+      // 6g. Build meme document
       const memeDoc = {
         id: `meme_${Date.now()}_${i}`,
         title,
@@ -326,7 +346,7 @@ async function generateDailyMemes(req, res) {
         generatedAt: new Date().toISOString(),
         type: 'daily',
         status: 'active',
-        style: styleMode,
+        style: artStyle.id,
         tags,
         votes: {
           selection: { yes: 0, no: 0 },
@@ -335,10 +355,14 @@ async function generateDailyMemes(req, res) {
         metadata: {
           originalNews: newsItem.title || newsItem,
           aiModel: generator ? generator.modelName : 'gemini-3-pro-image-preview',
-          styleMode,
-          templateId: template.id,
-          templateName: template.name,
-          archetype: template.archetype || null,
+          styleMode: artStyle.id,
+          artStyleId: artStyle.id,
+          artStyleName: artStyle.name,
+          artStyleNftTier: artStyle.nftTier,
+          generationMode: isOriginalMode ? 'original' : 'template',
+          templateId: template?.id || null,
+          templateName: template?.name || null,
+          archetype: template?.archetype || null,
           strategyId: strategy.strategy_id,
           strategyName: strategy.strategy_name,
           narrativeId: narrative.narrative_id,
@@ -369,25 +393,41 @@ async function generateDailyMemes(req, res) {
         rarity: 'unknown'
       };
 
-      // 7h. Save to Firestore
+      // 6h. Mint eligibility gate (Mode A only — Mode B originals always eligible)
+      if (isOriginalMode) {
+        memeDoc.mint_eligible = true;
+        memeDoc.mint_ineligibility_reason = null;
+        console.log(`🏷️ Meme ${i+1}: mint_eligible=true (original mode)`);
+      } else {
+        const { mintEligible, mintReason } = memeIdeaService.checkMintEligibility(
+          template.id, template.archetype, recentThemes
+        );
+        memeDoc.mint_eligible = mintEligible;
+        memeDoc.mint_ineligibility_reason = mintReason;
+        console.log(`🏷️ Meme ${i+1}: mint_eligible=${mintEligible}${mintReason ? ` (${mintReason})` : ''}`);
+      }
+
+      // 6i. Save to Firestore
       await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
       savedMemes.push(memeDoc);
 
-      // 7i. Push to recent lists for batch anti-repetition
-      recentTemplateIds.push(template.id);
+      // 6j. Push to recent themes for batch anti-repetition
       recentThemes.unshift({
         title: memeDoc.title,
-        templateId: template.id,
+        templateId: template?.id || null,
+        archetype: template?.archetype || null,
         strategyId: strategy.strategy_id,
         narrativeId: narrative.narrative_id,
         caption: memeIdea.caption,
+        artStyleId: artStyle.id,
+        generatedAt: new Date().toISOString(),
       });
 
-      // 7j. Rate limit delay
+      // 6k. Rate limit delay
       if (i < 2) await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    console.log(`✅ Generated ${savedMemes.length} daily memes (template pipeline)`);
+    console.log(`✅ Generated ${savedMemes.length} daily memes (V3: 2× template + 1× original)`);
 
     // Mark daily run as completed
     await runRef.update({

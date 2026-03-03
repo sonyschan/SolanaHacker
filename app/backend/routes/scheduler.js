@@ -104,9 +104,10 @@ router.post('/recover/:date', async (req, res) => {
       });
     }
 
-    console.log(`🔧 Recovery requested for date: ${date}`);
+    const force = req.body.force === true;
+    console.log(`🔧 Recovery requested for date: ${date}${force ? ' (FORCE)' : ''}`);
 
-    const result = await schedulerService.recoverDraw(date);
+    const result = await schedulerService.recoverDraw(date, { force });
 
     res.json({
       success: true,
