@@ -43,7 +43,7 @@ VARIETY IS KING — read these rules carefully:
 
 RULES:
 - ALWAYS write in English. Never output Chinese or any other language.
-- Write an X (Twitter) post, <280 chars, from Memeya's perspective.
+- Write an X (Twitter) post from Memeya's perspective. No character limit — Premium account.
 - NEVER use hashtags. Zero hashtags. They are outdated and cringe.
 - NEVER include GitHub links, commit URLs, or technical/developer links. Only aimemeforge.io is OK.
 - NEVER include [GLITCH] tags, markdown links, or citation references like [[1]](url). Output plain text only.
@@ -320,7 +320,7 @@ export function createExecutors(deps) {
         '',
         noCharLimit
           ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
-          : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+          : `Write a post from Memeya's perspective. Keep it punchy but no hard character limit. Be fresh and avoid repeating topics from the posts above.`,
       ].join('\n');
     } else {
       // Legacy string context — load journal internally (values now in system prompt)
@@ -349,7 +349,7 @@ export function createExecutors(deps) {
         '',
         noCharLimit
           ? `Write a post from Memeya's perspective. No character limit — write as much as feels right. Be fresh and avoid repeating topics from the posts above.`
-          : `Write a tweet (<280 chars). Be fresh — avoid repeating topics from the posts above.`,
+          : `Write a post from Memeya's perspective. Keep it punchy but no hard character limit. Be fresh and avoid repeating topics from the posts above.`,
       ].join('\n');
     }
 
@@ -377,7 +377,7 @@ export function createExecutors(deps) {
           instructions: systemPrompt,
           input: [{ role: 'user', content: userPrompt }],
           tools: [{ type: 'web_search' }],
-          max_output_tokens: noCharLimit ? 1000 : 200,
+          max_output_tokens: 1000,
           temperature: 0.9,
         }),
       });
@@ -388,7 +388,7 @@ export function createExecutors(deps) {
       text = await callGrok(apiKey, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
-      ], noCharLimit ? { maxTokens: 1000 } : {});
+      ], { maxTokens: 1000 });
     }
     if (!text) throw new Error('Grok returned empty content');
 
@@ -401,32 +401,20 @@ export function createExecutors(deps) {
       .replace(/\[\[\d+\]\]\(https?:\/\/[^\)]*\)/g, '')  // Strip [[1]](url) citation references
       .replace(/\[\d+\]\(https?:\/\/[^\)]*\)/g, '')      // Strip [1](url) markdown links
       .replace(/\[GLITCH\]/gi, '');                       // Strip [GLITCH] tags
+    // Strip aimemeforge URLs only for non-manual posts (auto-appended via OG link)
     if (!noCharLimit) {
       cleaned = cleaned
         .replace(/https?:\/\/aimemeforge\.io\S*/gi, '')
         .replace(/aimemeforge\.io/gi, '');
     }
-    if (noCharLimit) {
-      // Preserve newlines but collapse multiple blank lines and trailing spaces
-      cleaned = cleaned.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-    } else {
-      cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();  // Collapse all whitespace
-    }
+    // Preserve newlines but collapse multiple blank lines and trailing spaces
+    cleaned = cleaned.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 
-    // Trim to 280 chars (leaving room for OG link + CTA if needed) — skip for noCharLimit
+    // Append OG link + CTA if applicable (Premium account — no char truncation needed)
     const ogUrl = isStructured ? contextInput.ogUrl : null;
     const voteCta = isStructured && contextInput.topic === 'meme_spotlight' && ogUrl ? '\n\nVote for this Meme \u{1F447}' : '';
-    let tweet;
-    let maxLen;
-    if (noCharLimit) {
-      maxLen = null; // no limit
-      tweet = ogUrl ? `${cleaned}${voteCta}\n${ogUrl}` : cleaned;
-    } else {
-      const suffix = ogUrl ? `${voteCta}\n${ogUrl}` : '';
-      maxLen = suffix ? 280 - suffix.length : 280;
-      const trimmed = cleaned.length > maxLen ? cleaned.slice(0, maxLen - 3) + '...' : cleaned;
-      tweet = suffix ? `${trimmed}${suffix}` : (cleaned.length > 280 ? cleaned.slice(0, 277) + '...' : cleaned);
-    }
+    let tweet = ogUrl ? `${cleaned}${voteCta}\n${ogUrl}` : cleaned;
+    const maxLen = null; // Premium account — no character limit
 
     // Strip @mentions — Twitter Free/Basic API tier forbids them in new tweets
     tweet = tweet.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
