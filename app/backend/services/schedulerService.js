@@ -678,17 +678,18 @@ class SchedulerService {
   }
 
   selectWinningMeme(results) {
-    let winner = null;
-    let maxVotes = 0;
+    const entries = Object.values(results);
+    if (entries.length === 0) return null;
 
-    for (const result of Object.values(results)) {
-      if (result.totalSelectionVotes > maxVotes) {
-        maxVotes = result.totalSelectionVotes;
-        winner = result;
+    // Sort by votes descending; tie-break by earliest meme ID (deterministic)
+    entries.sort((a, b) => {
+      if (b.totalSelectionVotes !== a.totalSelectionVotes) {
+        return b.totalSelectionVotes - a.totalSelectionVotes;
       }
-    }
+      return (a.id || '').localeCompare(b.id || '');
+    });
 
-    return winner;
+    return entries[0]; // always returns a winner when memes exist (even with 0 votes)
   }
 
   calculateRarity(rarityVotes) {
