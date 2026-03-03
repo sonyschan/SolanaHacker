@@ -214,10 +214,10 @@ const WorkshopTab = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-scroll feed to bottom on new entries
+  // Auto-scroll feed to top on new entries (newest first)
   useEffect(() => {
     if (feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+      feedRef.current.scrollTop = 0;
     }
   }, [data?.entries?.length]);
 
@@ -315,8 +315,8 @@ const WorkshopTab = () => {
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
-              {entries.map((entry, i) => {
-                const isLatest = i === entries.length - 1;
+              {[...entries].reverse().map((entry, i) => {
+                const isLatest = i === 0;
                 const isExpanded = expandedEntry === i;
                 const topicColor = TOPIC_COLORS[entry.topic] || TOPIC_COLORS.personal_vibe;
                 const displayText = entry.text || '';
