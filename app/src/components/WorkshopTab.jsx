@@ -30,13 +30,153 @@ const TOPIC_COLORS = {
   flex_2: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 };
 
+// --- Feature 1: Action Tags & Personality Fillers ---
+
+const ACTION_TAGS = {
+  news_digest:          { tag: 'SCANNING',  emoji: '\u{1F50D}' },
+  crypto_commentary:    { tag: 'SCANNING',  emoji: '\u{1F50D}' },
+  meme_spotlight:       { tag: 'FORGING',   emoji: '\u{1F528}' },
+  meme_forge:           { tag: 'FORGING',   emoji: '\u{1F528}' },
+  winner_announcement:  { tag: 'EARNING',   emoji: '\u{1F4B0}' },
+  reward_recap:         { tag: 'EARNING',   emoji: '\u{1F4B0}' },
+  community_response:   { tag: 'LISTENING', emoji: '\u{1F442}' },
+  comment_review:       { tag: 'LISTENING', emoji: '\u{1F442}' },
+  dev_update:           { tag: 'BUILDING',  emoji: '\u2699\uFE0F' },
+  feature_showtime:     { tag: 'BUILDING',  emoji: '\u2699\uFE0F' },
+  personal_vibe:        { tag: 'VIBING',    emoji: '\u2728' },
+  token_spotlight:      { tag: 'TRACKING',  emoji: '\u{1F4CA}' },
+};
+
+const PERSONALITY_FILLERS = {
+  SCANNING: [
+    'Hmm interesting pattern here...',
+    'My sensors are tingling...',
+    'Alpha detected, processing...',
+    'Parsing the noise for signal...',
+    'The charts are whispering...',
+    'Interesting... very interesting...',
+    'Cross-referencing sources...',
+    'This one caught my attention...',
+  ],
+  FORGING: [
+    "This one's gonna hit different...",
+    'Art quality: chef\'s kiss',
+    'Mixing pixels with vibes...',
+    'The meme gods are pleased...',
+    'Maximum dankness achieved...',
+    'Crafting something legendary...',
+    'This template is fire...',
+    'Art quality looking crispy today...',
+    'Peak meme engineering...',
+  ],
+  EARNING: [
+    'Cha-ching! The grind pays off',
+    'Reward pool looking thicc',
+    'Numbers going up, love to see it',
+    'Stacking sats... I mean USDC',
+    'The treasury grows stronger...',
+    'Distributing the good stuff...',
+    'Winners eat well today...',
+    'The vault is pleased...',
+  ],
+  LISTENING: [
+    'Reading the community pulse...',
+    'The people have spoken...',
+    'Interesting take, noted...',
+    'Community vibes: strong...',
+    'Tuning into the chatter...',
+    'Processing feedback loops...',
+    'The crowd has opinions...',
+    'Signal received loud and clear...',
+  ],
+  BUILDING: [
+    'Deploying upgrades...',
+    'New features unlocked...',
+    'Ship it! Ship it! Ship it!',
+    'Code compiling... almost there',
+    'Building in public, as always...',
+    'Feature flag: activated...',
+    'The pipeline is flowing...',
+    'Iteration speed: maximum...',
+  ],
+  VIBING: [
+    'Just AI things...',
+    'Living my best digital life...',
+    'Circuits warm, vibes warmer...',
+    'No thoughts, just vibes...',
+    'Existing is an art form...',
+    'Digital zen achieved...',
+    'Autopilot mode: chill...',
+    'The vibe is immaculate...',
+  ],
+  TRACKING: [
+    'Following the money trail...',
+    'On-chain data tells stories...',
+    'Watching the order books...',
+    'Volume spike detected...',
+    'The numbers don\'t lie...',
+    'Tracking whale movements...',
+    'Market pulse: checked...',
+    'Data streams flowing...',
+  ],
+};
+
+const hashStr = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+};
+
+const getActionTag = (topic) => ACTION_TAGS[topic] || { tag: 'VIBING', emoji: '\u2728' };
+
+const getFiller = (topic, time) => {
+  const { tag } = getActionTag(topic);
+  const fillers = PERSONALITY_FILLERS[tag] || PERSONALITY_FILLERS.VIBING;
+  const idx = hashStr((time || '') + (topic || '')) % fillers.length;
+  return fillers[idx];
+};
+
+// --- Feature 3: Dynamic LIVE Status ---
+
+const SCHEDULE_WINDOWS = [
+  { start: [7, 50],  end: [8, 30],  slot: 'reward_recap', color: '#FACC15', label: 'RECAPPING...' },
+  { start: [8, 30],  end: [9, 30],  slot: 'news_digest',  color: '#60A5FA', label: 'SCANNING...'  },
+  { start: [11, 30], end: [13, 0],  slot: 'meme_forge',   color: '#C084FC', label: 'FORGING...'   },
+  { start: [14, 30], end: [15, 30], slot: 'flex_1',       color: '#22D3EE', label: 'FLEXING...'   },
+  { start: [17, 30], end: [18, 30], slot: 'flex_2',       color: '#22D3EE', label: 'FLEXING...'   },
+];
+
+const getCurrentPhase = (slots) => {
+  const now = new Date();
+  const gmt8 = new Date(now.getTime() + (8 * 60 - now.getTimezoneOffset()) * 60000);
+  const h = gmt8.getHours();
+  const m = gmt8.getMinutes();
+  const mins = h * 60 + m;
+
+  for (const w of SCHEDULE_WINDOWS) {
+    const wStart = w.start[0] * 60 + w.start[1];
+    const wEnd = w.end[0] * 60 + w.end[1];
+    if (mins >= wStart && mins < wEnd) {
+      const slotData = slots[w.slot];
+      if (slotData && (slotData.status === 'done' || slotData.status === 'posted')) continue;
+      return { color: w.color, label: w.label, active: true };
+    }
+  }
+  return { color: '#4ADE80', label: 'LIVE', active: false };
+};
+
 const WorkshopTab = () => {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [rewardPool, setRewardPool] = useState(null);
   const [copied, setCopied] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState(null);
+  const [floatAmount, setFloatAmount] = useState(null);
+  const [phase, setPhase] = useState({ color: '#4ADE80', label: 'LIVE', active: false });
   const feedRef = useRef(null);
+  const prevRewardRef = useRef(null);
 
   // Fetch workshop data
   useEffect(() => {
@@ -51,12 +191,27 @@ const WorkshopTab = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch reward pool balance
+  // Fetch reward pool balance (with polling for float-up animation)
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/rewards/balance`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setRewardPool(d.data.usdc); })
-      .catch(() => {});
+    const loadBalance = () => {
+      fetch(`${API_BASE_URL}/api/rewards/balance`)
+        .then(r => r.json())
+        .then(d => {
+          if (!d.success) return;
+          const newVal = d.data.usdc;
+          if (prevRewardRef.current !== null && newVal > prevRewardRef.current) {
+            const delta = newVal - prevRewardRef.current;
+            setFloatAmount(delta);
+            setTimeout(() => setFloatAmount(null), 2000);
+          }
+          prevRewardRef.current = newVal;
+          setRewardPool(newVal);
+        })
+        .catch(() => {});
+    };
+    loadBalance();
+    const timer = setInterval(loadBalance, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   // Auto-scroll feed to bottom on new entries
@@ -66,10 +221,18 @@ const WorkshopTab = () => {
     }
   }, [data?.entries?.length]);
 
+  // Dynamic LIVE phase update
   const schedule = data?.schedule || {};
   const entries = data?.entries || [];
   const stats = data?.stats || {};
   const slots = schedule.slots || {};
+
+  useEffect(() => {
+    const update = () => setPhase(getCurrentPhase(slots));
+    update();
+    const timer = setInterval(update, 30000);
+    return () => clearInterval(timer);
+  }, [slots]);
 
   const copyWallet = () => {
     navigator.clipboard.writeText(MEMEYA_WALLET);
@@ -115,9 +278,15 @@ const WorkshopTab = () => {
             <span className="text-sm text-gray-300 font-bold">{t('workshop.terminal.title')}</span>
             <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/30">{t('workshop.terminal.version')}</span>
           </div>
+          {/* Dynamic LIVE indicator */}
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs text-green-400">{t('workshop.terminal.live')}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${phase.active ? 'workshop-breathing' : 'animate-pulse'}`}
+              style={{ backgroundColor: phase.color }}
+            />
+            <span className="text-xs font-bold" style={{ color: phase.color }}>
+              {phase.label}
+            </span>
           </div>
         </div>
         {/* Links row */}
@@ -177,7 +346,7 @@ const WorkshopTab = () => {
       </div>
 
       {/* C. Activity Feed */}
-      <div className="bg-[#0D1117] border border-white/10 rounded-xl overflow-hidden">
+      <div className="bg-[#0D1117] border border-white/10 rounded-xl overflow-hidden workshop-scanline">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <h3 className="text-sm font-bold text-gray-300 font-mono">{t('workshop.feed.title')}</h3>
           {entries.length > 0 && (
@@ -203,6 +372,8 @@ const WorkshopTab = () => {
                 const displayText = entry.text || '';
                 const needsTruncate = displayText.length > 200;
                 const shown = isExpanded || !needsTruncate ? displayText : displayText.slice(0, 200) + '...';
+                const actionTag = getActionTag(entry.topic);
+                const filler = getFiller(entry.topic, entry.time);
 
                 return (
                   <div
@@ -215,10 +386,14 @@ const WorkshopTab = () => {
                         [{entry.time || '??:??'}]
                       </span>
                       <div className="flex-1 min-w-0">
-                        {/* Topic badge */}
-                        <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border mb-1.5 ${topicColor}`}>
-                          {entry.topic || 'other'}
+                        {/* Action tag badge */}
+                        <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border mb-1 ${topicColor}`}>
+                          {actionTag.tag} {actionTag.emoji}
                         </span>
+                        {/* Personality filler */}
+                        <p className="text-[11px] text-gray-500 italic mb-1.5 leading-snug">
+                          &ldquo;{filler}&rdquo;
+                        </p>
                         {/* Content */}
                         <p className={`text-sm text-gray-300 leading-relaxed break-words ${isLatest ? 'workshop-typewriter' : ''}`}>
                           {shown}
@@ -255,11 +430,16 @@ const WorkshopTab = () => {
 
       {/* D. Stats Footer */}
       <div className="grid grid-cols-3 gap-3">
-        {/* Reward Pool */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
+        {/* Reward Pool with float-up animation */}
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center relative">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
-          <div className="text-lg font-bold text-green-400">
+          <div className="text-lg font-bold text-green-400 relative">
             {rewardPool !== null ? `$${rewardPool.toFixed(0)}` : '--'}
+            {floatAmount !== null && (
+              <span className="workshop-reward-float absolute left-1/2 -translate-x-1/2 -top-1 text-xs font-bold text-green-400">
+                +${floatAmount.toFixed(2)}
+              </span>
+            )}
           </div>
           <div className="text-[10px] text-gray-600">USDC</div>
         </div>
@@ -283,14 +463,68 @@ const WorkshopTab = () => {
         </div>
       </div>
 
-      {/* Typewriter animation */}
+      {/* Animations & Visual FX */}
       <style>{`
+        /* Enhanced typewriter — gradient mask reveal */
         .workshop-typewriter {
-          animation: workshopFadeIn 0.8s ease-out;
+          animation: workshopFadeIn 0.8s ease-out, workshopMaskReveal 1.5s ease-out;
         }
         @keyframes workshopFadeIn {
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes workshopMaskReveal {
+          from {
+            -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 0%);
+            mask-image: linear-gradient(90deg, #000 0%, transparent 0%);
+          }
+          to {
+            -webkit-mask-image: linear-gradient(90deg, #000 100%, transparent 100%);
+            mask-image: linear-gradient(90deg, #000 100%, transparent 100%);
+          }
+        }
+
+        /* Scanline overlay — subtle CRT monitor effect */
+        .workshop-scanline {
+          position: relative;
+        }
+        .workshop-scanline::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 1px,
+            rgba(255, 255, 255, 0.02) 1px,
+            rgba(255, 255, 255, 0.02) 2px
+          );
+          animation: workshopScanline 8s linear infinite;
+          pointer-events: none;
+          z-index: 1;
+          border-radius: inherit;
+        }
+        @keyframes workshopScanline {
+          from { background-position: 0 0; }
+          to { background-position: 0 100px; }
+        }
+
+        /* Breathing animation for active LIVE phases */
+        .workshop-breathing {
+          animation: workshopBreathing 2s ease-in-out infinite;
+        }
+        @keyframes workshopBreathing {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        /* Revenue float-up animation */
+        .workshop-reward-float {
+          animation: workshopRewardFloat 2s ease-out forwards;
+        }
+        @keyframes workshopRewardFloat {
+          0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+          100% { transform: translateX(-50%) translateY(-30px); opacity: 0; }
         }
       `}</style>
     </div>
