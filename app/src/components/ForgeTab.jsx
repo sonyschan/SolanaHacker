@@ -7,7 +7,7 @@ import ModalOverlay from './ModalOverlay';
 const MEMEYA_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const MEMEYA_THRESHOLD = 10000;
 
-const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress, memeyaBalance }) => {
+const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, walletAddress, memeyaBalance, setActiveTab }) => {
   const { t } = useTranslation();
   const [currentPhase, setCurrentPhase] = useState('selection'); // 'selection', 'rarity', 'completed'
   const [selectedMeme, setSelectedMeme] = useState(null);
@@ -705,6 +705,25 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               <p>🚀 {t('forge.completed.nftSoon')}</p>
             </div>
 
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+              {setActiveTab && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('gallery')}
+                    className="px-5 py-3 bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/40 hover:border-amber-500/60 rounded-xl font-bold hover:scale-105 transition-all text-amber-300"
+                  >
+                    🏛️ {t('forge.completed.browseGallery')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('tickets')}
+                    className="px-5 py-3 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/40 hover:border-purple-500/60 rounded-xl font-bold hover:scale-105 transition-all text-purple-300"
+                  >
+                    🎫 {t('forge.completed.manageTickets')}
+                  </button>
+                </>
+              )}
+            </div>
             <button
               onClick={resetVoting}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform"

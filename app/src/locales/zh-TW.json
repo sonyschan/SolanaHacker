@@ -169,7 +169,9 @@
       "streakSystemDesc": "每日投票以建立你的連續天數。每連續一天都會增加額外票券，最高 +10。",
       "streakDay": "第 {{day}} 天",
       "streakHowItWorks": "運作方式:",
-      "streakExplain": "每天投票以增加連續天數。錯過一天則重置為第 1 天。連續加成與基礎隨機 (1-10) 和 $Memeya 代幣加成疊加。"
+      "streakExplain": "每天投票以增加連續天數。錯過一天則重置為第 1 天。連續加成與基礎隨機 (1-10) 和 $Memeya 代幣加成疊加。",
+      "checkWinners": "查看近期贏家",
+      "checkWinnersDesc": "看看誰贏得了 USDC 獎勵和幸運投票者獎金"
     },
     "winners": {
       "title": "贏家",
@@ -197,7 +199,9 @@
       "drawId": "抽獎 #{{id}}",
       "usdcRewards": "USDC 獎勵",
       "totalEarned": "總計獲得: ${{amount}}",
-      "noUsdcRewards": "尚無 USDC 獎勵。繼續投票賺取!"
+      "noUsdcRewards": "尚無 USDC 獎勵。繼續投票賺取!",
+      "inviteFriends": "邀請朋友一起賺",
+      "inviteFriendsDesc": "分享你的邀請連結，朋友加入時獲得額外票券"
     },
     "howItWorks": {
       "title": "運作方式",
@@ -353,6 +357,8 @@
       "newMemesDaily": "每日 00:00 UTC 投放新 AI 迷因",
       "lotteryDraw": "每日 23:55 UTC 開獎",
       "nftSoon": "NFT 鑄造即將推出!",
+      "browseGallery": "瀏覽畫廊",
+      "manageTickets": "管理抽獎券",
       "viewResults": "查看結果與統計"
     }
   },
@@ -582,8 +588,12 @@
       "title": "活動日誌",
       "empty": "Memeya 今天還沒開始工作..."
     },
+    "cta": {
+      "voteTitle": "免費投票 \u2192 贏取 Meme & 賺取 USDC",
+      "voteDesc": "為今日 AI Meme 投票，獲得抽獎券"
+    },
     "stats": {
-      "rewardPool": "獎池",
+      "rewardPool": "Memeya 錢包餘額",
       "postsToday": "今日 X 發文",
       "nextSlot": "下個時段",
       "nextPlan": "下個計畫"

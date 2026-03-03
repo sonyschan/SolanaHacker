@@ -386,6 +386,25 @@ const Dashboard = ({
           </div>
         </div>
 
+        {/* CTA: Check Winners */}
+        <button
+          onClick={() => setActiveTab('wins')}
+          className="w-full bg-gradient-to-r from-yellow-600/20 to-amber-600/20 hover:from-yellow-600/30 hover:to-amber-600/30 border border-yellow-500/30 hover:border-yellow-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{'\uD83C\uDFC6'}</span>
+              <div className="text-left">
+                <p className="font-bold text-white group-hover:text-yellow-300 transition-colors">{t('dashboard.tickets.checkWinners')}</p>
+                <p className="text-xs text-gray-400">{t('dashboard.tickets.checkWinnersDesc')}</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 text-yellow-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+
       </div>
 
       {/* Streak Bonus Info Modal */}
@@ -802,6 +821,25 @@ const Dashboard = ({
             )}
           </div>
         )}
+
+        {/* CTA: Invite Friends */}
+        <button
+          onClick={() => setActiveTab('referral')}
+          className="w-full bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 hover:border-green-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{'\uD83C\uDF81'}</span>
+              <div className="text-left">
+                <p className="font-bold text-white group-hover:text-green-300 transition-colors">{t('dashboard.winners.inviteFriends')}</p>
+                <p className="text-xs text-gray-400">{t('dashboard.winners.inviteFriendsDesc')}</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 text-green-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
       </div>
     );
   };
@@ -809,7 +847,7 @@ const Dashboard = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'workshop':
-        return <WorkshopTab />;
+        return <WorkshopTab setActiveTab={setActiveTab} />;
       case 'forge':
         return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}
@@ -817,6 +855,7 @@ const Dashboard = ({
           votingStreak={votingStreak}
           setVotingStreak={setVotingStreak}
           memeyaBalance={memeyaBalance}
+          setActiveTab={setActiveTab}
         />;
       case 'gallery':
         return <GalleryTab />;
@@ -833,6 +872,7 @@ const Dashboard = ({
           votingStreak={votingStreak}
           setVotingStreak={setVotingStreak}
           memeyaBalance={memeyaBalance}
+          setActiveTab={setActiveTab}
         />;
     }
   };
@@ -898,15 +938,6 @@ const Dashboard = ({
                   <svg className="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </div>
               </div>
-              {/* Wallet balance — links to Workshop tab */}
-              {rewardWalletUsdc !== null && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveTab('workshop'); }}
-                  className="hidden md:flex items-center bg-green-500/10 border border-green-400/20 rounded-full px-3 py-1 hover:bg-green-500/20 transition-colors cursor-pointer"
-                >
-                  <span className="text-xs font-medium text-green-400 whitespace-nowrap">&#128176; ${rewardWalletUsdc.toFixed(0)} USDC</span>
-                </button>
-              )}
             </a>
 
             {/* Desktop User Info + Settings */}

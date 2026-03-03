@@ -169,7 +169,9 @@
       "streakSystemDesc": "Vote daily to build your streak. Each consecutive day adds bonus tickets, up to +10.",
       "streakDay": "Day {{day}}",
       "streakHowItWorks": "How it works:",
-      "streakExplain": "Vote every day to increase your streak. Miss a day and it resets to Day 1. The streak bonus stacks with your base roll (1-10) and $Memeya token bonus."
+      "streakExplain": "Vote every day to increase your streak. Miss a day and it resets to Day 1. The streak bonus stacks with your base roll (1-10) and $Memeya token bonus.",
+      "checkWinners": "Check Recent Winners",
+      "checkWinnersDesc": "See who won USDC rewards and lucky voter bonuses"
     },
     "winners": {
       "title": "Winners",
@@ -197,7 +199,9 @@
       "drawId": "Draw #{{id}}",
       "usdcRewards": "USDC Rewards",
       "totalEarned": "Total earned: ${{amount}}",
-      "noUsdcRewards": "No USDC rewards yet. Keep voting to earn!"
+      "noUsdcRewards": "No USDC rewards yet. Keep voting to earn!",
+      "inviteFriends": "Invite Friends & Earn Together",
+      "inviteFriendsDesc": "Share your referral link and earn bonus tickets when friends join"
     },
     "howItWorks": {
       "title": "How It Works",
@@ -353,6 +357,8 @@
       "newMemesDaily": "New AI memes drop daily at 00:00 UTC",
       "lotteryDraw": "Daily lottery draw at 23:55 UTC",
       "nftSoon": "NFT minting coming soon!",
+      "browseGallery": "Browse Gallery",
+      "manageTickets": "Manage Tickets",
       "viewResults": "View Results & Stats"
     }
   },
@@ -582,8 +588,12 @@
       "title": "Activity Log",
       "empty": "Memeya hasn't started today's shift yet..."
     },
+    "cta": {
+      "voteTitle": "Vote Free \u2192 Win Memes & Earn USDC",
+      "voteDesc": "Cast your daily vote on today's AI memes and earn lottery tickets"
+    },
     "stats": {
-      "rewardPool": "Reward Pool",
+      "rewardPool": "Memeya Wallet Balance",
       "postsToday": "X Posts Today",
       "nextSlot": "Next Slot",
       "nextPlan": "Next Plan"
