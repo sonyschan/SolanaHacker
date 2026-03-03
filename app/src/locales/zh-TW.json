@@ -104,7 +104,8 @@
     "wiki": "百科",
     "meetMemeya": "認識 Memeya",
     "copyright": "\u00a9 {{year}} AI MemeForge。由 AI 與人類協作共同打造 \ud83d\udc9c",
-    "poweredBy": "技術驅動"
+    "poweredBy": "技術驅動",
+    "referral": "推薦計劃"
   },
   "dashboard": {
     "subtitle": "AI 迷因民主平台",
@@ -121,7 +122,9 @@
       "referral": "邀請",
       "referralDesc": "邀請朋友賺獎勵",
       "workshop": "工坊",
-      "workshopDesc": "Memeya 的日常運營"
+      "workshopDesc": "Memeya 的日常運營",
+      "lottery": "抽獎",
+      "lotteryDesc": "票券與贏家"
     },
     "nav": {
       "nextDraw": "下次迷因 & USDC 開獎",

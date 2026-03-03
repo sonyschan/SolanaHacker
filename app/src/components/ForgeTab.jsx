@@ -726,7 +726,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                   </div>
                 </button>
                 <button
-                  onClick={() => setActiveTab('tickets')}
+                  onClick={() => setActiveTab('lottery')}
                   className="w-full bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/30 hover:to-cyan-600/30 border border-purple-500/30 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
                 >
                   <div className="flex items-center justify-between">

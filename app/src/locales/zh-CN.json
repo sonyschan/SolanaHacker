@@ -104,7 +104,8 @@
     "wiki": "百科",
     "meetMemeya": "认识 Memeya",
     "copyright": "\u00a9 {{year}} AI MemeForge。由 AI 与人类协作共同打造 \ud83d\udc9c",
-    "poweredBy": "技术驱动"
+    "poweredBy": "技术驱动",
+    "referral": "推荐计划"
   },
   "dashboard": {
     "subtitle": "AI 梗图民主平台",
@@ -121,7 +122,9 @@
       "referral": "推荐",
       "referralDesc": "邀请赚奖励",
       "workshop": "工坊",
-      "workshopDesc": "Memeya 的日常运营"
+      "workshopDesc": "Memeya 的日常运营",
+      "lottery": "抽奖",
+      "lotteryDesc": "票券与赢家"
     },
     "nav": {
       "nextDraw": "下次梗图 & USDC 开奖",

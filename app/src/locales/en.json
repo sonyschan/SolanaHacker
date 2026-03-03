@@ -104,7 +104,8 @@
     "wiki": "Wiki",
     "meetMemeya": "Meet Memeya",
     "copyright": "\u00a9 {{year}} AI MemeForge. Built with \ud83d\udc9c by AI & Human collaboration.",
-    "poweredBy": "Powered by"
+    "poweredBy": "Powered by",
+    "referral": "Referral Program"
   },
   "dashboard": {
     "subtitle": "AI Meme Democracy Platform",
@@ -121,7 +122,9 @@
       "referral": "Referral",
       "referralDesc": "Invite & earn",
       "workshop": "Workshop",
-      "workshopDesc": "Memeya's daily ops"
+      "workshopDesc": "Memeya's daily ops",
+      "lottery": "Lottery",
+      "lotteryDesc": "Tickets & winners"
     },
     "nav": {
       "nextDraw": "Next Meme & USDC Draw",

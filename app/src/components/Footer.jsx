@@ -46,6 +46,15 @@ const Footer = () => {
               </li>
               <li>
                 <a
+                  href="#invite"
+                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
+                >
+                  <span className="text-lg group-hover:scale-110 transition-transform">{'\uD83E\uDD1D'}</span>
+                  <span>{t('footer.referral')}</span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="https://github.com/sonyschan/SolanaHacker"
                   target="_blank"
                   rel="noopener noreferrer"
