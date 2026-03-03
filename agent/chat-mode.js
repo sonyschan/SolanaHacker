@@ -2692,20 +2692,52 @@ ${recentMemory.slice(-1500)}
             enabled: true,
             scope: '24/7',
           },
-          xDiary: {
-            label: 'X Diary Schedule',
-            date: this.diarySchedule?.date || null,
-            slots: Object.fromEntries(
-              Object.entries(this.diarySchedule?.slots || {}).map(([id, s]) => [id, {
-                window: s.window,
-                status: s.status,
-                readyAt: s._readyAt || null,
-              }])
-            ),
-            manualPostCount: this.diarySchedule?.manualPostCount || 0,
-            enabled: xEnabled,
-            scope: 'scheduled daily slots',
-          },
+          xDiary: (() => {
+            // Compute nextIn and lastFired from diary slots
+            const slots = this.diarySchedule?.slots || {};
+            const currentHour = this._getGMT8Hour();
+            let nextSlotLabel = null;
+            let nextSlotTime = null;
+            let lastFiredTs = this._lastDiaryFireTime || null;
+
+            for (const [id, s] of Object.entries(slots)) {
+              if (s.status === 'external') continue;
+              if (s.status === 'pending' || s.status === 'ready') {
+                const readyAt = s._readyAt || s.window?.[0];
+                if (readyAt != null) {
+                  if (!nextSlotTime || readyAt < nextSlotTime) {
+                    nextSlotTime = readyAt;
+                    nextSlotLabel = id;
+                  }
+                }
+              }
+            }
+
+            let nextIn = 'all done';
+            if (nextSlotTime != null) {
+              const diffMin = Math.round((nextSlotTime - currentHour) * 60);
+              nextIn = diffMin <= 0 ? 'now' : fmt(diffMin * 60000);
+              nextIn += ` (${nextSlotLabel})`;
+            }
+
+            return {
+              label: 'X Diary Schedule',
+              date: this.diarySchedule?.date || null,
+              slots: Object.fromEntries(
+                Object.entries(slots).map(([id, s]) => [id, {
+                  window: s.window,
+                  status: s.status,
+                  readyAt: s._readyAt || null,
+                }])
+              ),
+              manualPostCount: this.diarySchedule?.manualPostCount || 0,
+              enabled: xEnabled,
+              interval: 'diary slots',
+              lastFired: lastFiredTs || null,
+              nextIn,
+              scope: 'scheduled daily slots',
+            };
+          })(),
           moltbookPost: {
             label: 'Moltbook Post',
             interval: fmt(this.moltbookPostInterval),
