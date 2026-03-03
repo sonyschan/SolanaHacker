@@ -83,6 +83,11 @@ export class ChatMode {
     this.moltbookEcosystemInterval = this._randomMoltbookEcosystemInterval();
     this.lastMoltbookEcosystemPost = Date.now() - this.moltbookEcosystemInterval / 2;
 
+    // Ambient activity log timer (fills quiet gaps in Workshop feed)
+    // Start at now so first ambient log waits one full interval after boot
+    this.lastAmbientLogAt = Date.now();
+    this._ambientLogNextInterval = this._randomAmbientInterval();
+
     // Winner announcement timer (5-min polling after lottery at 23:55 UTC)
     this.lastWinnerAnnouncementCheck = 0;
     this.winnerAnnouncementInterval = 5 * 60 * 1000; // 5 min
@@ -1876,6 +1881,61 @@ ${recentMemory.slice(-1500)}
   }
 
   /**
+   * Random interval for ambient activity logs.
+   * Peak (08:00-24:00 GMT+8): 10-15 min
+   * Off-peak (00:00-08:00 GMT+8): 30-60 min
+   */
+  _randomAmbientInterval() {
+    const gmt8Hour = this.getGMT8Hour();
+    const isPeak = gmt8Hour >= 8 && gmt8Hour <= 23; // 08:00-23:59 GMT+8
+    if (isPeak) {
+      return (10 + Math.random() * 5) * 60 * 1000; // 10-15 min
+    }
+    return (30 + Math.random() * 30) * 60 * 1000; // 30-60 min
+  }
+
+  /**
+   * Maybe generate an ambient activity log entry.
+   * Runs 24/7 (just slower off-peak) to keep Workshop feed alive.
+   */
+  async maybeGenerateAmbientLog() {
+    const now = Date.now();
+    if (now - this.lastAmbientLogAt < this._ambientLogNextInterval) return;
+
+    // Reset timer BEFORE the Grok call to prevent thundering herd on slow responses
+    this.lastAmbientLogAt = now;
+    this._ambientLogNextInterval = this._randomAmbientInterval();
+
+    const gmt8Hour = this.getGMT8Hour();
+    const isPeak = gmt8Hour >= 8 && gmt8Hour <= 23;
+
+    // Weighted random type selection
+    const roll = Math.random();
+    let logType;
+    if (isPeak) {
+      // Peak: scanning 35%, thinking 25%, forging 25%, earning 15%
+      if (roll < 0.35) logType = 'scanning';
+      else if (roll < 0.60) logType = 'thinking';
+      else if (roll < 0.85) logType = 'forging';
+      else logType = 'earning';
+    } else {
+      // Off-peak: thinking 50%, scanning 30%, earning 15%, forging 5%
+      if (roll < 0.50) logType = 'thinking';
+      else if (roll < 0.80) logType = 'scanning';
+      else if (roll < 0.95) logType = 'earning';
+      else logType = 'forging';
+    }
+
+    try {
+      const { logAmbientEntry } = await import('./skills/x_twitter/x-context.js');
+      await logAmbientEntry(this.baseDir, logType, this.grokApiKey);
+      console.log(`[ChatMode] Ambient log: ${logType} (next in ${Math.round(this._ambientLogNextInterval / 60000)}m)`);
+    } catch (err) {
+      console.warn('[ChatMode] Ambient log error:', err.message);
+    }
+  }
+
+  /**
    * Diary-scheduled X posting — fires slots at their designated windows.
    * Replaces the old random 2-4 hour timer.
    */
@@ -1992,6 +2052,13 @@ ${recentMemory.slice(-1500)}
             } catch (e) {
               console.error(`[ChatMode] TG community share failed:`, e.message);
             }
+          }
+
+          // Event-driven ambient log: forging after meme_forge slot
+          if (slotId === 'meme_forge') {
+            import('./skills/x_twitter/x-context.js').then(m =>
+              m.logAmbientEntry(this.baseDir, 'forging', this.grokApiKey, { memeTitle: result.text?.slice(0, 60) })
+            ).catch(e => console.warn('[ChatMode] Ambient log (meme_forge) failed:', e.message));
           }
         } else {
           slot.status = 'failed';
@@ -2209,6 +2276,12 @@ ${recentMemory.slice(-1500)}
       } catch (e) {
         console.error('[ChatMode] TG notification failed:', e.message);
       }
+
+      // 8. Event-driven ambient log: earning after winner announcement
+      const totalPayout = (dist.transfers || []).reduce((s, t) => s + (t.amount || 0), 0);
+      import('./skills/x_twitter/x-context.js').then(m =>
+        m.logAmbientEntry(this.baseDir, 'earning', this.grokApiKey, { payoutAmount: totalPayout })
+      ).catch(e => console.warn('[ChatMode] Ambient log (earning) failed:', e.message));
     } catch (err) {
       console.error('[ChatMode] maybeAnnounceWinners error:', err.message);
     }
@@ -2541,6 +2614,9 @@ ${recentMemory.slice(-1500)}
     // Moltbook ecosystem posts to m/general (3.5-5 day timer)
     await this.maybePostEcosystem();
 
+    // Ambient activity logs — run 24/7 (slower off-peak) to fill Workshop feed gaps
+    await this.maybeGenerateAmbientLog();
+
     // TG Community murmur disabled — Memeya talks too much without community engagement
     // await this.maybeTgCommunityTick();
 
@@ -2787,6 +2863,12 @@ ${recentMemory}
 
       // Save to memory
       this.saveToJournal('news', news);
+
+      // Event-driven ambient log: scanning after news search
+      const headline = news.split('\n')[0]?.slice(0, 80) || '';
+      import('./skills/x_twitter/x-context.js').then(m =>
+        m.logAmbientEntry(this.baseDir, 'scanning', this.grokApiKey, { newsHeadline: headline })
+      ).catch(e => console.warn('[ChatMode] Ambient log (scanning) failed:', e.message));
 
       return news;
     } catch (err) {

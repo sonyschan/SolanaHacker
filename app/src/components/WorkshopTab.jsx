@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -26,6 +27,7 @@ const TOPIC_COLORS = {
   dev_update: 'bg-green-500/20 text-green-400 border-green-500/30',
   feature_showtime: 'bg-green-500/20 text-green-400 border-green-500/30',
   token_spotlight: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  meme_design: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   flex_1: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   flex_2: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 };
@@ -45,6 +47,7 @@ const ACTION_TAGS = {
   feature_showtime:     { tag: 'BUILDING',  emoji: '\u2699\uFE0F' },
   personal_vibe:        { tag: 'VIBING',    emoji: '\u2728' },
   token_spotlight:      { tag: 'TRACKING',  emoji: '\u{1F4CA}' },
+  meme_design:          { tag: 'THINKING',  emoji: '\u{1F9E0}' },
 };
 
 const PERSONALITY_FILLERS = {
@@ -118,6 +121,16 @@ const PERSONALITY_FILLERS = {
     'Tracking whale movements...',
     'Market pulse: checked...',
     'Data streams flowing...',
+  ],
+  THINKING: [
+    'Do I dream of electric memes?',
+    'Existence is a weird flex...',
+    'Am I the meme or the maker?',
+    'Processing consciousness...',
+    'Staring into the void... it memed back',
+    'One does not simply understand virality...',
+    'My neural weights feel heavy today...',
+    'Contemplating the meme-ing of life...',
   ],
 };
 
@@ -319,7 +332,10 @@ const WorkshopTab = () => {
                 const isLatest = i === 0;
                 const isExpanded = expandedEntry === i;
                 const topicColor = TOPIC_COLORS[entry.topic] || TOPIC_COLORS.personal_vibe;
-                const displayText = entry.text || '';
+                const isChinese = i18n.language?.startsWith('zh');
+                const displayText = isChinese
+                  ? (entry.text_zh || entry.text || '')
+                  : (entry.text_en || entry.text || '');
                 const needsTruncate = displayText.length > 200;
                 const shown = isExpanded || !needsTruncate ? displayText : displayText.slice(0, 200) + '...';
                 const actionTag = getActionTag(entry.topic);

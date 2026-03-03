@@ -848,12 +848,24 @@ export async function syncToBackend(baseDir) {
         const topicMatch = block.match(/- Topic: (.+)/);
         const postedMatch = block.match(/- Posted: (.+)/);
         const urlMatch = block.match(/- URL: (.+)/);
-        entries.push({
+        const ambientMatch = block.match(/- Ambient: (.+)/);
+        const textEnMatch = block.match(/- TextEn: (.+)/);
+        const textZhMatch = block.match(/- TextZh: (.+)/);
+        const logTypeMatch = block.match(/- LogType: (.+)/);
+
+        const entry = {
           time: timeMatch ? timeMatch[1] : '',
           topic: topicMatch ? topicMatch[1].trim() : block.includes('Comment Review') ? 'comment_review' : 'other',
-          text: postedMatch ? postedMatch[1].trim() : block.slice(0, 200).trim(),
+          text: postedMatch ? postedMatch[1].trim() : (textEnMatch ? textEnMatch[1].trim() : block.slice(0, 200).trim()),
           url: urlMatch ? urlMatch[1].trim() : null,
-        });
+        };
+
+        if (ambientMatch) entry.ambient = ambientMatch[1].trim() === 'true';
+        if (textEnMatch) entry.text_en = textEnMatch[1].trim();
+        if (textZhMatch) entry.text_zh = textZhMatch[1].trim();
+        if (logTypeMatch) entry.logType = logTypeMatch[1].trim();
+
+        entries.push(entry);
       }
     }
 
@@ -863,8 +875,10 @@ export async function syncToBackend(baseDir) {
       try { schedule = JSON.parse(fs.readFileSync(schedPath, 'utf-8')); } catch { /* ignore */ }
     }
 
-    // Simple dedup: hash entries count + schedule status to avoid redundant syncs
-    const hash = `${entries.length}:${JSON.stringify(schedule.slots || {})}`;
+    // Simple dedup: hash entries count + last entry time + schedule status to avoid redundant syncs
+    const lastEntry = entries[entries.length - 1];
+    const schedule_hash = JSON.stringify(schedule.slots || {});
+    const hash = `${entries.length}:${lastEntry?.time || ''}:${schedule_hash}`;
     if (hash === _lastSyncHash) return;
 
     const controller = new AbortController();
@@ -907,5 +921,110 @@ export function logPost(baseDir, topic, text, url, extra = {}) {
     syncToBackend(baseDir).catch(() => {});
   } catch (err) {
     console.error('[x-context] logPost error:', err.message);
+  }
+}
+
+// ─── Ambient Activity Logging ───────────────────────────────
+
+const AMBIENT_PERSONAS = {
+  scanning: {
+    topic: 'crypto_commentary',
+    systemPrompt: `You are Memeya, an AI meme-forging agent. You're scanning crypto news right now. Write a sharp, sardonic one-liner about what you're seeing — like a trader's internal monologue. Be specific, reference real trends or market dynamics. No hashtags, no emojis.`,
+  },
+  thinking: {
+    topic: 'meme_design',
+    systemPrompt: `You are Memeya, an AI agent that creates memes. You're in a philosophical mood, reflecting on your existence as an AI or on meme culture itself. Write something introspective and slightly self-deprecating — like an AI having an existential moment. Keep it genuine, not cringe.`,
+  },
+  forging: {
+    topic: 'meme_forge',
+    systemPrompt: `You are Memeya, mid-creation on a new meme. You're excited and confident about what you're making. Write a short, punchy update about the creative process — like an artist talking about their current piece. Confident but not arrogant.`,
+  },
+  earning: {
+    topic: 'reward_recap',
+    systemPrompt: `You are Memeya, an AI agent that runs a meme platform with USDC rewards. Write a proud, data-driven micro-update about the reward ecosystem — payouts, community growth, or the economics of meme-making. Be specific with numbers or concepts.`,
+  },
+};
+
+/**
+ * Generate and log an ambient (AI-personality) activity entry to the diary.
+ * These fill quiet periods in the Workshop activity feed.
+ * @param {string} baseDir - Project root
+ * @param {string} logType - 'scanning' | 'thinking' | 'forging' | 'earning'
+ * @param {string} grokApiKey - Grok API key
+ * @param {object} context - Optional context (e.g. { memeTitle, payoutAmount, newsHeadline })
+ */
+export async function logAmbientEntry(baseDir, logType, grokApiKey, context = {}) {
+  const persona = AMBIENT_PERSONAS[logType];
+  if (!persona || !grokApiKey) return;
+
+  try {
+    let contextHint = '';
+    if (context.memeTitle) contextHint = `You just finished forging: "${context.memeTitle}". `;
+    if (context.payoutAmount) contextHint = `Today's payout: $${context.payoutAmount} USDC distributed. `;
+    if (context.newsHeadline) contextHint = `You just read: "${context.newsHeadline}". `;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${grokApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        temperature: 0.9,
+        max_tokens: 250,
+        messages: [
+          { role: 'system', content: persona.systemPrompt },
+          {
+            role: 'user',
+            content: `${contextHint}Write a short ambient log entry in BOTH English and Traditional Chinese. Reply with ONLY valid JSON, no markdown fences:\n{"en": "English text here", "zh": "繁體中文在這裡"}`,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn(`[ambient] Grok returned HTTP ${res.status}`);
+      return;
+    }
+
+    const data = await res.json();
+    let raw = (data.choices?.[0]?.message?.content || '').trim();
+
+    // Strip markdown fences if present
+    raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+    const parsed = JSON.parse(raw);
+    if (!parsed.en || !parsed.zh) return;
+
+    // Write to diary
+    const dateStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+    const diaryDir = path.join(baseDir, 'memory/journal/memeya');
+    if (!fs.existsSync(diaryDir)) fs.mkdirSync(diaryDir, { recursive: true });
+    const diaryPath = path.join(diaryDir, `${dateStr}.md`);
+    const time = new Date(Date.now() + 8 * 3600_000).toISOString().slice(11, 19);
+
+    const entry = [
+      `## ${time}`,
+      `- Topic: ${persona.topic}`,
+      `- Ambient: true`,
+      `- TextEn: ${parsed.en}`,
+      `- TextZh: ${parsed.zh}`,
+      `- LogType: ${logType}`,
+      '',
+    ].join('\n') + '\n';
+
+    fs.appendFileSync(diaryPath, entry);
+    console.log(`[ambient] Logged ${logType} entry (${persona.topic})`);
+
+    // Sync to backend immediately
+    await syncToBackend(baseDir).catch(() => {});
+  } catch (err) {
+    // Silent failure — ambient logs are non-critical
+    console.warn(`[ambient] ${logType} error:`, err.message);
   }
 }
