@@ -1,7 +1,7 @@
 # AIMemeForge Agentic Commerce Strategy
 
 > Date: 2026-03-03 | Updated: 2026-03-04
-> Status: Phase 0 ✅ + Lab UI ✅ → Phase 2 (x402) next
+> Status: Phase 0 ✅ + Lab UI ✅ + Phase 2 x402 ✅ → Testing / Phase 3 next
 
 ---
 
@@ -23,13 +23,16 @@ Phase 1: Lab UI                            ✅ DONE (2026-03-04)
 ├── Passphrase auth (admin-only access)     ✅
 └── i18n (en / zh-TW / zh-CN)              ✅
 
-Phase 2: x402 Direct Sales Channel         🔧 IN PROGRESS
+Phase 2: x402 Direct Sales Channel         ✅ DONE (2026-03-04)
 ├── Configure Base USDC wallet              ✅ (0xba646...41b8, Crossmint)
 ├── Base balance display on frontend        ✅
-├── Install @x402/express middleware
-├── Wire paywall to /rate + /generate-custom
-├── Test with x402 client
-└── Launch on AIMemeForge.io
+├── Install @x402/express + @x402/evm      ✅
+├── CDP facilitator auth (Ed25519 JWT)      ✅
+├── Dual-track middleware (Lab OR x402)     ✅
+├── Wire paywall to /rate + /generate-custom✅
+├── Deploy to Cloud Run                     ✅ (HTTP 402 verified)
+├── Test with x402 client                   ⬜ NEXT
+└── Launch on AIMemeForge.io                ⬜
 
 Phase 3: Virtuals ACP Marketplace          ⬜ PLANNED
 ├── Register ACP agent
@@ -180,35 +183,31 @@ Client                    AIMemeForge.io                 Base Chain
 - **手續費**：Coinbase Facilitator ~1% — 遠低於 ACP 的 20%
 - **兼容性**：任何 HTTP client 都能使用，不需要 ACP SDK
 
-### 實現方案：@x402/express
+### 實現方案：@x402/express + 自製 CDP Auth
 
 ```bash
-npm install @x402/express
+npm install @x402/express @x402/evm @x402/core
 ```
 
-**Coinbase 官方 SDK** — 5.6K GitHub stars，production-ready。
+**注意**：官方 `@coinbase/x402` 依賴 `jose` (ESM-only)，與 CJS backend 不相容。
+我們自製了 CDP Ed25519 JWT 簽名（使用 Node.js `crypto`），產生相同的 auth headers。
 
 ```javascript
-// app/backend/server.js
-const { paymentMiddleware } = require('@x402/express');
+// app/backend/middleware/x402.js — 雙軌 middleware
+function requireLabKeyOrPayment(req, res, next) {
+  // Track 1: Lab passphrase → free admin access
+  if (req.headers['x-api-key'] === process.env.LAB_API_KEY) return next();
 
-// x402 paywall on commercial endpoints
-app.use('/api/memes/rate', paymentMiddleware(facilitatorUrl, {
-  amount: '0.005',
-  currency: 'USDC',
-  chain: 'base',
-  recipient: MEMEFORGE_BASE_WALLET
-}));
+  // Track 2: x402 payment → Base USDC via CDP facilitator
+  const middleware = getX402Middleware(); // lazy init, cached
+  if (middleware) return middleware(req, res, next);
 
-app.use('/api/memes/generate-custom', paymentMiddleware(facilitatorUrl, {
-  amount: '0.10',
-  currency: 'USDC',
-  chain: 'base',
-  recipient: MEMEFORGE_BASE_WALLET
-}));
+  // Fallback: reject
+  return res.status(403).json({ error: 'FORBIDDEN' });
+}
 ```
 
-**雙軌共存**：Lab UI 使用 passphrase auth (現有的 `requireLabKey` middleware)，x402 用於外部商業呼叫。兩者可透過 middleware chain 共存：有 Lab passphrase 的請求跳過 paywall，否則要求 x402 支付。
+**雙軌共存**：Lab passphrase (x-api-key header) 跳過 paywall，外部呼叫走 x402 支付。CDP credentials 未設定時優雅降級（server 仍啟動，只是 x402 不可用）。
 
 ### x402 生態工具
 
@@ -225,13 +224,15 @@ app.use('/api/memes/generate-custom', paymentMiddleware(facilitatorUrl, {
 ```
 1. [x] 創建 Base 鏈 USDC 收款錢包 (0xba646262871d295DeAe3062dF5bbe31fcc5841b8)
 2. [x] 前端顯示 Base 錢包餘額 (Workshop stats footer)
-3. [ ] 安裝 @x402/express + 配置 Coinbase Facilitator
-4. [ ] 修改 server.js — 在 /rate 和 /generate-custom 加入 paymentMiddleware
-5. [ ] 雙軌 middleware：requireLabKey || paymentMiddleware
-6. [ ] 測試：用 x402 client 呼叫 rateMeme ($0.005)
-7. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
-8. [ ] 部署到 Cloud Run
-9. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
+3. [x] 安裝 @x402/express @x402/evm @x402/core
+4. [x] 配置 CDP Facilitator (Ed25519 API key → GCP env vars)
+5. [x] 自製 CDP JWT auth (避免 jose ESM/CJS 衝突)
+6. [x] 雙軌 middleware：requireLabKeyOrPayment (Lab passphrase OR x402)
+7. [x] Wire /rate ($0.005) + /generate-custom ($0.10)
+8. [x] 部署到 Cloud Run — HTTP 402 驗證通過
+9. [ ] 測試：用 x402 client 呼叫 rateMeme ($0.005)
+10. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
+11. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
 ```
 
 ---
@@ -396,7 +397,9 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 | Package | 用途 | 安裝位置 |
 |---------|------|---------|
 | `@x402/express` | x402 paywall middleware | Cloud Run backend |
-| `@virtuals-protocol/acp-node` | ACP agent SDK | Droplet agent |
+| `@x402/evm` | ExactEvmScheme for Base chain | Cloud Run backend |
+| `@x402/core` | HTTPFacilitatorClient + x402ResourceServer | Cloud Run backend |
+| `@virtuals-protocol/acp-node` | ACP agent SDK | Droplet agent (Phase 3) |
 
 ---
 
@@ -457,6 +460,25 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 - Full i18n support (en, zh-TW, zh-CN)
 - Anti-duplicate text rules in image prompt builders
 
+### Phase 2: x402 Direct Sales (完成於 2026-03-04)
+
+**Base Wallet** — Crossmint Smart Wallet `0xba646262871d295DeAe3062dF5bbe31fcc5841b8`
+- Balance displayed in Workshop stats footer alongside Solana wallet
+- `app/backend/services/baseService.js` — USDC balance via JSON-RPC `eth_call`
+
+**x402 Middleware** — `app/backend/middleware/x402.js`
+- Dual-track auth: Lab passphrase (x-api-key) OR x402 payment
+- CDP facilitator: `https://api.cdp.coinbase.com/platform/v2/x402`
+- Ed25519 JWT generation via Node.js `crypto` (bypasses ESM-only `jose`)
+- Route config: `POST /rate` ($0.005) + `POST /generate-custom` ($0.10)
+- Paywall verified: unauthenticated requests return HTTP 402
+
+**Key Technical Decisions**:
+- Used `@x402/express` + `@x402/evm` + `@x402/core` (Coinbase official)
+- Did NOT use `@coinbase/x402` — depends on `@coinbase/cdp-sdk` → `jose` (ESM-only, crashes CJS)
+- Built custom `generateCdpJwt()` using native `crypto.sign()` for Ed25519
+- Route config keys must be router-relative (`POST /rate`, not `POST /api/memes/rate`) because `paymentMiddleware` matches against `req.path`
+
 ### Key Files Modified
 
 | File | Changes |
@@ -466,7 +488,10 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 | `app/backend/services/memeNarrativeService.js` | Override param |
 | `app/backend/controllers/memeController.js` | generateSingleMeme() |
 | `app/backend/routes/catalog.js` | **New** — 5 catalog endpoints |
-| `app/backend/routes/memes.js` | /rate + /generate-custom routes |
+| `app/backend/middleware/x402.js` | **New** — x402 dual-track payment middleware |
+| `app/backend/services/baseService.js` | **New** — Base chain USDC balance queries |
+| `app/backend/routes/memes.js` | /rate + /generate-custom routes, x402 middleware |
+| `app/backend/routes/rewards.js` | Extended with Base wallet balance |
 | `app/backend/server.js` | Wire catalog routes |
 | `app/src/components/LabTab.jsx` | **New** — Lab UI |
 | `app/src/components/Dashboard.jsx` | Lab tab wiring |
