@@ -9,16 +9,75 @@
  * Solana support can be added later via x402-solana package.
  */
 
+const crypto = require('crypto');
 const { paymentMiddleware, x402ResourceServer } = require('@x402/express');
 const { ExactEvmScheme } = require('@x402/evm/exact/server');
 const { HTTPFacilitatorClient } = require('@x402/core/server');
-const { createFacilitatorConfig } = require('@coinbase/x402');
 
 // Memeya's Base wallet (Crossmint Smart Wallet)
 const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
 
 // Base mainnet CAIP-2 identifier
 const BASE_MAINNET = 'eip155:8453';
+
+// CDP facilitator
+const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
+const CDP_FACILITATOR_HOST = 'api.cdp.coinbase.com';
+const CDP_FACILITATOR_PATH = '/platform/v2/x402';
+
+/**
+ * Generate a CDP JWT (Ed25519) for authenticating with the facilitator.
+ * Replicates @coinbase/cdp-sdk JWT logic without the ESM-only `jose` dependency.
+ */
+function generateCdpJwt(apiKeyId, apiKeySecret, method, path) {
+  const now = Math.floor(Date.now() / 1000);
+  const nonce = crypto.randomBytes(16).toString('hex');
+
+  const header = { alg: 'EdDSA', kid: apiKeyId, typ: 'JWT', nonce };
+  const payload = {
+    sub: apiKeyId,
+    iss: 'cdp',
+    iat: now,
+    nbf: now,
+    exp: now + 120,
+    uris: [`${method} ${CDP_FACILITATOR_HOST}${path}`],
+  };
+
+  const b64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
+  const b64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signingInput = `${b64Header}.${b64Payload}`;
+
+  // Ed25519 key: 64 bytes base64 = 32-byte seed + 32-byte public key
+  const decoded = Buffer.from(apiKeySecret, 'base64');
+  const seed = decoded.subarray(0, 32);
+
+  // Build PKCS8 DER for Ed25519 private key
+  const pkcs8Prefix = Buffer.from('302e020100300506032b657004220420', 'hex');
+  const keyObj = crypto.createPrivateKey({
+    key: Buffer.concat([pkcs8Prefix, seed]),
+    format: 'der',
+    type: 'pkcs8',
+  });
+
+  const signature = crypto.sign(null, Buffer.from(signingInput), keyObj);
+  return `${signingInput}.${Buffer.from(signature).toString('base64url')}`;
+}
+
+/**
+ * Build createAuthHeaders function for CDP facilitator (matches @coinbase/x402 interface).
+ */
+function createCdpAuthHeaders(apiKeyId, apiKeySecret) {
+  return async () => {
+    const verifyAuth = `Bearer ${generateCdpJwt(apiKeyId, apiKeySecret, 'POST', `${CDP_FACILITATOR_PATH}/verify`)}`;
+    const settleAuth = `Bearer ${generateCdpJwt(apiKeyId, apiKeySecret, 'POST', `${CDP_FACILITATOR_PATH}/settle`)}`;
+    const supportedAuth = `Bearer ${generateCdpJwt(apiKeyId, apiKeySecret, 'GET', `${CDP_FACILITATOR_PATH}/supported`)}`;
+    return {
+      verify: { Authorization: verifyAuth },
+      settle: { Authorization: settleAuth },
+      supported: { Authorization: supportedAuth },
+    };
+  };
+}
 
 let _x402Middleware = null;
 
@@ -39,8 +98,10 @@ function getX402Middleware() {
   }
 
   try {
-    const facilitatorConfig = createFacilitatorConfig(keyId, keySecret);
-    const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
+    const facilitatorClient = new HTTPFacilitatorClient({
+      url: CDP_FACILITATOR_URL,
+      createAuthHeaders: createCdpAuthHeaders(keyId, keySecret),
+    });
 
     const server = new x402ResourceServer(facilitatorClient)
       .register(BASE_MAINNET, new ExactEvmScheme());
