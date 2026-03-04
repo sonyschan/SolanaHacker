@@ -603,23 +603,14 @@
       "catalog": "目錄"
     },
     "rate": {
-      "title": "評估迷因創意",
-      "desc": "用 6 維品質關卡評估迷因概念",
-      "caption": "標題文字",
-      "captionSlots": "標題欄位 (JSON)",
-      "emotion": "情緒",
-      "twist": "反轉",
-      "visualDesc": "視覺描述",
+      "title": "評估迷因",
+      "desc": "提交迷因圖片網址，由 AI 進行品質評估",
+      "imageUrl": "迷因圖片網址",
       "submit": "評分迷因",
-      "suggestions": "建議",
-      "dimensions": {
-        "template_familiarity": "模板熟悉度",
-        "caption_punchiness": "標題力度",
-        "crypto_nativeness": "幣圈原生度",
-        "immediacy": "時效性",
-        "twist_strength": "反轉強度",
-        "originality_score": "原創性"
-      }
+      "analyzing": "分析中...",
+      "estimatedTime": "AI 視覺分析約需 5-10 秒",
+      "grade": "等級",
+      "suggestions": "建議"
     },
     "generate": {
       "title": "生成自訂迷因",

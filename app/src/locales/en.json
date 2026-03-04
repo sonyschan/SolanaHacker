@@ -603,23 +603,14 @@
       "catalog": "Catalog"
     },
     "rate": {
-      "title": "Rate a Meme Idea",
-      "desc": "Evaluate a meme concept against the 6-dimension quality gate",
-      "caption": "Caption",
-      "captionSlots": "Caption Slots (JSON)",
-      "emotion": "Emotion",
-      "twist": "Twist",
-      "visualDesc": "Visual Description",
+      "title": "Rate a Meme",
+      "desc": "Submit a meme image URL for AI quality evaluation",
+      "imageUrl": "Meme Image URL",
       "submit": "Rate Meme",
-      "suggestions": "Suggestions",
-      "dimensions": {
-        "template_familiarity": "Template Familiarity",
-        "caption_punchiness": "Caption Punchiness",
-        "crypto_nativeness": "Crypto Nativeness",
-        "immediacy": "Immediacy",
-        "twist_strength": "Twist Strength",
-        "originality_score": "Originality"
-      }
+      "analyzing": "Analyzing...",
+      "estimatedTime": "AI vision analysis takes ~5-10 seconds",
+      "grade": "Grade",
+      "suggestions": "Suggestions"
     },
     "generate": {
       "title": "Generate Custom Meme",

@@ -746,6 +746,117 @@ Technical requirements:
 - Clean composition with balanced visual elements`;
 }
 
+/**
+ * Evaluate a meme image via Gemini vision. Public-facing wrapper.
+ * Downloads image from URL, sends to Gemini 2.5 Flash with hidden 6D scoring prompt.
+ * Returns simplified { score, pass, grade, suggestions[] } — criteria details hidden.
+ *
+ * @param {string} imageUrl - Public URL of the meme image
+ * @returns {{ score: number, pass: boolean, grade: string, suggestions: string[] }}
+ */
+async function evaluatePublicMeme(imageUrl) {
+  // 1. Download and validate image
+  const response = await fetch(imageUrl, {
+    headers: { 'Accept': 'image/*' },
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: HTTP ${response.status}`);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.startsWith('image/')) {
+    throw new Error(`URL does not point to an image (got ${contentType})`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const sizeBytes = buffer.byteLength;
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  if (sizeBytes > MAX_SIZE) {
+    throw new Error(`Image too large: ${(sizeBytes / 1024 / 1024).toFixed(1)}MB (max 10MB)`);
+  }
+
+  const base64 = Buffer.from(buffer).toString('base64');
+  // Normalize content-type for Gemini (e.g. "image/jpeg; charset=utf-8" → "image/jpeg")
+  const mimeType = contentType.split(';')[0].trim();
+
+  // 2. Single Gemini vision call — full 6D criteria in prompt (hidden from caller)
+  const prompt = `You are a meme quality evaluator. Analyze this meme image and rate it on 6 internal criteria (1-5 each).
+
+LOOK AT THE IMAGE CAREFULLY. Extract:
+- Any text/captions visible in the image
+- The visual composition and meme format/template used
+- The emotional tone and humor style
+- Whether it relates to crypto/trading culture
+
+SCORING CRITERIA (1-5 each):
+1. format_recognition: Is this a recognizable meme format? Does it follow internet meme conventions? (e.g. drake format, wojak, distracted boyfriend, or a clear original meme layout)
+2. caption_quality: Is the text punchy, short, and impactful? Or is it wordy and over-explained? Each text region should ideally be ≤6 words.
+3. cultural_relevance: Does it connect to crypto/trading culture, internet culture, or current events in a native way? Not forced or corporate?
+4. visual_execution: Is the image well-composed? Text readable? Colors appropriate? Layout clean?
+5. humor_impact: Does it deliver a twist, irony, or unexpected reaction? Does it make you laugh or think? (WEIGHTED DOUBLE)
+6. originality: Is this a fresh take, not a tired/overused joke? Does it bring a new angle? (WEIGHTED DOUBLE)
+
+Respond with ONLY this JSON:
+{
+  "scores": {
+    "format_recognition": 0,
+    "caption_quality": 0,
+    "cultural_relevance": 0,
+    "visual_execution": 0,
+    "humor_impact": 0,
+    "originality": 0
+  },
+  "detected_text": ["list of text found in the image"],
+  "meme_format": "identified meme template or 'original'",
+  "suggestions": ["plain-English improvement tips, max 3 items"]
+}`;
+
+  const result = await textModel.generateContent([
+    prompt,
+    { inlineData: { mimeType, data: base64 } },
+  ]);
+  const text = (await result.response).text().trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { score: 0, pass: false, grade: 'N/A', suggestions: ['Unable to evaluate image — try a different meme'] };
+  }
+
+  const evaluation = JSON.parse(jsonMatch[0]);
+  const scores = evaluation.scores || {};
+
+  // Same weighting as internal: 4 base + humor×2 + originality×2 = 40 max
+  const weightedTotal = (scores.format_recognition || 0)
+    + (scores.caption_quality || 0)
+    + (scores.cultural_relevance || 0)
+    + (scores.visual_execution || 0)
+    + (scores.humor_impact || 0) * 2
+    + (scores.originality || 0) * 2;
+  const maxWeighted = 40;
+  const score = Math.round((weightedTotal / maxWeighted) * 100);
+  const pass = score >= 82;
+
+  // Grade mapping
+  let grade;
+  if (score >= 95) grade = 'S';
+  else if (score >= 90) grade = 'A+';
+  else if (score >= 85) grade = 'A';
+  else if (score >= 82) grade = 'B+';
+  else if (score >= 75) grade = 'B';
+  else if (score >= 65) grade = 'C';
+  else if (score >= 50) grade = 'D';
+  else grade = 'F';
+
+  return {
+    score,
+    pass,
+    grade,
+    suggestions: (evaluation.suggestions || []).slice(0, 3),
+  };
+}
+
 module.exports = {
   selectTemplate,
   selectArtStyle,
@@ -754,6 +865,7 @@ module.exports = {
   retryMemeIdea,
   retryOriginalMemeIdea,
   evaluateMemeIdea,
+  evaluatePublicMeme,
   buildImagePrompt,
   buildOriginalImagePrompt,
   validateCaption,

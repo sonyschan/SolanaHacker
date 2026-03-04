@@ -94,42 +94,33 @@ router.get("/hall-of-memes", cacheResponse("memes:hall-of-memes", TTL.MEDIUM), a
 router.post("/generate-daily", generateDailyMemes);
 
 /**
- * POST /api/memes/rate - Evaluate a meme idea using quality gate
+ * POST /api/memes/rate - Evaluate a meme image via Gemini vision
+ * Input: { imageUrl } — public URL of a meme image
+ * Output: { score, pass, grade, suggestions[] } — criteria details hidden
  */
 router.post("/rate", requireLabKey, rateLimiter, async (req, res) => {
   try {
-    const { caption, caption_slots, visual_description, emotion, twist, context, templateId } = req.body;
-    if (!caption && !caption_slots) {
-      return res.status(400).json({ success: false, error: "caption or caption_slots required" });
+    const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, error: "imageUrl is required" });
     }
-    const memeIdea = {
-      template_id: templateId || null,
-      caption: caption || Object.values(caption_slots || {}).join(' | '),
-      caption_slots: caption_slots || {},
-      visual_description: visual_description || '',
-      emotion: emotion || '',
-      twist: twist || '',
-      event_angle: context || '',
-    };
-    const evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea, []);
-    // Estimate rarity from score
-    let rarity_estimate = 'common';
-    if (evaluation.score >= 95) rarity_estimate = 'legendary';
-    else if (evaluation.score >= 90) rarity_estimate = 'epic';
-    else if (evaluation.score >= 85) rarity_estimate = 'rare';
-    else if (evaluation.score >= 82) rarity_estimate = 'uncommon';
-    res.json({
-      success: true,
-      score: evaluation.score,
-      scores: evaluation.scores || {},
-      pass: evaluation.pass,
-      rarity_estimate,
-      suggestions: evaluation.fix_suggestions || [],
-      failure_reasons: evaluation.failure_reasons || [],
-    });
+    // Basic URL validation
+    try {
+      const parsed = new URL(imageUrl);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(400).json({ success: false, error: "imageUrl must be http or https" });
+      }
+    } catch {
+      return res.status(400).json({ success: false, error: "Invalid imageUrl" });
+    }
+
+    const evaluation = await memeIdeaService.evaluatePublicMeme(imageUrl);
+    res.json({ success: true, ...evaluation });
   } catch (error) {
     console.error("Rate meme error:", error);
-    res.status(500).json({ success: false, error: "Failed to rate meme", message: error.message });
+    const message = error.message || "Failed to rate meme";
+    const status = message.includes('Failed to fetch') || message.includes('does not point to an image') || message.includes('too large') ? 400 : 500;
+    res.status(status).json({ success: false, error: message });
   }
 });
 

@@ -27,21 +27,15 @@ function clearStoredKey() {
   localStorage.removeItem(LAB_EXPIRY_KEY);
 }
 
-const SCORE_DIMENSIONS = [
-  { key: 'template_familiarity', color: 'from-blue-500 to-blue-400' },
-  { key: 'caption_punchiness', color: 'from-yellow-500 to-yellow-400' },
-  { key: 'crypto_nativeness', color: 'from-green-500 to-green-400' },
-  { key: 'immediacy', color: 'from-purple-500 to-purple-400' },
-  { key: 'twist_strength', color: 'from-red-500 to-red-400' },
-  { key: 'originality_score', color: 'from-pink-500 to-pink-400' },
-];
-
-const RARITY_COLORS = {
-  legendary: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
-  epic: 'text-purple-400 bg-purple-400/10 border-purple-400/30',
-  rare: 'text-blue-400 bg-blue-400/10 border-blue-400/30',
-  uncommon: 'text-green-400 bg-green-400/10 border-green-400/30',
-  common: 'text-gray-400 bg-gray-400/10 border-gray-400/30',
+const GRADE_COLORS = {
+  'S':  'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
+  'A+': 'text-purple-400 bg-purple-400/10 border-purple-400/30',
+  'A':  'text-blue-400 bg-blue-400/10 border-blue-400/30',
+  'B+': 'text-green-400 bg-green-400/10 border-green-400/30',
+  'B':  'text-green-400 bg-green-400/10 border-green-400/30',
+  'C':  'text-gray-400 bg-gray-400/10 border-gray-400/30',
+  'D':  'text-orange-400 bg-orange-400/10 border-orange-400/30',
+  'F':  'text-red-400 bg-red-400/10 border-red-400/30',
 };
 
 const LabTab = () => {
@@ -62,7 +56,7 @@ const LabTab = () => {
   const [catalogLoading, setCatalogLoading] = useState(true);
 
   // Rate panel state
-  const [rateForm, setRateForm] = useState({ caption: '', caption_slots: '', visual_description: '', emotion: '', twist: '' });
+  const [rateImageUrl, setRateImageUrl] = useState('');
   const [rateResult, setRateResult] = useState(null);
   const [rateLoading, setRateLoading] = useState(false);
 
@@ -162,20 +156,10 @@ const LabTab = () => {
     setRateLoading(true);
     setRateResult(null);
     try {
-      let captionSlots = {};
-      if (rateForm.caption_slots.trim()) {
-        try { captionSlots = JSON.parse(rateForm.caption_slots); } catch { /* ignore */ }
-      }
       const res = await fetch(`${API_BASE_URL}/api/memes/rate`, {
         method: 'POST',
         headers: labHeaders(),
-        body: JSON.stringify({
-          caption: rateForm.caption,
-          caption_slots: Object.keys(captionSlots).length > 0 ? captionSlots : undefined,
-          visual_description: rateForm.visual_description || undefined,
-          emotion: rateForm.emotion || undefined,
-          twist: rateForm.twist || undefined,
-        }),
+        body: JSON.stringify({ imageUrl: rateImageUrl.trim() }),
       });
       const data = await res.json();
       setRateResult(data);
@@ -283,64 +267,39 @@ const LabTab = () => {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.caption')}</label>
+              <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.imageUrl')}</label>
               <input
-                type="text"
-                value={rateForm.caption}
-                onChange={e => setRateForm(f => ({ ...f, caption: e.target.value }))}
-                placeholder="e.g. Buying the dip | Getting liquidated"
+                type="url"
+                value={rateImageUrl}
+                onChange={e => setRateImageUrl(e.target.value)}
+                placeholder="https://example.com/meme.png"
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.captionSlots')}</label>
-              <textarea
-                value={rateForm.caption_slots}
-                onChange={e => setRateForm(f => ({ ...f, caption_slots: e.target.value }))}
-                placeholder='{"top_text": "Buying the dip", "bottom_text": "Getting liquidated"}'
-                rows={2}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.emotion')}</label>
-                <input
-                  type="text"
-                  value={rateForm.emotion}
-                  onChange={e => setRateForm(f => ({ ...f, emotion: e.target.value }))}
-                  placeholder="e.g. despair"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+
+            {/* Image preview */}
+            {rateImageUrl.trim() && (
+              <div className="flex justify-center">
+                <img
+                  src={rateImageUrl.trim()}
+                  alt="Meme preview"
+                  className="max-w-xs max-h-64 rounded-lg border border-white/10 object-contain"
+                  onError={e => { e.target.style.display = 'none'; }}
+                  onLoad={e => { e.target.style.display = 'block'; }}
                 />
               </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.twist')}</label>
-                <input
-                  type="text"
-                  value={rateForm.twist}
-                  onChange={e => setRateForm(f => ({ ...f, twist: e.target.value }))}
-                  placeholder="e.g. Still buying more"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">{t('lab.rate.visualDesc')}</label>
-                <input
-                  type="text"
-                  value={rateForm.visual_description}
-                  onChange={e => setRateForm(f => ({ ...f, visual_description: e.target.value }))}
-                  placeholder="e.g. Trader staring at red charts"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-            </div>
+            )}
+
             <button
               onClick={handleRate}
-              disabled={rateLoading || (!rateForm.caption && !rateForm.caption_slots)}
+              disabled={rateLoading || !rateImageUrl.trim()}
               className="w-full py-2 rounded-lg font-medium text-sm transition-all bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {rateLoading ? t('common.loading') : t('lab.rate.submit')}
+              {rateLoading ? t('lab.rate.analyzing') : t('lab.rate.submit')}
             </button>
+            {rateLoading && (
+              <p className="text-xs text-gray-500 text-center">{t('lab.rate.estimatedTime')}</p>
+            )}
           </div>
 
           {/* Rate Result */}
@@ -354,25 +313,24 @@ const LabTab = () => {
                       <span className={`px-2 py-0.5 rounded text-xs font-medium border ${rateResult.pass ? 'text-green-400 bg-green-400/10 border-green-400/30' : 'text-red-400 bg-red-400/10 border-red-400/30'}`}>
                         {rateResult.pass ? 'PASS' : 'FAIL'}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium border ${RARITY_COLORS[rateResult.rarity_estimate]}`}>
-                        {rateResult.rarity_estimate?.toUpperCase()}
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium border ${GRADE_COLORS[rateResult.grade] || GRADE_COLORS['C']}`}>
+                        {t('lab.rate.grade')}: {rateResult.grade}
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    {SCORE_DIMENSIONS.map(dim => (
-                      <div key={dim.key} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 w-36 truncate">{t(`lab.rate.dimensions.${dim.key}`)}</span>
-                        <div className="flex-1 bg-white/5 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full bg-gradient-to-r ${dim.color}`}
-                            style={{ width: `${((rateResult.scores?.[dim.key] || 0) / 5) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-300 w-6 text-right">{rateResult.scores?.[dim.key] || 0}</span>
-                      </div>
-                    ))}
+
+                  {/* Score bar */}
+                  <div className="bg-white/5 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        rateResult.score >= 82 ? 'bg-gradient-to-r from-green-500 to-emerald-400' :
+                        rateResult.score >= 65 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+                        'bg-gradient-to-r from-red-500 to-red-400'
+                      }`}
+                      style={{ width: `${rateResult.score}%` }}
+                    />
                   </div>
+
                   {rateResult.suggestions?.length > 0 && (
                     <div className="bg-yellow-400/5 border border-yellow-400/20 rounded-lg p-3">
                       <p className="text-xs text-yellow-400 font-medium mb-1">{t('lab.rate.suggestions')}</p>

@@ -603,23 +603,14 @@
       "catalog": "目录"
     },
     "rate": {
-      "title": "评估梗图创意",
-      "desc": "用 6 维品质关卡评估梗图概念",
-      "caption": "标题文字",
-      "captionSlots": "标题栏位 (JSON)",
-      "emotion": "情绪",
-      "twist": "反转",
-      "visualDesc": "视觉描述",
+      "title": "评估梗图",
+      "desc": "提交梗图图片网址，由 AI 进行品质评估",
+      "imageUrl": "梗图图片网址",
       "submit": "评分梗图",
-      "suggestions": "建议",
-      "dimensions": {
-        "template_familiarity": "模板熟悉度",
-        "caption_punchiness": "标题力度",
-        "crypto_nativeness": "币圈原生度",
-        "immediacy": "时效性",
-        "twist_strength": "反转强度",
-        "originality_score": "原创性"
-      }
+      "analyzing": "分析中...",
+      "estimatedTime": "AI 视觉分析约需 5-10 秒",
+      "grade": "等级",
+      "suggestions": "建议"
     },
     "generate": {
       "title": "生成自定义梗图",
