@@ -107,8 +107,9 @@ function getX402Middleware() {
       .register(BASE_MAINNET, new ExactEvmScheme());
 
     // Route → pricing config
+    // Keys use router-relative paths (req.path inside Express sub-router)
     const routeConfig = {
-      'POST /api/memes/rate': {
+      'POST /rate': {
         accepts: [{
           scheme: 'exact',
           price: '$0.005',
@@ -118,7 +119,7 @@ function getX402Middleware() {
         description: 'Rate a meme image — AI quality scoring with grade and suggestions',
         mimeType: 'application/json',
       },
-      'POST /api/memes/generate-custom': {
+      'POST /generate-custom': {
         accepts: [{
           scheme: 'exact',
           price: '$0.10',
