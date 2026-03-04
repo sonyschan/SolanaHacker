@@ -31,6 +31,8 @@ Phase 2: x402 Direct Sales Channel         ✅ DONE (2026-03-04)
 ├── Dual-track middleware (Lab OR x402)     ✅
 ├── Wire paywall to /rate + /generate-custom✅
 ├── Deploy to Cloud Run                     ✅ (HTTP 402 verified)
+├── Browser paywall HTML (fallback)         ✅ (logo + amount + description)
+├── Base in "Powered by" footer             ✅
 ├── Test with x402 client                   ⬜ NEXT
 └── Launch on AIMemeForge.io                ⬜
 
@@ -478,6 +480,7 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 - Did NOT use `@coinbase/x402` — depends on `@coinbase/cdp-sdk` → `jose` (ESM-only, crashes CJS)
 - Built custom `generateCdpJwt()` using native `crypto.sign()` for Ed25519
 - Route config keys must be router-relative (`POST /rate`, not `POST /api/memes/rate`) because `paymentMiddleware` matches against `req.path`
+- `@x402/paywall` (85MB, bundles WalletConnect/Solana wallet SDKs) causes Cloud Run deploy failure — removed; using built-in fallback HTML (shows logo + amount + description)
 
 ### Key Files Modified
 
@@ -492,6 +495,7 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 | `app/backend/services/baseService.js` | **New** — Base chain USDC balance queries |
 | `app/backend/routes/memes.js` | /rate + /generate-custom routes, x402 middleware |
 | `app/backend/routes/rewards.js` | Extended with Base wallet balance |
+| `app/src/components/Footer.jsx` | Added "Base" to Powered By section |
 | `app/backend/server.js` | Wire catalog routes |
 | `app/src/components/LabTab.jsx` | **New** — Lab UI |
 | `app/src/components/Dashboard.jsx` | Lab tab wiring |
