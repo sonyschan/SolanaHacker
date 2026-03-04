@@ -131,7 +131,13 @@ function getX402Middleware() {
       },
     };
 
-    _x402Middleware = paymentMiddleware(routeConfig, server);
+    const paywallConfig = {
+      appName: 'AIMemeForge',
+      appLogo: 'https://aimemeforge.io/images/logo-192.png',
+      testnet: false,
+    };
+
+    _x402Middleware = paymentMiddleware(routeConfig, server, paywallConfig);
     console.log('✅ x402: payment middleware initialized (Base mainnet)');
     return _x402Middleware;
   } catch (err) {
