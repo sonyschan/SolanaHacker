@@ -153,7 +153,16 @@ function getNarrativeCooldownWeight(narrativeId, recentNarrativeIds) {
  * @param {{ newsEvent: object, template: object, recentMemes: object[], category: string }} params
  * @returns {object} Narrative object with selectedPhrase attached
  */
-function selectNarrative({ newsEvent, template, recentMemes = [], category }) {
+function selectNarrative({ newsEvent, template, recentMemes = [], category, overrideNarrativeId = null }) {
+  if (overrideNarrativeId) {
+    const found = NARRATIVE_POOL.find(n => n.narrative_id === overrideNarrativeId);
+    if (found) {
+      const selectedPhrase = found.phrase_library[
+        Math.floor(Math.random() * found.phrase_library.length)
+      ];
+      return { ...found, selectedPhrase };
+    }
+  }
   const recentNarrativeIds = recentMemes
     .map(m => m.narrativeId)
     .filter(Boolean);

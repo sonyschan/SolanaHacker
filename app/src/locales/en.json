@@ -588,6 +588,78 @@
     "agentDiscovery": "Agent Discovery",
     "agentManifest": "Machine-readable agent manifest:"
   },
+  "lab": {
+    "title": "Meme Lab",
+    "subtitle": "Test & validate the meme generation pipeline",
+    "auth": {
+      "prompt": "Enter passphrase to access the Lab",
+      "placeholder": "Passphrase",
+      "submit": "Unlock Lab",
+      "logout": "Lock Lab"
+    },
+    "panels": {
+      "rate": "Rate",
+      "generate": "Generate",
+      "catalog": "Catalog"
+    },
+    "rate": {
+      "title": "Rate a Meme Idea",
+      "desc": "Evaluate a meme concept against the 6-dimension quality gate",
+      "caption": "Caption",
+      "captionSlots": "Caption Slots (JSON)",
+      "emotion": "Emotion",
+      "twist": "Twist",
+      "visualDesc": "Visual Description",
+      "submit": "Rate Meme",
+      "suggestions": "Suggestions",
+      "dimensions": {
+        "template_familiarity": "Template Familiarity",
+        "caption_punchiness": "Caption Punchiness",
+        "crypto_nativeness": "Crypto Nativeness",
+        "immediacy": "Immediacy",
+        "twist_strength": "Twist Strength",
+        "originality_score": "Originality"
+      }
+    },
+    "generate": {
+      "title": "Generate Custom Meme",
+      "desc": "Create a meme with custom topic and optional parameter overrides",
+      "topic": "Topic",
+      "template": "Template",
+      "strategy": "Strategy",
+      "narrative": "Narrative",
+      "artStyle": "Art Style",
+      "mode": "Mode",
+      "modes": {
+        "auto": "Auto",
+        "template": "Template",
+        "original": "Original"
+      },
+      "submit": "Generate Meme",
+      "generating": "Generating...",
+      "estimatedTime": "This takes ~30-60 seconds (LLM + image generation)",
+      "result": {
+        "quality": "Quality Score",
+        "model": "AI Model",
+        "style": "Art Style",
+        "strategy": "Strategy",
+        "narrative": "Narrative",
+        "template": "Template",
+        "caption": "Caption",
+        "twist": "Twist"
+      }
+    },
+    "catalog": {
+      "title": "Browse Catalog",
+      "tabs": {
+        "templates": "Templates",
+        "strategies": "Strategies",
+        "narratives": "Narratives",
+        "artStyles": "Art Styles",
+        "recipes": "Top Recipes"
+      }
+    }
+  },
   "workshop": {
     "terminal": {
       "title": "Memeya_OS",

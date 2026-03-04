@@ -9,6 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import ReferralTab from './ReferralTab';
 import WorkshopTab from './WorkshopTab';
 import LotteryTab from './LotteryTab';
+import LabTab from './LabTab';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -249,6 +250,8 @@ const Dashboard = ({
           setActiveTab={setActiveTab}
           onOpenMemeModal={openMemeModal}
         />;
+      case 'lab':
+        return <LabTab />;
       case 'referral':
         return <ReferralTab walletAddress={walletAddress} memeyaBalance={memeyaBalance} />;
       default:

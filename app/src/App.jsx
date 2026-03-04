@@ -115,6 +115,8 @@ function App() {
       setCurrentView("agent");
     } else if (urlHash === "#wiki") {
       setCurrentView("wiki");
+    } else if (urlHash === "#lab") {
+      setCurrentView("dashboard");
     } else if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else {
@@ -130,6 +132,8 @@ function App() {
         setCurrentView("agent");
       } else if (urlHash === "#wiki") {
         setCurrentView("wiki");
+      } else if (urlHash === "#lab") {
+        setCurrentView("dashboard");
       } else if (urlHash === "#invite" || urlHash === "#dashboard") {
         setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       } else if (urlHash === "" || urlHash === "#") {
@@ -168,7 +172,7 @@ function App() {
             setVotingStreak={setVotingStreak}
             walletAddress={walletAddress}
             userDataLoading={userDataLoading}
-            initialTab={window.location.hash === '#invite' ? 'referral' : undefined}
+            initialTab={window.location.hash === '#invite' ? 'referral' : window.location.hash === '#lab' ? 'lab' : undefined}
           />
         )}
       </div>

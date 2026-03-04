@@ -164,7 +164,11 @@ function getStrategyCooldownWeight(strategyId, recentStrategyIds) {
  * @param {{ newsEvent: object, template: object, recentMemes: object[], category: string }} params
  * @returns {object} Strategy object
  */
-function selectStrategy({ newsEvent, template, recentMemes = [], category }) {
+function selectStrategy({ newsEvent, template, recentMemes = [], category, overrideStrategyId = null }) {
+  if (overrideStrategyId) {
+    const found = STRATEGY_POOL.find(s => s.strategy_id === overrideStrategyId);
+    if (found) return found;
+  }
   const recentStrategyIds = recentMemes
     .map(m => m.strategyId)
     .filter(Boolean);

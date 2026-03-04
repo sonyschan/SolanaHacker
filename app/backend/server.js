@@ -15,6 +15,7 @@ const ogRoutes = require('./routes/og');
 const tapestryRoutes = require('./routes/tapestry');
 const rewardRoutes = require('./routes/rewards');
 const memeyaRoutes = require('./routes/memeya');
+const catalogRoutes = require('./routes/catalog');
 
 // Import scheduler service
 const schedulerService = require('./services/schedulerService');
@@ -92,6 +93,7 @@ app.use('/api/og', ogRoutes);
 app.use('/api/tapestry', tapestryRoutes);
 app.use('/api/rewards', rewardRoutes);
 app.use('/api/memeya', memeyaRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Referral ID resolution endpoint
 app.get('/api/referral/:id', async (req, res) => {

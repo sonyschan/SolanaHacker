@@ -142,6 +142,153 @@ async function getRecentMemeThemes() {
 }
 
 /**
+ * Generate a single custom meme with optional overrides.
+ * Reuses the full daily pipeline logic (idea → evaluate → retry → image → metadata).
+ * @param {{ topic, newsTitle?, templateId?, strategyId?, narrativeId?, artStyleId?, mode? }} params
+ * @returns {object} Saved meme document
+ */
+async function generateSingleMeme({ topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode }) {
+  console.log(`🧪 Lab: generating custom meme — topic="${topic}" mode=${mode || 'auto'}`);
+
+  // 1. Build news event object
+  const newsItem = { title: newsTitle || topic, category: null };
+
+  // 2. Recent themes for anti-repetition
+  const recentThemes = await getRecentMemeThemes();
+
+  // 3. Determine mode
+  const isOriginalMode = mode === 'original' || (mode !== 'template' && !templateId);
+
+  // 4. Select art style (with optional override)
+  const artStyle = memeIdeaService.selectArtStyle(recentThemes, artStyleId || null);
+  console.log(`🧪 Lab: art style="${artStyle.name}" (${artStyle.id})`);
+
+  // 5. Select template (Mode A only)
+  let template = null;
+  if (!isOriginalMode) {
+    template = memeIdeaService.selectTemplate(newsItem, recentThemes, templateId || null);
+    console.log(`🧪 Lab: template="${template.id}" (${template.name})`);
+  }
+
+  // 6. Select strategy + narrative (with optional overrides)
+  const strategy = memeStrategyService.selectStrategy({
+    newsEvent: newsItem, template, recentMemes: recentThemes, category: null,
+    overrideStrategyId: strategyId || null
+  });
+  console.log(`🧪 Lab: strategy="${strategy.strategy_id}"`);
+
+  const narrative = memeNarrativeService.selectNarrative({
+    newsEvent: newsItem, template, recentMemes: recentThemes, category: null,
+    overrideNarrativeId: narrativeId || null
+  });
+  console.log(`🧪 Lab: narrative="${narrative.narrative_id}"`);
+
+  // 7. Generate meme idea
+  let memeIdea;
+  if (isOriginalMode) {
+    memeIdea = await memeIdeaService.generateOriginalMemeIdea(newsItem, recentThemes, strategy, narrative);
+  } else {
+    memeIdea = await memeIdeaService.generateMemeIdea(newsItem, template, recentThemes, strategy, narrative);
+  }
+
+  // 8. Evaluate + retry loop (max 2 retries, same as daily pipeline)
+  const recentCaptions = recentThemes.map(t => t.caption).filter(Boolean).slice(0, 15);
+  let evaluation = { pass: true, score: 82, scores: {} };
+  const MAX_RETRIES = 2;
+  for (let retry = 0; retry <= MAX_RETRIES; retry++) {
+    try {
+      evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea, recentCaptions, strategy);
+      const validation = memeIdeaService.validateCaption(memeIdea, isOriginalMode ? null : template);
+      if (!validation.valid) {
+        evaluation.pass = false;
+        evaluation.failure_reasons = evaluation.failure_reasons || [];
+        evaluation.fix_suggestions = evaluation.fix_suggestions || [];
+        for (const issue of validation.issues) {
+          evaluation.failure_reasons.push(issue);
+          evaluation.fix_suggestions.push(`Fix: ${issue}`);
+        }
+      }
+      console.log(`🧪 Lab: quality ${evaluation.score}/100 ${evaluation.pass ? '✅' : '❌'}`);
+      if (evaluation.pass || retry === MAX_RETRIES) break;
+      if (isOriginalMode) {
+        memeIdea = await memeIdeaService.retryOriginalMemeIdea(memeIdea, evaluation.fix_suggestions, strategy, narrative);
+      } else {
+        memeIdea = await memeIdeaService.retryMemeIdea(memeIdea, evaluation.fix_suggestions, template, strategy, narrative);
+      }
+    } catch (evalErr) {
+      console.error('🧪 Lab: evaluation error:', evalErr.message);
+      break;
+    }
+  }
+
+  // 9. Build image prompt
+  const imagePrompt = isOriginalMode
+    ? memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
+    : memeIdeaService.buildImagePrompt(memeIdea, artStyle);
+
+  // 10. Generate image (random model)
+  const generator = AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)];
+  const imageData = await generator.service.generateMemeImage(imagePrompt);
+
+  // 11. Generate title, description, tags
+  const title = await geminiService.generateMemeTitle(memeIdea);
+  const description = await geminiService.generateMemeDescription(memeIdea, topic);
+  const tags = await geminiService.generateMemeTags(memeIdea, topic);
+
+  // 12. Build meme document
+  const memeDoc = {
+    id: `lab_${Date.now()}`,
+    title,
+    description,
+    prompt: memeIdea.caption || imagePrompt,
+    imageUrl: imageData.imageUrl || imageData.fallbackUrl,
+    newsSource: newsTitle || topic,
+    generatedAt: new Date().toISOString(),
+    type: 'custom',
+    status: 'active',
+    style: artStyle.id,
+    tags,
+    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
+    metadata: {
+      source: 'lab',
+      originalNews: newsTitle || topic,
+      aiModel: generator.modelName,
+      styleMode: artStyle.id,
+      artStyleId: artStyle.id,
+      artStyleName: artStyle.name,
+      generationMode: isOriginalMode ? 'original' : 'template',
+      templateId: template?.id || null,
+      templateName: template?.name || null,
+      strategyId: strategy.strategy_id,
+      strategyName: strategy.strategy_name,
+      narrativeId: narrative.narrative_id,
+      narrativeName: narrative.narrative_name,
+      narrativePhrase: narrative.selectedPhrase,
+      memeIdea: {
+        caption: memeIdea.caption,
+        caption_slots: memeIdea.caption_slots,
+        visual_description: memeIdea.visual_description,
+        emotion: memeIdea.emotion,
+        twist: memeIdea.twist,
+        event_angle: memeIdea.event_angle
+      },
+      qualityScore: evaluation.score || 0,
+      qualityPass: evaluation.pass !== false,
+      qualityScores: evaluation.scores || {},
+      imageGenerated: imageData.success,
+      fileSize: imageData.fileSize || 0,
+    },
+    rarity: 'unknown'
+  };
+
+  // 13. Save to Firestore
+  await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
+  console.log(`🧪 Lab: saved custom meme ${memeDoc.id}`);
+
+  return memeDoc;
+}
+
+/**
  * Generate daily memes — template-based, caption-first pipeline
  */
 async function generateDailyMemes(req, res) {
@@ -662,6 +809,7 @@ async function testConnections(req, res) {
 module.exports = {
   generateMeme,
   generateDailyMemes,
+  generateSingleMeme,
   getMemes,
   getTodaysMemes,
   getMemeById,

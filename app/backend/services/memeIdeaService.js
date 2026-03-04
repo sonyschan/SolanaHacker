@@ -44,7 +44,11 @@ const MS_PER_DAY = 86400000;
  * Select a V1 art style not used in the last 7 days.
  * Returns { id, name, prompt, nftTier }.
  */
-function selectArtStyle(recentThemes = []) {
+function selectArtStyle(recentThemes = [], overrideArtStyleId = null) {
+  if (overrideArtStyleId) {
+    const found = v1Legacy.V1_ART_STYLES.find(s => s.id === overrideArtStyleId);
+    if (found) return found;
+  }
   const now = Date.now();
   const recentStyleIds = recentThemes
     .filter(t => t.artStyleId && t.generatedAt)
@@ -96,7 +100,11 @@ function getTemplateBlockWeight(templateId, recentThemes) {
  * Select a template based on event content, category, and anti-repetition.
  * Pure function (deterministic scoring + small random tiebreaker).
  */
-function selectTemplate(event, recentThemes = []) {
+function selectTemplate(event, recentThemes = [], overrideTemplateId = null) {
+  if (overrideTemplateId) {
+    const found = templates.find(t => t.id === overrideTemplateId);
+    if (found) return found;
+  }
   const eventText = (event.title || event).toLowerCase();
   const category = event.category || null;
 

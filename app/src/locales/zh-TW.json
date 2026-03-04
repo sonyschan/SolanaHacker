@@ -588,6 +588,78 @@
     "agentDiscovery": "代理人探索",
     "agentManifest": "機器可讀的代理人清單:"
   },
+  "lab": {
+    "title": "Meme 實驗室",
+    "subtitle": "測試與驗證迷因生成流水線",
+    "auth": {
+      "prompt": "輸入通行密語以進入實驗室",
+      "placeholder": "通行密語",
+      "submit": "解鎖實驗室",
+      "logout": "鎖定實驗室"
+    },
+    "panels": {
+      "rate": "評分",
+      "generate": "生成",
+      "catalog": "目錄"
+    },
+    "rate": {
+      "title": "評估迷因創意",
+      "desc": "用 6 維品質關卡評估迷因概念",
+      "caption": "標題文字",
+      "captionSlots": "標題欄位 (JSON)",
+      "emotion": "情緒",
+      "twist": "反轉",
+      "visualDesc": "視覺描述",
+      "submit": "評分迷因",
+      "suggestions": "建議",
+      "dimensions": {
+        "template_familiarity": "模板熟悉度",
+        "caption_punchiness": "標題力度",
+        "crypto_nativeness": "幣圈原生度",
+        "immediacy": "時效性",
+        "twist_strength": "反轉強度",
+        "originality_score": "原創性"
+      }
+    },
+    "generate": {
+      "title": "生成自訂迷因",
+      "desc": "用自訂主題和可選參數覆寫來建立迷因",
+      "topic": "主題",
+      "template": "模板",
+      "strategy": "策略",
+      "narrative": "敘事",
+      "artStyle": "藝術風格",
+      "mode": "模式",
+      "modes": {
+        "auto": "自動",
+        "template": "模板",
+        "original": "原創"
+      },
+      "submit": "生成迷因",
+      "generating": "生成中...",
+      "estimatedTime": "大約需要 30-60 秒（LLM + 圖片生成）",
+      "result": {
+        "quality": "品質分數",
+        "model": "AI 模型",
+        "style": "藝術風格",
+        "strategy": "策略",
+        "narrative": "敘事",
+        "template": "模板",
+        "caption": "標題",
+        "twist": "反轉"
+      }
+    },
+    "catalog": {
+      "title": "瀏覽目錄",
+      "tabs": {
+        "templates": "模板",
+        "strategies": "策略",
+        "narratives": "敘事",
+        "artStyles": "藝術風格",
+        "recipes": "熱門配方"
+      }
+    }
+  },
   "workshop": {
     "terminal": {
       "title": "Memeya_OS",

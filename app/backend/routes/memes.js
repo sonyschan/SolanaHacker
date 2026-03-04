@@ -6,9 +6,11 @@ const {
   getMemes,
   getTodaysMemes,
   getMemeById,
-  testConnections
+  testConnections,
+  generateSingleMeme
 } = require("../controllers/memeController");
-const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
+const memeIdeaService = require("../services/memeIdeaService");
+const { optionalAuth, rateLimitByWallet, requireLabKey } = require("../middleware/auth");
 const { getFirestore, collections } = require("../config/firebase");
 const { cacheResponse, TTL } = require("../utils/cache");
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
@@ -90,6 +92,64 @@ router.get("/hall-of-memes", cacheResponse("memes:hall-of-memes", TTL.MEDIUM), a
  * POST /api/memes/generate-daily - Generate daily memes
  */
 router.post("/generate-daily", generateDailyMemes);
+
+/**
+ * POST /api/memes/rate - Evaluate a meme idea using quality gate
+ */
+router.post("/rate", requireLabKey, rateLimiter, async (req, res) => {
+  try {
+    const { caption, caption_slots, visual_description, emotion, twist, context, templateId } = req.body;
+    if (!caption && !caption_slots) {
+      return res.status(400).json({ success: false, error: "caption or caption_slots required" });
+    }
+    const memeIdea = {
+      template_id: templateId || null,
+      caption: caption || Object.values(caption_slots || {}).join(' | '),
+      caption_slots: caption_slots || {},
+      visual_description: visual_description || '',
+      emotion: emotion || '',
+      twist: twist || '',
+      event_angle: context || '',
+    };
+    const evaluation = await memeIdeaService.evaluateMemeIdea(memeIdea, []);
+    // Estimate rarity from score
+    let rarity_estimate = 'common';
+    if (evaluation.score >= 95) rarity_estimate = 'legendary';
+    else if (evaluation.score >= 90) rarity_estimate = 'epic';
+    else if (evaluation.score >= 85) rarity_estimate = 'rare';
+    else if (evaluation.score >= 82) rarity_estimate = 'uncommon';
+    res.json({
+      success: true,
+      score: evaluation.score,
+      scores: evaluation.scores || {},
+      pass: evaluation.pass,
+      rarity_estimate,
+      suggestions: evaluation.fix_suggestions || [],
+      failure_reasons: evaluation.failure_reasons || [],
+    });
+  } catch (error) {
+    console.error("Rate meme error:", error);
+    res.status(500).json({ success: false, error: "Failed to rate meme", message: error.message });
+  }
+});
+
+/**
+ * POST /api/memes/generate-custom - Generate a custom meme with optional overrides
+ */
+const customLimiter = rateLimitByWallet(3, 60 * 60 * 1000); // 3 per hour
+router.post("/generate-custom", requireLabKey, customLimiter, async (req, res) => {
+  try {
+    const { topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode } = req.body;
+    if (!topic) {
+      return res.status(400).json({ success: false, error: "topic is required" });
+    }
+    const meme = await generateSingleMeme({ topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode });
+    res.json({ success: true, meme });
+  } catch (error) {
+    console.error("Generate custom meme error:", error);
+    res.status(500).json({ success: false, error: "Failed to generate custom meme", message: error.message });
+  }
+});
 
 /**
  * GET /api/memes/test/connections - Test API connections

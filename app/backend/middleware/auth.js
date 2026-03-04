@@ -129,6 +129,22 @@ const rateLimitByWallet = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   };
 };
 
+/**
+ * API key guard for internal/lab endpoints.
+ * Checks x-api-key header against LAB_API_KEY env var.
+ */
+const requireLabKey = (req, res, next) => {
+  const key = req.headers['x-api-key'];
+  const expected = process.env.LAB_API_KEY;
+  if (!expected) {
+    return res.status(503).json({ error: 'LAB_NOT_CONFIGURED', message: 'Lab API key not set on server' });
+  }
+  if (!key || key !== expected) {
+    return res.status(403).json({ error: 'FORBIDDEN', message: 'Invalid or missing API key' });
+  }
+  next();
+};
+
 // Aliases for backward compatibility
 const authenticateUser = authenticateWallet;
 const rateLimiter = rateLimitByWallet();
@@ -138,5 +154,6 @@ module.exports = {
   authenticateUser,
   optionalAuth,
   rateLimitByWallet,
-  rateLimiter
+  rateLimiter,
+  requireLabKey
 };

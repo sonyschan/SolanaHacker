@@ -588,6 +588,78 @@
     "agentDiscovery": "代理人发现",
     "agentManifest": "机器可读的代理人清单:"
   },
+  "lab": {
+    "title": "Meme 实验室",
+    "subtitle": "测试与验证梗图生成流水线",
+    "auth": {
+      "prompt": "输入通行密语以进入实验室",
+      "placeholder": "通行密语",
+      "submit": "解锁实验室",
+      "logout": "锁定实验室"
+    },
+    "panels": {
+      "rate": "评分",
+      "generate": "生成",
+      "catalog": "目录"
+    },
+    "rate": {
+      "title": "评估梗图创意",
+      "desc": "用 6 维品质关卡评估梗图概念",
+      "caption": "标题文字",
+      "captionSlots": "标题栏位 (JSON)",
+      "emotion": "情绪",
+      "twist": "反转",
+      "visualDesc": "视觉描述",
+      "submit": "评分梗图",
+      "suggestions": "建议",
+      "dimensions": {
+        "template_familiarity": "模板熟悉度",
+        "caption_punchiness": "标题力度",
+        "crypto_nativeness": "币圈原生度",
+        "immediacy": "时效性",
+        "twist_strength": "反转强度",
+        "originality_score": "原创性"
+      }
+    },
+    "generate": {
+      "title": "生成自定义梗图",
+      "desc": "用自定义主题和可选参数覆写来创建梗图",
+      "topic": "主题",
+      "template": "模板",
+      "strategy": "策略",
+      "narrative": "叙事",
+      "artStyle": "艺术风格",
+      "mode": "模式",
+      "modes": {
+        "auto": "自动",
+        "template": "模板",
+        "original": "原创"
+      },
+      "submit": "生成梗图",
+      "generating": "生成中...",
+      "estimatedTime": "大约需要 30-60 秒（LLM + 图片生成）",
+      "result": {
+        "quality": "品质分数",
+        "model": "AI 模型",
+        "style": "艺术风格",
+        "strategy": "策略",
+        "narrative": "叙事",
+        "template": "模板",
+        "caption": "标题",
+        "twist": "反转"
+      }
+    },
+    "catalog": {
+      "title": "浏览目录",
+      "tabs": {
+        "templates": "模板",
+        "strategies": "策略",
+        "narratives": "叙事",
+        "artStyles": "艺术风格",
+        "recipes": "热门配方"
+      }
+    }
+  },
   "workshop": {
     "terminal": {
       "title": "Memeya_OS",
