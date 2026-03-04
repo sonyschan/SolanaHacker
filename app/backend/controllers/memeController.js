@@ -505,7 +505,6 @@ async function generateDailyMemes(req, res) {
           styleMode: artStyle.id,
           artStyleId: artStyle.id,
           artStyleName: artStyle.name,
-          artStyleNftTier: artStyle.nftTier,
           generationMode: isOriginalMode ? 'original' : 'template',
           templateId: template?.id || null,
           templateName: template?.name || null,

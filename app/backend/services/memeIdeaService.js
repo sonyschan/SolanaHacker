@@ -42,7 +42,7 @@ const MS_PER_DAY = 86400000;
 
 /**
  * Select a V1 art style not used in the last 7 days.
- * Returns { id, name, prompt, nftTier }.
+ * Returns { id, name, prompt }.
  */
 function selectArtStyle(recentThemes = [], overrideArtStyleId = null) {
   if (overrideArtStyleId) {

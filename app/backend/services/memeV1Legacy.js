@@ -35,61 +35,51 @@ const V1_ART_STYLES = [
     id: 'classic_2d',
     name: 'Classic 2D Illustration',
     prompt: 'Classic 2D Illustration style. Clean digital illustration with clear outlines, vibrant colors, and expressive characters.',
-    nftTier: 'standard',
   },
   {
     id: 'retro_pixel',
     name: 'Retro Pixel Art',
     prompt: 'Retro Pixel Art style. 16-bit aesthetic with chunky pixels, limited color palette, and nostalgic gaming vibes.',
-    nftTier: 'standard',
   },
   {
     id: 'cyberpunk_neon',
     name: 'Cyberpunk Neon',
     prompt: 'Cyberpunk Neon style. Dark backgrounds with electric neon glow, holographic elements, glitch overlays, and dystopian futuristic atmosphere.',
-    nftTier: 'premium',
   },
   {
     id: 'hyper_realism',
     name: 'Hyper-Realism',
     prompt: 'Hyper-Realistic photographic style. Dramatic lighting, cinematic composition, ultra-detailed textures, as if captured by a professional photographer.',
-    nftTier: 'premium',
   },
   {
     id: 'abstract_glitch',
     name: 'Abstract Glitch Art',
     prompt: 'Abstract Glitch Art style. Distorted digital artifacts, fragmented imagery, chromatic aberration, vaporwave color palette, data corruption aesthetic.',
-    nftTier: 'rare',
   },
   {
     id: 'classic_oil',
     name: 'Classic Oil Painting',
     prompt: 'Classic Oil Painting style. Rich brushstrokes visible, warm museum-gallery color palette, Renaissance-inspired composition, dramatic chiaroscuro lighting.',
-    nftTier: 'rare',
   },
   {
     id: '3d_clay',
     name: '3D Clay Toy',
     prompt: '3D Clay Toy style. Cute claymation aesthetic, soft rounded shapes, playful proportions, colorful and touchable-looking characters.',
-    nftTier: 'standard',
   },
   {
     id: 'ink_wash',
     name: 'Ink Wash Zen',
     prompt: 'Ink Wash Zen style. Traditional East Asian ink painting aesthetic, expressive brushwork, minimal color (mostly black/gray with occasional red accent), meditative composition.',
-    nftTier: 'rare',
   },
   {
     id: 'street_graffiti',
     name: 'Street Graffiti',
     prompt: 'Street Graffiti style. Urban wall art aesthetic, spray paint textures, bold outlines, dripping paint, concrete/brick backgrounds, wildstyle lettering.',
-    nftTier: 'premium',
   },
   {
     id: 'modern_flat',
     name: 'Modern Flat Design',
     prompt: 'Modern Flat Design style. Minimalist geometric shapes, limited flat color palette, clean sans-serif typography, tech-startup illustration aesthetic.',
-    nftTier: 'standard',
   },
 ];
 

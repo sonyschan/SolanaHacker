@@ -602,11 +602,6 @@ const LabTab = () => {
                 <div key={item.id} className="bg-white/5 border border-white/10 rounded-lg p-3">
                   <p className="text-white font-medium text-sm">{item.name}</p>
                   <p className="text-gray-500 text-xs mt-0.5">ID: {item.id}</p>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                    item.nftTier === 'rare' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                    item.nftTier === 'premium' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                    'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                  }`}>{item.nftTier}</span>
                 </div>
               ))}
 

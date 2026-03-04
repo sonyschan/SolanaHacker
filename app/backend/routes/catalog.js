@@ -62,7 +62,6 @@ router.get('/art-styles', cacheResponse('catalog:art-styles', TTL.LONG), (req, r
   const items = V1_ART_STYLES.map(s => ({
     id: s.id,
     name: s.name,
-    nftTier: s.nftTier,
   }));
   res.json({ success: true, items, count: items.length });
 });
