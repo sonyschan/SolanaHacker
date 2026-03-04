@@ -53,6 +53,15 @@ screenshots/
 docs/TDD.md
 docs/virtuals-acp-strategy.md
 
+# === Proprietary Backend Logic ===
+app/backend/services/memeStrategyService.js
+app/backend/services/memeNarrativeService.js
+app/backend/services/memeIdeaService.js
+app/backend/data/meme-templates.json
+app/backend/services/rewardService.js
+app/backend/services/rarityService.js
+app/backend/services/schedulerService.js
+
 # === Backups ===
 *.bak
 *.orig
