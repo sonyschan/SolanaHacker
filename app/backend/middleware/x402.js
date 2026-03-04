@@ -12,15 +12,13 @@
 const { paymentMiddleware, x402ResourceServer } = require('@x402/express');
 const { ExactEvmScheme } = require('@x402/evm/exact/server');
 const { HTTPFacilitatorClient } = require('@x402/core/server');
+const { createFacilitatorConfig } = require('@coinbase/x402');
 
 // Memeya's Base wallet (Crossmint Smart Wallet)
 const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
 
 // Base mainnet CAIP-2 identifier
 const BASE_MAINNET = 'eip155:8453';
-
-// CDP facilitator (recommended for mainnet + testnet)
-const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 
 let _x402Middleware = null;
 
@@ -41,9 +39,8 @@ function getX402Middleware() {
   }
 
   try {
-    const facilitatorClient = new HTTPFacilitatorClient({
-      url: CDP_FACILITATOR_URL,
-    });
+    const facilitatorConfig = createFacilitatorConfig(keyId, keySecret);
+    const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
 
     const server = new x402ResourceServer(facilitatorClient)
       .register(BASE_MAINNET, new ExactEvmScheme());
