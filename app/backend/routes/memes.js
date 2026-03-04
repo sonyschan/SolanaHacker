@@ -10,7 +10,8 @@ const {
   generateSingleMeme
 } = require("../controllers/memeController");
 const memeIdeaService = require("../services/memeIdeaService");
-const { optionalAuth, rateLimitByWallet, requireLabKey } = require("../middleware/auth");
+const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
+const { requireLabKeyOrPayment } = require("../middleware/x402");
 const { getFirestore, collections } = require("../config/firebase");
 const { cacheResponse, TTL } = require("../utils/cache");
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
@@ -98,7 +99,7 @@ router.post("/generate-daily", generateDailyMemes);
  * Input: { imageUrl } — public URL of a meme image
  * Output: { score, pass, grade, suggestions[] } — criteria details hidden
  */
-router.post("/rate", requireLabKey, rateLimiter, async (req, res) => {
+router.post("/rate", requireLabKeyOrPayment, rateLimiter, async (req, res) => {
   try {
     const { imageUrl } = req.body;
     if (!imageUrl) {
@@ -128,7 +129,7 @@ router.post("/rate", requireLabKey, rateLimiter, async (req, res) => {
  * POST /api/memes/generate-custom - Generate a custom meme with optional overrides
  */
 const customLimiter = rateLimitByWallet(3, 60 * 60 * 1000); // 3 per hour
-router.post("/generate-custom", requireLabKey, customLimiter, async (req, res) => {
+router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (req, res) => {
   try {
     const { topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode } = req.body;
     if (!topic) {

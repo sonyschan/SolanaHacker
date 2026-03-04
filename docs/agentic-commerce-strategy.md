@@ -23,9 +23,10 @@ Phase 1: Lab UI                            ✅ DONE (2026-03-04)
 ├── Passphrase auth (admin-only access)     ✅
 └── i18n (en / zh-TW / zh-CN)              ✅
 
-Phase 2: x402 Direct Sales Channel         ⬜ NEXT
+Phase 2: x402 Direct Sales Channel         🔧 IN PROGRESS
+├── Configure Base USDC wallet              ✅ (0xba646...41b8, Crossmint)
+├── Base balance display on frontend        ✅
 ├── Install @x402/express middleware
-├── Configure Base USDC wallet
 ├── Wire paywall to /rate + /generate-custom
 ├── Test with x402 client
 └── Launch on AIMemeForge.io
@@ -222,14 +223,15 @@ app.use('/api/memes/generate-custom', paymentMiddleware(facilitatorUrl, {
 ### x402 實施步驟
 
 ```
-1. [ ] 創建 Base 鏈 USDC 收款錢包
-2. [ ] 安裝 @x402/express + 配置 Coinbase Facilitator
-3. [ ] 修改 server.js — 在 /rate 和 /generate-custom 加入 paymentMiddleware
-4. [ ] 雙軌 middleware：requireLabKey || paymentMiddleware
-5. [ ] 測試：用 x402 client 呼叫 rateMeme ($0.005)
-6. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
-7. [ ] 部署到 Cloud Run
-8. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
+1. [x] 創建 Base 鏈 USDC 收款錢包 (0xba646262871d295DeAe3062dF5bbe31fcc5841b8)
+2. [x] 前端顯示 Base 錢包餘額 (Workshop stats footer)
+3. [ ] 安裝 @x402/express + 配置 Coinbase Facilitator
+4. [ ] 修改 server.js — 在 /rate 和 /generate-custom 加入 paymentMiddleware
+5. [ ] 雙軌 middleware：requireLabKey || paymentMiddleware
+6. [ ] 測試：用 x402 client 呼叫 rateMeme ($0.005)
+7. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
+8. [ ] 部署到 Cloud Run
+9. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
 ```
 
 ---
