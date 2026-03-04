@@ -33,7 +33,7 @@ Phase 2: x402 Direct Sales Channel         ✅ DONE (2026-03-04)
 ├── Deploy to Cloud Run                     ✅ (HTTP 402 verified)
 ├── Browser paywall HTML (fallback)         ✅ (logo + amount + description)
 ├── Base in "Powered by" footer             ✅
-├── Test with x402 client                   ⬜ NEXT
+├── Test with x402 client                   ✅ (rateMeme $0.005 verified)
 └── Launch on AIMemeForge.io                ⬜
 
 Phase 3: Virtuals ACP Marketplace          ⬜ PLANNED
@@ -232,7 +232,7 @@ function requireLabKeyOrPayment(req, res, next) {
 6. [x] 雙軌 middleware：requireLabKeyOrPayment (Lab passphrase OR x402)
 7. [x] Wire /rate ($0.005) + /generate-custom ($0.10)
 8. [x] 部署到 Cloud Run — HTTP 402 驗證通過
-9. [ ] 測試：用 x402 client 呼叫 rateMeme ($0.005)
+9. [x] 測試：用 x402 client 呼叫 rateMeme ($0.005) ✅ 2026-03-04 首筆交易成功
 10. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
 11. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
 ```
