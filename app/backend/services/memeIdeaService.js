@@ -785,6 +785,19 @@ async function evaluatePublicMeme(imageUrl) {
   // 2. Single Gemini vision call — full 6D criteria in prompt (hidden from caller)
   const prompt = `You are a STRICT meme quality evaluator for crypto/trading memes. You score HARSHLY and fairly. Your job is to find flaws, not to be encouraging.
 
+CRYPTO SLANG GLOSSARY — these are COMMON crypto/trading terms, NOT literal meanings:
+- "ape in" / "ape'd in" = invest recklessly/enthusiastically (NOT about actual apes/monkeys)
+- "exit liquidity" = being the person who buys at the top so others can sell
+- "rugged" / "rug pull" = project creators stealing funds
+- "degen" = degenerate trader (used affectionately)
+- "ngmi" / "wagmi" = not gonna make it / we're all gonna make it
+- "diamond hands" / "paper hands" = holding vs panic selling
+- "cope" / "copium" = denial about losses
+- "ser" = sir (crypto twitter speak)
+- "gm" = good morning (crypto greeting)
+- "probably nothing" = definitely something (ironic)
+When evaluating, interpret text through crypto culture — do NOT take terms literally.
+
 CALIBRATION — use this scale consistently:
 - 1/5 = Broken, unreadable, or completely off-target
 - 2/5 = Below average, significant issues
@@ -796,15 +809,18 @@ A typical decent meme should score around 3/5 on most criteria. Scoring 4+ requi
 
 ANALYZE THE IMAGE CAREFULLY:
 1. Extract ALL visible text (captions, labels, watermarks, small text)
-2. Check for AI generation defects: duplicate/repeated text, garbled/misspelled words, text overlapping other text, text cut off at edges, same caption appearing in multiple locations
+2. Check for CLEAR defects ONLY — you must be confident a defect exists before reporting it:
+   - Duplicate text: the EXACT same phrase rendered in two separate locations (not similar phrases, not the same word used in different contexts)
+   - Garbled/misspelled words: clearly wrong spelling (not stylistic choices like ALL CAPS or abbreviations)
+   - DO NOT report "cut off text" unless letters are literally missing/truncated. Pixel art, low-res styles, or text near edges is NOT a defect if the words are still readable.
 3. Identify the meme format/template (drake, wojak, bell curve, two buttons, etc. or 'original')
 4. Assess the emotional tone and intended humor
 
 SCORING CRITERIA (1-5 each, be strict):
 1. format_recognition: Is this an instantly recognizable meme format? Would a Reddit/Twitter user identify the template within 1 second? Score 3 for original formats that still read as memes. Score 1-2 if it looks like a generic image with text slapped on.
 2. caption_quality: Is text SHORT and PUNCHY? Each text region must be ≤6 words to score 4+. Wordy explanations = score 2. Generic phrases everyone uses = score 2-3. Clever wordplay or subversion = score 4-5.
-3. cultural_relevance: Does it use ACTUAL crypto/trading slang authentically? ("exit liquidity", "ape in", "rugged", "ngmi" etc.) Score 2-3 for generic finance references. Score 4-5 only for language that sounds like real Crypto Twitter.
-4. visual_execution: STRICTLY check for: duplicate text (same words appearing twice = max score 2), garbled/unreadable text (max score 2), text overlapping other elements, poor contrast making text hard to read, cluttered composition. Clean layout with legible text = score 4. Perfect professional execution = score 5.
+3. cultural_relevance: Does it use ACTUAL crypto/trading slang authentically? Refer to the CRYPTO SLANG GLOSSARY above. Score 4-5 for authentic Crypto Twitter language. Score 2-3 for generic finance references.
+4. visual_execution: Check for duplicate text (same phrase in 2 places = max score 2), garbled text, poor contrast, cluttered composition. Pixel art or stylized rendering is a valid artistic choice, NOT a defect. Clean layout with legible text = score 4.
 5. humor_impact: Does it deliver genuine irony, contradiction, or unexpected reaction? Would someone actually laugh or share this? Generic observations = score 2-3. Clever twist that subverts expectations = score 4. Makes you actually laugh out loud = score 5. (WEIGHTED DOUBLE)
 6. originality: Is the joke/angle something you haven't seen before? Rehashing common crypto jokes ("buy the dip", "to the moon") = score 2. Fresh angle on a common topic = score 3-4. Genuinely novel concept = score 5. (WEIGHTED DOUBLE)
 
@@ -819,9 +835,9 @@ Respond with ONLY this JSON:
     "originality": 0
   },
   "detected_text": ["list ALL text found in the image, including duplicates"],
-  "defects": ["list any visual defects: duplicate text, garbled words, cut-off text, overlap issues — empty array if none"],
+  "defects": ["ONLY list defects you are highly confident about — empty array if none. Do NOT guess or speculate."],
   "meme_format": "identified meme template or 'original'",
-  "suggestions": ["3 SPECIFIC and CRITICAL improvement tips — never say 'none needed' or 'highly effective'. Always find something to improve, even for good memes."]
+  "suggestions": ["3 SPECIFIC and ACTIONABLE improvement tips. Focus on humor, caption clarity, and composition — not pixel-level nitpicks."]
 }`;
 
   const result = await textModel.generateContent([
@@ -837,22 +853,21 @@ Respond with ONLY this JSON:
 
   const evaluation = JSON.parse(jsonMatch[0]);
   const scores = evaluation.scores || {};
-  const defects = evaluation.defects || [];
+  const defects = [];
 
-  // Code-level penalty: if LLM detected defects but scored visual_execution high, cap it
-  if (defects.length > 0 && (scores.visual_execution || 0) > 2) {
-    scores.visual_execution = 2;
-  }
-
-  // Code-level check: detect duplicate text in detected_text array
-  const detectedText = (evaluation.detected_text || []).map(t => t.toLowerCase().trim());
-  const uniqueText = new Set(detectedText);
-  if (detectedText.length > 0 && uniqueText.size < detectedText.length) {
-    // Duplicate text found — cap visual_execution
-    scores.visual_execution = Math.min(scores.visual_execution || 0, 2);
-    if (!defects.includes('Duplicate text detected in image')) {
-      defects.push('Duplicate text detected in image');
+  // Code-level check: detect duplicate text in detected_text array (reliable)
+  // Only flag exact duplicates, not similar phrases
+  const detectedText = (evaluation.detected_text || []).map(t => t.toLowerCase().trim()).filter(Boolean);
+  const seen = new Set();
+  for (const t of detectedText) {
+    if (seen.has(t)) {
+      scores.visual_execution = Math.min(scores.visual_execution || 0, 2);
+      if (!defects.includes('Duplicate text detected in image')) {
+        defects.push('Duplicate text detected in image');
+      }
+      break;
     }
+    seen.add(t);
   }
 
   // Same weighting as internal: 4 base + humor×2 + originality×2 = 40 max
