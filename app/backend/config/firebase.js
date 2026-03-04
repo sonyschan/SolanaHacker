@@ -82,7 +82,8 @@ const collections = {
   REWARD_DISTRIBUTIONS: 'reward_distributions',
   REFERRALS: 'referrals',
   REFERRAL_IDS: 'referral_ids',
-  MEMEYA_WORKSHOP: 'memeya_workshop'
+  MEMEYA_WORKSHOP: 'memeya_workshop',
+  X402_TRANSACTIONS: 'x402_transactions'
 };
 
 /**

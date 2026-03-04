@@ -159,12 +159,14 @@ function requireLabKeyOrPayment(req, res, next) {
   const labKey = req.headers['x-api-key'];
   const expectedLabKey = process.env.LAB_API_KEY;
   if (expectedLabKey && labKey === expectedLabKey) {
+    req.authMethod = 'lab';
     return next(); // admin access — skip paywall
   }
 
   // Track 2: x402 payment
   const middleware = getX402Middleware();
   if (middleware) {
+    req.authMethod = 'x402';
     return middleware(req, res, next);
   }
 

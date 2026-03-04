@@ -14,7 +14,55 @@ const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
 const { requireLabKeyOrPayment } = require("../middleware/x402");
 const { getFirestore, collections } = require("../config/firebase");
 const { cacheResponse, TTL } = require("../utils/cache");
+const admin = require('firebase-admin');
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
+
+/**
+ * Log a successful x402 transaction to Workshop feed + analytics collection.
+ * Fire-and-forget — errors are swallowed.
+ */
+const X402_TEMPLATES = {
+  '/rate': {
+    amount: 0.005,
+    text_en: 'Earned $0.005 USDC — rated a meme for a client on Base',
+    text_zh: '為客戶評分一張 meme，賺取 $0.005 USDC (Base)',
+  },
+  '/generate-custom': {
+    amount: 0.10,
+    text_en: 'Earned $0.10 USDC — forged a custom meme for a client on Base',
+    text_zh: '為客戶打造一張自訂 meme，賺取 $0.10 USDC (Base)',
+  },
+};
+
+async function logX402Transaction(endpoint) {
+  const tpl = X402_TEMPLATES[endpoint];
+  if (!tpl) return;
+
+  const db = getFirestore();
+  const now = new Date(Date.now() + 8 * 60 * 60 * 1000); // GMT+8
+  const date = now.toISOString().slice(0, 10);
+  const time = now.toTimeString().slice(0, 8);
+
+  // A. Append to today's memeya_workshop feed
+  const workshopRef = db.collection(collections.MEMEYA_WORKSHOP).doc(date);
+  await workshopRef.set({
+    entries: admin.firestore.FieldValue.arrayUnion({
+      time,
+      topic: 'x402_commerce',
+      text_en: tpl.text_en,
+      text_zh: tpl.text_zh,
+      ambient: false,
+    }),
+  }, { merge: true });
+
+  // B. Store to x402_transactions for analytics
+  await db.collection(collections.X402_TRANSACTIONS).add({
+    endpoint,
+    amount: tpl.amount,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    date,
+  });
+}
 const multer = require("multer");
 
 const upload = multer({
@@ -117,6 +165,9 @@ router.post("/rate", requireLabKeyOrPayment, rateLimiter, async (req, res) => {
 
     const evaluation = await memeIdeaService.evaluatePublicMeme(imageUrl);
     res.json({ success: true, ...evaluation });
+    if (req.authMethod === 'x402') {
+      logX402Transaction('/rate').catch(() => {});
+    }
   } catch (error) {
     console.error("Rate meme error:", error);
     const message = error.message || "Failed to rate meme";
@@ -137,6 +188,9 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
     }
     const meme = await generateSingleMeme({ topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode });
     res.json({ success: true, meme });
+    if (req.authMethod === 'x402') {
+      logX402Transaction('/generate-custom').catch(() => {});
+    }
   } catch (error) {
     console.error("Generate custom meme error:", error);
     res.status(500).json({ success: false, error: "Failed to generate custom meme", message: error.message });

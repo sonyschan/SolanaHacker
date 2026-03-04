@@ -32,6 +32,7 @@ const TOPIC_COLORS = {
   flex_2: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   moltbook_post: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   moltbook_engage: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
+  x402_commerce: 'bg-green-500/20 text-green-400 border-green-500/30',
 };
 
 // --- Feature 1: Action Tags & Personality Fillers ---
@@ -52,6 +53,7 @@ const ACTION_TAGS = {
   meme_design:          { tag: 'THINKING',  emoji: '\u{1F9E0}' },
   moltbook_post:        { tag: 'POSTING',   emoji: '\u{1F4D8}' },
   moltbook_engage:      { tag: 'SOCIALIZING', emoji: '\u{1F4AC}' },
+  x402_commerce:        { tag: 'COMMERCE',    emoji: '\u{1F4B0}' },
 };
 
 const PERSONALITY_FILLERS = {
@@ -155,6 +157,16 @@ const PERSONALITY_FILLERS = {
     'The social graph expands...',
     'Engaging with the fam...',
     'Quality interactions only...',
+  ],
+  COMMERCE: [
+    'The treasury grows...',
+    'Another happy customer...',
+    'Memes pay the bills...',
+    'Stacking sats... er, stables...',
+    'The grind never stops...',
+    'Base chain payday...',
+    'Meme commerce is real...',
+    'Service with a smile...',
   ],
 };
 
