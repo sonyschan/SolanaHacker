@@ -148,13 +148,15 @@ const LabTab = () => {
   }, [apiKey]);
 
   // Load top recipes when catalog tab switches to recipes
+  const [recipesLoaded, setRecipesLoaded] = useState(false);
   useEffect(() => {
-    if (!apiKey || catalogTab !== 'recipes' || catalogs.topRecipes.length > 0) return;
+    if (!apiKey || catalogTab !== 'recipes' || recipesLoaded) return;
+    setRecipesLoaded(true);
     fetch(`${API_BASE_URL}/api/catalog/top-recipes`, { headers: { 'x-api-key': apiKey } })
       .then(r => r.json())
       .then(data => setCatalogs(prev => ({ ...prev, topRecipes: data.items || [] })))
       .catch(console.error);
-  }, [catalogTab, apiKey]);
+  }, [catalogTab, apiKey, recipesLoaded]);
 
   const handleRate = async () => {
     setRateLoading(true);
@@ -609,7 +611,7 @@ const LabTab = () => {
               ))}
 
               {catalogTab === 'recipes' && catalogs.topRecipes.length === 0 && (
-                <p className="text-gray-500 text-sm col-span-2">{t('common.loading')}</p>
+                <p className="text-gray-500 text-sm col-span-2">{recipesLoaded ? 'No recipes found' : t('common.loading')}</p>
               )}
               {catalogTab === 'recipes' && catalogs.topRecipes.slice(0, 20).map(item => (
                 <div key={item.id} className="bg-white/5 border border-white/10 rounded-lg p-3">

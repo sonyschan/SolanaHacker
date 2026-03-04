@@ -75,15 +75,16 @@ router.get('/top-recipes', cacheResponse('catalog:top-recipes', TTL.HALF_HOUR), 
     const { getFirestore, collections } = require('../config/firebase');
     const db = getFirestore();
 
+    // No composite index needed — filter type client-side
     const snapshot = await db.collection(collections.MEMES)
-      .where('type', '==', 'daily')
       .orderBy('generatedAt', 'desc')
-      .limit(90)
+      .limit(120)
       .get();
 
     const recipes = [];
     snapshot.forEach(doc => {
       const m = doc.data();
+      if (m.type !== 'daily') return;
       const meta = m.metadata || {};
       recipes.push({
         id: doc.id,
