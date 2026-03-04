@@ -423,16 +423,17 @@ function buildImagePrompt(memeIdea, artStyle = null) {
 
 LAYOUT AND TEXT PLACEMENT:
 ${captionPlacement}
+Text style: BIG BOLD Impact font with black outline, clearly legible against background.
 
 VISUAL DETAILS: ${memeIdea.visual_description || ''}
 EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
-MANDATORY TEXT STYLING:
-- All text must be BIG BOLD meme text with black outline (or black shadow)
-- Text must be clearly legible against the background
-- Use Impact font style or similarly bold, readable font
+CRITICAL — TEXT RULES:
+- Each text element must appear EXACTLY ONCE in the image. NEVER render the same text twice.
+- Only render the text specified in LAYOUT AND TEXT PLACEMENT above. Do NOT add extra text.
+- If the layout specifies 2 text regions, the image must contain exactly 2 text regions — no more, no less.
 
 Technical requirements:
 - Square aspect ratio (1:1)
@@ -729,14 +730,14 @@ EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
-TEXT OVERLAY:
-${topText ? `- TOP: "${topText}" — bold text at the top of the image` : ''}
-${bottomText ? `- BOTTOM: "${bottomText}" — bold text at the bottom of the image` : ''}
+TEXT OVERLAY (render each line EXACTLY ONCE — no duplicates):
+${topText ? `- TOP: "${topText}" — BIG BOLD Impact font with black outline at the top` : ''}
+${bottomText ? `- BOTTOM: "${bottomText}" — BIG BOLD Impact font with black outline at the bottom` : ''}
 
-MANDATORY TEXT STYLING:
-- All text must be BIG BOLD meme text with black outline (or black shadow)
-- Text must be clearly legible against the background
-- Use Impact font style or similarly bold, readable font
+CRITICAL — TEXT RULES:
+- Each text element must appear EXACTLY ONCE in the image. NEVER render the same text twice.
+- Only render the text specified in TEXT OVERLAY above. Do NOT add extra text.
+- The image must contain exactly ${[topText, bottomText].filter(Boolean).length} text region(s) — no more, no less.
 
 Technical requirements:
 - Square aspect ratio (1:1)
