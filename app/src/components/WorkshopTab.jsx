@@ -345,9 +345,6 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           >
             <span className="text-blue-400/60 text-[10px]">BASE</span>
             <span className="text-gray-500">{MEMEYA_BASE_WALLET.slice(0, 6)}...{MEMEYA_BASE_WALLET.slice(-4)}</span>
-            {baseWalletUsdc !== null && baseWalletUsdc !== undefined && (
-              <span className="text-green-400/80 text-[10px]">${baseWalletUsdc.toFixed(2)}</span>
-            )}
             <span className="text-[10px]">{copiedBase ? t('common.copied') : t('common.copy')}</span>
           </button>
           <span className="text-white/10">|</span>
@@ -469,16 +466,28 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
 
       {/* D. Stats Summary */}
       <div className="grid grid-cols-3 gap-3">
-        {/* Reward Pool with float-up animation */}
+        {/* Wallet Balances with float-up animation */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center relative">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
-          <div className="text-lg font-bold text-green-400 relative">
-            {rewardPool !== null ? `$${rewardPool.toFixed(0)}` : '--'}
-            {floatAmount !== null && (
-              <span className="workshop-reward-float absolute left-1/2 -translate-x-1/2 -top-1 text-xs font-bold text-green-400">
-                +${floatAmount.toFixed(2)}
-              </span>
-            )}
+          <div className="flex items-center justify-center gap-3">
+            <div className="relative">
+              <div className="text-lg font-bold text-green-400">
+                {rewardPool !== null ? `$${rewardPool.toFixed(0)}` : '--'}
+                {floatAmount !== null && (
+                  <span className="workshop-reward-float absolute left-1/2 -translate-x-1/2 -top-1 text-xs font-bold text-green-400">
+                    +${floatAmount.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] text-purple-400/60">SOL</div>
+            </div>
+            <div className="w-px h-6 bg-white/10" />
+            <div>
+              <div className="text-lg font-bold text-green-400">
+                {baseWalletUsdc !== null && baseWalletUsdc !== undefined ? `$${baseWalletUsdc.toFixed(0)}` : '--'}
+              </div>
+              <div className="text-[10px] text-blue-400/60">BASE</div>
+            </div>
           </div>
           <div className="text-[10px] text-gray-600">USDC</div>
         </div>
