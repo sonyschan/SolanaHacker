@@ -391,12 +391,12 @@ const GalleryTab = () => {
                       <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent"></div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                       {dayMemes.map((meme) => (
                         <div
                           key={meme.id}
                           onClick={() => setSelectedMeme(meme)}
-                          className={`group relative cursor-pointer bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
+                          className={`group relative cursor-pointer bg-white/5 backdrop-blur-md rounded-xl overflow-hidden border transition-all duration-300 hover:scale-[1.03] hover:shadow-xl ${
                             meme.isWinner
                               ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20'
                               : 'border-white/10 hover:border-cyan-500/50 hover:shadow-cyan-500/20'
@@ -434,19 +434,19 @@ const GalleryTab = () => {
                           </div>
 
                           {/* Content */}
-                          <div className="p-3 md:p-4">
-                            <h3 className="font-bold text-white text-sm md:text-base truncate group-hover:text-cyan-300 transition-colors">
+                          <div className="p-2">
+                            <h3 className="font-bold text-white text-xs truncate group-hover:text-cyan-300 transition-colors">
                               {meme.title}
                             </h3>
 
                             {/* Stats */}
-                            <div className="flex items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-gray-400">
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
                               <span className="flex items-center gap-1">
                                 <span>{'\u2764\uFE0F'}</span>
                                 <span>{meme.votes?.selection?.yes || 0}</span>
                               </span>
                               {meme.finalRarity && (
-                                <span className="px-2 py-0.5 rounded text-xs" style={{
+                                <span className="px-1.5 py-0.5 rounded" style={{
                                   backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
                                     meme.finalRarity === 'epic' ? 'rgba(163,53,238,0.2)' :
                                     meme.finalRarity === 'rare' ? 'rgba(0,112,221,0.2)' :
@@ -463,9 +463,9 @@ const GalleryTab = () => {
                               )}
                             </div>
                             {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
+                              <div className="flex flex-wrap gap-1 mt-1">
                                 {getMatchingTags(meme, searchQuery).map(tag => (
-                                  <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                                  <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
                                     #{tag}
                                   </span>
                                 ))}
