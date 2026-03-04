@@ -163,6 +163,7 @@ const Footer = () => {
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Grok</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Claude</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Solana</span>
+              <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Base</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Privy</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Crossmint</span>
               <span className="text-xs text-gray-500 px-2 py-1 rounded bg-gray-800/50">Tapestry</span>
