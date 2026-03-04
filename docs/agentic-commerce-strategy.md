@@ -1,7 +1,7 @@
 # AIMemeForge Agentic Commerce Strategy
 
 > Date: 2026-03-03 | Updated: 2026-03-04
-> Status: Phase 0 ✅ + Lab UI ✅ + Phase 2 x402 ✅ → Testing / Phase 3 next
+> Status: Phase 0 ✅ + Lab UI ✅ + Phase 2 x402 ✅ + Commerce Logging ✅ → Phase 3 next
 
 ---
 
@@ -34,6 +34,7 @@ Phase 2: x402 Direct Sales Channel         ✅ DONE (2026-03-04)
 ├── Browser paywall HTML (fallback)         ✅ (logo + amount + description)
 ├── Base in "Powered by" footer             ✅
 ├── Test with x402 client                   ✅ (rateMeme $0.005 verified)
+├── Commerce transaction logging            ✅ (Workshop feed + Firestore analytics)
 └── Launch on AIMemeForge.io                ⬜
 
 Phase 3: Virtuals ACP Marketplace          ⬜ PLANNED
@@ -233,8 +234,9 @@ function requireLabKeyOrPayment(req, res, next) {
 7. [x] Wire /rate ($0.005) + /generate-custom ($0.10)
 8. [x] 部署到 Cloud Run — HTTP 402 驗證通過
 9. [x] 測試：用 x402 client 呼叫 rateMeme ($0.005) ✅ 2026-03-04 首筆交易成功
-10. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
-11. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
+10. [x] Commerce transaction logging — x402 payments appear in Workshop feed (COMMERCE tag) + x402_transactions Firestore collection
+11. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
+12. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
 ```
 
 ---
@@ -391,7 +393,9 @@ Wallet:    Crossmint on Solana (4Bqyw...)
                Droplet Agent       Firestore
                ├── ACP listener    ├── MEMES
                ├── Daily pipeline  ├── USERS
-               └── X/Telegram      └── USER_TICKETS
+               └── X/Telegram      ├── USER_TICKETS
+                                   ├── MEMEYA_WORKSHOP
+                                   └── X402_TRANSACTIONS
 ```
 
 ### 新增依賴
@@ -470,6 +474,7 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 
 **x402 Middleware** — `app/backend/middleware/x402.js`
 - Dual-track auth: Lab passphrase (x-api-key) OR x402 payment
+- `req.authMethod` tagging: `'lab'` or `'x402'` — lets route handlers identify payment method
 - CDP facilitator: `https://api.cdp.coinbase.com/platform/v2/x402`
 - Ed25519 JWT generation via Node.js `crypto` (bypasses ESM-only `jose`)
 - Route config: `POST /rate` ($0.005) + `POST /generate-custom` ($0.10)
@@ -482,6 +487,12 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 - Route config keys must be router-relative (`POST /rate`, not `POST /api/memes/rate`) because `paymentMiddleware` matches against `req.path`
 - `@x402/paywall` (85MB, bundles WalletConnect/Solana wallet SDKs) causes Cloud Run deploy failure — removed; using built-in fallback HTML (shows logo + amount + description)
 
+**Commerce Transaction Logging** — `logX402Transaction()` in `app/backend/routes/memes.js`
+- Fire-and-forget after successful x402 responses (`.catch(() => {})` — never blocks API)
+- Appends `x402_commerce` entry to today's `memeya_workshop` Firestore doc (Workshop activity feed)
+- Stores lightweight analytics doc to `x402_transactions` collection (endpoint, amount, timestamp, date)
+- Frontend `WorkshopTab.jsx` renders green COMMERCE tag with personality fillers
+
 ### Key Files Modified
 
 | File | Changes |
@@ -493,7 +504,9 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 | `app/backend/routes/catalog.js` | **New** — 5 catalog endpoints |
 | `app/backend/middleware/x402.js` | **New** — x402 dual-track payment middleware |
 | `app/backend/services/baseService.js` | **New** — Base chain USDC balance queries |
-| `app/backend/routes/memes.js` | /rate + /generate-custom routes, x402 middleware |
+| `app/backend/routes/memes.js` | /rate + /generate-custom routes, x402 middleware, commerce tx logging |
+| `app/backend/config/firebase.js` | X402_TRANSACTIONS collection constant |
+| `app/src/components/WorkshopTab.jsx` | COMMERCE topic/tag/colors/fillers for x402 feed entries |
 | `app/backend/routes/rewards.js` | Extended with Base wallet balance |
 | `app/src/components/Footer.jsx` | Added "Base" to Powered By section |
 | `app/backend/server.js` | Wire catalog routes |
