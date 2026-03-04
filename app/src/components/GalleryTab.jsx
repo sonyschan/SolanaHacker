@@ -7,6 +7,21 @@ import { useAuth } from '../hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
+// Origin badge config — provenance labels for meme cards
+const ORIGIN_BADGES = {
+  // Custom memes from Lab / x402 / ACP
+  lab:  { label: 'Lab Experiment', color: '#FACC15', bg: 'rgba(250,204,21,0.15)', border: 'rgba(250,204,21,0.3)' },
+  x402: { label: 'Custom Commission', color: '#4ADE80', bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)' },
+  acp:  { label: 'Agent Commission', color: '#C084FC', bg: 'rgba(192,132,252,0.15)', border: 'rgba(192,132,252,0.3)' },
+};
+
+const getOriginBadge = (meme) => {
+  const source = meme.metadata?.source;
+  if (source && ORIGIN_BADGES[source]) return ORIGIN_BADGES[source];
+  if (meme.type === 'custom') return ORIGIN_BADGES.lab; // fallback for custom without source
+  return null; // daily memes — "Memeya Original" shown via absence of special badge
+};
+
 const GalleryTab = () => {
   const { t, i18n } = useTranslation();
   const { walletAddress } = useAuth();
@@ -295,6 +310,14 @@ const GalleryTab = () => {
                       {formatDate(meme.generatedAt)}
                     </div>
 
+                    {/* Origin Badge */}
+                    {(() => { const ob = getOriginBadge(meme); return ob ? (
+                      <div className="absolute top-7 left-1.5 z-10 text-[9px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm"
+                        style={{ backgroundColor: ob.bg, color: ob.color, border: `1px solid ${ob.border}` }}>
+                        {ob.label}
+                      </div>
+                    ) : null; })()}
+
                     {/* Image */}
                     <div className="relative aspect-square bg-gray-800 overflow-hidden">
                       {meme.nftOwner && (
@@ -385,6 +408,14 @@ const GalleryTab = () => {
                               #1
                             </div>
                           )}
+
+                          {/* Origin Badge */}
+                          {(() => { const ob = getOriginBadge(meme); return ob ? (
+                            <div className="absolute top-2 left-2 z-10 text-[10px] font-medium px-2 py-0.5 rounded backdrop-blur-sm"
+                              style={{ backgroundColor: ob.bg, color: ob.color, border: `1px solid ${ob.border}` }}>
+                              {ob.label}
+                            </div>
+                          ) : null; })()}
 
                           <div className="relative aspect-square bg-gray-800 overflow-hidden">
                             {meme.nftOwner && (
@@ -481,6 +512,12 @@ const GalleryTab = () => {
                     {t('gallery.mostVoted')}
                   </span>
                 )}
+                {(() => { const ob = getOriginBadge(selectedMeme); return ob ? (
+                  <span className="text-xs font-medium px-2 py-1 rounded-full"
+                    style={{ backgroundColor: ob.bg, color: ob.color, border: `1px solid ${ob.border}` }}>
+                    {ob.label}
+                  </span>
+                ) : null; })()}
                 <span className="text-gray-400 text-sm">
                   {formatDate(selectedMeme.generatedAt)}
                 </span>
