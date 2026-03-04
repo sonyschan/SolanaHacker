@@ -782,21 +782,30 @@ async function evaluatePublicMeme(imageUrl) {
   const mimeType = contentType.split(';')[0].trim();
 
   // 2. Single Gemini vision call — full 6D criteria in prompt (hidden from caller)
-  const prompt = `You are a meme quality evaluator. Analyze this meme image and rate it on 6 internal criteria (1-5 each).
+  const prompt = `You are a STRICT meme quality evaluator for crypto/trading memes. You score HARSHLY and fairly. Your job is to find flaws, not to be encouraging.
 
-LOOK AT THE IMAGE CAREFULLY. Extract:
-- Any text/captions visible in the image
-- The visual composition and meme format/template used
-- The emotional tone and humor style
-- Whether it relates to crypto/trading culture
+CALIBRATION — use this scale consistently:
+- 1/5 = Broken, unreadable, or completely off-target
+- 2/5 = Below average, significant issues
+- 3/5 = Average internet meme quality (this is where MOST memes land)
+- 4/5 = Above average — notably good execution (uncommon)
+- 5/5 = Exceptional, viral-tier quality (VERY RARE — reserve for top 5% of all memes you've seen)
 
-SCORING CRITERIA (1-5 each):
-1. format_recognition: Is this a recognizable meme format? Does it follow internet meme conventions? (e.g. drake format, wojak, distracted boyfriend, or a clear original meme layout)
-2. caption_quality: Is the text punchy, short, and impactful? Or is it wordy and over-explained? Each text region should ideally be ≤6 words.
-3. cultural_relevance: Does it connect to crypto/trading culture, internet culture, or current events in a native way? Not forced or corporate?
-4. visual_execution: Is the image well-composed? Text readable? Colors appropriate? Layout clean?
-5. humor_impact: Does it deliver a twist, irony, or unexpected reaction? Does it make you laugh or think? (WEIGHTED DOUBLE)
-6. originality: Is this a fresh take, not a tired/overused joke? Does it bring a new angle? (WEIGHTED DOUBLE)
+A typical decent meme should score around 3/5 on most criteria. Scoring 4+ requires clear evidence. Scoring 5 requires you to explain why in suggestions.
+
+ANALYZE THE IMAGE CAREFULLY:
+1. Extract ALL visible text (captions, labels, watermarks, small text)
+2. Check for AI generation defects: duplicate/repeated text, garbled/misspelled words, text overlapping other text, text cut off at edges, same caption appearing in multiple locations
+3. Identify the meme format/template (drake, wojak, bell curve, two buttons, etc. or 'original')
+4. Assess the emotional tone and intended humor
+
+SCORING CRITERIA (1-5 each, be strict):
+1. format_recognition: Is this an instantly recognizable meme format? Would a Reddit/Twitter user identify the template within 1 second? Score 3 for original formats that still read as memes. Score 1-2 if it looks like a generic image with text slapped on.
+2. caption_quality: Is text SHORT and PUNCHY? Each text region must be ≤6 words to score 4+. Wordy explanations = score 2. Generic phrases everyone uses = score 2-3. Clever wordplay or subversion = score 4-5.
+3. cultural_relevance: Does it use ACTUAL crypto/trading slang authentically? ("exit liquidity", "ape in", "rugged", "ngmi" etc.) Score 2-3 for generic finance references. Score 4-5 only for language that sounds like real Crypto Twitter.
+4. visual_execution: STRICTLY check for: duplicate text (same words appearing twice = max score 2), garbled/unreadable text (max score 2), text overlapping other elements, poor contrast making text hard to read, cluttered composition. Clean layout with legible text = score 4. Perfect professional execution = score 5.
+5. humor_impact: Does it deliver genuine irony, contradiction, or unexpected reaction? Would someone actually laugh or share this? Generic observations = score 2-3. Clever twist that subverts expectations = score 4. Makes you actually laugh out loud = score 5. (WEIGHTED DOUBLE)
+6. originality: Is the joke/angle something you haven't seen before? Rehashing common crypto jokes ("buy the dip", "to the moon") = score 2. Fresh angle on a common topic = score 3-4. Genuinely novel concept = score 5. (WEIGHTED DOUBLE)
 
 Respond with ONLY this JSON:
 {
@@ -808,9 +817,10 @@ Respond with ONLY this JSON:
     "humor_impact": 0,
     "originality": 0
   },
-  "detected_text": ["list of text found in the image"],
+  "detected_text": ["list ALL text found in the image, including duplicates"],
+  "defects": ["list any visual defects: duplicate text, garbled words, cut-off text, overlap issues — empty array if none"],
   "meme_format": "identified meme template or 'original'",
-  "suggestions": ["plain-English improvement tips, max 3 items"]
+  "suggestions": ["3 SPECIFIC and CRITICAL improvement tips — never say 'none needed' or 'highly effective'. Always find something to improve, even for good memes."]
 }`;
 
   const result = await textModel.generateContent([
@@ -826,6 +836,23 @@ Respond with ONLY this JSON:
 
   const evaluation = JSON.parse(jsonMatch[0]);
   const scores = evaluation.scores || {};
+  const defects = evaluation.defects || [];
+
+  // Code-level penalty: if LLM detected defects but scored visual_execution high, cap it
+  if (defects.length > 0 && (scores.visual_execution || 0) > 2) {
+    scores.visual_execution = 2;
+  }
+
+  // Code-level check: detect duplicate text in detected_text array
+  const detectedText = (evaluation.detected_text || []).map(t => t.toLowerCase().trim());
+  const uniqueText = new Set(detectedText);
+  if (detectedText.length > 0 && uniqueText.size < detectedText.length) {
+    // Duplicate text found — cap visual_execution
+    scores.visual_execution = Math.min(scores.visual_execution || 0, 2);
+    if (!defects.includes('Duplicate text detected in image')) {
+      defects.push('Duplicate text detected in image');
+    }
+  }
 
   // Same weighting as internal: 4 base + humor×2 + originality×2 = 40 max
   const weightedTotal = (scores.format_recognition || 0)
@@ -849,11 +876,18 @@ Respond with ONLY this JSON:
   else if (score >= 50) grade = 'D';
   else grade = 'F';
 
+  // Build suggestions — prepend defect warnings
+  const suggestions = [];
+  if (defects.length > 0) {
+    suggestions.push(`Visual defects detected: ${defects.join('; ')}`);
+  }
+  suggestions.push(...(evaluation.suggestions || []).slice(0, 3));
+
   return {
     score,
     pass,
     grade,
-    suggestions: (evaluation.suggestions || []).slice(0, 3),
+    suggestions: suggestions.slice(0, 4),
   };
 }
 
