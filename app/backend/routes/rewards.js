@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rewardService = require('../services/rewardService');
 const crossmintService = require('../services/crossmintService');
+const baseService = require('../services/baseService');
 const { cacheResponse, TTL } = require('../utils/cache');
 const { collections, dbUtils, getFirestore } = require('../config/firebase');
 
@@ -63,15 +64,26 @@ router.get('/latest-unannounced', async (req, res) => {
  */
 router.get('/balance', cacheResponse('rewards:balance', TTL.LONG), async (req, res) => {
   try {
-    const balances = await crossmintService.getWalletBalances();
-    const address = await crossmintService.getWalletAddress();
+    // Fetch Solana + Base balances in parallel
+    const [solanaBalances, solanaAddress, baseUsdc] = await Promise.all([
+      crossmintService.getWalletBalances(),
+      crossmintService.getWalletAddress(),
+      baseService.getUsdcBalance().catch(e => {
+        console.warn('⚠️ Base balance fetch failed:', e.message);
+        return null;
+      })
+    ]);
 
     res.json({
       success: true,
       data: {
-        address,
-        usdc: balances.usdc,
-        sol: balances.sol,
+        address: solanaAddress,
+        usdc: solanaBalances.usdc,
+        sol: solanaBalances.sol,
+        base: {
+          address: baseService.MEMEYA_BASE_WALLET,
+          usdc: baseUsdc
+        },
         thresholds: {
           minDistribution: rewardService.config.MIN_BALANCE,
           lowBalanceAlert: rewardService.config.LOW_BALANCE_ALERT

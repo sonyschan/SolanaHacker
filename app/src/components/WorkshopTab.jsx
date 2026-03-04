@@ -221,11 +221,14 @@ const getCurrentPhase = (slots) => {
   return { color: '#4ADE80', label: 'LIVE', active: false };
 };
 
-const WorkshopTab = ({ setActiveTab }) => {
+const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
+
+const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [rewardPool, setRewardPool] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [copiedBase, setCopiedBase] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState(null);
   const [floatAmount, setFloatAmount] = useState(null);
   const [phase, setPhase] = useState({ color: '#4ADE80', label: 'LIVE', active: false });
@@ -294,6 +297,12 @@ const WorkshopTab = ({ setActiveTab }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyBaseWallet = () => {
+    navigator.clipboard.writeText(MEMEYA_BASE_WALLET);
+    setCopiedBase(true);
+    setTimeout(() => setCopiedBase(false), 2000);
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
 
@@ -324,8 +333,22 @@ const WorkshopTab = ({ setActiveTab }) => {
             className="flex items-center gap-1.5 hover:text-gray-200 transition-colors"
             title={MEMEYA_WALLET}
           >
+            <span className="text-purple-400/60 text-[10px]">SOL</span>
             <span className="text-gray-500">{MEMEYA_WALLET.slice(0, 4)}...{MEMEYA_WALLET.slice(-4)}</span>
             <span className="text-[10px]">{copied ? t('common.copied') : t('common.copy')}</span>
+          </button>
+          <span className="text-white/10">|</span>
+          <button
+            onClick={copyBaseWallet}
+            className="flex items-center gap-1.5 hover:text-gray-200 transition-colors"
+            title={MEMEYA_BASE_WALLET}
+          >
+            <span className="text-blue-400/60 text-[10px]">BASE</span>
+            <span className="text-gray-500">{MEMEYA_BASE_WALLET.slice(0, 6)}...{MEMEYA_BASE_WALLET.slice(-4)}</span>
+            {baseWalletUsdc !== null && baseWalletUsdc !== undefined && (
+              <span className="text-green-400/80 text-[10px]">${baseWalletUsdc.toFixed(2)}</span>
+            )}
+            <span className="text-[10px]">{copiedBase ? t('common.copied') : t('common.copy')}</span>
           </button>
           <span className="text-white/10">|</span>
           <a
@@ -335,6 +358,15 @@ const WorkshopTab = ({ setActiveTab }) => {
             className="hover:text-cyan-400 transition-colors"
           >
             Solscan
+          </a>
+          <span className="text-white/10">|</span>
+          <a
+            href={`https://basescan.org/address/${MEMEYA_BASE_WALLET}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-cyan-400 transition-colors"
+          >
+            Basescan
           </a>
           <span className="text-white/10">|</span>
           <a

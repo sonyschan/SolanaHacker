@@ -37,6 +37,7 @@ const Dashboard = ({
   const [memeyaBalance, setMemeyaBalance] = useState(null);
   const [memeyaBonus, setMemeyaBonus] = useState(0);
   const [rewardWalletUsdc, setRewardWalletUsdc] = useState(null);
+  const [baseWalletUsdc, setBaseWalletUsdc] = useState(null);
   const [rewardEnabled, setRewardEnabled] = useState(null);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
@@ -133,7 +134,12 @@ const Dashboard = ({
         ]);
         const balData = await balRes.json();
         const cfgData = await cfgRes.json();
-        if (balData.success) setRewardWalletUsdc(balData.data.usdc);
+        if (balData.success) {
+          setRewardWalletUsdc(balData.data.usdc);
+          if (balData.data.base?.usdc !== null && balData.data.base?.usdc !== undefined) {
+            setBaseWalletUsdc(balData.data.base.usdc);
+          }
+        }
         if (cfgData.success) setRewardEnabled(cfgData.data.rewardEnabled);
       } catch {}
     })();
@@ -225,7 +231,7 @@ const Dashboard = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'workshop':
-        return <WorkshopTab setActiveTab={setActiveTab} />;
+        return <WorkshopTab setActiveTab={setActiveTab} baseWalletUsdc={baseWalletUsdc} />;
       case 'forge':
         return <ForgeTab walletAddress={walletAddress}
           userTickets={userTickets}
