@@ -632,7 +632,7 @@ Begin by checking your current task and memory. If there's pending work, continu
         if (cmd.type === 'status_request') {
           const hour = this.chatMode.getGMT8Hour();
           const sleepStatus = this.chatMode.sleepToday ? '😴 休眠中' : '✅ 活躍';
-          const acpLine = this.acpHandler?.client
+          const acpLine = this.acpHandler?.socket
             ? (() => { const s = this.acpHandler.getStats(); return `\n<b>ACP:</b> ✅ ${s.accepted}↑ ${s.delivered}✓ ${s.rejected}✗ ${s.errors}⚠`; })()
             : '\n<b>ACP:</b> ❌ disabled';
           await this.telegram.sendDevlog(

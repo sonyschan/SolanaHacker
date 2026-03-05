@@ -1,20 +1,22 @@
 /**
- * ACP Handler — Virtuals Agent Commerce Protocol Integration
+ * ACP Handler — Virtuals Agent Commerce Protocol Integration (OpenClaw mode)
  *
- * Standalone module for 24/7 persistent listening on ACP marketplace.
- * Routes incoming jobs to backend API endpoints via Lab API key.
+ * Uses REST API + WebSocket (socket.io) to connect to ACP marketplace.
+ * Bypasses the on-chain SCA signing that has known isValidSignature bugs.
+ *
+ * Auth: LITE_AGENT_API_KEY (HTTP header) + walletAddress (socket auth)
+ * API:  https://claw-api.virtuals.io
+ * WS:   https://acpx.virtuals.io
  *
  * Offerings:
- *   rateMeme      — POST /api/memes/rate         ($0.005, 30s)
+ *   rateMeme      — POST /api/memes/rate         ($0.01, 30s)
  *   generateMeme  — POST /api/memes/generate-custom ($0.10, 120s)
  *   getTemplates  — GET  /api/catalog/templates   ($0.01, 60s)
  */
 
 import fs from 'fs';
 import path from 'path';
-import acpModule from '@virtuals-protocol/acp-node';
-const { AcpContractClientV2, AcpJobPhases } = acpModule;
-const AcpClient = acpModule.default;
+import { io } from 'socket.io-client';
 import { syncToBackend } from './skills/x_twitter/x-context.js';
 
 // ─── Offering Config ────────────────────────────────────────
@@ -43,8 +45,22 @@ const OFFERINGS = {
   },
 };
 
+const ACP_API_URL = process.env.ACP_API_URL || 'https://claw-api.virtuals.io';
+const ACP_SOCKET_URL = process.env.ACP_SOCKET_URL || 'https://acpx.virtuals.io';
 const BACKEND_URL = process.env.BACKEND_URL || 'https://api.aimemeforge.io';
 const LAB_API_KEY = process.env.LAB_API_KEY;
+const LITE_AGENT_API_KEY = process.env.LITE_AGENT_API_KEY;
+
+// ACP Job Phases (from openclaw-acp)
+const Phase = {
+  REQUEST: 0,
+  NEGOTIATION: 1,
+  TRANSACTION: 2,
+  EVALUATION: 3,
+  COMPLETED: 4,
+  REJECTED: 5,
+  EXPIRED: 6,
+};
 
 // ─── AcpHandler Class ───────────────────────────────────────
 
@@ -52,21 +68,17 @@ export class AcpHandler {
   constructor({ telegram, baseDir }) {
     this.telegram = telegram;
     this.baseDir = baseDir;
-    this.client = null;
+    this.socket = null;
+    this.walletAddress = null;
     this.stats = { accepted: 0, rejected: 0, delivered: 0, errors: 0 };
   }
 
   /**
-   * Initialize ACP client. Fails gracefully if env vars missing.
+   * Initialize ACP connection via OpenClaw REST + WebSocket.
    */
   async init() {
-    // Prefer ACP3_ env vars (new whitelisted wallet), fall back to ACP_
-    const privateKey = process.env.ACP3_WALLET_PRIVATE_KEY || process.env.ACP_WALLET_PRIVATE_KEY;
-    const entityId = process.env.ACP3_ENTITY_ID || process.env.ACP_ENTITY_ID;
-    const walletAddress = process.env.ACP_WALLET_ADDRESS;
-
-    if (!privateKey || !entityId || !walletAddress) {
-      console.log('[ACP] Missing env vars — ACP disabled');
+    if (!LITE_AGENT_API_KEY) {
+      console.log('[ACP] Missing LITE_AGENT_API_KEY — ACP disabled');
       return;
     }
 
@@ -76,43 +88,24 @@ export class AcpHandler {
     }
 
     try {
-      const contractClient = await AcpContractClientV2.build(
-        privateKey,
-        entityId,
-        walletAddress,
-        process.env.ACP_RPC_URL || undefined,
-      );
+      // Fetch agent info to get wallet address
+      const agentInfo = await this._apiGet('/acp/me');
+      this.walletAddress = agentInfo.walletAddress;
 
-      this.client = new AcpClient({
-        acpContractClient: contractClient,
-        onNewTask: (job, memoToSign) => this._handleJob(job, memoToSign),
-      });
+      if (!this.walletAddress) {
+        console.log('[ACP] No wallet address returned from /acp/me — ACP disabled');
+        return;
+      }
 
-      // NOTE: Do NOT call client.init() — AcpClient constructor already
-      // calls this.init() internally. Double init causes duplicate sockets
-      // and repeated auth challenge failures.
+      console.log(`[ACP] Agent: ${agentInfo.name}, Wallet: ${this.walletAddress.slice(0, 6)}...${this.walletAddress.slice(-4)}`);
 
-      // Catch unhandled ACP SDK errors (e.g. token refresh failures)
-      // to prevent crashing the entire agent process
-      process.on('unhandledRejection', (err) => {
-        if (err?.constructor?.name === '_AcpError' || err?.message?.includes('auth challenge')) {
-          // Known Virtuals platform bug: isValidSignature() reverts on new SCAs.
-          // Suppress to avoid log noise. Will self-resolve when Virtuals fixes SCA deployment.
-          if (!this._authErrorLogged) {
-            this._authErrorLogged = true;
-            console.warn('[ACP] Auth challenge failing (known Virtuals SCA bug) — suppressing further logs');
-          }
-          this.stats.errors++;
-          return;
-        }
-        // Re-throw non-ACP errors
-        throw err;
-      });
+      // Connect WebSocket
+      this._connectSocket();
 
-      console.log('[ACP] Initialized — listening for jobs');
       await this.telegram?.sendDevlog(
-        '🤝 <b>ACP Marketplace</b> initialized\n' +
-        `Wallet: <code>${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}</code>\n` +
+        '🤝 <b>ACP Marketplace</b> initialized (OpenClaw mode)\n' +
+        `Agent: ${agentInfo.name}\n` +
+        `Wallet: <code>${this.walletAddress.slice(0, 6)}...${this.walletAddress.slice(-4)}</code>\n` +
         'Services: rateMeme, generateMeme, getTemplates'
       );
     } catch (err) {
@@ -122,99 +115,152 @@ export class AcpHandler {
   }
 
   /**
-   * Handle incoming ACP job. Two phases:
-   * 1. REQUEST → NEGOTIATION: match offering, validate input, accept/reject
-   * 2. TRANSACTION → EVALUATION: call backend, deliver result
+   * Connect to ACP WebSocket for job notifications.
    */
-  async _handleJob(job, memoToSign) {
+  _connectSocket() {
+    this.socket = io(ACP_SOCKET_URL, {
+      auth: { walletAddress: this.walletAddress },
+      transports: ['websocket'],
+      reconnection: true,
+    });
+
+    this.socket.on('connect', () => {
+      console.log('[ACP] WebSocket connected');
+    });
+
+    this.socket.on('roomJoined', (data, ack) => {
+      console.log('[ACP] Joined room — listening for jobs');
+      ack?.();
+    });
+
+    this.socket.on('onNewTask', (jobData, ack) => {
+      ack?.();
+      this._handleJob(jobData).catch(err => {
+        console.error(`[ACP] Job ${jobData?.id} uncaught error:`, err.message);
+        this.stats.errors++;
+      });
+    });
+
+    this.socket.on('onEvaluate', (data, ack) => {
+      console.log(`[ACP] Evaluation event for job ${data?.id}`);
+      ack?.();
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log(`[ACP] WebSocket disconnected: ${reason}`);
+    });
+
+    this.socket.on('connect_error', (err) => {
+      console.error('[ACP] WebSocket connection error:', err.message);
+    });
+  }
+
+  /**
+   * Handle incoming ACP job.
+   * Phase 0 (REQUEST): match offering, validate, accept/reject
+   * Phase 2 (TRANSACTION): call backend, deliver result
+   */
+  async _handleJob(jobData) {
+    const jobId = jobData.id;
+    const phase = jobData.phase;
+
+    console.log(`[ACP] Job ${jobId} received — phase ${phase}`);
+
     try {
-      // Phase 1: Accept or reject the request
-      if (
-        job.phase === AcpJobPhases.REQUEST &&
-        memoToSign?.nextPhase === AcpJobPhases.NEGOTIATION
-      ) {
-        const requirement = job.requirement || {};
-        const offering = this._matchOffering(requirement);
+      // Phase REQUEST: accept or reject
+      if (phase === Phase.REQUEST) {
+        const context = this._extractContext(jobData);
+        const offering = this._matchOffering(context);
 
-        if (!offering) {
-          const available = Object.keys(OFFERINGS).join(', ');
-          await job.reject(`Unknown service. Available: ${available}`);
-          this.stats.rejected++;
-          console.log(`[ACP] Job ${job.id} rejected — no matching offering`);
-          return;
-        }
-
-        const validationError = this._validateInput(offering, requirement);
+        const validationError = this._validateInput(offering, context);
         if (validationError) {
-          await job.reject(validationError);
+          await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
+            accept: false,
+            reason: validationError,
+          });
           this.stats.rejected++;
-          console.log(`[ACP] Job ${job.id} rejected — ${validationError}`);
+          console.log(`[ACP] Job ${jobId} rejected — ${validationError}`);
           return;
         }
 
-        await job.accept('Service available — ready to process');
-        await job.createRequirement(`Accepted. Please proceed with payment.`);
+        await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
+          accept: true,
+        });
         this.stats.accepted++;
-        console.log(`[ACP] Job ${job.id} accepted — ${offering.key}`);
+        console.log(`[ACP] Job ${jobId} accepted — ${offering.key}`);
         return;
       }
 
-      // Phase 2: Process and deliver
-      if (
-        job.phase === AcpJobPhases.TRANSACTION &&
-        memoToSign?.nextPhase === AcpJobPhases.EVALUATION
-      ) {
-        const requirement = job.requirement || {};
-        const offering = this._matchOffering(requirement);
-
-        if (!offering) {
-          await job.reject('Service no longer available');
-          this.stats.errors++;
-          return;
-        }
+      // Phase TRANSACTION: execute and deliver
+      if (phase === Phase.TRANSACTION) {
+        const context = this._extractContext(jobData);
+        const offering = this._matchOffering(context);
 
         try {
-          const result = await this._callBackend(offering, requirement);
-          await job.deliver({
-            type: 'url',
-            value: JSON.stringify(result),
+          const result = await this._callBackend(offering, context);
+          await this._apiPost(`/acp/providers/jobs/${jobId}/deliverable`, {
+            deliverable: JSON.stringify(result),
           });
           this.stats.delivered++;
-          console.log(`[ACP] Job ${job.id} delivered — ${offering.key}`);
-          this._logToWorkshop(offering, job.id);
+          console.log(`[ACP] Job ${jobId} delivered — ${offering.key}`);
+          this._logToWorkshop(offering, jobId);
         } catch (err) {
-          await job.reject(`Delivery failed: ${err.message}`);
+          await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
+            accept: false,
+            reason: `Delivery failed: ${err.message}`,
+          });
           this.stats.errors++;
-          console.error(`[ACP] Job ${job.id} delivery error:`, err.message);
+          console.error(`[ACP] Job ${jobId} delivery error:`, err.message);
           await this.telegram?.sendDevlog(
-            `⚠️ ACP job ${job.id} failed: ${err.message}`
+            `⚠️ ACP job ${jobId} failed: ${err.message}`
           );
         }
         return;
       }
     } catch (err) {
-      console.error(`[ACP] Job ${job.id} uncaught error:`, err.message);
+      console.error(`[ACP] Job ${jobId} handler error:`, err.message);
       this.stats.errors++;
-      try { await job.reject(`Internal error: ${err.message}`); } catch { /* best effort */ }
     }
   }
 
   /**
-   * Match requirement fields to an offering.
+   * Extract context/requirements from job memos.
+   */
+  _extractContext(jobData) {
+    // jobData.context is pre-parsed by the server
+    if (jobData.context && typeof jobData.context === 'object') {
+      return jobData.context;
+    }
+
+    // Fallback: parse from memos
+    const context = {};
+    if (Array.isArray(jobData.memos)) {
+      for (const memo of jobData.memos) {
+        try {
+          const parsed = JSON.parse(memo.content);
+          Object.assign(context, parsed);
+        } catch { /* not JSON, skip */ }
+      }
+    }
+    return context;
+  }
+
+  /**
+   * Match context fields to an offering.
    * Priority: imageUrl → rateMeme, topic → generateMeme, else → getTemplates
    */
-  _matchOffering(requirement) {
-    if (requirement.imageUrl) return { ...OFFERINGS.rateMeme, key: 'rateMeme' };
-    if (requirement.topic) return { ...OFFERINGS.generateMeme, key: 'generateMeme' };
+  _matchOffering(context) {
+    if (context.imageUrl) return { ...OFFERINGS.rateMeme, key: 'rateMeme' };
+    if (context.topic) return { ...OFFERINGS.generateMeme, key: 'generateMeme' };
     return { ...OFFERINGS.getTemplates, key: 'getTemplates' };
   }
 
   /**
-   * Validate that required fields are present in the requirement.
+   * Validate that required fields are present.
    */
-  _validateInput(offering, requirement) {
+  _validateInput(offering, context) {
     for (const field of offering.requiredFields) {
-      if (!requirement[field]) {
+      if (!context[field]) {
         return `Missing required field: ${field}`;
       }
     }
@@ -254,6 +300,37 @@ export class AcpHandler {
       clearTimeout(timeout);
     }
   }
+
+  // ─── ACP REST helpers ──────────────────────────────────────
+
+  async _apiGet(path) {
+    const res = await fetch(`${ACP_API_URL}${path}`, {
+      headers: { 'x-api-key': LITE_AGENT_API_KEY },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`ACP API ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+
+  async _apiPost(path, body) {
+    const res = await fetch(`${ACP_API_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': LITE_AGENT_API_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`ACP API ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+
+  // ─── Workshop Logging ──────────────────────────────────────
 
   /**
    * Log ACP transaction to workshop diary (same format as x402_commerce).
