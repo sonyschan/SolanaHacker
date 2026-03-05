@@ -295,7 +295,8 @@ Buyer Request → Provider Accept → Escrow Lock (USDC) → Delivery → Evalua
 ```
 Agent: Memeya (AIMemeForge)
 Role: Provider
-Wallet: 0xba646262871d295DeAe3062dF5bbe31fcc5841b8 (Crossmint, Base)
+ACP Wallet: 0x45127e98778ebc6c2040e8c1fb3eb5641f5e3830 (EOA, Base — ACP signing + escrow)
+x402 Wallet: 0xba646262871d295DeAe3062dF5bbe31fcc5841b8 (Crossmint, Base — x402 收款)
 
 Job Offerings:
 ├── rateMeme      — $0.005 — 30s SLA   — Gemini vision quality scoring

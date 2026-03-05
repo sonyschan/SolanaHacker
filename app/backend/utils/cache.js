@@ -63,6 +63,7 @@ const TTL = {
   LONG: 10 * 60 * 1000,      // 10 min
   HALF_HOUR: 30 * 60 * 1000, // 30 min
   HOUR: 60 * 60 * 1000,      // 1 hour
+  DAY: 24 * 60 * 60 * 1000,  // 24 hours
 };
 
 module.exports = { getOrFetch, cacheResponse, invalidate, invalidatePrefix, TTL };

@@ -24,7 +24,7 @@ const OFFERINGS = {
   rateMeme: {
     endpoint: '/api/memes/rate',
     method: 'POST',
-    price: 0.005,
+    price: 0.01,
     timeoutMs: 30_000,
     requiredFields: ['imageUrl'],
   },

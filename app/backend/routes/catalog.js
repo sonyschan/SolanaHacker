@@ -9,7 +9,7 @@ const templates = require('../data/meme-templates.json');
 /**
  * GET /api/catalog/templates — All meme templates (16 items)
  */
-router.get('/templates', cacheResponse('catalog:templates', TTL.LONG), (req, res) => {
+router.get('/templates', cacheResponse('catalog:templates', TTL.DAY), (req, res) => {
   const items = templates.map(t => ({
     id: t.id,
     name: t.name,
@@ -25,7 +25,7 @@ router.get('/templates', cacheResponse('catalog:templates', TTL.LONG), (req, res
 /**
  * GET /api/catalog/strategies — All comedy strategies (7 items)
  */
-router.get('/strategies', cacheResponse('catalog:strategies', TTL.LONG), (req, res) => {
+router.get('/strategies', cacheResponse('catalog:strategies', TTL.DAY), (req, res) => {
   const items = STRATEGY_POOL.map(s => ({
     id: s.strategy_id,
     name: s.strategy_name,
@@ -39,7 +39,7 @@ router.get('/strategies', cacheResponse('catalog:strategies', TTL.LONG), (req, r
 /**
  * GET /api/catalog/narratives — All narrative archetypes (11 items)
  */
-router.get('/narratives', cacheResponse('catalog:narratives', TTL.LONG), (req, res) => {
+router.get('/narratives', cacheResponse('catalog:narratives', TTL.DAY), (req, res) => {
   const items = NARRATIVE_POOL.map(n => ({
     id: n.narrative_id,
     name: n.narrative_name,
@@ -54,7 +54,7 @@ router.get('/narratives', cacheResponse('catalog:narratives', TTL.LONG), (req, r
 /**
  * GET /api/catalog/art-styles — All V1 art styles (10 items)
  */
-router.get('/art-styles', cacheResponse('catalog:art-styles', TTL.LONG), (req, res) => {
+router.get('/art-styles', cacheResponse('catalog:art-styles', TTL.DAY), (req, res) => {
   const items = V1_ART_STYLES.map(s => ({
     id: s.id,
     name: s.name,
@@ -65,7 +65,7 @@ router.get('/art-styles', cacheResponse('catalog:art-styles', TTL.LONG), (req, r
 /**
  * GET /api/catalog/top-recipes — Top-performing meme recipes from recent history
  */
-router.get('/top-recipes', cacheResponse('catalog:top-recipes', TTL.HALF_HOUR), async (req, res) => {
+router.get('/top-recipes', cacheResponse('catalog:top-recipes', TTL.HOUR), async (req, res) => {
   try {
     const { getFirestore, collections } = require('../config/firebase');
     const db = getFirestore();
