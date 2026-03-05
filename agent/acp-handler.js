@@ -87,6 +87,7 @@ export class AcpHandler {
         onNewTask: (job, memoToSign) => this._handleJob(job, memoToSign),
       });
 
+      await this.client.init();
       console.log('[ACP] Initialized — listening for jobs');
       await this.telegram?.sendDevlog(
         '🤝 <b>ACP Marketplace</b> initialized\n' +
