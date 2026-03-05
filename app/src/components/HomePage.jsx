@@ -182,54 +182,15 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-24">
 
         <div className="text-center mb-20 md:mb-28">
-          <div className="inline-flex items-center space-x-2 mb-6 flex-wrap justify-center gap-2">
-            <div className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-sm text-cyan-400 font-medium">
-              {t('home.hero.badges.aiCrafted')}
-            </div>
-            <div className="px-4 py-2 bg-green-400/10 border border-green-400/20 rounded-full text-sm text-green-400 font-medium">
-              {t('home.hero.badges.humanVerified')}
-            </div>
-            <div className="px-4 py-2 bg-purple-400/10 border border-purple-400/20 rounded-full text-sm text-purple-400 font-medium">
-              {t('home.hero.badges.payPerUse')}
-            </div>
-          </div>
-
-          <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-4 leading-tight">
+          <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
               {t('home.hero.title')}
             </span>
           </h2>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold mb-8 tracking-wide bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-            {t('home.hero.subtitle')}
-          </p>
 
-          {/* Memeya Activity Ticker */}
-          {currentTickerEntry && (
-            <div className="max-w-2xl mx-auto mb-8">
-              <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
-                <img
-                  src="/images/memeya-avatar.png"
-                  alt="Memeya"
-                  className="w-8 h-8 rounded-full ring-2 ring-green-500/30 flex-shrink-0"
-                />
-                <div className="flex items-center gap-2 min-w-0 overflow-hidden homepage-ticker-line" key={safeTickerIdx}>
-                  <span className="text-green-500/70 flex-shrink-0">{'>'}</span>
-                  <span className="text-gray-600 flex-shrink-0 hidden sm:inline">
-                    [{toLocalHHMM(currentTickerEntry.time, workshop?.date)}]
-                  </span>
-                  <span className={`flex-shrink-0 text-xs font-bold ${tickerTag.color}`}>
-                    {tickerTag.tag}
-                  </span>
-                  <span className="text-gray-400 truncate">{tickerText}</span>
-                  <span className="text-green-500/70 homepage-ticker-cursor flex-shrink-0">&#9608;</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Ecosystem block — voting + badges */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <p className="text-lg md:text-xl text-gray-400 leading-relaxed mb-4">
+          {/* Two-line value prop with inline CTAs */}
+          <div className="max-w-3xl mx-auto mb-8 space-y-4">
+            <p className="text-lg md:text-xl text-gray-400 leading-relaxed">
               {t('home.hero.descLine1')}{' '}
               <button
                 onClick={login}
@@ -238,30 +199,38 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 {t('home.hero.ctaSignIn')}
               </button>
             </p>
-            <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 flex-wrap gap-y-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-green-400">&#10003;</span>
-                <span>{t('home.hero.noFees')}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-cyan-400">&#10003;</span>
-                <span>{t('home.hero.oneNFT')}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-purple-400">&#10003;</span>
-                <span>{t('home.hero.youOwn')}</span>
+            <p className="text-lg md:text-xl text-gray-400 leading-relaxed">
+              {t('home.hero.descLine2')}{' '}
+              <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+                {t('home.hero.browseGallery')}
+              </a>
+            </p>
+          </div>
+        </div>
+
+        {/* Memeya Activity Ticker — bridge between hero and gallery */}
+        {currentTickerEntry && (
+          <div className="max-w-2xl mx-auto mb-12">
+            <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
+              <img
+                src="/images/memeya-avatar.png"
+                alt="Memeya"
+                className="w-8 h-8 rounded-full ring-2 ring-green-500/30 flex-shrink-0"
+              />
+              <div className="flex items-center gap-2 min-w-0 overflow-hidden homepage-ticker-line" key={safeTickerIdx}>
+                <span className="text-green-500/70 flex-shrink-0">{'>'}</span>
+                <span className="text-gray-600 flex-shrink-0 hidden sm:inline">
+                  [{toLocalHHMM(currentTickerEntry.time, workshop?.date)}]
+                </span>
+                <span className={`flex-shrink-0 text-xs font-bold ${tickerTag.color}`}>
+                  {tickerTag.tag}
+                </span>
+                <span className="text-gray-400 truncate">{tickerText}</span>
+                <span className="text-green-500/70 homepage-ticker-cursor flex-shrink-0">&#9608;</span>
               </div>
             </div>
           </div>
-
-          {/* Developer block — API */}
-          <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-3xl mx-auto mb-12">
-            {t('home.hero.descLine2')}{' '}
-            <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
-              {t('home.hero.browseGallery')}
-            </a>
-          </p>
-        </div>
+        )}
 
         {/* Featured Gallery */}
         {featuredMemes.length > 0 && (
