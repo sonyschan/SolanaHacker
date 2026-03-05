@@ -644,10 +644,10 @@
         "desc": "Custom AI meme with comedy architecture"
       },
       "catalog": {
-        "name": "Browse Catalog",
+        "name": "Catalog API",
         "price": "Free",
         "sla": "\u2014",
-        "desc": "Templates, strategies, narratives, art styles"
+        "desc": "Free API endpoints for templates, strategies, narratives, and art styles"
       }
     },
     "rate": {

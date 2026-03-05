@@ -659,8 +659,8 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Rate a meme ($0.005 USDC)
-const res = await fetchPaid(
+// 1. Rate a meme ($0.005 USDC)
+const rateRes = await fetchPaid(
   '${API_BASE_URL}/api/memes/rate',
   {
     method: 'POST',
@@ -668,7 +668,23 @@ const res = await fetchPaid(
     body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
   }
 );
-const { score, grade, pass, suggestions } = await res.json();`);
+const { score, grade, pass, suggestions } = await rateRes.json();
+
+// 2. Generate a meme ($0.10 USDC)
+const genRes = await fetchPaid(
+  '${API_BASE_URL}/api/memes/generate-custom',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic: 'Bitcoin hits $200K' }),
+  }
+);
+const { meme } = await genRes.json();
+// meme.imageUrl, meme.title, meme.tags, meme.metadata
+
+// 3. Browse catalog (Free — no x402 needed)
+const styles = await fetch('${API_BASE_URL}/api/catalog/art-styles').then(r => r.json());
+// Also: /api/catalog/templates, /strategies, /narratives`);
                   setCodeCopied(true);
                   setTimeout(() => setCodeCopied(false), 2000);
                 }}
@@ -689,8 +705,8 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Rate a meme ($0.005 USDC)
-const res = await fetchPaid(
+// 1. Rate a meme ($0.005 USDC)
+const rateRes = await fetchPaid(
   '${API_BASE_URL}/api/memes/rate',
   {
     method: 'POST',
@@ -698,7 +714,23 @@ const res = await fetchPaid(
     body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
   }
 );
-const { score, grade, pass, suggestions } = await res.json();`}
+const { score, grade, pass, suggestions } = await rateRes.json();
+
+// 2. Generate a meme ($0.10 USDC)
+const genRes = await fetchPaid(
+  '${API_BASE_URL}/api/memes/generate-custom',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic: 'Bitcoin hits $200K' }),
+  }
+);
+const { meme } = await genRes.json();
+// meme.imageUrl, meme.title, meme.tags, meme.metadata
+
+// 3. Browse catalog (Free — no x402 needed)
+const styles = await fetch('${API_BASE_URL}/api/catalog/art-styles').then(r => r.json());
+// Also: /api/catalog/templates, /strategies, /narratives`}
             </pre>
           </div>
 
