@@ -102,6 +102,10 @@ const rateLimitByWallet = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   const requests = new Map();
 
   return (req, res, next) => {
+    // Bypass rate limit for LAB_API_KEY (internal/ACP calls)
+    if (req.headers['x-api-key'] && req.headers['x-api-key'] === process.env.LAB_API_KEY) {
+      return next();
+    }
     const key = req.user?.publicKey || req.ip;
     const now = Date.now();
     
