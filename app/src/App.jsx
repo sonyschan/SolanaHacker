@@ -4,6 +4,8 @@ import HomePage from "./components/HomePage";
 import Dashboard from "./components/Dashboard";
 import AgentPage from "./components/AgentPage";
 import WikiPage from "./components/WikiPage";
+import PublicGalleryPage from "./components/PublicGalleryPage";
+import PublicLabPage from "./components/PublicLabPage";
 import Footer from "./components/Footer";
 import "./index.css";
 import "./styles/placeholders.css";
@@ -115,8 +117,10 @@ function App() {
       setCurrentView("agent");
     } else if (urlHash === "#wiki") {
       setCurrentView("wiki");
+    } else if (urlHash === "#gallery") {
+      setCurrentView("gallery");
     } else if (urlHash === "#lab") {
-      setCurrentView("dashboard");
+      setCurrentView(authenticated && walletAddress ? "dashboard" : "lab");
     } else if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else {
@@ -132,8 +136,10 @@ function App() {
         setCurrentView("agent");
       } else if (urlHash === "#wiki") {
         setCurrentView("wiki");
+      } else if (urlHash === "#gallery") {
+        setCurrentView("gallery");
       } else if (urlHash === "#lab") {
-        setCurrentView("dashboard");
+        setCurrentView(authenticated && walletAddress ? "dashboard" : "lab");
       } else if (urlHash === "#invite" || urlHash === "#dashboard") {
         setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       } else if (urlHash === "" || urlHash === "#") {
@@ -157,6 +163,10 @@ function App() {
           <AgentPage />
         ) : currentView === "wiki" ? (
           <WikiPage />
+        ) : currentView === "gallery" ? (
+          <PublicGalleryPage />
+        ) : currentView === "lab" ? (
+          <PublicLabPage />
         ) : currentView === "home" ? (
           <HomePage
             walletConnected={authenticated}

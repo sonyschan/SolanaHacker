@@ -38,7 +38,7 @@ const GRADE_COLORS = {
   'F':  'text-red-400 bg-red-400/10 border-red-400/30',
 };
 
-const LabTab = () => {
+const LabTab = ({ publicMode = false }) => {
   const { t } = useTranslation();
 
   // Auth state
@@ -165,8 +165,12 @@ const LabTab = () => {
         headers: labHeaders(),
         body: JSON.stringify({ imageUrl: rateImageUrl.trim() }),
       });
-      const data = await res.json();
-      setRateResult(data);
+      if (res.status === 402) {
+        setRateResult({ success: false, error: t('lab.rate.paymentRequired'), is402: true });
+      } else {
+        const data = await res.json();
+        setRateResult(data);
+      }
     } catch (err) {
       setRateResult({ success: false, error: err.message });
     } finally {
@@ -189,8 +193,12 @@ const LabTab = () => {
         headers: labHeaders(),
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      setGenResult(data);
+      if (res.status === 402) {
+        setGenResult({ success: false, error: t('lab.generate.paymentRequired'), is402: true });
+      } else {
+        const data = await res.json();
+        setGenResult(data);
+      }
     } catch (err) {
       setGenResult({ success: false, error: err.message });
     } finally {
@@ -198,15 +206,16 @@ const LabTab = () => {
     }
   };
 
-  const panels = [
+  const allPanels = [
     { id: 'rate', label: t('lab.panels.rate') },
     { id: 'generate', label: t('lab.panels.generate') },
     { id: 'catalog', label: t('lab.panels.catalog') },
     { id: 'api', label: t('lab.panels.api') },
   ];
+  const panels = publicMode ? allPanels.filter(p => p.id !== 'catalog') : allPanels;
 
   // ── Auth Gate ─────────────────────────────────────────────
-  if (!apiKey) {
+  if (!apiKey && !publicMode) {
     return (
       <div className="flex items-center justify-center py-20">
         <form onSubmit={handleAuth} className="bg-white/5 border border-white/10 rounded-xl p-8 w-full max-w-sm space-y-4">
@@ -242,9 +251,11 @@ const LabTab = () => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white">{t('lab.title')}</h2>
         <p className="text-gray-400 text-sm mt-1">{t('lab.subtitle')}</p>
-        <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-gray-300 mt-1 transition-colors">
-          {t('lab.auth.logout')}
-        </button>
+        {!publicMode && (
+          <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-gray-300 mt-1 transition-colors">
+            {t('lab.auth.logout')}
+          </button>
+        )}
       </div>
 
       {/* Panel Switcher */}
@@ -345,6 +356,11 @@ const LabTab = () => {
                     </div>
                   )}
                 </>
+              ) : rateResult.is402 ? (
+                <div className="bg-yellow-400/5 border border-yellow-400/20 rounded-lg p-4 text-center">
+                  <p className="text-yellow-400 font-medium text-sm mb-1">402 Payment Required</p>
+                  <p className="text-gray-400 text-xs">{rateResult.error}</p>
+                </div>
               ) : (
                 <div className="text-red-400 text-sm">{rateResult.error}</div>
               )}
@@ -491,6 +507,11 @@ const LabTab = () => {
                     <p><span className="text-gray-300">{t('lab.generate.result.caption')}:</span> {genResult.meme?.metadata?.memeIdea?.caption}</p>
                     <p><span className="text-gray-300">{t('lab.generate.result.twist')}:</span> {genResult.meme?.metadata?.memeIdea?.twist}</p>
                   </div>
+                </div>
+              ) : genResult.is402 ? (
+                <div className="bg-yellow-400/5 border border-yellow-400/20 rounded-lg p-4 text-center">
+                  <p className="text-yellow-400 font-medium text-sm mb-1">402 Payment Required</p>
+                  <p className="text-gray-400 text-xs">{genResult.error}</p>
                 </div>
               ) : (
                 <div className="text-red-400 text-sm">{genResult.error}: {genResult.message}</div>

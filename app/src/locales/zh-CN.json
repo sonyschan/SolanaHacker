@@ -25,18 +25,25 @@
     "tagline": "AI 创造，人类决定。",
     "nav": {
       "live": "在线",
-      "votersThisWeek": "本周投票者"
+      "votersThisWeek": "本周投票者",
+      "gallery": "画廊"
     },
     "hero": {
       "free": "100% 免费",
       "dailyDrops": "每日投放",
       "realNFTs": "真实 NFT",
-      "title": "历史性 AI 梗图",
-      "subtitle": "免费投票，每日赚取，永久拥有。",
-      "desc": "每天为 AI 生成的梗图投票。赢得每日抽奖并将你的梗图铸造为 <strong>Solana NFT</strong>。免费建立你的收藏 — 越早开始，积累越多。",
+      "title": "AI 创作梗图，人类验证品质",
+      "subtitle": "为每日梗图投票。委托自定义创作。通过 API 集成。",
+      "desc": "我们的 AI 每日生成梗图，社区投票验证品质。开发者和 AI 代理可通过按次付费的 <strong>x402 API</strong> 使用梗图服务。",
       "noFees": "投票无需手续费或 Gas 费",
       "oneNFT": "每日铸造 1 个 NFT",
-      "youOwn": "赢得即拥有"
+      "youOwn": "赢得即拥有",
+      "browseGallery": "浏览画廊",
+      "badges": {
+        "aiCrafted": "AI 创作",
+        "humanVerified": "人类验证",
+        "payPerUse": "按次付费 API"
+      }
     },
     "howItWorks": {
       "title": "运作方式",
@@ -74,10 +81,21 @@
         "tags": "\u2713 真正所有权 \u2713 随时铸造 \u2713 在市场交易"
       }
     },
+    "featured": {
+      "title": "精选作品",
+      "desc": "来自每日 AI 民主的近期最高票梗图",
+      "viewAll": "查看完整画廊"
+    },
+    "api": {
+      "title": "梗图 API 服务",
+      "desc": "将 AI 梗图生成和品质评分集成到你的应用或代理工作流程中。",
+      "cta": "探索 API",
+      "protocol": "Powered by x402 · USDC on Base"
+    },
     "cta": {
       "liveNow": "正在进行",
-      "title": "今天开始收集",
-      "desc": "每一天不投票就是错过一个梗图。连接钱包，免费投票，在其他人之前开始建立你的 NFT 收藏。",
+      "title": "今天开始创作",
+      "desc": "免费为每日梗图投票，或集成我们的 API 以编程方式生成和评分梗图。",
       "votersThisWeek": "本周投票者",
       "memesCreated": "已创建梗图",
       "maxNFTs": "最大 NFT 数量"
@@ -105,7 +123,9 @@
     "meetMemeya": "认识 Memeya",
     "copyright": "\u00a9 {{year}} AI MemeForge。由 AI 与人类协作共同打造 \ud83d\udc9c",
     "poweredBy": "技术驱动",
-    "referral": "推荐计划"
+    "referral": "推荐计划",
+    "gallery": "画廊",
+    "api": "API"
   },
   "dashboard": {
     "subtitle": "AI 梗图民主平台",
@@ -638,7 +658,8 @@
       "analyzing": "分析中...",
       "estimatedTime": "AI 视觉分析约需 5-10 秒",
       "grade": "等级",
-      "suggestions": "建议"
+      "suggestions": "建议",
+      "paymentRequired": "此端点需要 x402 微支付（$0.005 USDC）。请使用 API 面板中的快速开始代码进行集成。"
     },
     "generate": {
       "title": "生成自定义梗图",
@@ -657,6 +678,7 @@
       "submit": "生成梗图",
       "generating": "生成中...",
       "estimatedTime": "大约需要 30-60 秒（LLM + 图片生成）",
+      "paymentRequired": "此端点需要 x402 微支付（$0.10 USDC）。请使用 API 面板中的快速开始代码进行集成。",
       "result": {
         "quality": "品质分数",
         "model": "AI 模型",

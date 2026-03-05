@@ -25,18 +25,25 @@
     "tagline": "AI Dreams. Humans Decide.",
     "nav": {
       "live": "Live",
-      "votersThisWeek": "voters this week"
+      "votersThisWeek": "voters this week",
+      "gallery": "Gallery"
     },
     "hero": {
       "free": "100% Free",
       "dailyDrops": "Daily Drops",
       "realNFTs": "Real NFTs",
-      "title": "Historical AI Memes",
-      "subtitle": "Vote Free. Earn Daily. Own Forever.",
-      "desc": "Vote on AI-generated memes every day. Win the daily lottery and claim your meme as a <strong>Solana NFT</strong>. Build your collection for free \u2014 the earlier you start, the more you accumulate.",
+      "title": "AI-Crafted Memes, Human-Verified Quality",
+      "subtitle": "Vote on daily memes. Commission custom creations. Integrate via API.",
+      "desc": "Our AI generates memes daily. The community votes to verify quality. Developers and agents can access meme services via pay-per-use <strong>x402 API</strong>.",
       "noFees": "No fees, no gas to vote",
       "oneNFT": "1 NFT minted daily",
-      "youOwn": "You own what you win"
+      "youOwn": "You own what you win",
+      "browseGallery": "Browse Gallery",
+      "badges": {
+        "aiCrafted": "AI-Crafted",
+        "humanVerified": "Human-Verified",
+        "payPerUse": "Pay-Per-Use API"
+      }
     },
     "howItWorks": {
       "title": "How It Works",
@@ -74,10 +81,21 @@
         "tags": "\u2713 True ownership \u2713 Mint anytime \u2713 Trade on marketplaces"
       }
     },
+    "featured": {
+      "title": "Featured Creations",
+      "desc": "Recent top-voted memes from our daily AI democracy",
+      "viewAll": "View Full Gallery"
+    },
+    "api": {
+      "title": "Meme API Services",
+      "desc": "Integrate AI meme generation and quality scoring into your app or agent workflow.",
+      "cta": "Explore API",
+      "protocol": "Powered by x402 \u00b7 USDC on Base"
+    },
     "cta": {
       "liveNow": "Live Now",
-      "title": "Start Collecting Today",
-      "desc": "Every day you don\u2019t vote is a meme you miss. Connect your wallet, vote for free, and start building your NFT collection before everyone else.",
+      "title": "Start Creating Today",
+      "desc": "Vote on daily memes for free, or integrate our API to generate and rate memes programmatically.",
       "votersThisWeek": "voters this week",
       "memesCreated": "memes created",
       "maxNFTs": "max NFTs"
@@ -105,7 +123,9 @@
     "meetMemeya": "Meet Memeya",
     "copyright": "\u00a9 {{year}} AI MemeForge. Built with \ud83d\udc9c by AI & Human collaboration.",
     "poweredBy": "Powered by",
-    "referral": "Referral Program"
+    "referral": "Referral Program",
+    "gallery": "Gallery",
+    "api": "API"
   },
   "dashboard": {
     "subtitle": "AI Meme Democracy Platform",
@@ -638,7 +658,8 @@
       "analyzing": "Analyzing...",
       "estimatedTime": "AI vision analysis takes ~5-10 seconds",
       "grade": "Grade",
-      "suggestions": "Suggestions"
+      "suggestions": "Suggestions",
+      "paymentRequired": "This endpoint requires an x402 micropayment ($0.005 USDC). Use the Quick Start code in the API panel to integrate."
     },
     "generate": {
       "title": "Generate Custom Meme",
@@ -657,6 +678,7 @@
       "submit": "Generate Meme",
       "generating": "Generating...",
       "estimatedTime": "This takes ~30-60 seconds (LLM + image generation)",
+      "paymentRequired": "This endpoint requires an x402 micropayment ($0.10 USDC). Use the Quick Start code in the API panel to integrate.",
       "result": {
         "quality": "Quality Score",
         "model": "AI Model",
