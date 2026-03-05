@@ -392,7 +392,7 @@
   },
   "gallery": {
     "title": "迷因殿堂",
-    "desc": "往日的傳奇迷因",
+    "desc": "由社群投票淬煉的每日創作",
     "allMemes": "所有迷因",
     "topVoted": "#1 最高票",
     "loadError": "載入畫廊失敗: {{error}}",

@@ -392,7 +392,7 @@
   },
   "gallery": {
     "title": "Hall of Memes",
-    "desc": "Legendary memes from days past",
+    "desc": "Daily creations refined by community votes",
     "allMemes": "All Memes",
     "topVoted": "#1 Top Voted",
     "loadError": "Failed to load gallery: {{error}}",

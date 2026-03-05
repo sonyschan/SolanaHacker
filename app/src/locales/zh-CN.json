@@ -392,7 +392,7 @@
   },
   "gallery": {
     "title": "梗图殿堂",
-    "desc": "往日的传奇梗图",
+    "desc": "由社群投票淬炼的每日创作",
     "allMemes": "所有梗图",
     "topVoted": "#1 最高票",
     "loadError": "加载画廊失败: {{error}}",
