@@ -227,9 +227,9 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
           )}
 
-          {/* Two-line desc with inline CTAs */}
-          <div className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed space-y-4">
-            <p>
+          {/* Ecosystem block — voting + badges */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-gray-400 leading-relaxed mb-4">
               {t('home.hero.descLine1')}{' '}
               <button
                 onClick={login}
@@ -238,28 +238,29 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 {t('home.hero.ctaSignIn')}
               </button>
             </p>
-            <p>
-              {t('home.hero.descLine2')}{' '}
-              <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
-                {t('home.hero.browseGallery')}
-              </a>
-            </p>
+            <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 flex-wrap gap-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-400">&#10003;</span>
+                <span>{t('home.hero.noFees')}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-cyan-400">&#10003;</span>
+                <span>{t('home.hero.oneNFT')}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-purple-400">&#10003;</span>
+                <span>{t('home.hero.youOwn')}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 flex-wrap gap-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-green-400">&#10003;</span>
-              <span>{t('home.hero.noFees')}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-cyan-400">&#10003;</span>
-              <span>{t('home.hero.oneNFT')}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-purple-400">&#10003;</span>
-              <span>{t('home.hero.youOwn')}</span>
-            </div>
-          </div>
+          {/* Developer block — API */}
+          <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-3xl mx-auto mb-12">
+            {t('home.hero.descLine2')}{' '}
+            <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+              {t('home.hero.browseGallery')}
+            </a>
+          </p>
         </div>
 
         {/* Featured Gallery */}
