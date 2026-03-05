@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import WalletConnection from './WalletConnection';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useAuth } from '../hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
@@ -42,6 +43,7 @@ const RARITY_COLORS = {
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   const { t, i18n } = useTranslation();
+  const { login } = useAuth();
   const [weeklyVoters, setWeeklyVoters] = useState(0);
   const [totalMemes, setTotalMemes] = useState(0);
   const [caCopied, setCaCopied] = useState(false);
@@ -225,21 +227,23 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
           )}
 
-          <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-            <Trans i18nKey="home.hero.desc">
-              Our AI generates memes daily. The community votes to verify quality. Developers and agents can access meme services via pay-per-use <strong className="text-white">x402 API</strong>.
-            </Trans>
-          </p>
-
-          {/* Dual CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-            <a
-              href="#gallery"
-              className="px-8 py-4 text-lg font-bold bg-white/5 hover:bg-white/10 border border-white/20 hover:border-cyan-500/50 rounded-xl text-white transition-all duration-200"
-            >
-              {t('home.hero.browseGallery')}
-            </a>
-            <WalletConnection variant="primary" className="px-8 py-4 text-lg" />
+          {/* Two-line desc with inline CTAs */}
+          <div className="text-lg md:text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed space-y-4">
+            <p>
+              {t('home.hero.descLine1')}{' '}
+              <button
+                onClick={login}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer"
+              >
+                {t('home.hero.ctaSignIn')}
+              </button>
+            </p>
+            <p>
+              {t('home.hero.descLine2')}{' '}
+              <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+                {t('home.hero.browseGallery')}
+              </a>
+            </p>
           </div>
 
           <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 flex-wrap gap-y-2">
