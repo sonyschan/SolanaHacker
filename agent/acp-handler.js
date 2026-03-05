@@ -60,8 +60,9 @@ export class AcpHandler {
    * Initialize ACP client. Fails gracefully if env vars missing.
    */
   async init() {
-    const privateKey = process.env.ACP_WALLET_PRIVATE_KEY;
-    const entityId = process.env.ACP_ENTITY_ID;
+    // Prefer ACP3_ env vars (new whitelisted wallet), fall back to ACP_
+    const privateKey = process.env.ACP3_WALLET_PRIVATE_KEY || process.env.ACP_WALLET_PRIVATE_KEY;
+    const entityId = process.env.ACP3_ENTITY_ID || process.env.ACP_ENTITY_ID;
     const walletAddress = process.env.ACP_WALLET_ADDRESS;
 
     if (!privateKey || !entityId || !walletAddress) {
