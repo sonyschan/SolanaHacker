@@ -22,21 +22,21 @@ import { syncToBackend } from './skills/x_twitter/x-context.js';
 // ─── Offering Config ────────────────────────────────────────
 
 const OFFERINGS = {
-  rateMeme: {
+  meme_rate: {
     endpoint: '/api/memes/rate',
     method: 'POST',
-    price: 0.01,
+    price: 0.05,
     timeoutMs: 30_000,
     requiredFields: ['imageUrl'],
   },
-  generateMeme: {
+  meme_generate: {
     endpoint: '/api/memes/generate-custom',
     method: 'POST',
     price: 0.10,
     timeoutMs: 120_000,
     requiredFields: ['topic'],
   },
-  getTemplates: {
+  meme_templates: {
     endpoint: '/api/catalog/templates',
     method: 'GET',
     price: 0.01,
@@ -258,9 +258,9 @@ export class AcpHandler {
    * Priority: imageUrl → rateMeme, topic → generateMeme, else → getTemplates
    */
   _matchOffering(context) {
-    if (context.imageUrl) return { ...OFFERINGS.rateMeme, key: 'rateMeme' };
-    if (context.topic) return { ...OFFERINGS.generateMeme, key: 'generateMeme' };
-    return { ...OFFERINGS.getTemplates, key: 'getTemplates' };
+    if (context.imageUrl) return { ...OFFERINGS.meme_rate, key: 'meme_rate' };
+    if (context.topic) return { ...OFFERINGS.meme_generate, key: 'meme_generate' };
+    return { ...OFFERINGS.meme_templates, key: 'meme_templates' };
   }
 
   /**
