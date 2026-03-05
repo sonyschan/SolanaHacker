@@ -89,7 +89,8 @@ export class AcpHandler {
 
     try {
       // Fetch agent info to get wallet address
-      const agentInfo = await this._apiGet('/acp/me');
+      const resp = await this._apiGet('/acp/me');
+      const agentInfo = resp.data || resp;
       this.walletAddress = agentInfo.walletAddress;
 
       if (!this.walletAddress) {
