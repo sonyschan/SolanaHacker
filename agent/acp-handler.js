@@ -12,10 +12,9 @@
 
 import fs from 'fs';
 import path from 'path';
-import AcpClient, {
-  AcpContractClientV2,
-  AcpJobPhases,
-} from '@virtuals-protocol/acp-node';
+import acpModule from '@virtuals-protocol/acp-node';
+const { AcpContractClientV2, AcpJobPhases } = acpModule;
+const AcpClient = acpModule.default;
 import { syncToBackend } from './skills/x_twitter/x-context.js';
 
 // ─── Offering Config ────────────────────────────────────────
