@@ -186,9 +186,16 @@ export class AcpHandler {
 
         await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
           accept: true,
+          reason: 'Job accepted',
         });
+
+        // Request payment to advance to TRANSACTION phase
+        await this._apiPost(`/acp/providers/jobs/${jobId}/requirement`, {
+          content: `Ready to process ${offering.key}. Please proceed with payment.`,
+        });
+
         this.stats.accepted++;
-        console.log(`[ACP] Job ${jobId} accepted — ${offering.key}`);
+        console.log(`[ACP] Job ${jobId} accepted + payment requested — ${offering.key}`);
         return;
       }
 
