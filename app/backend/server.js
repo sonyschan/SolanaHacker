@@ -115,7 +115,7 @@ app.get('/api/referral/:id', async (req, res) => {
   }
 });
 
-// Global stats endpoint (cached 10min — 3x .count() queries are expensive)
+// Global stats endpoint (cached 10min)
 const { cacheResponse, TTL } = require('./utils/cache');
 app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) => {
   try {
@@ -134,13 +134,23 @@ app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) 
     const usersSnapshot = await db.collection(collections.USERS).count().get();
     const totalUsers = usersSnapshot.data().count;
 
+    // Get weekly voters — unique wallets that voted in the last 7 days
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recentVotes = await db.collection(collections.VOTES)
+      .where('timestamp', '>=', weekAgo)
+      .where('status', '==', 'active')
+      .select('walletAddress')
+      .get();
+    const weekWallets = new Set();
+    recentVotes.forEach(doc => weekWallets.add(doc.data().walletAddress));
+
     res.json({
       success: true,
       stats: {
         totalMemes,
         totalVotes,
         totalUsers,
-        weeklyVoters: totalUsers,
+        weeklyVoters: weekWallets.size,
         prizePool: 'Coming Soon',
         timestamp: new Date().toISOString()
       }
