@@ -182,55 +182,68 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-24">
 
         <div className="text-center mb-20 md:mb-28">
-          <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
+          <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-10 leading-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
               {t('home.hero.title')}
             </span>
           </h2>
 
-          {/* Two-line value prop with inline CTAs */}
-          <div className="max-w-3xl mx-auto mb-8 space-y-4">
-            <p className="text-lg md:text-xl text-gray-400 leading-relaxed">
-              {t('home.hero.descLine1')}{' '}
+          {/* Two-column value prop cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto mb-8">
+            {/* Vote & Earn card */}
+            <div className="bg-white/5 backdrop-blur-sm border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/40 transition-colors text-left">
+              <h3 className="text-cyan-400 font-semibold text-sm mb-3 flex items-center gap-2">
+                <span>&#128499;</span> {t('home.hero.cardVote')}
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                {t('home.hero.descLine1')}
+              </p>
               <button
                 onClick={login}
-                className="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer"
+                className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer"
               >
                 {t('home.hero.ctaSignIn')}
               </button>
-            </p>
-            <p className="text-lg md:text-xl text-gray-400 leading-relaxed">
-              {t('home.hero.descLine2')}{' '}
-              <a href="#gallery" className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+            </div>
+
+            {/* API Services card */}
+            <div className="bg-white/5 backdrop-blur-sm border border-purple-500/20 rounded-xl p-6 hover:border-purple-500/40 transition-colors text-left">
+              <h3 className="text-purple-400 font-semibold text-sm mb-3 flex items-center gap-2">
+                <span>&#128268;</span> {t('home.hero.cardApi')}
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                {t('home.hero.descLine2')}
+              </p>
+              <a href="#gallery" className="text-purple-400 hover:text-purple-300 text-sm font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
                 {t('home.hero.browseGallery')}
               </a>
-            </p>
-          </div>
-        </div>
-
-        {/* Memeya Activity Ticker — bridge between hero and gallery */}
-        {currentTickerEntry && (
-          <div className="max-w-2xl mx-auto mb-12">
-            <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
-              <img
-                src="/images/memeya-avatar.png"
-                alt="Memeya"
-                className="w-8 h-8 rounded-full ring-2 ring-green-500/30 flex-shrink-0"
-              />
-              <div className="flex items-center gap-2 min-w-0 overflow-hidden homepage-ticker-line" key={safeTickerIdx}>
-                <span className="text-green-500/70 flex-shrink-0">{'>'}</span>
-                <span className="text-gray-600 flex-shrink-0 hidden sm:inline">
-                  [{toLocalHHMM(currentTickerEntry.time, workshop?.date)}]
-                </span>
-                <span className={`flex-shrink-0 text-xs font-bold ${tickerTag.color}`}>
-                  {tickerTag.tag}
-                </span>
-                <span className="text-gray-400 truncate">{tickerText}</span>
-                <span className="text-green-500/70 homepage-ticker-cursor flex-shrink-0">&#9608;</span>
-              </div>
             </div>
           </div>
-        )}
+
+          {/* Memeya Activity Ticker */}
+          {currentTickerEntry && (
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
+                <img
+                  src="/images/memeya-avatar.png"
+                  alt="Memeya"
+                  className="w-8 h-8 rounded-full ring-2 ring-green-500/30 flex-shrink-0"
+                />
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden homepage-ticker-line" key={safeTickerIdx}>
+                  <span className="text-green-500/70 flex-shrink-0">{'>'}</span>
+                  <span className="text-gray-600 flex-shrink-0 hidden sm:inline">
+                    [{toLocalHHMM(currentTickerEntry.time, workshop?.date)}]
+                  </span>
+                  <span className={`flex-shrink-0 text-xs font-bold ${tickerTag.color}`}>
+                    {tickerTag.tag}
+                  </span>
+                  <span className="text-gray-400 truncate">{tickerText}</span>
+                  <span className="text-green-500/70 homepage-ticker-cursor flex-shrink-0">&#9608;</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Featured Gallery */}
         {featuredMemes.length > 0 && (

@@ -38,6 +38,8 @@
       "descLine1": "我们的 AI 每日生成梗图，社区投票验证品质 — 登录投票、赚取票券、赢取 USDC。",
       "descLine2": "开发者和 AI 代理可通过按次付费的 x402 API 整合梗图生成与品质评分服务。",
       "ctaSignIn": "登录生态赚取 USDC →",
+      "cardVote": "投票赚取",
+      "cardApi": "API 服务",
       "noFees": "投票无需手续费或 Gas 费",
       "oneNFT": "每日铸造 1 个 NFT",
       "youOwn": "赢得即拥有",
