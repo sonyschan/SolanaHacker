@@ -336,16 +336,104 @@ class SchedulerService {
       // Step 1: Generate memes
       const generateResult = await this.generateDailyMemes();
 
-      // Step 2: Start voting (after short delay)
+      // Step 2: Review & retry any failed images
+      const reviewResult = await this.reviewAndRetryMemes();
+
+      // Step 3: Start voting (after short delay)
       await new Promise(resolve => setTimeout(resolve, 5000));
       const votingResult = await this.startDailyVotingPeriod();
 
       await this.logTaskExecution('daily_cycle', 'success');
-      return { generateResult, votingResult };
+      return { generateResult, reviewResult, votingResult };
 
     } catch (error) {
       console.error('❌ Daily cycle failed:', error);
       await this.logTaskExecution('daily_cycle', 'failed', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Review today's memes for image generation failures and retry sequentially.
+   * Max 2 retries per meme, 5s between retries, 10s between different memes.
+   */
+  async reviewAndRetryMemes() {
+    console.log('🔍 Reviewing daily memes for generation failures...');
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY_MS = 5000;
+    const QUEUE_DELAY_MS = 10000;
+
+    try {
+      // Fetch today's memes
+      const today = new Date().toISOString().split('T')[0];
+      const db = getFirestore();
+      const snapshot = await db.collection('memes')
+        .where('type', '==', 'daily')
+        .where('generatedAt', '>=', today + 'T00:00:00.000Z')
+        .where('generatedAt', '<=', today + 'T23:59:59.999Z')
+        .get();
+
+      const memes = [];
+      snapshot.forEach(doc => memes.push({ id: doc.id, ...doc.data() }));
+
+      // Find failures
+      const failed = memes.filter(m => m.metadata?.imageGenerated === false);
+
+      if (failed.length === 0) {
+        console.log('✅ All memes generated successfully — no retries needed');
+        return { reviewed: memes.length, failures: 0, retried: 0, fixed: 0 };
+      }
+
+      console.log(`⚠️ Found ${failed.length} meme(s) with failed images — starting retry queue`);
+
+      // Sequential retry queue
+      let retried = 0;
+      let fixed = 0;
+      for (let qi = 0; qi < failed.length; qi++) {
+        const meme = failed[qi];
+        let success = false;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          console.log(`🔄 Retry ${attempt}/${MAX_RETRIES} for meme ${meme.id}`);
+          retried++;
+          try {
+            const result = await memeController.regenerateMemeImageInternal(meme.id);
+            if (result.success) {
+              console.log(`✅ Meme ${meme.id} image fixed (${result.model}): ${result.imageUrl}`);
+              success = true;
+              fixed++;
+              break;
+            }
+            console.log(`❌ Retry ${attempt} failed for ${meme.id}: ${result.error}`);
+          } catch (err) {
+            console.log(`❌ Retry ${attempt} error for ${meme.id}: ${err.message}`);
+          }
+
+          // Delay between retries
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+          }
+        }
+
+        if (!success) {
+          console.log(`⚠️ Meme ${meme.id} could not be fixed after ${MAX_RETRIES} retries`);
+        }
+
+        // Delay between memes in queue
+        if (qi < failed.length - 1) {
+          await new Promise(r => setTimeout(r, QUEUE_DELAY_MS));
+        }
+      }
+
+      console.log(`📊 Review complete: ${memes.length} memes reviewed, ${failed.length} failures, ${fixed} fixed`);
+      await this.logTaskExecution('meme_review', fixed === failed.length ? 'success' : 'partial',
+        `${fixed}/${failed.length} failures fixed`);
+
+      return { reviewed: memes.length, failures: failed.length, retried, fixed };
+
+    } catch (error) {
+      console.error('❌ Meme review failed:', error);
+      await this.logTaskExecution('meme_review', 'failed', error.message);
       throw error;
     }
   }
@@ -789,6 +877,8 @@ class SchedulerService {
         return await this.checkVotingProgress();
       case 'reward_distribution':
         return await this.runRewardDistribution(options.date);
+      case 'meme_review':
+        return await this.reviewAndRetryMemes();
       case 'recover_draw':
         throw new Error('recover_draw requires a date parameter — use POST /api/scheduler/recover/:date');
       default:

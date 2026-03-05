@@ -805,6 +805,71 @@ async function testConnections(req, res) {
   }
 }
 
+/**
+ * Internal: regenerate image for a meme by ID.
+ * Returns { success, imageUrl, model } or { success: false, error }.
+ */
+async function regenerateMemeImageInternal(memeId, model = 'gemini') {
+  const meme = await dbUtils.getDocument(collections.MEMES, memeId);
+  if (!meme) return { success: false, error: 'Meme not found' };
+  if (!meme.metadata?.memeIdea) return { success: false, error: 'No stored metadata' };
+
+  const artStyle = memeIdeaService.selectArtStyle([], meme.metadata.artStyleId);
+  if (!artStyle) return { success: false, error: `Unknown art style: ${meme.metadata.artStyleId}` };
+
+  const isOriginal = meme.metadata.generationMode === 'original';
+  const imagePrompt = isOriginal
+    ? memeIdeaService.buildOriginalImagePrompt(meme.metadata.memeIdea, artStyle)
+    : memeIdeaService.buildImagePrompt(meme.metadata.memeIdea, artStyle);
+
+  console.log(`🔄 Regenerating image for meme ${memeId} (${isOriginal ? 'original' : 'template'} mode, style: ${artStyle.id})`);
+
+  const useGrok = model === 'grok';
+  const service = useGrok ? grokImageService : geminiService;
+  const modelName = useGrok ? 'grok-imagine-image-pro' : 'gemini-3-pro-image-preview';
+
+  const imageData = await service.generateMemeImage(imagePrompt);
+  if (!imageData.success) return { success: false, error: 'Image generation failed' };
+
+  await dbUtils.updateDocument(collections.MEMES, memeId, {
+    imageUrl: imageData.imageUrl,
+    'metadata.imageGenerated': true,
+    'metadata.imageRetriedAt': new Date().toISOString(),
+    'metadata.imageRetryModel': modelName,
+    'metadata.fileSize': imageData.fileSize || 0,
+    'metadata.storageLocation': imageData.storageLocation || 'unknown',
+  });
+
+  console.log(`✅ Image regenerated for meme ${memeId}: ${imageData.imageUrl}`);
+  return { success: true, imageUrl: imageData.imageUrl, model: modelName };
+}
+
+/**
+ * Regenerate image for a single meme that failed image generation.
+ * HTTP handler — delegates to regenerateMemeImageInternal.
+ */
+async function regenerateMemeImage(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await regenerateMemeImageInternal(id, req.query.model);
+
+    if (!result.success) {
+      const status = result.error === 'Meme not found' ? 404 : result.error === 'Image generation failed' ? 502 : 400;
+      return res.status(status).json({ success: false, error: result.error });
+    }
+
+    res.json({
+      success: true,
+      memeId: id,
+      imageUrl: result.imageUrl,
+      model: result.model,
+    });
+  } catch (error) {
+    console.error(`❌ Error regenerating image for meme ${req.params.id}:`, error);
+    res.status(500).json({ success: false, error: 'Failed to regenerate image', message: error.message });
+  }
+}
+
 module.exports = {
   generateMeme,
   generateDailyMemes,
@@ -812,5 +877,7 @@ module.exports = {
   getMemes,
   getTodaysMemes,
   getMemeById,
-  testConnections
+  testConnections,
+  regenerateMemeImage,
+  regenerateMemeImageInternal
 };
