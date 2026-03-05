@@ -138,7 +138,6 @@ app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const recentVotes = await db.collection(collections.VOTES)
       .where('timestamp', '>=', weekAgo)
-      .where('status', '==', 'active')
       .select('walletAddress')
       .get();
     const weekWallets = new Set();
