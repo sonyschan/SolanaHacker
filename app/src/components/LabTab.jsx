@@ -38,6 +38,70 @@ const GRADE_COLORS = {
   'F':  'text-red-400 bg-red-400/10 border-red-400/30',
 };
 
+const CODE_SNIPPETS = {
+  rate: (base) => `npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Rate a meme — $0.005 USDC
+const res = await fetchPaid('${base}/api/memes/rate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/meme.png'
+  }),
+});
+const { score, grade, pass, suggestions } = await res.json();`,
+
+  generate: (base) => `npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a custom meme — $0.10 USDC
+const res = await fetchPaid('${base}/api/memes/generate-custom', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    topic: 'Bitcoin hits $200K',
+    // Optional: template, strategy, narrative, artStyle
+  }),
+});
+const { meme } = await res.json();
+// meme.imageUrl, meme.title, meme.tags, meme.metadata`,
+
+  catalog: (base) => `// Browse catalog — Free, no x402 needed
+
+// Art styles
+const styles = await fetch('${base}/api/catalog/art-styles')
+  .then(r => r.json());
+
+// Templates
+const templates = await fetch('${base}/api/catalog/templates')
+  .then(r => r.json());
+
+// Strategies
+const strategies = await fetch('${base}/api/catalog/strategies')
+  .then(r => r.json());
+
+// Narratives
+const narratives = await fetch('${base}/api/catalog/narratives')
+  .then(r => r.json());`,
+};
+
 const LabTab = ({ publicMode = false }) => {
   const { t } = useTranslation();
 
@@ -47,7 +111,7 @@ const LabTab = ({ publicMode = false }) => {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [activePanel, setActivePanel] = useState('rate');
+  const [activePanel, setActivePanel] = useState(publicMode ? 'api' : 'rate');
 
   // Catalog data
   const [catalogs, setCatalogs] = useState({
@@ -71,6 +135,7 @@ const LabTab = ({ publicMode = false }) => {
   // API panel state
   const [codeCopied, setCodeCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [codeTab, setCodeTab] = useState('rate');
 
   // Build headers with current api key
   const labHeaders = useCallback(() => ({
@@ -212,7 +277,7 @@ const LabTab = ({ publicMode = false }) => {
     { id: 'catalog', label: t('lab.panels.catalog') },
     { id: 'api', label: t('lab.panels.api') },
   ];
-  const panels = publicMode ? allPanels.filter(p => p.id !== 'catalog') : allPanels;
+  const panels = publicMode ? [{ id: 'api', label: t('lab.panels.api') }] : allPanels;
 
   // ── Auth Gate ─────────────────────────────────────────────
   if (!apiKey && !publicMode) {
@@ -258,8 +323,8 @@ const LabTab = ({ publicMode = false }) => {
         )}
       </div>
 
-      {/* Panel Switcher */}
-      <div className="flex gap-2 justify-center">
+      {/* Panel Switcher (hidden in public mode — only API panel) */}
+      {panels.length > 1 && <div className="flex gap-2 justify-center">
         {panels.map(p => (
           <button
             key={p.id}
@@ -273,7 +338,7 @@ const LabTab = ({ publicMode = false }) => {
             {p.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* Panel Content */}
       {activePanel === 'rate' && (
@@ -642,49 +707,13 @@ const LabTab = ({ publicMode = false }) => {
             </span>
           </div>
 
-          {/* Quick Start code block */}
+          {/* Quick Start — tabbed by endpoint */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-white">{t('lab.api.quickStart')}</h4>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`npm install @x402/fetch @x402/evm viem
-
-import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
-import { registerExactEvmScheme } from '@x402/evm/exact/client';
-import { privateKeyToAccount } from 'viem/accounts';
-
-const client = new x402Client();
-const account = privateKeyToAccount('0x...');
-registerExactEvmScheme(client, { signer: account });
-const fetchPaid = wrapFetchWithPayment(fetch, client);
-
-// 1. Rate a meme ($0.005 USDC)
-const rateRes = await fetchPaid(
-  '${API_BASE_URL}/api/memes/rate',
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
-  }
-);
-const { score, grade, pass, suggestions } = await rateRes.json();
-
-// 2. Generate a meme ($0.10 USDC)
-const genRes = await fetchPaid(
-  '${API_BASE_URL}/api/memes/generate-custom',
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ topic: 'Bitcoin hits $200K' }),
-  }
-);
-const { meme } = await genRes.json();
-// meme.imageUrl, meme.title, meme.tags, meme.metadata
-
-// 3. Browse catalog (Free — no x402 needed)
-const styles = await fetch('${API_BASE_URL}/api/catalog/art-styles').then(r => r.json());
-// Also: /api/catalog/templates, /strategies, /narratives`);
+                  navigator.clipboard.writeText(CODE_SNIPPETS[codeTab](API_BASE_URL));
                   setCodeCopied(true);
                   setTimeout(() => setCodeCopied(false), 2000);
                 }}
@@ -693,44 +722,23 @@ const styles = await fetch('${API_BASE_URL}/api/catalog/art-styles').then(r => r
                 {codeCopied ? t('common.copied') : t('lab.api.copyCode')}
               </button>
             </div>
-            <pre className="bg-[#0D1117] border border-white/10 rounded-lg p-4 overflow-x-auto text-xs font-mono text-gray-300 leading-relaxed">
-{`npm install @x402/fetch @x402/evm viem
-
-import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
-import { registerExactEvmScheme } from '@x402/evm/exact/client';
-import { privateKeyToAccount } from 'viem/accounts';
-
-const client = new x402Client();
-const account = privateKeyToAccount('0x...');
-registerExactEvmScheme(client, { signer: account });
-const fetchPaid = wrapFetchWithPayment(fetch, client);
-
-// 1. Rate a meme ($0.005 USDC)
-const rateRes = await fetchPaid(
-  '${API_BASE_URL}/api/memes/rate',
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
-  }
-);
-const { score, grade, pass, suggestions } = await rateRes.json();
-
-// 2. Generate a meme ($0.10 USDC)
-const genRes = await fetchPaid(
-  '${API_BASE_URL}/api/memes/generate-custom',
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ topic: 'Bitcoin hits $200K' }),
-  }
-);
-const { meme } = await genRes.json();
-// meme.imageUrl, meme.title, meme.tags, meme.metadata
-
-// 3. Browse catalog (Free — no x402 needed)
-const styles = await fetch('${API_BASE_URL}/api/catalog/art-styles').then(r => r.json());
-// Also: /api/catalog/templates, /strategies, /narratives`}
+            <div className="flex gap-1 mb-1">
+              {['rate', 'generate', 'catalog'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setCodeTab(tab)}
+                  className={`px-3 py-1.5 rounded-t text-xs font-medium transition-colors ${
+                    codeTab === tab
+                      ? 'bg-[#0D1117] text-white border border-white/10 border-b-transparent'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {t(`lab.api.${tab}.name`)}
+                </button>
+              ))}
+            </div>
+            <pre className="bg-[#0D1117] border border-white/10 rounded-lg rounded-tl-none p-4 overflow-x-auto text-xs font-mono text-gray-300 leading-relaxed">
+              {CODE_SNIPPETS[codeTab](API_BASE_URL)}
             </pre>
           </div>
 
