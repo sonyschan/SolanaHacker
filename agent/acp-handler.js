@@ -88,6 +88,19 @@ export class AcpHandler {
       });
 
       await this.client.init();
+
+      // Catch unhandled ACP SDK errors (e.g. token refresh failures)
+      // to prevent crashing the entire agent process
+      process.on('unhandledRejection', (err) => {
+        if (err?.constructor?.name === '_AcpError' || err?.message?.includes('auth challenge')) {
+          console.error('[ACP] SDK error (suppressed):', err.message);
+          this.stats.errors++;
+          return;
+        }
+        // Re-throw non-ACP errors
+        throw err;
+      });
+
       console.log('[ACP] Initialized — listening for jobs');
       await this.telegram?.sendDevlog(
         '🤝 <b>ACP Marketplace</b> initialized\n' +
