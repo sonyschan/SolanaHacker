@@ -121,6 +121,9 @@ class SolanaHackerAgent {
       }
     }
 
+    // ACP Marketplace handler
+    this.acpHandler = null;
+
     // TG Community bot — Chinese group (@MemeyaCN)
     this.tgCommunityCN = null;
     if (process.env.TELEGRAM_COMMUNITY_CN_BOT_TOKEN) {
@@ -433,6 +436,15 @@ Begin by checking your current task and memory. If there's pending work, continu
     // Initialize git
     await this.gitInit();
 
+    // Initialize ACP Marketplace handler
+    try {
+      const { AcpHandler } = await import('./acp-handler.js');
+      this.acpHandler = new AcpHandler({ telegram: this.telegram, baseDir: CONFIG.baseDir });
+      await this.acpHandler.init();
+    } catch (err) {
+      console.error('[Agent] ACP handler init failed:', err.message);
+    }
+
     // Start heartbeat
     this.startHeartbeat();
 
@@ -620,12 +632,16 @@ Begin by checking your current task and memory. If there's pending work, continu
         if (cmd.type === 'status_request') {
           const hour = this.chatMode.getGMT8Hour();
           const sleepStatus = this.chatMode.sleepToday ? '😴 休眠中' : '✅ 活躍';
+          const acpLine = this.acpHandler?.client
+            ? (() => { const s = this.acpHandler.getStats(); return `\n<b>ACP:</b> ✅ ${s.accepted}↑ ${s.delivered}✓ ${s.rejected}✗ ${s.errors}⚠`; })()
+            : '\n<b>ACP:</b> ❌ disabled';
           await this.telegram.sendDevlog(
             `📊 <b>Agent 狀態</b>\n\n` +
             `<b>模式:</b> 💬 Chat Mode\n` +
             `<b>時間:</b> GMT+8 ${hour}:00\n` +
             `<b>狀態:</b> ${sleepStatus}\n` +
-            `<b>運行:</b> ${Math.round((Date.now() - this.startTime) / 60000)} min`
+            `<b>運行:</b> ${Math.round((Date.now() - this.startTime) / 60000)} min` +
+            acpLine
           );
           continue;
         }

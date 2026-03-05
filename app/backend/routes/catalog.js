@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { cacheResponse, TTL } = require('../utils/cache');
-const { requireLabKey } = require('../middleware/auth');
-
-// All catalog endpoints require Lab API key
-router.use(requireLabKey);
 const { STRATEGY_POOL } = require('../services/memeStrategyService');
 const { NARRATIVE_POOL } = require('../services/memeNarrativeService');
 const { V1_ART_STYLES } = require('../services/memeV1Legacy');

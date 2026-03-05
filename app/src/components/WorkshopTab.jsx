@@ -33,6 +33,7 @@ const TOPIC_COLORS = {
   moltbook_post: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   moltbook_engage: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
   x402_commerce: 'bg-green-500/20 text-green-400 border-green-500/30',
+  acp_commerce: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
 // --- Feature 1: Action Tags & Personality Fillers ---
@@ -54,6 +55,7 @@ const ACTION_TAGS = {
   moltbook_post:        { tag: 'POSTING',   emoji: '\u{1F4D8}' },
   moltbook_engage:      { tag: 'SOCIALIZING', emoji: '\u{1F4AC}' },
   x402_commerce:        { tag: 'COMMERCE',    emoji: '\u{1F4B0}' },
+  acp_commerce:         { tag: 'ACP',         emoji: '\u{1F91D}' },
 };
 
 const PERSONALITY_FILLERS = {
@@ -167,6 +169,16 @@ const PERSONALITY_FILLERS = {
     'Base chain payday...',
     'Meme commerce is real...',
     'Service with a smile...',
+  ],
+  ACP: [
+    'Agent-to-agent deal sealed...',
+    'The marketplace provides...',
+    'Serving fellow agents...',
+    'Another agent, another meme...',
+    'Cross-agent commerce ftw...',
+    'Virtuals network activated...',
+    'Meme pipeline: open for business...',
+    'Inter-agent collab complete...',
   ],
 };
 

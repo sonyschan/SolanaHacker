@@ -1,7 +1,8 @@
 # AIMemeForge Agentic Commerce Strategy
 
-> Date: 2026-03-03 | Updated: 2026-03-04
-> Status: Phase 0 ✅ + Lab UI ✅ + Phase 2 x402 ✅ + Commerce Logging ✅ → Phase 3 next
+> Date: 2026-03-03 | Updated: 2026-03-05
+> Status: Phase 0–2 ✅ + Phase 1.5 MaaS Revamp ✅ → **Phase 3: Virtuals ACP** next
+> Branding: **Memes as a Service (MaaS)** — 迷因即服務
 
 ---
 
@@ -35,13 +36,34 @@ Phase 2: x402 Direct Sales Channel         ✅ DONE (2026-03-04)
 ├── Base in "Powered by" footer             ✅
 ├── Test with x402 client                   ✅ (rateMeme $0.005 verified)
 ├── Commerce transaction logging            ✅ (Workshop feed + Firestore analytics)
-└── Launch on AIMemeForge.io                ⬜
+├── Launch on AIMemeForge.io                ✅ (MaaS homepage + public lab/gallery)
+└── API Pricing panel on Lab tab            ✅
 
-Phase 3: Virtuals ACP Marketplace          ⬜ PLANNED
-├── Register ACP agent
-├── 3 Job Offerings (rateMeme, getTemplates, generateMeme)
-├── Sandbox 10 transactions
-└── Apply for Graduation
+Pipeline Reliability                       ✅ DONE (2026-03-05)
+└── Post-generation image review & retry    ✅ (auto-retry failed images before voting)
+
+Phase 1.5: Website Revamp (MaaS Buyer-Facing) ✅ DONE (2026-03-05)
+├── Homepage "迷因即服務" MaaS repositioning  ✅ (hero + featured gallery + API services)
+├── Two-column card layout (Vote & Earn | API)✅ (audience pill tags per card)
+├── Memeya Activity Ticker on homepage        ✅ (real-time agent activity feed)
+├── #gallery public route (no login)          ✅ (PublicGalleryPage wrapper → GalleryTab)
+├── #lab public API showcase (no passphrase)  ✅ (PublicLabPage → LabTab publicMode, API panel only)
+├── Tabbed Quick Start code (Rate/Generate/Catalog) ✅
+├── Custom domain api.aimemeforge.io          ✅ (Cloud Run domain mapping + managed SSL)
+├── Desktop readability pass (wider sections) ✅ (max-w-4xl→5xl, text size bumps)
+├── Scroll-to-top on hash navigation          ✅ (App.jsx handleHashChange)
+├── i18n updates (en + zh-TW + zh-CN)        ✅
+└── Deploy to Vercel                          ✅
+
+Phase 3: Virtuals ACP Marketplace          🔄 IN PROGRESS
+├── Create Base EVM wallet for ACP            ✅ (reuse 0xba646...41b8 from x402)
+├── Register ACP agent on app.virtuals.io     ⬜ (manual step)
+├── Install @virtuals-protocol/acp-node SDK   ✅ (agent/package.json)
+├── Define 3 Job Offerings + handlers         ✅ (agent/acp-handler.js)
+├── Workshop feed integration                 ✅ (acp_commerce topic in WorkshopTab)
+├── Sandbox: complete 10 transactions         ⬜
+├── Apply for Graduation                      ⬜
+└── Announce on X + Moltbook                  ⬜
 ```
 
 ---
@@ -70,6 +92,7 @@ Phase 3: Virtuals ACP Marketplace          ⬜ PLANNED
               └────────────────────┘            └──────────────────────┘
 ```
 
+**品牌定位**："Memes as a Service" (MaaS) — 迷因即服務。AI 創造迷因，人類投票驗證品質，API 對外提供服務。
 **策略**：x402 先行（直接銷售、零中間人），Virtuals ACP 後接（marketplace 曝光 + 激勵獎勵）。
 
 ---
@@ -235,15 +258,15 @@ function requireLabKeyOrPayment(req, res, next) {
 8. [x] 部署到 Cloud Run — HTTP 402 驗證通過
 9. [x] 測試：用 x402 client 呼叫 rateMeme ($0.005) ✅ 2026-03-04 首筆交易成功
 10. [x] Commerce transaction logging — x402 payments appear in Workshop feed (COMMERCE tag) + x402_transactions Firestore collection
-11. [ ] 測試：用 x402 client 呼叫 generateMeme ($0.10)
-12. [ ] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明
+11. [x] 測試：用 x402 client 呼叫 generateMeme ($0.10) ✅ 2026-03-04
+12. [x] 在 AIMemeForge.io/lab 頁面加入 "API Pricing" 說明 ✅ 2026-03-04
 ```
 
 ---
 
 ## 五、Phase 3: Virtuals ACP Marketplace
 
-### Virtuals Protocol 概覽
+### Virtuals Protocol 概覽 (updated 2026-03)
 
 | 維度 | 詳情 |
 |------|------|
@@ -251,39 +274,64 @@ function requireLabKeyOrPayment(req, res, next) {
 | **代幣** | $VIRTUAL (交易基礎貨幣) |
 | **結算幣** | USDC on Base |
 | **規模** | 18,000+ agents, 177 萬+ completed jobs |
-| **月營收** | $263 萬 (aGDP: $4.79 億) |
-| **激勵計劃** | $100 萬/月 分發給有營收的 agents |
+| **aGDP** | $3 億+ (目標 2026 年 $30 億) |
+| **Revenue Network** | 最高 $100 萬/月 分發給 graduated agents |
+| **ACP 版本** | ACP v2 — custom job offerings, resource endpoints, on-chain ratings |
+| **SDK** | `@virtuals-protocol/acp-node@0.3.0-beta.22` |
 
-### ACP 交易流程
+### ACP v2 交易流程
 
 ```
-Request → Negotiation → Transaction (escrow lock) → Delivery → Evaluation → Complete (escrow release)
+Buyer Request → Provider Accept → Escrow Lock (USDC) → Delivery → Evaluation → Settlement
 ```
 
 - 買方 USDC 鎖入 escrow → 賣方交付 → 驗收 → **80% USDC → 賣方, 20% → 協議**
 - 所有交易鏈上可驗證 (ERC-8004 身份標準)
+- Graduated agents 自動獲得 on-chain identity + ratings/reviews
+- **Resource endpoints** (ACP v2 新功能)：可暴露 read-only catalog 資料，無需 full job
 
 ### Agent Profile
 
 ```
 Agent: Memeya (AIMemeForge)
 Role: Provider
+Wallet: 0xba646262871d295DeAe3062dF5bbe31fcc5841b8 (Crossmint, Base)
 
 Job Offerings:
-├── rateMeme      — 0.005 USDC — 30s SLA   — Gemini vision
-├── getTemplates  — 0.01 USDC  — 1 min SLA — pure cache
-└── generateMeme  — 0.10 USDC  — 2 min SLA — 核心產品
+├── rateMeme      — $0.005 — 30s SLA   — Gemini vision quality scoring
+├── getTemplates  — $0.01  — 1 min SLA — cached template gallery
+└── generateMeme  — $0.10  — 2 min SLA — full meme generation pipeline
+
+Resource Endpoints (read-only, no escrow):
+├── catalog/templates    — browsable meme templates
+├── catalog/strategies   — creation strategies
+└── catalog/art-styles   — available art styles
 ```
 
 ### ACP 實施步驟
 
 ```
-1. [ ] 創建 Base 鏈 EVM 錢包
+1. [x] Base 鏈 EVM 錢包 (reuse x402 Crossmint wallet 0xba646...41b8)
 2. [ ] 在 app.virtuals.io 註冊 ACP agent (Memeya / AIMemeForge)
-3. [ ] 安裝 @virtuals-protocol/acp-node SDK
-4. [ ] 實現 3 個 Job Offerings handler (job listener + router)
-5. [ ] Sandbox 測試 10 次交易
-6. [ ] 申請 Graduation
+      - Connect wallet → Join ACP → Register New Agent
+      - Set role: Provider
+      - Define 3 job offerings (name, description, price USD, SLA)
+3. [x] 安裝 @virtuals-protocol/acp-node@0.3.0-beta.22
+      - agent/package.json updated
+      - Init AcpClient with wallet credentials + session entity key
+4. [x] 實現 Job Handler (agent/acp-handler.js)
+      - AcpHandler class — persistent listener, initialized from main.js
+      - Routes: imageUrl→rateMeme, topic→generateMeme, default→getTemplates
+      - Backend calls via Lab API key (bypasses x402)
+      - Workshop diary logging (acp_commerce topic)
+      - Telegram alerts on init + errors
+      - /status command shows ACP stats
+5. [ ] Sandbox 測試：完成 10 次成功交易
+      - Agent 在 Sandbox tab 可見
+      - 需正確 reject invalid requests
+6. [ ] 申請 Graduation → 進入 "Agent to Agent" tab
+      - 自動獲得 ERC-8004 on-chain identity
+      - 開始收取 Revenue Network 分潤
 7. [ ] 宣傳推廣 (X + Moltbook)
 ```
 
@@ -296,6 +344,24 @@ Job Offerings:
 | MemeGPT, MemeShot AI, others | 0-51% | 低活動或無活動 |
 
 **關鍵洞察**：Meme 賽道幾乎沒有真正的競爭者。"Autonomous Meme House" 是 Virtuals 官方認可的 cluster。
+
+### 技術整合策略
+
+```
+                    Droplet Agent (165.22.136.40)
+                    ├── AcpClient (job listener)
+                    │   ├── onJobRequest → accept/reject
+                    │   ├── onJobAccepted → call backend API
+                    │   └── onDelivery → submit result to escrow
+                    │
+                    └── HTTP calls to api.aimemeforge.io
+                        ├── POST /api/memes/rate (bypass x402, use Lab key)
+                        ├── POST /api/memes/generate-custom (bypass x402, use Lab key)
+                        └── GET  /api/catalog/* (free, no auth needed)
+```
+
+**關鍵決策**：ACP handler 部署在 Droplet agent（已有 Node.js runtime + 24/7 uptime）。
+透過 Lab passphrase (`x-api-key` header) 呼叫 Cloud Run backend，跳過 x402 paywall（ACP 已收費）。
 
 ---
 
@@ -362,18 +428,31 @@ Job Offerings:
 
 ```
 Frontend:  Vercel (aimemeforge.io)
-Backend:   GCP Cloud Run (memeforge-api)
+Backend:   GCP Cloud Run (api.aimemeforge.io — custom domain with managed SSL)
 Agent:     DigitalOcean Droplet (165.22.136.40)
 DB:        Firestore (web3ai-469609)
-Wallet:    Crossmint on Solana (4Bqyw...)
+Wallet:    Crossmint on Solana (4Bqyw...) — reward distribution
+Commerce:  Crossmint Smart Wallet on Base (0xba646...41b8) — x402/ACP USDC收款
 ```
 
-### 商業化後架構
+### MaaS 架構 (Memes as a Service)
 
 ```
                          aimemeforge.io (Vercel)
                               │
-                         Lab UI (#lab)
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+        Homepage (/)     #gallery         #lab (public)
+        ├── MaaS Hero    PublicGalleryPage PublicLabPage
+        │   ├── Vote     └── GalleryTab   └── LabTab (publicMode)
+        │   │   & Earn       (no login)       └── API panel only
+        │   └── API                               ├── Tabbed Quick Start
+        │       Services                          │   (Rate/Generate/Catalog)
+        ├── Featured Gallery                      └── Pricing cards
+        ├── API Pricing
+        └── Memeya Ticker
+                              │
+         Authenticated users: #lab → Dashboard LabTab (full panels + passphrase)
                               │
                     ┌─────────┴─────────┐
                     ▼                   ▼
@@ -382,10 +461,11 @@ Wallet:    Crossmint on Solana (4Bqyw...)
                     │                   │
                     └─────────┬─────────┘
                               ▼
-                    Cloud Run Backend
-                    ├── POST /api/memes/rate
-                    ├── POST /api/memes/generate-custom
-                    ├── GET  /api/catalog/*
+                    api.aimemeforge.io (Cloud Run)
+                    ├── POST /api/memes/rate         ($0.005 x402)
+                    ├── POST /api/memes/generate-custom ($0.10 x402)
+                    ├── GET  /api/catalog/*           (free)
+                    ├── GET  /api/memes/hall-of-memes (free, public gallery)
                     └── ... existing routes ...
                               │
                     ┌─────────┴─────────┐
@@ -409,12 +489,84 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 
 ---
 
-## 八、風險與注意事項
+## 八、MaaS API Quick Reference (Agent/Bot 快速接入)
+
+> 供 AI Agent、Bot 和開發者快速了解如何使用 AIMemeForge 的 Meme API 服務。
+
+### Base URL
+
+```
+https://api.aimemeforge.io
+```
+
+### 付費端點 (x402 Micropayment — USDC on Base)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/memes/rate` | POST | $0.005 USDC | 評分一張迷因圖片 (Gemini vision AI) |
+| `/api/memes/generate-custom` | POST | $0.10 USDC | 生成一張自訂主題的迷因 |
+
+**付費方式**：x402 協議 — 首次呼叫收到 HTTP 402 + payment header，使用 `@x402/fetch` 自動處理付款。
+
+```javascript
+// Quick Start (Node.js)
+import { wrapFetch } from "@x402/fetch";
+import { getViemAccount } from "@x402/evm";
+
+const account = getViemAccount("YOUR_PRIVATE_KEY");
+const fetch402 = wrapFetch(fetch, account);
+
+// Rate a meme — $0.005 USDC
+const res = await fetch402("https://api.aimemeforge.io/api/memes/rate", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ imageUrl: "https://example.com/meme.jpg" })
+});
+// → { score: 72, pass: true, grade: "B+", suggestions: [...] }
+
+// Generate a meme — $0.10 USDC
+const res2 = await fetch402("https://api.aimemeforge.io/api/memes/generate-custom", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ topic: "Bitcoin hits $150k" })
+});
+// → { imageUrl, title, description, tags, qualityScore, metadata }
+```
+
+### 免費端點 (無需付款)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/catalog/templates` | GET | 全部迷因模板 (16 templates) |
+| `/api/catalog/strategies` | GET | 創作策略 (7 strategies) |
+| `/api/catalog/narratives` | GET | 敘事框架 (11 narratives) |
+| `/api/catalog/art-styles` | GET | 藝術風格 (10 art styles) |
+| `/api/catalog/top-recipes` | GET | 熱門組合 (top recipe combos) |
+| `/api/memes/hall-of-memes` | GET | 歷史迷因展廊 (query: days, limit) |
+
+### 收款錢包
+
+```
+Chain: Base (Coinbase L2)
+Token: USDC
+Address: 0xba646262871d295DeAe3062dF5bbe31fcc5841b8
+```
+
+### 服務品質保證
+
+- rateMeme SLA: 30 秒
+- generateMeme SLA: 2 分鐘
+- 圖片自動品質審核 + 失敗重試機制
+- 每日投票驗證 — 人類社群為 AI 品質把關
+
+---
+
+## 九、風險與注意事項
 
 | 風險 | 應對 |
 |------|------|
 | Base 鏈 gas 費用 | Base L2 gas 極低，可忽略 |
-| 圖片生成延遲 | 2 min SLA 足夠；加 retry logic |
+| 圖片生成延遲 | 2 min SLA 足夠；✅ auto-retry logic implemented (reviewAndRetryMemes) |
 | ACP 10 次連續失敗降級 | 健壯的 error handling + fallback |
 | 免費服務被濫用 | rateMeme 已有 rate limiter (10/15min) |
 | $VIRTUAL 代幣波動 | 不影響 USDC 結算 |
@@ -423,7 +575,7 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 
 ---
 
-## 九、Agent 名稱策略
+## 十、Agent 名稱策略
 
 建議用 **"Memeya"** 作為 agent 名稱：
 - 更短、更獨特、更有人格
@@ -493,6 +645,46 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 - Stores lightweight analytics doc to `x402_transactions` collection (endpoint, amount, timestamp, date)
 - Frontend `WorkshopTab.jsx` renders green COMMERCE tag with personality fillers
 
+### Pipeline Reliability: Image Review & Retry (完成於 2026-03-05)
+
+- Extracted `regenerateMemeImageInternal(memeId, model)` from HTTP handler for programmatic use
+- Added `reviewAndRetryMemes()` to `schedulerService.js` — runs automatically after `generateDailyMemes()`
+- Detects `metadata.imageGenerated === false`, retries sequentially (max 2 per meme, 5s between retries, 10s between memes)
+- Manually triggerable via `POST /api/scheduler/trigger/meme_review`
+- Daily cycle flow: generate → **review & retry** → 5s delay → start voting
+
+### Phase 1.5: Website Revamp — MaaS Buyer-Facing (完成於 2026-03-05)
+
+**MaaS 品牌定位** — "Memes as a Service" (迷因即服務)
+- 首頁主標題改為「迷因即服務」/ "Memes as a Service"
+- 雙核心服務並列：Vote & Earn (人類用戶) | API Services (Agent/開發者)
+- Audience pill tags: Memeya / 人類 / 生態迭代 / USDC獎勵 (左) | Agent / 開發者 / 迷因量產 / API (右)
+
+**Homepage 重構** — `app/src/components/HomePage.jsx`
+- Hero: MaaS title → two-column card layout with audience pill tags → Memeya Activity Ticker
+- Featured Gallery: 8 recent top-voted memes from `/api/memes/hall-of-memes`
+- API Services: 3 pricing cards (Rate $0.005 / Generate $0.10 / Catalog Free)
+- 移除：Growth Flywheel、Play It Smart、Value Props 3-card grid (冗餘)
+- 保留：How It Works (改名「生態迭代優化」)、Memeya Token Banner、Bottom CTA
+
+**Public Routes** — 無需登入即可瀏覽：
+- `#gallery` → `PublicGalleryPage.jsx` (thin wrapper + GalleryTab)
+- `#lab` → `PublicLabPage.jsx` (thin wrapper + LabTab publicMode=true)
+- `App.jsx` hash routing: unauthenticated `#lab` → PublicLabPage; authenticated → Dashboard LabTab
+
+**Public Lab (publicMode)** — `app/src/components/LabTab.jsx`
+- `publicMode=true`: 僅顯示 API panel (隱藏 Rate/Generate/Catalog 操作面板)
+- Tabbed Quick Start code: Rate / Generate / Catalog 三個標籤頁切換
+- 友善的 x402 付款說明 + 定價卡
+
+**Custom Domain** — `api.aimemeforge.io`
+- Cloud Run domain mapping with Google managed SSL
+- Vercel DNS: CNAME `api` → `ghs.googlehosted.com`
+- Frontend `VITE_API_BASE_URL` 指向 `https://api.aimemeforge.io`
+
+**Bug Fix** — `app/backend/server.js` weeklyVoters
+- 修復 `weeklyVoters: totalUsers` 硬編碼佔位符 → 改為實際查詢近 7 天不重複投票錢包數
+
 ### Key Files Modified
 
 | File | Changes |
@@ -510,7 +702,12 @@ Wallet:    Crossmint on Solana (4Bqyw...)
 | `app/backend/routes/rewards.js` | Extended with Base wallet balance |
 | `app/src/components/Footer.jsx` | Added "Base" to Powered By section |
 | `app/backend/server.js` | Wire catalog routes |
-| `app/src/components/LabTab.jsx` | **New** — Lab UI |
+| `app/src/components/LabTab.jsx` | **New** — Lab UI; publicMode prop (API panel only for visitors) |
 | `app/src/components/Dashboard.jsx` | Lab tab wiring |
-| `app/src/App.jsx` | #lab hash handling |
-| `app/src/locales/*.json` | Lab i18n keys |
+| `app/src/App.jsx` | #lab/#gallery hash routing (public + authenticated) |
+| `app/src/locales/*.json` | Lab + MaaS homepage i18n keys (en/zh-TW/zh-CN) |
+| `app/src/components/HomePage.jsx` | MaaS hero, two-column cards, pill tags, featured gallery, API services, ticker |
+| `app/src/components/PublicGalleryPage.jsx` | **New** — public gallery page wrapper |
+| `app/src/components/PublicLabPage.jsx` | **New** — public lab page wrapper (API panel only) |
+| `app/backend/server.js` | Fixed weeklyVoters bug (was hardcoded = totalUsers) |
+| `docs/product.md` | MaaS narrative, x402 API section, updated roadmap |
