@@ -645,7 +645,7 @@
       "baseUrl": "Base URL",
       "rate": {
         "name": "评分梗图",
-        "price": "$0.005",
+        "price": "$0.05",
         "sla": "~10s",
         "desc": "AI 品质评分，含等级与改进建议"
       },
@@ -671,7 +671,7 @@
       "estimatedTime": "AI 视觉分析约需 5-10 秒",
       "grade": "等级",
       "suggestions": "建议",
-      "paymentRequired": "此端点需要 x402 微支付（$0.005 USDC）。请使用 API 面板中的快速开始代码进行集成。"
+      "paymentRequired": "此端点需要 x402 微支付（$0.05 USDC）。请使用 API 面板中的快速开始代码进行集成。"
     },
     "generate": {
       "title": "生成自定义梗图",

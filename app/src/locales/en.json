@@ -645,7 +645,7 @@
       "baseUrl": "Base URL",
       "rate": {
         "name": "Rate Meme",
-        "price": "$0.005",
+        "price": "$0.05",
         "sla": "~10s",
         "desc": "AI quality scoring with grade and suggestions"
       },
@@ -671,7 +671,7 @@
       "estimatedTime": "AI vision analysis takes ~5-10 seconds",
       "grade": "Grade",
       "suggestions": "Suggestions",
-      "paymentRequired": "This endpoint requires an x402 micropayment ($0.005 USDC). Use the Quick Start code in the API panel to integrate."
+      "paymentRequired": "This endpoint requires an x402 micropayment ($0.05 USDC). Use the Quick Start code in the API panel to integrate."
     },
     "generate": {
       "title": "Generate Custom Meme",

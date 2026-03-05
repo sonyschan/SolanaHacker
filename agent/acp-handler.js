@@ -33,7 +33,7 @@ const OFFERINGS = {
     endpoint: '/api/memes/generate-custom',
     method: 'POST',
     price: 0.10,
-    timeoutMs: 120_000,
+    timeoutMs: 180_000,
     requiredFields: ['topic'],
   },
   meme_templates: {
@@ -220,10 +220,6 @@ export class AcpHandler {
           console.log(`[ACP] Job ${jobId} delivered — ${offering.key}`);
           this._logToWorkshop(offering, jobId, context);
         } catch (err) {
-          await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
-            accept: false,
-            reason: `Delivery failed: ${err.message}`,
-          });
           this.stats.errors++;
           console.error(`[ACP] Job ${jobId} delivery error:`, err.message);
           await this.telegram?.sendDevlog(

@@ -50,7 +50,7 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Rate a meme — $0.005 USDC
+// Rate a meme — $0.05 USDC
 const res = await fetchPaid('${base}/api/memes/rate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },

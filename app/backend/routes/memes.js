@@ -7,7 +7,8 @@ const {
   getTodaysMemes,
   getMemeById,
   testConnections,
-  generateSingleMeme
+  generateSingleMeme,
+  regenerateMemeImage
 } = require("../controllers/memeController");
 const memeIdeaService = require("../services/memeIdeaService");
 const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
@@ -23,9 +24,9 @@ const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
  */
 const X402_TEMPLATES = {
   '/rate': {
-    amount: 0.005,
-    text_en: 'Earned $0.005 USDC — rated a meme for a client on Base',
-    text_zh: '為客戶評分一張 meme，賺取 $0.005 USDC (Base)',
+    amount: 0.05,
+    text_en: 'Earned $0.05 USDC — rated a meme for a client on Base',
+    text_zh: '為客戶評分一張 meme，賺取 $0.05 USDC (Base)',
   },
   '/generate-custom': {
     amount: 0.10,
@@ -196,6 +197,12 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
     res.status(500).json({ success: false, error: "Failed to generate custom meme", message: error.message });
   }
 });
+
+/**
+ * POST /api/memes/:id/regenerate-image - Retry image generation for a failed meme
+ * Query: ?model=grok (optional, defaults to gemini)
+ */
+router.post("/:id/regenerate-image", regenerateMemeImage);
 
 /**
  * GET /api/memes/test/connections - Test API connections

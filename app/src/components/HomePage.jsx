@@ -126,7 +126,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
     : '';
 
   const API_SERVICES = [
-    { key: 'rate', price: '$0.005', sla: '~10s', color: 'cyan' },
+    { key: 'rate', price: '$0.05', sla: '~10s', color: 'cyan' },
     { key: 'generate', price: '$0.10', sla: '~60s', color: 'purple' },
     { key: 'catalog', price: 'Free', sla: null, color: 'green' },
   ];
@@ -189,44 +189,44 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           </h2>
 
           {/* Two-column value prop cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto mb-8">
             {/* Vote & Earn card */}
-            <div className="bg-white/5 backdrop-blur-sm border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/40 transition-colors text-left">
-              <h3 className="text-cyan-400 font-semibold text-sm mb-3 flex items-center gap-2">
+            <div className="bg-white/5 backdrop-blur-sm border border-cyan-500/20 rounded-xl p-6 md:p-8 hover:border-cyan-500/40 transition-colors text-left">
+              <h3 className="text-cyan-400 font-semibold text-sm md:text-base mb-3 flex items-center gap-2">
                 <span>&#128499;</span> {t('home.hero.cardVote')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">Memeya</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-400/10 text-green-400 border border-green-400/20">{t('home.hero.tags.human')}</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">{t('home.hero.tags.ecosystem')}</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">{t('home.hero.tags.usdcReward')}</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">Memeya</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-green-400/10 text-green-400 border border-green-400/20">{t('home.hero.tags.human')}</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">{t('home.hero.tags.ecosystem')}</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">{t('home.hero.tags.usdcReward')}</span>
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-4">
                 {t('home.hero.descLine1')}
               </p>
               <button
                 onClick={login}
-                className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer"
+                className="text-cyan-400 hover:text-cyan-300 text-sm md:text-base font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer"
               >
                 {t('home.hero.ctaSignIn')}
               </button>
             </div>
 
             {/* API Services card */}
-            <div className="bg-white/5 backdrop-blur-sm border border-purple-500/20 rounded-xl p-6 hover:border-purple-500/40 transition-colors text-left">
-              <h3 className="text-purple-400 font-semibold text-sm mb-3 flex items-center gap-2">
+            <div className="bg-white/5 backdrop-blur-sm border border-purple-500/20 rounded-xl p-6 md:p-8 hover:border-purple-500/40 transition-colors text-left">
+              <h3 className="text-purple-400 font-semibold text-sm md:text-base mb-3 flex items-center gap-2">
                 <span>&#128268;</span> {t('home.hero.cardApi')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20">Agent</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-orange-400/10 text-orange-400 border border-orange-400/20">{t('home.hero.tags.developer')}</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-pink-400/10 text-pink-400 border border-pink-400/20">{t('home.hero.tags.massProduction')}</span>
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-400/10 text-indigo-400 border border-indigo-400/20">API</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20">Agent</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-orange-400/10 text-orange-400 border border-orange-400/20">{t('home.hero.tags.developer')}</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-pink-400/10 text-pink-400 border border-pink-400/20">{t('home.hero.tags.massProduction')}</span>
+                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-indigo-400/10 text-indigo-400 border border-indigo-400/20">API</span>
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-4">
                 {t('home.hero.descLine2')}
               </p>
-              <a href="#gallery" className="text-purple-400 hover:text-purple-300 text-sm font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+              <a href="#gallery" className="text-purple-400 hover:text-purple-300 text-sm md:text-base font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
                 {t('home.hero.browseGallery')}
               </a>
             </div>
@@ -234,7 +234,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           {/* Memeya Activity Ticker */}
           {currentTickerEntry && (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-5xl mx-auto">
               <div className="flex items-center gap-3 bg-[#0D1117]/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 font-mono text-sm homepage-scanline">
                 <img
                   src="/images/memeya-avatar.png"
@@ -262,12 +262,12 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <div className="mb-20 md:mb-28">
             <div className="text-center mb-10">
               <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.featured.title')}</h3>
-              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto">
                 {t('home.featured.desc')}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
               {featuredMemes.map(meme => {
                 const rarity = RARITY_COLORS[meme.finalRarity] || RARITY_COLORS.common;
                 return (
@@ -328,19 +328,19 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         <div className="mb-20 md:mb-28">
           <div className="text-center mb-10">
             <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.api.title')}</h3>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto">
               {t('home.api.desc')}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
             {API_SERVICES.map(svc => (
-              <div key={svc.key} className={`bg-white/5 border border-white/10 rounded-xl p-6 text-center hover:border-${svc.color}-500/50 transition-all duration-300`}>
-                <p className="text-white font-semibold text-sm mb-2">{t(`lab.api.${svc.key}.name`)}</p>
-                <p className="text-green-400 text-3xl font-bold mb-1">{svc.price}</p>
-                <p className="text-gray-500 text-xs mb-3">USDC on Base</p>
-                {svc.sla && <p className="text-gray-400 text-xs mb-2">SLA: {svc.sla}</p>}
-                <p className="text-gray-400 text-xs">{t(`lab.api.${svc.key}.desc`)}</p>
+              <div key={svc.key} className={`bg-white/5 border border-white/10 rounded-xl p-6 md:p-8 text-center hover:border-${svc.color}-500/50 transition-all duration-300`}>
+                <p className="text-white font-semibold text-sm md:text-base mb-2">{t(`lab.api.${svc.key}.name`)}</p>
+                <p className="text-green-400 text-3xl md:text-4xl font-bold mb-1">{svc.price}</p>
+                <p className="text-gray-500 text-xs md:text-sm mb-3">USDC on Base</p>
+                {svc.sla && <p className="text-gray-400 text-xs md:text-sm mb-2">SLA: {svc.sla}</p>}
+                <p className="text-gray-400 text-xs md:text-sm">{t(`lab.api.${svc.key}.desc`)}</p>
               </div>
             ))}
           </div>
@@ -368,12 +368,12 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         <div className="mb-20 md:mb-28">
           <div className="text-center mb-12">
             <h3 className="text-4xl md:text-5xl font-bold mb-4">{t('home.howItWorks.title')}</h3>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto">
               {t('home.howItWorks.desc')}
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <img
               src="/images/how-it-works.jpg"
               alt="How It Works: 1. AI Creates 3 memes, 2. You Vote for your favorite, 3. Daily Winner selected, 4. Claim as Solana NFT"
@@ -391,7 +391,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
         {/* $Memeya Token Banner */}
         <div className="mb-20 md:mb-28">
-          <div className="max-w-3xl mx-auto bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border border-yellow-500/30 rounded-2xl p-8 text-center relative overflow-hidden">
+          <div className="max-w-4xl mx-auto bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border border-yellow-500/30 rounded-2xl p-8 md:p-10 text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 animate-pulse" />
             <div className="relative z-10">
               <div className="text-4xl mb-3">&#129689;</div>
@@ -399,7 +399,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">$Memeya</span>
                 <span className="text-white"> {t('home.memeya.officialToken')}</span>
               </h3>
-              <p className="text-gray-400 mb-6 max-w-xl mx-auto">{t('home.memeya.holdBonus')}</p>
+              <p className="text-gray-400 md:text-lg mb-6 max-w-2xl mx-auto">{t('home.memeya.holdBonus')}</p>
 
               {/* CA Display */}
               <div className="flex items-center justify-center gap-2 mb-6">

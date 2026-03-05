@@ -112,7 +112,7 @@ function getX402Middleware() {
       'POST /rate': {
         accepts: [{
           scheme: 'exact',
-          price: '$0.005',
+          price: '$0.05',
           network: BASE_MAINNET,
           payTo: MEMEYA_BASE_WALLET,
         }],
