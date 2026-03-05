@@ -87,13 +87,16 @@ export class AcpHandler {
         onNewTask: (job, memoToSign) => this._handleJob(job, memoToSign),
       });
 
-      await this.client.init();
+      // NOTE: Do NOT call client.init() — AcpClient constructor already
+      // calls this.init() internally. Double init causes duplicate sockets
+      // and repeated auth challenge failures.
 
       // Catch unhandled ACP SDK errors (e.g. token refresh failures)
       // to prevent crashing the entire agent process
       process.on('unhandledRejection', (err) => {
         if (err?.constructor?.name === '_AcpError' || err?.message?.includes('auth challenge')) {
-          console.error('[ACP] SDK error (suppressed):', err.message);
+          const responseBody = err?.cause?.response?.data;
+          console.error('[ACP] SDK error (suppressed):', err.message, responseBody ? JSON.stringify(responseBody) : '');
           this.stats.errors++;
           return;
         }
