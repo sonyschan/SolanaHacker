@@ -30,14 +30,14 @@ const PublicGalleryPage = () => {
           </a>
         </div>
 
-        <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <LanguageSwitcher variant="dropdown" />
           <a
             href="#"
-            className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all"
           >
-            {t('common.back')}
+            {t('wiki.backToHome')}
           </a>
-          <LanguageSwitcher variant="dropdown" />
         </div>
       </nav>
 
