@@ -276,16 +276,26 @@ export class AcpHandler {
       return jobData.context;
     }
 
-    // Fallback: parse from memos
+    // Parse from memos — Butler wraps input in { name, requirement: { ... } }
     const context = {};
     if (Array.isArray(jobData.memos)) {
       for (const memo of jobData.memos) {
         try {
           const parsed = JSON.parse(memo.content);
+          // Unwrap nested requirement field (Butler format)
+          if (parsed.requirement && typeof parsed.requirement === 'object') {
+            Object.assign(context, parsed.requirement);
+          }
           Object.assign(context, parsed);
         } catch { /* not JSON, skip */ }
       }
     }
+
+    // Normalize case: imageurl → imageUrl
+    if (context.imageurl && !context.imageUrl) {
+      context.imageUrl = context.imageurl;
+    }
+
     return context;
   }
 
