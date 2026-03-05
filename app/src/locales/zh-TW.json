@@ -49,7 +49,7 @@
       }
     },
     "howItWorks": {
-      "title": "運作方式",
+      "title": "生態迭代優化",
       "desc": "簡單的每日循環。AI 創造，你投票，一位贏家誕生，一人擁有它。"
     },
     "flywheel": {
@@ -64,7 +64,7 @@
     },
     "memeya": {
       "officialToken": "— 官方代幣",
-      "holdBonus": "持有 $Memeya 代幣可提升你的每日票券收益！加成 = floor(log<sub>10</sub>(持有代幣數))。",
+      "holdBonus": "持有 $Memeya 代幣可提升你的每日票券收益！",
       "buyOnPumpFun": "在 PumpFun 購買"
     },
     "valueProps": {

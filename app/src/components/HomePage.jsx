@@ -404,7 +404,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">$Memeya</span>
                 <span className="text-white"> {t('home.memeya.officialToken')}</span>
               </h3>
-              <p className="text-gray-400 mb-6 max-w-xl mx-auto" dangerouslySetInnerHTML={{ __html: t('home.memeya.holdBonus') }} />
+              <p className="text-gray-400 mb-6 max-w-xl mx-auto">{t('home.memeya.holdBonus')}</p>
 
               {/* CA Display */}
               <div className="flex items-center justify-center gap-2 mb-6">
@@ -417,14 +417,6 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 >
                   {caCopied ? t('common.copied') : t('common.copy')}
                 </button>
-              </div>
-
-              {/* Bonus Examples */}
-              <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.ten')}</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.oneK')}</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.tenK')}</span>
-                <span className="px-3 py-1 bg-white/5 rounded-full text-gray-400">{t('home.tokenBonus.hundredK')}</span>
               </div>
 
               <a
