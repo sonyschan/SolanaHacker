@@ -166,12 +166,18 @@ export class AcpHandler {
     const phase = jobData.phase;
 
     console.log(`[ACP] Job ${jobId} received — phase ${phase}`);
+    console.log(`[ACP] Job ${jobId} data:`, JSON.stringify(jobData).slice(0, 500));
 
     try {
+      // Resolve offering name from job memos or context
+      const offeringName = this._resolveOfferingName(jobData);
+      const context = this._extractContext(jobData);
+
       // Phase REQUEST: accept or reject
       if (phase === Phase.REQUEST) {
-        const context = this._extractContext(jobData);
-        const offering = this._matchOffering(context);
+        const offering = offeringName && OFFERINGS[offeringName]
+          ? { ...OFFERINGS[offeringName], key: offeringName }
+          : this._matchOffering(context);
 
         const validationError = this._validateInput(offering, context);
         if (validationError) {
@@ -201,8 +207,9 @@ export class AcpHandler {
 
       // Phase TRANSACTION: execute and deliver
       if (phase === Phase.TRANSACTION) {
-        const context = this._extractContext(jobData);
-        const offering = this._matchOffering(context);
+        const offering = offeringName && OFFERINGS[offeringName]
+          ? { ...OFFERINGS[offeringName], key: offeringName }
+          : this._matchOffering(context);
 
         try {
           const result = await this._callBackend(offering, context);
@@ -229,6 +236,35 @@ export class AcpHandler {
       console.error(`[ACP] Job ${jobId} handler error:`, err.message);
       this.stats.errors++;
     }
+  }
+
+  /**
+   * Resolve offering name from job memos (NEGOTIATION phase memo contains offering info).
+   */
+  _resolveOfferingName(jobData) {
+    // Try memos first — offering name is in the NEGOTIATION memo
+    if (Array.isArray(jobData.memos)) {
+      for (const memo of jobData.memos) {
+        // Check memo content for offering name
+        try {
+          const parsed = JSON.parse(memo.content);
+          if (parsed.offeringName && OFFERINGS[parsed.offeringName]) return parsed.offeringName;
+          if (parsed.name && OFFERINGS[parsed.name]) return parsed.name;
+          if (parsed.jobName && OFFERINGS[parsed.jobName]) return parsed.jobName;
+        } catch { /* not JSON */ }
+
+        // Direct string match
+        if (typeof memo.content === 'string' && OFFERINGS[memo.content]) {
+          return memo.content;
+        }
+      }
+    }
+
+    // Try jobData direct fields
+    if (jobData.offeringName && OFFERINGS[jobData.offeringName]) return jobData.offeringName;
+    if (jobData.jobName && OFFERINGS[jobData.jobName]) return jobData.jobName;
+
+    return null;
   }
 
   /**
