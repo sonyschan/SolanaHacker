@@ -40,6 +40,13 @@
       "ctaSignIn": "登录生态赚取 USDC →",
       "cardVote": "投票赚取",
       "cardApi": "API 服务",
+      "tags": {
+        "human": "人类",
+        "ecosystem": "生态迭代",
+        "usdcReward": "USDC 奖励",
+        "developer": "开发者",
+        "massProduction": "梗图量产"
+      },
       "noFees": "投票无需手续费或 Gas 费",
       "oneNFT": "每日铸造 1 个 NFT",
       "youOwn": "赢得即拥有",

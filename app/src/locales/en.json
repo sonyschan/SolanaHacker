@@ -40,6 +40,13 @@
       "ctaSignIn": "Sign in to earn USDC →",
       "cardVote": "Vote & Earn",
       "cardApi": "API Services",
+      "tags": {
+        "human": "Human",
+        "ecosystem": "Ecosystem",
+        "usdcReward": "USDC Rewards",
+        "developer": "Developer",
+        "massProduction": "Mass Production"
+      },
       "noFees": "No fees, no gas to vote",
       "oneNFT": "1 NFT minted daily",
       "youOwn": "You own what you win",
