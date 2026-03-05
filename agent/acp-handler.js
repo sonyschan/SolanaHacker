@@ -218,7 +218,7 @@ export class AcpHandler {
           });
           this.stats.delivered++;
           console.log(`[ACP] Job ${jobId} delivered — ${offering.key}`);
-          this._logToWorkshop(offering, jobId);
+          this._logToWorkshop(offering, jobId, context);
         } catch (err) {
           await this._apiPost(`/acp/providers/jobs/${jobId}/accept`, {
             accept: false,
@@ -389,7 +389,7 @@ export class AcpHandler {
   /**
    * Log ACP transaction to workshop diary (same format as x402_commerce).
    */
-  _logToWorkshop(offering, jobId) {
+  _logToWorkshop(offering, jobId, context = {}) {
     try {
       const dateStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
       const diaryDir = path.join(this.baseDir, 'memory/journal/memeya');
@@ -398,10 +398,13 @@ export class AcpHandler {
       const time = new Date(Date.now() + 8 * 3600_000)
         .toLocaleTimeString('en-US', { hour12: false });
 
+      // Memeya-style log messages per offering type
+      const flavorText = this._getFlavorText(offering.key, context);
+
       const entry =
         `## ${time}\n` +
         `- Topic: acp_commerce\n` +
-        `- Posted: ACP job ${jobId} — ${offering.key} ($${offering.price})\n` +
+        `- Posted: ${flavorText}\n` +
         `- LogType: commerce\n\n`;
 
       fs.appendFileSync(diaryPath, entry);
@@ -409,6 +412,35 @@ export class AcpHandler {
     } catch (err) {
       console.error('[ACP] Workshop log error:', err.message);
     }
+  }
+
+  /**
+   * Generate Memeya-flavored log text for ACP commerce entries.
+   */
+  _getFlavorText(offeringKey, context) {
+    const FLAVORS = {
+      meme_rate: [
+        topic => `Rated a meme${topic ? ` about "${topic}"` : ''} — another one judged by the meme court ($0.05)`,
+        topic => `Meme verdict delivered${topic ? ` on "${topic}"` : ''} — comedy score sealed ($0.05)`,
+        topic => `Quality check complete${topic ? ` for "${topic}"` : ''} — the meme tribunal has spoken ($0.05)`,
+        topic => `Scored a meme${topic ? ` featuring "${topic}"` : ''} — viral potential assessed ($0.05)`,
+      ],
+      meme_generate: [
+        topic => `Forged a fresh meme${topic ? ` about "${topic}"` : ''} — straight from the meme furnace ($0.10)`,
+        topic => `New meme minted${topic ? `: "${topic}"` : ''} — comedy strategy deployed ($0.10)`,
+        topic => `Created original artwork${topic ? ` for "${topic}"` : ''} — Memes as a Service in action ($0.10)`,
+        topic => `Delivered a custom meme${topic ? ` on "${topic}"` : ''} — another agent served ($0.10)`,
+      ],
+      meme_templates: [
+        () => `Shared the template catalog — 16 archetypes ready for action ($0.01)`,
+        () => `Template menu served — another agent browsing the meme arsenal ($0.01)`,
+      ],
+    };
+
+    const pool = FLAVORS[offeringKey] || [() => `ACP job completed — ${offeringKey}`];
+    const fn = pool[Math.floor(Math.random() * pool.length)];
+    const topic = context.topic || context.imageUrl?.split('/').pop()?.slice(0, 30) || '';
+    return fn(topic);
   }
 
   /**
