@@ -600,7 +600,35 @@
     "panels": {
       "rate": "Rate",
       "generate": "Generate",
-      "catalog": "Catalog"
+      "catalog": "Catalog",
+      "api": "API"
+    },
+    "api": {
+      "title": "API Access",
+      "subtitle": "Integrate Memeya's meme services via x402 micropayments",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "quickStart": "Quick Start",
+      "copyCode": "Copy",
+      "codeCopied": "Copied!",
+      "baseUrl": "Base URL",
+      "rate": {
+        "name": "Rate Meme",
+        "price": "$0.005",
+        "sla": "~10s",
+        "desc": "AI quality scoring with grade and suggestions"
+      },
+      "generate": {
+        "name": "Generate Meme",
+        "price": "$0.10",
+        "sla": "~60s",
+        "desc": "Custom AI meme with comedy architecture"
+      },
+      "catalog": {
+        "name": "Browse Catalog",
+        "price": "Free",
+        "sla": "\u2014",
+        "desc": "Templates, strategies, narratives, art styles"
+      }
     },
     "rate": {
       "title": "Rate a Meme",

@@ -600,7 +600,35 @@
     "panels": {
       "rate": "评分",
       "generate": "生成",
-      "catalog": "目录"
+      "catalog": "目录",
+      "api": "API"
+    },
+    "api": {
+      "title": "API 访问",
+      "subtitle": "通过 x402 微支付整合 Memeya 的梗图服务",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "quickStart": "快速开始",
+      "copyCode": "复制",
+      "codeCopied": "已复制!",
+      "baseUrl": "Base URL",
+      "rate": {
+        "name": "评分梗图",
+        "price": "$0.005",
+        "sla": "~10s",
+        "desc": "AI 品质评分，含等级与改进建议"
+      },
+      "generate": {
+        "name": "生成梗图",
+        "price": "$0.10",
+        "sla": "~60s",
+        "desc": "自定义 AI 梗图，搭载喜剧架构"
+      },
+      "catalog": {
+        "name": "浏览目录",
+        "price": "Free",
+        "sla": "\u2014",
+        "desc": "模板、策略、叙事、艺术风格"
+      }
     },
     "rate": {
       "title": "评估梗图",

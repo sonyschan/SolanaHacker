@@ -68,6 +68,10 @@ const LabTab = () => {
   // Catalog sub-tab
   const [catalogTab, setCatalogTab] = useState('templates');
 
+  // API panel state
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+
   // Build headers with current api key
   const labHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
@@ -198,6 +202,7 @@ const LabTab = () => {
     { id: 'rate', label: t('lab.panels.rate') },
     { id: 'generate', label: t('lab.panels.generate') },
     { id: 'catalog', label: t('lab.panels.catalog') },
+    { id: 'api', label: t('lab.panels.api') },
   ];
 
   // ── Auth Gate ─────────────────────────────────────────────
@@ -583,6 +588,116 @@ const LabTab = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activePanel === 'api' && (
+        <div className="space-y-6">
+          {/* Title + subtitle */}
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-white">{t('lab.api.title')}</h3>
+            <p className="text-gray-400 text-sm mt-1">{t('lab.api.subtitle')}</p>
+          </div>
+
+          {/* Pricing cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {['rate', 'generate', 'catalog'].map(svc => (
+              <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
+                <p className="text-white font-medium text-sm">{t(`lab.api.${svc}.name`)}</p>
+                <p className="text-green-400 text-2xl font-bold">{t(`lab.api.${svc}.price`)}</p>
+                <p className="text-gray-500 text-xs">USDC on Base</p>
+                {t(`lab.api.${svc}.sla`) !== '\u2014' && (
+                  <p className="text-gray-400 text-xs">SLA: {t(`lab.api.${svc}.sla`)}</p>
+                )}
+                <p className="text-gray-400 text-xs">{t(`lab.api.${svc}.desc`)}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Protocol badge */}
+          <div className="text-center">
+            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-gray-300">
+              {t('lab.api.protocol')}
+            </span>
+          </div>
+
+          {/* Quick Start code block */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-white">{t('lab.api.quickStart')}</h4>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Rate a meme ($0.005 USDC)
+const res = await fetchPaid(
+  '${API_BASE_URL}/api/memes/rate',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
+  }
+);
+const { score, grade, pass, suggestions } = await res.json();`);
+                  setCodeCopied(true);
+                  setTimeout(() => setCodeCopied(false), 2000);
+                }}
+                className="px-3 py-1 rounded text-xs font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+              >
+                {codeCopied ? t('common.copied') : t('lab.api.copyCode')}
+              </button>
+            </div>
+            <pre className="bg-[#0D1117] border border-white/10 rounded-lg p-4 overflow-x-auto text-xs font-mono text-gray-300 leading-relaxed">
+{`npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Rate a meme ($0.005 USDC)
+const res = await fetchPaid(
+  '${API_BASE_URL}/api/memes/rate',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl: 'https://example.com/meme.png' }),
+  }
+);
+const { score, grade, pass, suggestions } = await res.json();`}
+            </pre>
+          </div>
+
+          {/* Base URL */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-white">{t('lab.api.baseUrl')}</h4>
+            <div className="flex items-center gap-2 bg-[#0D1117] border border-white/10 rounded-lg px-4 py-3">
+              <code className="text-xs font-mono text-gray-300 flex-1 break-all">{API_BASE_URL}</code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(API_BASE_URL);
+                  setUrlCopied(true);
+                  setTimeout(() => setUrlCopied(false), 2000);
+                }}
+                className="px-3 py-1 rounded text-xs font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all shrink-0"
+              >
+                {urlCopied ? t('common.copied') : t('common.copy')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

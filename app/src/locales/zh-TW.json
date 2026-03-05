@@ -600,7 +600,35 @@
     "panels": {
       "rate": "評分",
       "generate": "生成",
-      "catalog": "目錄"
+      "catalog": "目錄",
+      "api": "API"
+    },
+    "api": {
+      "title": "API 存取",
+      "subtitle": "透過 x402 微支付整合 Memeya 的迷因服務",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "quickStart": "快速開始",
+      "copyCode": "複製",
+      "codeCopied": "已複製!",
+      "baseUrl": "Base URL",
+      "rate": {
+        "name": "評分迷因",
+        "price": "$0.005",
+        "sla": "~10s",
+        "desc": "AI 品質評分，含等級與改進建議"
+      },
+      "generate": {
+        "name": "生成迷因",
+        "price": "$0.10",
+        "sla": "~60s",
+        "desc": "自訂 AI 迷因，搭載喜劇架構"
+      },
+      "catalog": {
+        "name": "瀏覽目錄",
+        "price": "Free",
+        "sla": "\u2014",
+        "desc": "模板、策略、敘事、藝術風格"
+      }
     },
     "rate": {
       "title": "評估迷因",
