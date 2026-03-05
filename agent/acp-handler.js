@@ -95,8 +95,19 @@ export class AcpHandler {
       // to prevent crashing the entire agent process
       process.on('unhandledRejection', (err) => {
         if (err?.constructor?.name === '_AcpError' || err?.message?.includes('auth challenge')) {
-          const responseBody = err?.cause?.response?.data;
-          console.error('[ACP] SDK error (suppressed):', err.message, responseBody ? JSON.stringify(responseBody) : '');
+          // Log full error structure once for debugging
+          if (!this._authErrorLogged) {
+            this._authErrorLogged = true;
+            const cause = err?.cause;
+            console.error('[ACP] Auth error detail:', JSON.stringify({
+              message: err.message,
+              causeMessage: cause?.message,
+              status: cause?.response?.status,
+              data: cause?.response?.data,
+              url: cause?.config?.url,
+            }, null, 2));
+          }
+          console.error('[ACP] SDK error (suppressed):', err.message);
           this.stats.errors++;
           return;
         }
