@@ -257,7 +257,7 @@ const Dashboard = ({
           onOpenMemeModal={openMemeModal}
         />;
       case 'lab':
-        return <LabTab />;
+        return <LabTab publicMode />;
       case 'referral':
         return <ReferralTab walletAddress={walletAddress} memeyaBalance={memeyaBalance} />;
       default:
