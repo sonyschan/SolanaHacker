@@ -262,7 +262,7 @@ const LabTab = ({ publicMode = false }) => {
         // $Memeya SPL token transfer
         const rawAmount = BigInt(Math.ceil(prices.memeya.amount * 10 ** MEMEYA_DECIMALS));
         const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey);
-        const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET);
+        const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET, true);
 
         tx = new Transaction();
 
