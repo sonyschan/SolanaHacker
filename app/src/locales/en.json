@@ -733,6 +733,7 @@
       "featuredWinner": "",
       "priceUnavailable": "Price unavailable — try again shortly",
       "loadingPrices": "Loading prices...",
+      "connectWallet": "Connect Wallet to Generate",
       "connectHint": "Connect your wallet to generate a meme",
       "priceNote": "Base price: {{base}} USD equivalent"
     }

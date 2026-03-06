@@ -733,6 +733,7 @@
       "featuredWinner": "",
       "priceUnavailable": "價格暫時無法取得，請稍後再試",
       "loadingPrices": "載入價格中...",
+      "connectWallet": "連接錢包開始創作",
       "connectHint": "連接錢包以生成 meme",
       "priceNote": "基礎價格：{{base}} 美元等值"
     }

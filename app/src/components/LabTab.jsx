@@ -570,48 +570,52 @@ const LabTab = ({ publicMode = false }) => {
               )}
             </div>
 
-            {/* Payment buttons */}
+            {/* Payment buttons or Connect Wallet */}
             {!createLoading && !createResult && (
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {/* $Memeya button */}
-                {prices?.memeya && (
+                {!authenticated ? (
                   <button
-                    onClick={() => handleCreate('MEMEYA')}
-                    disabled={!createTopic.trim() || createLoading}
-                    className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+                    onClick={() => login()}
+                    className="px-8 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white shadow-lg shadow-indigo-500/20"
                   >
-                    <span className="text-lg">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
-                    <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">
-                      {Math.round(prices.memeya.discount * 100)}% off
-                    </span>
+                    {t('lab.create.connectWallet')}
                   </button>
-                )}
+                ) : (
+                  <>
+                    {/* $Memeya button */}
+                    {prices?.memeya && (
+                      <button
+                        onClick={() => handleCreate('MEMEYA')}
+                        disabled={!createTopic.trim() || createLoading}
+                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+                      >
+                        <span className="text-lg">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
+                        <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">
+                          {Math.round(prices.memeya.discount * 100)}% off
+                        </span>
+                      </button>
+                    )}
 
-                {/* SOL button */}
-                {prices?.sol && (
-                  <button
-                    onClick={() => handleCreate('SOL')}
-                    disabled={!createTopic.trim() || createLoading}
-                    className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
-                  >
-                    <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
-                  </button>
-                )}
+                    {/* SOL button */}
+                    {prices?.sol && (
+                      <button
+                        onClick={() => handleCreate('SOL')}
+                        disabled={!createTopic.trim() || createLoading}
+                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
+                      >
+                        <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
+                      </button>
+                    )}
 
-                {!prices && !pricesLoading && (
-                  <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>
-                )}
-                {pricesLoading && (
-                  <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>
+                    {!prices && !pricesLoading && (
+                      <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>
+                    )}
+                    {pricesLoading && (
+                      <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>
+                    )}
+                  </>
                 )}
               </div>
-            )}
-
-            {/* Connect wallet prompt */}
-            {!authenticated && createTopic.trim() && !createLoading && (
-              <p className="text-center text-xs text-gray-500">
-                {t('lab.create.connectHint')}
-              </p>
             )}
 
             {/* Price info */}
@@ -700,7 +704,7 @@ const LabTab = ({ publicMode = false }) => {
 
           {/* Featured memes showcase */}
           {!createLoading && !createResult && Array.isArray(featuredMeme) && featuredMeme.length > 0 && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-4xl mx-auto">
               <p className="text-center text-xs text-gray-500 mb-3">{t('lab.create.featured')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {featuredMeme.map((meme, i) => (

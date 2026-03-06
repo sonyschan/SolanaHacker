@@ -733,6 +733,7 @@
       "featuredWinner": "",
       "priceUnavailable": "价格暂时无法获取，请稍后再试",
       "loadingPrices": "加载价格中...",
+      "connectWallet": "连接钱包开始创作",
       "connectHint": "连接钱包以生成 meme",
       "priceNote": "基础价格：{{base}} 美元等值"
     }
