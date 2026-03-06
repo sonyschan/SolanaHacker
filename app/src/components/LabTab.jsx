@@ -22,7 +22,7 @@ const MEMEYA_WALLET = new PublicKey('4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbM
 const MEMEYA_MINT = new PublicKey('mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump');
 const MEMEYA_DECIMALS = 6;
 
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 // ── Private-mode auth helpers ──────────────────────────────────────────
 const LAB_STORAGE_KEY = 'lab_api_key';

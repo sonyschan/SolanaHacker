@@ -2,6 +2,7 @@ import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'cmlx57eat01ao0cjlud2vorx8';
+const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 const solanaConnectors = toSolanaWalletConnectors({
   shouldAutoConnect: true,
@@ -24,7 +25,7 @@ export const PrivyAuthProvider = ({ children }) => {
           createOnLogin: 'all-users',
         },
         solanaClusters: [
-          { name: 'mainnet-beta', rpcUrl: 'https://api.mainnet-beta.solana.com' },
+          { name: 'mainnet-beta', rpcUrl: SOLANA_RPC },
         ],
         externalWallets: {
           solana: {
