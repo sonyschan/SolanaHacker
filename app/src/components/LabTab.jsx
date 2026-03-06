@@ -207,14 +207,13 @@ const LabTab = ({ publicMode = false }) => {
     return () => clearInterval(timer);
   }, [headlines.length]);
 
-  // ── Fetch featured meme (recent winner) ───────────────────
+  // ── Fetch featured memes (top recent memes) ──────────────
   useEffect(() => {
     if (!publicMode) return;
-    fetch(`${API_BASE_URL}/api/lottery/recent-winners?limit=1`)
+    fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=7&limit=6`)
       .then(r => r.json())
       .then(data => {
-        const winner = data.winners?.[0] || data.data?.[0];
-        if (winner) setFeaturedMeme(winner);
+        if (data.memes?.length) setFeaturedMeme(data.memes);
       })
       .catch(() => {});
   }, [publicMode]);
@@ -699,22 +698,25 @@ const LabTab = ({ publicMode = false }) => {
             </div>
           )}
 
-          {/* Featured meme showcase */}
-          {!createLoading && !createResult && featuredMeme && (
-            <div className="max-w-sm mx-auto">
+          {/* Featured memes showcase */}
+          {!createLoading && !createResult && Array.isArray(featuredMeme) && featuredMeme.length > 0 && (
+            <div className="max-w-2xl mx-auto">
               <p className="text-center text-xs text-gray-500 mb-3">{t('lab.create.featured')}</p>
-              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                {featuredMeme.imageUrl && (
-                  <img
-                    src={featuredMeme.imageUrl}
-                    alt={featuredMeme.title}
-                    className="w-full"
-                  />
-                )}
-                <div className="p-3">
-                  <p className="text-white text-sm font-medium">{featuredMeme.title}</p>
-                  <p className="text-gray-500 text-xs mt-1">{t('lab.create.featuredWinner')}</p>
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {featuredMeme.map((meme, i) => (
+                  <div key={meme.id || i} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    {meme.imageUrl && (
+                      <img
+                        src={meme.imageUrl}
+                        alt={meme.title}
+                        className="w-full aspect-square object-cover"
+                      />
+                    )}
+                    <div className="p-2">
+                      <p className="text-white text-xs font-medium truncate">{meme.title}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

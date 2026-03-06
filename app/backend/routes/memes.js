@@ -207,14 +207,32 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
 const BASE_USD_PRICE = 0.10;
 const MEMEYA_DISCOUNT = 0.20; // 20% off
 
-/** Fetch Jupiter prices (cached in-memory 5min) */
-async function fetchJupiterPrices() {
-  return getOrFetch("jupiter:prices", TTL.MEDIUM, async () => {
-    const jupRes = await fetch(
-      `https://price.jup.ag/v6/price?ids=SOL,${MEMEYA_MINT.toBase58()}`
-    );
-    if (!jupRes.ok) throw new Error('Jupiter API unavailable');
-    return jupRes.json();
+/**
+ * Fetch SOL + Memeya USD prices (cached 5min).
+ * Uses CoinGecko for SOL/USD and DexScreener for Memeya/USD.
+ * Returns { solUsd: number|null, memeyaUsd: number|null }
+ */
+async function fetchPrices() {
+  return getOrFetch("token:prices", TTL.MEDIUM, async () => {
+    const [cgRes, dsRes] = await Promise.all([
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'),
+      fetch(`https://api.dexscreener.com/latest/dex/tokens/${MEMEYA_MINT.toBase58()}`),
+    ]);
+
+    let solUsd = null;
+    if (cgRes.ok) {
+      const cg = await cgRes.json();
+      solUsd = cg?.solana?.usd || null;
+    }
+
+    let memeyaUsd = null;
+    if (dsRes.ok) {
+      const ds = await dsRes.json();
+      const pair = ds?.pairs?.[0];
+      if (pair?.priceUsd) memeyaUsd = parseFloat(pair.priceUsd);
+    }
+
+    return { solUsd, memeyaUsd };
   });
 }
 
@@ -225,10 +243,7 @@ async function fetchJupiterPrices() {
  */
 router.get("/generate-price", async (req, res) => {
   try {
-    const prices = await fetchJupiterPrices();
-
-    const solUsd = prices.data?.SOL?.price;
-    const memeyaUsd = prices.data?.[MEMEYA_MINT.toBase58()]?.price;
+    const { solUsd, memeyaUsd } = await fetchPrices();
 
     if (!solUsd) {
       return res.status(503).json({ success: false, error: 'SOL price unavailable, try again shortly' });
@@ -276,26 +291,22 @@ router.post("/generate-solana", async (req, res) => {
     }
 
     // Fetch current price to determine expected amount
-    const prices = await fetchJupiterPrices();
+    const { solUsd, memeyaUsd } = await fetchPrices();
 
     let minAmount;
     if (paymentToken === 'SOL') {
-      const solUsd = prices.data?.SOL?.price;
       if (!solUsd) return res.status(503).json({ success: false, error: "SOL price unavailable" });
       minAmount = BASE_USD_PRICE / solUsd;
     } else {
-      const memeyaUsd = prices.data?.[MEMEYA_MINT.toBase58()]?.price;
       if (!memeyaUsd) return res.status(503).json({ success: false, error: "$Memeya price unavailable" });
       minAmount = (BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
     }
 
     // Build context for order record (price snapshot + topic for auditing)
-    const solUsdPrice = prices.data?.SOL?.price || null;
-    const memeyaUsdPrice = prices.data?.[MEMEYA_MINT.toBase58()]?.price || null;
     const orderContext = {
       topic: topic.trim(),
-      solUsdPrice,
-      memeyaUsdPrice,
+      solUsdPrice: solUsd,
+      memeyaUsdPrice: memeyaUsd,
       baseUsdPrice: BASE_USD_PRICE,
     };
 

@@ -640,7 +640,7 @@
       "rate": "評分",
       "generate": "生成",
       "catalog": "目錄",
-      "api": "API"
+      "api": "x402 API"
     },
     "api": {
       "title": "API 存取",
@@ -729,8 +729,8 @@
       "quality": "品質",
       "share": "分享到 X",
       "tryAnother": "再創作一張",
-      "featured": "近期得獎作品",
-      "featuredWinner": "每日抽獎得獎者",
+      "featured": "AIMemeForge 精選 AI Meme 作品",
+      "featuredWinner": "",
       "priceUnavailable": "價格暫時無法取得，請稍後再試",
       "loadingPrices": "載入價格中...",
       "connectHint": "連接錢包以生成 meme",

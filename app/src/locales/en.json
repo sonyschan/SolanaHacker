@@ -640,7 +640,7 @@
       "rate": "Rate",
       "generate": "Generate",
       "catalog": "Catalog",
-      "api": "API"
+      "api": "x402 API"
     },
     "api": {
       "title": "API Access",
@@ -729,8 +729,8 @@
       "quality": "Quality",
       "share": "Share on X",
       "tryAnother": "Create Another",
-      "featured": "Recent Winner",
-      "featuredWinner": "Daily lottery winner",
+      "featured": "Top AI Memes created by AIMemeForge",
+      "featuredWinner": "",
       "priceUnavailable": "Price unavailable — try again shortly",
       "loadingPrices": "Loading prices...",
       "connectHint": "Connect your wallet to generate a meme",
