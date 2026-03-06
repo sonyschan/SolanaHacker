@@ -323,10 +323,14 @@ const LabTab = ({ publicMode = false }) => {
 
       setCreateResult(data.meme);
     } catch (err) {
-      if (err.message?.includes('User rejected') || err.message?.includes('cancelled')) {
+      console.error('Create meme error:', err);
+      const msg = err?.message || err?.toString() || 'Something went wrong';
+      if (msg.includes('User rejected') || msg.includes('cancelled') || msg.includes('user rejected')) {
         setCreateError(t('lab.create.cancelled'));
+      } else if (msg.includes('insufficient') || msg.includes('0x1')) {
+        setCreateError('Insufficient token balance. Please check your wallet.');
       } else {
-        setCreateError(err.message || 'Something went wrong');
+        setCreateError(msg);
       }
     } finally {
       clearInterval(statusTimer);
