@@ -83,7 +83,8 @@ const collections = {
   REFERRALS: 'referrals',
   REFERRAL_IDS: 'referral_ids',
   MEMEYA_WORKSHOP: 'memeya_workshop',
-  X402_TRANSACTIONS: 'x402_transactions'
+  X402_TRANSACTIONS: 'x402_transactions',
+  COLLECTED_NEWS: 'collected_news'
 };
 
 /**

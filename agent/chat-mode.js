@@ -1774,6 +1774,9 @@ ${recentMemory.slice(-1500)}
       // Save to short-term memory
       this.saveToJournal('news', news);
 
+      // Structure and send to backend for meme generation (fire-and-forget)
+      this.structureAndCollectNews(news, 'morning').catch(() => {});
+
       return news;
     } catch (err) {
       console.error('[ChatMode] Morning news error:', err.message);
@@ -2896,6 +2899,9 @@ ${recentMemory}
       // Save to memory
       this.saveToJournal('news', news);
 
+      // Structure and send to backend for meme generation (fire-and-forget)
+      this.structureAndCollectNews(news, 'search').catch(() => {});
+
       // Event-driven ambient log: scanning after news search
       const headline = news.split('\n')[0]?.slice(0, 80) || '';
       import('./skills/x_twitter/x-context.js').then(m =>
@@ -2906,6 +2912,60 @@ ${recentMemory}
     } catch (err) {
       console.error('[ChatMode] News search error:', err.message);
       return null;
+    }
+  }
+
+  /**
+   * Structure Chinese news text into JSON and POST to backend for meme generation.
+   * Uses grok-3-mini (no web search) — cheap and fast.
+   * Fire-and-forget: never blocks existing Telegram/journal flow.
+   */
+  async structureAndCollectNews(rawText, source) {
+    const BACKEND_URL = 'https://memeforge-api-836651762884.asia-southeast1.run.app';
+    try {
+      const structured = await this.callGrok([{
+        role: 'user',
+        content: `Convert these Chinese crypto news items into structured JSON.
+Return ONLY a JSON array: [{
+  "title": "English title (concise)",
+  "summary": "English summary (1-2 sentences)",
+  "trend_reason": "Why this matters to crypto community",
+  "x_handle": "@handle or null",
+  "category": "A"|"B"|"C"
+}]
+Categories: A=Token/Market, B=Macro/World/Tech, C=People/Culture
+
+News text:
+${rawText}`
+      }], 400);
+
+      // Parse the JSON array from response
+      const jsonMatch = structured.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+      if (!jsonMatch) {
+        console.log('[ChatMode] structureAndCollectNews: no JSON array in Grok response');
+        return;
+      }
+
+      const items = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(items) || items.length === 0) return;
+
+      const res = await fetch(`${BACKEND_URL}/api/news/collect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.LAB_API_KEY,
+        },
+        body: JSON.stringify({ items, source }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`[ChatMode] Collected ${data.count} news items to backend (source: ${source})`);
+      } else {
+        console.warn(`[ChatMode] News collect failed: ${res.status}`);
+      }
+    } catch (err) {
+      console.warn('[ChatMode] structureAndCollectNews error:', err.message);
     }
   }
 

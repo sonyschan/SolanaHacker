@@ -47,14 +47,149 @@ class NewsService {
   }
 
   /**
-   * Fetch real-time crypto news via Grok web search.
+   * Fetch crypto news — prefers agent-collected news, supplements with Grok web search if needed.
    * @param {Array} recentMemeThemes - optional array of {title, tags, newsSource} from recent memes
    */
   async getCryptoNews(recentMemeThemes = []) {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Step 1: Check pre-collected news from agent's heartbeat discovery (last 24h)
+      const collected = await this.getCollectedNews();
 
-      let prompt = `Today is ${today}. Search for 3 meme-worthy events from the PAST 48 hours that crypto communities are talking about.
+      if (collected.length >= 3) {
+        const diverse = this.ensureCategoryDiversity(collected);
+        console.log(`📰 Using ${diverse.length} pre-collected news (agent discovery)`);
+        return diverse;
+      }
+
+      // Step 2: Supplement with Grok web search if < 3
+      if (collected.length > 0) {
+        const needed = 3 - collected.length;
+        console.log(`📰 Only ${collected.length} collected news, supplementing ${needed} via Grok`);
+        const supplemented = await this.supplementWithGrokSearch(collected, needed, recentMemeThemes);
+        return supplemented;
+      }
+
+      // Step 3: No collected news at all — full Grok web search (original behavior)
+      console.log('📰 No collected news available, using full Grok web search');
+      return await this.fetchNewsViaGrok(recentMemeThemes);
+    } catch (error) {
+      console.error('Error in getCryptoNews:', error);
+      return this.getFallbackNews();
+    }
+  }
+
+  /**
+   * Read pre-collected news from Firestore (last 24h, deduped).
+   */
+  async getCollectedNews() {
+    try {
+      const { getFirestore, collections } = require('../config/firebase');
+      const db = getFirestore();
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const snapshot = await db.collection(collections.COLLECTED_NEWS)
+        .where('collectedAt', '>=', cutoff)
+        .orderBy('collectedAt', 'desc')
+        .limit(10)
+        .get();
+
+      if (snapshot.empty) return [];
+
+      // Dedupe by title similarity (exact lowercase match)
+      const seen = new Set();
+      const items = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const key = data.title.toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push(data);
+        }
+      });
+
+      return items;
+    } catch (error) {
+      console.error('Error reading collected news:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Pick best 3 items ensuring category diversity (A, B, C) when possible.
+   */
+  ensureCategoryDiversity(items) {
+    const byCategory = { A: [], B: [], C: [] };
+    for (const item of items) {
+      const cat = item.category || 'B';
+      if (byCategory[cat]) byCategory[cat].push(item);
+    }
+
+    const result = [];
+    // Pick one from each category first
+    for (const cat of ['A', 'B', 'C']) {
+      if (byCategory[cat].length > 0) {
+        result.push(byCategory[cat].shift());
+      }
+    }
+
+    // Fill remaining slots from any category
+    if (result.length < 3) {
+      const remaining = items.filter(i => !result.includes(i));
+      for (const item of remaining) {
+        if (result.length >= 3) break;
+        result.push(item);
+      }
+    }
+
+    return result.slice(0, 3);
+  }
+
+  /**
+   * Supplement collected news with Grok web search for missing categories.
+   */
+  async supplementWithGrokSearch(existing, needed, recentMemeThemes) {
+    const existingCategories = new Set(existing.map(e => e.category || 'B'));
+    const missingCategories = ['A', 'B', 'C'].filter(c => !existingCategories.has(c));
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const existingTitles = existing.map(e => `- "${e.title}"`).join('\n');
+      const categoryHint = missingCategories.length > 0
+        ? `Focus on categories: ${missingCategories.join(', ')} (A=Token/Market, B=Macro/Tech, C=People/Culture).`
+        : '';
+
+      let prompt = `Today is ${today}. Search for ${needed} meme-worthy crypto event(s) from the PAST 48 hours.
+${categoryHint}
+
+Already covered (DO NOT repeat):
+${existingTitles}
+
+Return as JSON array: [{ "title": "...", "summary": "...", "trend_reason": "...", "x_handle": "@..." or null, "category": "A"|"B"|"C" }]`;
+
+      if (recentMemeThemes.length > 0) {
+        const themesList = recentMemeThemes
+          .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
+          .join('\n');
+        prompt += `\n\nAlso AVOID these recent meme themes:\n${themesList}`;
+      }
+
+      const content = await this.callGrokWithSearch(prompt, 800);
+      const supplemented = this.parseGrokNewsResponse(content);
+
+      return this.ensureCategoryDiversity([...existing, ...supplemented]);
+    } catch (error) {
+      console.error('Error supplementing news via Grok:', error.message);
+      return this.ensureCategoryDiversity(existing);
+    }
+  }
+
+  /**
+   * Full Grok web search for news (original getCryptoNews behavior).
+   */
+  async fetchNewsViaGrok(recentMemeThemes = []) {
+    const today = new Date().toISOString().split('T')[0];
+
+    let prompt = `Today is ${today}. Search for 3 meme-worthy events from the PAST 48 hours that crypto communities are talking about.
 
 PURPOSE: We create "Historical AI Memes" — memes that capture the most memorable moments shaping crypto and the world. If a major world event is dominating crypto sentiment right now, it MUST be included.
 
@@ -77,35 +212,36 @@ For each event, include the X (Twitter) handle of the key person or entity invol
 
 Return as JSON array: [{ "title": "...", "summary": "...", "trend_reason": "...", "x_handle": "@...", "category": "A"|"B"|"C" }]`;
 
-      if (recentMemeThemes.length > 0) {
-        const themesList = recentMemeThemes
-          .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
-          .join('\n');
-        prompt += `\n\nAVOID these themes (already used as memes recently):\n${themesList}\nPick topics that are DIFFERENT from the above.`;
-      }
+    if (recentMemeThemes.length > 0) {
+      const themesList = recentMemeThemes
+        .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
+        .join('\n');
+      prompt += `\n\nAVOID these themes (already used as memes recently):\n${themesList}\nPick topics that are DIFFERENT from the above.`;
+    }
 
-      const content = await this.callGrokWithSearch(prompt, 1200);
+    const content = await this.callGrokWithSearch(prompt, 1200);
+    const newsData = this.parseGrokNewsResponse(content);
+    if (newsData.length > 0) {
+      console.log(`📰 Grok web search returned ${newsData.length} news items for ${today}`);
+      return newsData;
+    }
+    return this.getFallbackNews();
+  }
 
-      // Try to parse JSON response
-      try {
-        const jsonMatch = content.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-        if (jsonMatch) {
-          const newsData = JSON.parse(jsonMatch[0]);
-          if (Array.isArray(newsData) && newsData.length > 0) {
-            console.log(`📰 Grok web search returned ${newsData.length} news items for ${today}`);
-            return newsData;
-          }
-        }
-        // If no JSON array found, try parsing the whole content
-        const newsData = JSON.parse(content);
-        return Array.isArray(newsData) ? newsData : [newsData];
-      } catch (parseError) {
-        // If JSON parsing fails, create structured data from text
-        return this.parseNewsFromText(content);
+  /**
+   * Parse Grok response into structured news array.
+   */
+  parseGrokNewsResponse(content) {
+    try {
+      const jsonMatch = content.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(data) && data.length > 0) return data;
       }
-    } catch (error) {
-      console.error('Error fetching crypto news via web search:', error);
-      return this.getFallbackNews();
+      const data = JSON.parse(content);
+      return Array.isArray(data) ? data : [data];
+    } catch {
+      return this.parseNewsFromText(content);
     }
   }
 
