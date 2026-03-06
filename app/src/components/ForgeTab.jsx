@@ -742,6 +742,23 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     </svg>
                   </div>
                 </button>
+                <button
+                  onClick={() => setActiveTab('lab')}
+                  className="w-full bg-gradient-to-r from-cyan-600/20 to-emerald-600/20 hover:from-cyan-600/30 hover:to-emerald-600/30 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl p-4 transition-all duration-300 group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">✨</span>
+                      <div className="text-left">
+                        <p className="font-bold text-white group-hover:text-cyan-300 transition-colors">{t('forge.completed.buildOwn')}</p>
+                        <p className="text-xs text-gray-400">{t('forge.completed.buildOwnDesc')}</p>
+                      </div>
+                    </div>
+                    <svg className="w-5 h-5 text-cyan-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </button>
               </div>
             )}
             <button

@@ -156,7 +156,9 @@
       "workshop": "工坊",
       "workshopDesc": "Memeya 的日常运营",
       "lottery": "抽奖",
-      "lotteryDesc": "票券与赢家"
+      "lotteryDesc": "票券与赢家",
+      "create": "创作",
+      "createDesc": "打造你的专属 Meme"
     },
     "nav": {
       "nextDraw": "下次梗图 & USDC 开奖",
@@ -403,6 +405,8 @@
       "browseGalleryDesc": "探索过往的经典梗图",
       "manageTickets": "管理抽奖券",
       "manageTicketsDesc": "选择今晚开奖的策略",
+      "buildOwn": "打造你的专属 Meme",
+      "buildOwnDesc": "用 $Memeya 或 SOL 创作自定 AI Meme",
       "viewResults": "查看结果与统计"
     }
   },

@@ -46,7 +46,8 @@ const Dashboard = ({
     { id: 'workshop', label: t('dashboard.tabs.workshop'), icon: '\u2692\uFE0F', desc: t('dashboard.tabs.workshopDesc') },
     { id: 'forge', label: t('dashboard.tabs.forge'), icon: '\uD83E\uDD16', desc: t('dashboard.tabs.forgeDesc') },
     { id: 'gallery', label: t('dashboard.tabs.gallery'), icon: '\uD83C\uDFDB\uFE0F', desc: t('dashboard.tabs.galleryDesc') },
-    { id: 'lottery', label: t('dashboard.tabs.lottery'), icon: '\uD83C\uDFB0', desc: t('dashboard.tabs.lotteryDesc') }
+    { id: 'lottery', label: t('dashboard.tabs.lottery'), icon: '\uD83C\uDFB0', desc: t('dashboard.tabs.lotteryDesc') },
+    { id: 'lab', label: t('dashboard.tabs.create'), icon: '\u2728', desc: t('dashboard.tabs.createDesc') }
   ];
 
   // Scroll to top on tab change

@@ -156,7 +156,9 @@
       "workshop": "Workshop",
       "workshopDesc": "Memeya's daily ops",
       "lottery": "Lottery",
-      "lotteryDesc": "Tickets & winners"
+      "lotteryDesc": "Tickets & winners",
+      "create": "Create",
+      "createDesc": "Build your own meme"
     },
     "nav": {
       "nextDraw": "Next Meme & USDC Draw",
@@ -403,6 +405,8 @@
       "browseGalleryDesc": "Explore legendary memes from days past",
       "manageTickets": "Manage Tickets",
       "manageTicketsDesc": "Choose your lottery strategy for tonight's draw",
+      "buildOwn": "Build Your Own Meme",
+      "buildOwnDesc": "Create a custom AI meme — pay with $Memeya or SOL",
       "viewResults": "View Results & Stats"
     }
   },
