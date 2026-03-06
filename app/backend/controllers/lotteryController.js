@@ -378,10 +378,11 @@ async function getRecentWinners(limit = 10) {
 
   const draws = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  // Batch fetch meme details + reward distributions
+  // Batch fetch meme details + reward distributions + ticket snapshot availability
   const memeIds = [...new Set(draws.map(d => d.winningMemeId).filter(Boolean))];
   const memes = {};
   const rewards = {};
+  const ticketSnapshots = {};
   await Promise.all([
     ...memeIds.map(async id => {
       const meme = await dbUtils.getDocument(collections.MEMES, id);
@@ -390,6 +391,10 @@ async function getRecentWinners(limit = 10) {
     ...draws.map(async d => {
       const reward = await dbUtils.getDocument(collections.REWARD_DISTRIBUTIONS, d.date);
       if (reward) rewards[d.date] = reward;
+    }),
+    ...draws.map(async d => {
+      const snap = await dbUtils.getDocument(collections.USER_TICKETS, d.date);
+      ticketSnapshots[d.date] = !!(snap && snap.tickets && Object.keys(snap.tickets).length > 0);
     })
   ]);
 
@@ -416,6 +421,7 @@ async function getRecentWinners(limit = 10) {
         amount: t.amount,
         txSignature: t.txSignature || null,
       })),
+      hasTicketSnapshot: ticketSnapshots[d.date] || false,
     };
   });
 }
