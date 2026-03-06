@@ -4,6 +4,141 @@ import { formatTokenAmount } from '../services/solanaService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
+// Pie chart colors — top 10 slots + user + others
+const PIE_COLORS = [
+  '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444',
+  '#ec4899', '#3b82f6', '#14b8a6', '#f97316', '#a855f7'
+];
+const USER_COLOR = '#22c55e';
+const OTHERS_COLOR = '#374151';
+
+const TicketPieChart = ({ drawId, walletAddress, t }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDistribution = async () => {
+      try {
+        const walletParam = walletAddress ? `?wallet=${walletAddress}` : '';
+        const resp = await fetch(`${API_BASE_URL}/api/lottery/distribution/${drawId}${walletParam}`);
+        const json = await resp.json();
+        if (json.success) setData(json.data);
+      } catch (e) { console.error('Failed to fetch distribution:', e); }
+      setLoading(false);
+    };
+    fetchDistribution();
+  }, [drawId, walletAddress]);
+
+  if (loading) return <div className="text-center py-4 text-gray-500 text-sm">Loading...</div>;
+  if (!data) return <div className="text-center py-4 text-gray-500 text-sm">{t('dashboard.winners.noSnapshot')}</div>;
+
+  // Build pie segments: top holders + optional user (if outside top 10) + others
+  const segments = [];
+  data.topHolders.forEach((h, i) => {
+    segments.push({
+      label: h.isUser ? `${h.wallet} ${t('dashboard.winners.you')}` : h.wallet,
+      tickets: h.tickets,
+      color: h.isUser ? USER_COLOR : PIE_COLORS[i % PIE_COLORS.length],
+      isUser: h.isUser
+    });
+  });
+  if (data.userEntry) {
+    segments.push({
+      label: `${data.userEntry.wallet} ${t('dashboard.winners.you')}`,
+      tickets: data.userEntry.tickets,
+      color: USER_COLOR,
+      isUser: true
+    });
+  }
+  if (data.othersTickets > 0) {
+    segments.push({
+      label: t('dashboard.winners.others', { count: data.othersCount }),
+      tickets: data.othersTickets,
+      color: OTHERS_COLOR,
+      isUser: false
+    });
+  }
+
+  // SVG donut chart
+  const total = data.totalTickets;
+  const radius = 80;
+  const cx = 100, cy = 100;
+  const circumference = 2 * Math.PI * radius;
+  let accumulatedOffset = 0;
+
+  const arcs = segments.map((seg, i) => {
+    const fraction = seg.tickets / total;
+    const dashLength = fraction * circumference;
+    const dashOffset = -accumulatedOffset;
+    accumulatedOffset += dashLength;
+    return (
+      <circle
+        key={i}
+        cx={cx} cy={cy} r={radius}
+        fill="none"
+        stroke={seg.color}
+        strokeWidth={seg.isUser ? 28 : 24}
+        strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+        strokeDashoffset={dashOffset}
+        className={seg.isUser ? 'drop-shadow-[0_0_6px_rgba(34,197,94,0.5)]' : ''}
+      />
+    );
+  });
+
+  // User stats for center text
+  const userSeg = segments.find(s => s.isUser);
+  const userPercent = userSeg ? (userSeg.tickets / total * 100).toFixed(1) : null;
+
+  return (
+    <div className="flex flex-col md:flex-row items-center gap-6 py-4 px-4 md:px-8">
+      {/* Donut chart */}
+      <div className="flex-shrink-0">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          {arcs}
+          <text x={cx} y={cy - 8} textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">
+            {data.totalParticipants}
+          </text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fill="#9ca3af" fontSize="11">
+            {t('dashboard.winners.participants', { count: data.totalParticipants })}
+          </text>
+        </svg>
+      </div>
+      {/* Legend */}
+      <div className="flex-1 w-full">
+        {userSeg && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-sm">
+            <span className="text-green-400 font-bold">
+              {t('dashboard.winners.yourTickets', { tickets: userSeg.tickets, percent: userPercent })}
+            </span>
+            {data.userEntry && (
+              <span className="text-gray-400 ml-2">
+                {t('dashboard.winners.rank', { rank: data.userEntry.rank, total: data.totalParticipants })}
+              </span>
+            )}
+            {data.userInTop10 && (
+              <span className="text-gray-400 ml-2">
+                {t('dashboard.winners.rank', {
+                  rank: data.topHolders.findIndex(h => h.isUser) + 1,
+                  total: data.totalParticipants
+                })}
+              </span>
+            )}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          {segments.map((seg, i) => (
+            <div key={i} className={`flex items-center gap-2 text-xs py-1 px-2 rounded ${seg.isUser ? 'bg-green-500/5' : ''}`}>
+              <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: seg.color }} />
+              <span className={`truncate ${seg.isUser ? 'text-green-400 font-medium' : 'text-gray-300'}`}>{seg.label}</span>
+              <span className="text-gray-500 ml-auto flex-shrink-0">{seg.tickets} ({(seg.tickets / total * 100).toFixed(1)}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const LotteryTab = ({
   userTickets,
   votingStreak,
@@ -27,6 +162,7 @@ const LotteryTab = ({
   const [winnersLoading, setWinnersLoading] = useState(false);
   const [winsFilter, setWinsFilter] = useState('all');
   const [winMemes, setWinMemes] = useState({});
+  const [expandedDraw, setExpandedDraw] = useState(null);
 
   // Fetch recent winners on mount
   useEffect(() => {
@@ -404,10 +540,19 @@ const LotteryTab = ({
                         <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
                         {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">{t('dashboard.winners.you')}</span>}
                       </div>
-                      {/* Votes */}
+                      {/* Votes — clickable to expand pie chart */}
                       <div className="md:col-span-1 text-sm text-gray-300 flex items-center">
                         <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.votes')}:</span>
-                        {w.winnerTickets} / {w.totalTickets}
+                        <button
+                          onClick={() => setExpandedDraw(expandedDraw === w.drawId ? null : w.drawId)}
+                          className="hover:text-cyan-400 transition-colors cursor-pointer flex items-center gap-1"
+                          title={t('dashboard.winners.tapToSeeOdds')}
+                        >
+                          {w.winnerTickets} / {w.totalTickets}
+                          <svg className={`w-3 h-3 transition-transform ${expandedDraw === w.drawId ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
                       {/* Win Rate */}
                       <div className="md:col-span-2 text-sm text-right flex items-center justify-end">
@@ -417,6 +562,12 @@ const LotteryTab = ({
                         </span>
                       </div>
                     </div>
+                    {/* Ticket Distribution Pie Chart (expanded) */}
+                    {expandedDraw === w.drawId && (
+                      <div className="border-t border-white/5 bg-white/[0.02]">
+                        <TicketPieChart drawId={w.drawId} walletAddress={walletAddress} t={t} />
+                      </div>
+                    )}
                     {/* Lucky Voter Rows */}
                     {w.luckyVoters?.map((v, vi) => {
                       const isVoterYou = walletAddress && v.wallet === walletAddress;

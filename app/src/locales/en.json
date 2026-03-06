@@ -236,7 +236,14 @@
       "totalEarned": "Total earned: ${{amount}}",
       "noUsdcRewards": "No USDC rewards yet. Keep voting to earn!",
       "inviteFriends": "Invite Friends & Earn Together",
-      "inviteFriendsDesc": "Share your referral link and earn bonus tickets when friends join"
+      "inviteFriendsDesc": "Share your referral link and earn bonus tickets when friends join",
+      "ticketDistribution": "Ticket Distribution",
+      "yourTickets": "You: {{tickets}} tickets ({{percent}}%)",
+      "others": "Others ({{count}})",
+      "noSnapshot": "Ticket data not available for this draw",
+      "rank": "Rank #{{rank}} of {{total}}",
+      "tapToSeeOdds": "Tap to see your odds",
+      "participants": "{{count}} participants"
     },
     "howItWorks": {
       "title": "How It Works",

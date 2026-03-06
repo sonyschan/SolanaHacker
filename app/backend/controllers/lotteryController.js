@@ -420,6 +420,71 @@ async function getRecentWinners(limit = 10) {
   });
 }
 
+/**
+ * Get ticket distribution for a specific draw date.
+ * Returns top 10 holders + requesting user's position + "others" bucket.
+ */
+async function getTicketDistribution(date, requestingWallet) {
+  const snapshot = await dbUtils.getDocument(collections.USER_TICKETS, date);
+  if (!snapshot || !snapshot.tickets || Object.keys(snapshot.tickets).length === 0) {
+    return null;
+  }
+
+  const tickets = snapshot.tickets;
+  const totalTickets = snapshot.totalTickets || Object.values(tickets).reduce((s, v) => s + v, 0);
+  const totalParticipants = Object.keys(tickets).length;
+
+  // Sort by ticket count descending
+  const sorted = Object.entries(tickets)
+    .map(([wallet, count]) => ({ wallet, tickets: count }))
+    .sort((a, b) => b.tickets - a.tickets);
+
+  // Top 10 holders
+  const top10 = sorted.slice(0, 10);
+  const top10Wallets = new Set(top10.map(h => h.wallet));
+
+  // Truncate wallet addresses for privacy
+  const truncate = (w) => w ? w.slice(0, 4) + '...' + w.slice(-4) : null;
+
+  // Find requesting user's data
+  let userEntry = null;
+  let userRank = null;
+  if (requestingWallet && tickets[requestingWallet] !== undefined) {
+    const userTickets = tickets[requestingWallet];
+    userRank = sorted.findIndex(h => h.wallet === requestingWallet) + 1;
+    userEntry = {
+      wallet: truncate(requestingWallet),
+      fullWallet: requestingWallet,
+      tickets: userTickets,
+      rank: userRank
+    };
+  }
+
+  // Calculate "others" bucket (everyone outside top 10, excluding the user if they're also outside top 10)
+  let othersTickets = 0;
+  let othersCount = 0;
+  for (let i = 10; i < sorted.length; i++) {
+    if (requestingWallet && sorted[i].wallet === requestingWallet) continue;
+    othersTickets += sorted[i].tickets;
+    othersCount++;
+  }
+
+  return {
+    date,
+    totalTickets,
+    totalParticipants,
+    topHolders: top10.map(h => ({
+      wallet: truncate(h.wallet),
+      tickets: h.tickets,
+      isUser: requestingWallet ? h.wallet === requestingWallet : false
+    })),
+    userEntry: userEntry && !top10Wallets.has(requestingWallet) ? userEntry : null,
+    userInTop10: requestingWallet ? top10Wallets.has(requestingWallet) : false,
+    othersTickets,
+    othersCount
+  };
+}
+
 module.exports = {
   runDailyLottery,
   saveTicketSnapshot,
@@ -429,5 +494,6 @@ module.exports = {
   getLotteryStats,
   getNextDrawTime,
   getUserLotteryData,
-  getRecentWinners
+  getRecentWinners,
+  getTicketDistribution
 };

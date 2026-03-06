@@ -236,7 +236,14 @@
       "totalEarned": "總計獲得: ${{amount}}",
       "noUsdcRewards": "尚無 USDC 獎勵。繼續投票賺取!",
       "inviteFriends": "邀請朋友一起賺",
-      "inviteFriendsDesc": "分享你的邀請連結，朋友加入時獲得額外票券"
+      "inviteFriendsDesc": "分享你的邀請連結，朋友加入時獲得額外票券",
+      "ticketDistribution": "票券分佈",
+      "yourTickets": "你: {{tickets}} 張票券 ({{percent}}%)",
+      "others": "其他 ({{count}})",
+      "noSnapshot": "此次抽獎無票券資料",
+      "rank": "排名 #{{rank}} / {{total}}",
+      "tapToSeeOdds": "點擊查看你的勝率",
+      "participants": "{{count}} 位參與者"
     },
     "howItWorks": {
       "title": "運作方式",

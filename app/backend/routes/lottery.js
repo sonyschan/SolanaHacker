@@ -8,7 +8,8 @@ const {
   getLotteryStats,
   getNextDrawTime,
   getUserLotteryData,
-  getRecentWinners
+  getRecentWinners,
+  getTicketDistribution
 } = require('../controllers/lotteryController');
 const { getFirestore, collections } = require('../config/firebase');
 const { rateLimiter } = require('../middleware/auth');
@@ -176,6 +177,25 @@ router.post('/toggle-opt-in', async (req, res) => {
   } catch (error) {
     console.error('Toggle lottery opt-in error:', error);
     res.status(500).json({ success: false, error: 'Failed to toggle lottery opt-in', message: error.message });
+  }
+});
+
+/**
+ * GET /api/lottery/distribution/:date - Get ticket distribution for a draw (pie chart data)
+ * Query param: wallet (optional) - requesting user's wallet for personalized view
+ */
+router.get('/distribution/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const { wallet } = req.query;
+    const data = await getTicketDistribution(date, wallet || null);
+    if (!data) {
+      return res.status(404).json({ success: false, error: 'No ticket snapshot found for this date' });
+    }
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Get ticket distribution error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch ticket distribution', message: error.message });
   }
 });
 
