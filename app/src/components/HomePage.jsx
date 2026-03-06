@@ -353,7 +353,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
           <div className="text-center">
             <a
-              href="#lab"
+              href="#create"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all duration-200"
             >
               {t('home.api.cta')}

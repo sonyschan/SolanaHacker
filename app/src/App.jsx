@@ -119,8 +119,8 @@ function App() {
       setCurrentView("wiki");
     } else if (urlHash === "#gallery") {
       setCurrentView("gallery");
-    } else if (urlHash === "#lab") {
-      setCurrentView(authenticated && walletAddress ? "dashboard" : "lab");
+    } else if (urlHash === "#create" || urlHash === "#lab") {
+      setCurrentView(authenticated && walletAddress ? "dashboard" : "create");
     } else if (authenticated && walletAddress) {
       setCurrentView("dashboard");
     } else {
@@ -138,8 +138,8 @@ function App() {
         setCurrentView("wiki");
       } else if (urlHash === "#gallery") {
         setCurrentView("gallery");
-      } else if (urlHash === "#lab") {
-        setCurrentView(authenticated && walletAddress ? "dashboard" : "lab");
+      } else if (urlHash === "#create" || urlHash === "#lab") {
+        setCurrentView(authenticated && walletAddress ? "dashboard" : "create");
       } else if (urlHash === "#invite" || urlHash === "#dashboard") {
         setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       } else if (urlHash === "" || urlHash === "#") {
@@ -166,7 +166,7 @@ function App() {
           <WikiPage />
         ) : currentView === "gallery" ? (
           <PublicGalleryPage />
-        ) : currentView === "lab" ? (
+        ) : currentView === "create" ? (
           <PublicLabPage />
         ) : currentView === "home" ? (
           <HomePage
@@ -183,7 +183,7 @@ function App() {
             setVotingStreak={setVotingStreak}
             walletAddress={walletAddress}
             userDataLoading={userDataLoading}
-            initialTab={window.location.hash === '#invite' ? 'referral' : window.location.hash === '#lab' ? 'lab' : undefined}
+            initialTab={window.location.hash === '#invite' ? 'referral' : (window.location.hash === '#create' || window.location.hash === '#lab') ? 'create' : undefined}
           />
         )}
       </div>

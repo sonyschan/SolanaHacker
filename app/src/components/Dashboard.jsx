@@ -47,7 +47,7 @@ const Dashboard = ({
     { id: 'forge', label: t('dashboard.tabs.forge'), icon: '\uD83E\uDD16', desc: t('dashboard.tabs.forgeDesc') },
     { id: 'gallery', label: t('dashboard.tabs.gallery'), icon: '\uD83C\uDFDB\uFE0F', desc: t('dashboard.tabs.galleryDesc') },
     { id: 'lottery', label: t('dashboard.tabs.lottery'), icon: '\uD83C\uDFB0', desc: t('dashboard.tabs.lotteryDesc') },
-    { id: 'lab', label: t('dashboard.tabs.create'), icon: '\u2728', desc: t('dashboard.tabs.createDesc') }
+    { id: 'create', label: t('dashboard.tabs.create'), icon: '\u2728', desc: t('dashboard.tabs.createDesc') }
   ];
 
   // Scroll to top on tab change
@@ -257,7 +257,7 @@ const Dashboard = ({
           setActiveTab={setActiveTab}
           onOpenMemeModal={openMemeModal}
         />;
-      case 'lab':
+      case 'create':
         return <LabTab publicMode />;
       case 'referral':
         return <ReferralTab walletAddress={walletAddress} memeyaBalance={memeyaBalance} />;
