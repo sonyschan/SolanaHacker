@@ -24,7 +24,7 @@ export const PrivyAuthProvider = ({ children }) => {
           createOnLogin: 'all-users',
         },
         solanaClusters: [
-          { name: 'devnet', rpcUrl: 'https://api.devnet.solana.com' },
+          { name: 'mainnet-beta', rpcUrl: 'https://api.mainnet-beta.solana.com' },
         ],
         externalWallets: {
           solana: {

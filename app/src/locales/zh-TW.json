@@ -711,6 +711,23 @@
         "artStyles": "藝術風格",
         "recipes": "熱門配方"
       }
+    },
+    "create": {
+      "tabCreate": "創作",
+      "title": "Meme 鍛造廠",
+      "subtitle": "將任何話題變成 AI meme — 使用 $Memeya 或 SOL 支付",
+      "placeholder": "幣圈今天發生了什麼事？",
+      "generating": "正在鍛造你的 meme...",
+      "cancelled": "交易已取消",
+      "quality": "品質",
+      "share": "分享到 X",
+      "tryAnother": "再創作一張",
+      "featured": "近期得獎作品",
+      "featuredWinner": "每日抽獎得獎者",
+      "priceUnavailable": "價格暫時無法取得，請稍後再試",
+      "loadingPrices": "載入價格中...",
+      "connectHint": "連接錢包以生成 meme",
+      "priceNote": "基礎價格：{{base}} 美元等值"
     }
   },
   "workshop": {

@@ -14,9 +14,13 @@ const memeIdeaService = require("../services/memeIdeaService");
 const { optionalAuth, rateLimitByWallet } = require("../middleware/auth");
 const { requireLabKeyOrPayment } = require("../middleware/x402");
 const { getFirestore, collections } = require("../config/firebase");
-const { cacheResponse, TTL } = require("../utils/cache");
+const { cacheResponse, getOrFetch, TTL } = require("../utils/cache");
+const { verifySolanaPayment, markPaymentFailed, markPaymentRateLimited, markPaymentCompleted, MEMEYA_MINT } = require("../middleware/solanaPay");
 const admin = require('firebase-admin');
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
+
+// Solana meme generation rate limiter: 3 per hour per wallet
+const solanaGenLimiter = new Map(); // wallet -> { count, resetAt }
 
 /**
  * Log a successful x402 transaction to Workshop feed + analytics collection.
@@ -197,6 +201,170 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
     res.status(500).json({ success: false, error: "Failed to generate custom meme", message: error.message });
   }
 });
+
+// ── Solana on-chain payment endpoints ──────────────────────────────────
+
+const BASE_USD_PRICE = 0.10;
+const MEMEYA_DISCOUNT = 0.20; // 20% off
+
+/** Fetch Jupiter prices (cached in-memory 5min) */
+async function fetchJupiterPrices() {
+  return getOrFetch("jupiter:prices", TTL.MEDIUM, async () => {
+    const jupRes = await fetch(
+      `https://price.jup.ag/v6/price?ids=SOL,${MEMEYA_MINT.toBase58()}`
+    );
+    if (!jupRes.ok) throw new Error('Jupiter API unavailable');
+    return jupRes.json();
+  });
+}
+
+/**
+ * GET /api/memes/generate-price — Current SOL & $Memeya prices for meme generation
+ * Note: no cacheResponse middleware — getOrFetch already caches the Jupiter call,
+ * and cacheResponse would also cache 503 errors.
+ */
+router.get("/generate-price", async (req, res) => {
+  try {
+    const prices = await fetchJupiterPrices();
+
+    const solUsd = prices.data?.SOL?.price;
+    const memeyaUsd = prices.data?.[MEMEYA_MINT.toBase58()]?.price;
+
+    if (!solUsd) {
+      return res.status(503).json({ success: false, error: 'SOL price unavailable, try again shortly' });
+    }
+
+    const solAmount = BASE_USD_PRICE / solUsd;
+    const memeyaDiscountedUsd = BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT);
+    const memeyaAmount = memeyaUsd ? (memeyaDiscountedUsd / memeyaUsd) : null;
+
+    res.json({
+      success: true,
+      sol: {
+        amount: parseFloat(solAmount.toFixed(9)),
+        usd: solUsd,
+      },
+      memeya: memeyaUsd ? {
+        amount: parseFloat(memeyaAmount.toFixed(2)),
+        usd: memeyaUsd,
+        discount: MEMEYA_DISCOUNT,
+      } : null,
+      baseUsd: BASE_USD_PRICE,
+    });
+  } catch (error) {
+    console.error("Generate price error:", error);
+    res.status(503).json({ success: false, error: "Price service unavailable" });
+  }
+});
+
+/**
+ * POST /api/memes/generate-solana — Generate a meme after on-chain payment
+ * Body: { topic, txSignature, paymentToken: 'SOL'|'MEMEYA' }
+ */
+router.post("/generate-solana", async (req, res) => {
+  try {
+    const { topic, txSignature, paymentToken } = req.body;
+
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 2) {
+      return res.status(400).json({ success: false, error: "topic is required (min 2 chars)" });
+    }
+    if (!txSignature || typeof txSignature !== 'string') {
+      return res.status(400).json({ success: false, error: "txSignature is required" });
+    }
+    if (!['SOL', 'MEMEYA'].includes(paymentToken)) {
+      return res.status(400).json({ success: false, error: "paymentToken must be SOL or MEMEYA" });
+    }
+
+    // Fetch current price to determine expected amount
+    const prices = await fetchJupiterPrices();
+
+    let minAmount;
+    if (paymentToken === 'SOL') {
+      const solUsd = prices.data?.SOL?.price;
+      if (!solUsd) return res.status(503).json({ success: false, error: "SOL price unavailable" });
+      minAmount = BASE_USD_PRICE / solUsd;
+    } else {
+      const memeyaUsd = prices.data?.[MEMEYA_MINT.toBase58()]?.price;
+      if (!memeyaUsd) return res.status(503).json({ success: false, error: "$Memeya price unavailable" });
+      minAmount = (BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
+    }
+
+    // Build context for order record (price snapshot + topic for auditing)
+    const solUsdPrice = prices.data?.SOL?.price || null;
+    const memeyaUsdPrice = prices.data?.[MEMEYA_MINT.toBase58()]?.price || null;
+    const orderContext = {
+      topic: topic.trim(),
+      solUsdPrice,
+      memeyaUsdPrice,
+      baseUsdPrice: BASE_USD_PRICE,
+    };
+
+    // Verify on-chain payment (also extracts sender wallet + actual amount)
+    const { sender, actualAmount } = await verifySolanaPayment(txSignature, paymentToken, minAmount, orderContext);
+
+    // Rate limit: 3 per hour per wallet
+    // Checked AFTER payment verification so we know the sender, but the tx
+    // is already stored as 'verified'. If rate-limited, mark it as failed
+    // so the user can retry after the window expires.
+    const now = Date.now();
+    const limiterEntry = solanaGenLimiter.get(sender);
+    if (limiterEntry && now < limiterEntry.resetAt && limiterEntry.count >= 3) {
+      await markPaymentRateLimited(txSignature).catch(() => {});
+      return res.status(429).json({ success: false, error: "Rate limit exceeded — 3 memes per hour. Your payment can be retried later." });
+    }
+    if (limiterEntry && now < limiterEntry.resetAt) {
+      limiterEntry.count++;
+    } else {
+      solanaGenLimiter.set(sender, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    }
+
+    // Generate meme
+    let meme;
+    try {
+      meme = await generateSingleMeme({ topic: topic.trim() });
+    } catch (genErr) {
+      // Mark payment as failed so user can retry
+      await markPaymentFailed(txSignature, genErr.message || 'Meme generation failed').catch(() => {});
+      throw genErr;
+    }
+
+    // Mark payment completed
+    await markPaymentCompleted(txSignature, meme?.id).catch(() => {});
+
+    // Log to Workshop feed (fire-and-forget)
+    logSolanaTransaction(paymentToken, sender).catch(() => {});
+
+    res.json({ success: true, meme });
+  } catch (error) {
+    const status = error.status || 500;
+    console.error("Generate-solana error:", error.message);
+    res.status(status).json({
+      success: false,
+      error: error.message || "Failed to generate meme",
+    });
+  }
+});
+
+/** Log Solana payment to Workshop feed */
+async function logSolanaTransaction(paymentToken, sender) {
+  const db = getFirestore();
+  const now = new Date(Date.now() + 8 * 60 * 60 * 1000); // GMT+8
+  const date = now.toISOString().slice(0, 10);
+  const time = now.toTimeString().slice(0, 8);
+  const short = sender.slice(0, 4) + '...' + sender.slice(-4);
+  const token = paymentToken === 'MEMEYA' ? '$Memeya' : 'SOL';
+
+  const workshopRef = db.collection(collections.MEMEYA_WORKSHOP).doc(date);
+  await workshopRef.set({
+    entries: admin.firestore.FieldValue.arrayUnion({
+      time,
+      topic: 'solana_commerce',
+      text_en: `Forged a custom meme for ${short} — paid with ${token} on Solana`,
+      text_zh: `為 ${short} 打造了自訂 meme — 使用 ${token} 在 Solana 上支付`,
+      ambient: false,
+    }),
+  }, { merge: true });
+}
 
 /**
  * POST /api/memes/:id/regenerate-image - Retry image generation for a failed meme

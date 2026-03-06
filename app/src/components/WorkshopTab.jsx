@@ -34,6 +34,7 @@ const TOPIC_COLORS = {
   moltbook_engage: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
   x402_commerce: 'bg-green-500/20 text-green-400 border-green-500/30',
   acp_commerce: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  solana_commerce: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
 };
 
 // --- Feature 1: Action Tags & Personality Fillers ---
@@ -56,6 +57,7 @@ const ACTION_TAGS = {
   moltbook_engage:      { tag: 'SOCIALIZING', emoji: '\u{1F4AC}' },
   x402_commerce:        { tag: 'COMMERCE',    emoji: '\u{1F4B0}' },
   acp_commerce:         { tag: 'ACP',         emoji: '\u{1F91D}' },
+  solana_commerce:      { tag: 'COMMERCE',    emoji: '\u{1F4B0}' },
 };
 
 const PERSONALITY_FILLERS = {

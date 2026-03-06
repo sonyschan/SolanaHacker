@@ -84,7 +84,8 @@ const collections = {
   REFERRAL_IDS: 'referral_ids',
   MEMEYA_WORKSHOP: 'memeya_workshop',
   X402_TRANSACTIONS: 'x402_transactions',
-  COLLECTED_NEWS: 'collected_news'
+  COLLECTED_NEWS: 'collected_news',
+  SOLANA_ORDERS: 'solana_orders'
 };
 
 /**

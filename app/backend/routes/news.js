@@ -2,6 +2,34 @@ const express = require('express');
 const router = express.Router();
 const { requireLabKey } = require('../middleware/auth');
 const { getFirestore, collections } = require('../config/firebase');
+const { cacheResponse, TTL } = require('../utils/cache');
+
+/**
+ * GET /api/news/headlines — Public, cached 5min
+ * Returns top 5 recent news titles for frontend placeholder text.
+ */
+router.get('/headlines', cacheResponse('news:headlines', TTL.MEDIUM), async (req, res) => {
+  try {
+    const db = getFirestore();
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const snapshot = await db.collection(collections.COLLECTED_NEWS)
+      .where('collectedAt', '>=', cutoff)
+      .orderBy('collectedAt', 'desc')
+      .limit(5)
+      .get();
+
+    const headlines = snapshot.docs.map(doc => {
+      const d = doc.data();
+      return { title: d.title, category: d.category };
+    });
+
+    res.json({ success: true, headlines });
+  } catch (error) {
+    console.error('Headlines error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch headlines' });
+  }
+});
 
 /**
  * POST /api/news/collect

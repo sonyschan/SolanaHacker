@@ -711,6 +711,23 @@
         "artStyles": "Art Styles",
         "recipes": "Top Recipes"
       }
+    },
+    "create": {
+      "tabCreate": "Create",
+      "title": "Meme Forge",
+      "subtitle": "Turn any topic into an AI meme — pay with $Memeya or SOL",
+      "placeholder": "What's happening in crypto today?",
+      "generating": "Forging your meme...",
+      "cancelled": "Transaction cancelled",
+      "quality": "Quality",
+      "share": "Share on X",
+      "tryAnother": "Create Another",
+      "featured": "Recent Winner",
+      "featuredWinner": "Daily lottery winner",
+      "priceUnavailable": "Price unavailable — try again shortly",
+      "loadingPrices": "Loading prices...",
+      "connectHint": "Connect your wallet to generate a meme",
+      "priceNote": "Base price: {{base}} USD equivalent"
     }
   },
   "workshop": {

@@ -1,32 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../hooks/useAuth';
+import { useWallets, useSignAndSendTransaction } from '@privy-io/react-auth/solana';
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+import {
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
+} from '@solana/spl-token';
+import bs58 from 'bs58';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
+const MEMEYA_WALLET = new PublicKey('4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP');
+const MEMEYA_MINT = new PublicKey('mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump');
+const MEMEYA_DECIMALS = 6;
+
+const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+
+// ── Private-mode auth helpers ──────────────────────────────────────────
 const LAB_STORAGE_KEY = 'lab_api_key';
 const LAB_EXPIRY_KEY = 'lab_api_key_expires';
-const LAB_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const LAB_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getStoredKey() {
   const key = localStorage.getItem(LAB_STORAGE_KEY);
   const expires = localStorage.getItem(LAB_EXPIRY_KEY);
   if (key && expires && Date.now() < Number(expires)) return key;
-  // Expired or missing — clear
   localStorage.removeItem(LAB_STORAGE_KEY);
   localStorage.removeItem(LAB_EXPIRY_KEY);
   return null;
 }
-
 function storeKey(key) {
   localStorage.setItem(LAB_STORAGE_KEY, key);
   localStorage.setItem(LAB_EXPIRY_KEY, String(Date.now() + LAB_TTL_MS));
 }
-
 function clearStoredKey() {
   localStorage.removeItem(LAB_STORAGE_KEY);
   localStorage.removeItem(LAB_EXPIRY_KEY);
 }
 
+// ── Constants ──────────────────────────────────────────────────────────
 const GRADE_COLORS = {
   'S':  'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
   'A+': 'text-purple-400 bg-purple-400/10 border-purple-400/30',
@@ -102,55 +122,227 @@ const narratives = await fetch('${base}/api/catalog/narratives')
   .then(r => r.json());`,
 };
 
+const GENERATION_MESSAGES = [
+  'Analyzing topic...',
+  'Crafting comedy architecture...',
+  'Selecting art style...',
+  'Generating image...',
+  'Almost there...',
+];
+
+// ── Component ──────────────────────────────────────────────────────────
 const LabTab = ({ publicMode = false }) => {
   const { t } = useTranslation();
+  const { authenticated, walletAddress, login } = useAuth();
+  const { wallets: solanaWallets } = useWallets();
+  const { signAndSendTransaction } = useSignAndSendTransaction();
 
-  // Auth state
+  // Tab state (public mode: create/api; private mode: rate/generate/catalog/api)
+  const [activePanel, setActivePanel] = useState(publicMode ? 'create' : 'rate');
+
+  // ── Create tab state ──────────────────────────────────────
+  const [createTopic, setCreateTopic] = useState('');
+  const [prices, setPrices] = useState(null);
+  const [pricesLoading, setPricesLoading] = useState(false);
+  const [headlines, setHeadlines] = useState([]);
+  const [headlineIdx, setHeadlineIdx] = useState(0);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createStatus, setCreateStatus] = useState('');
+  const [createResult, setCreateResult] = useState(null);
+  const [createError, setCreateError] = useState('');
+  const [featuredMeme, setFeaturedMeme] = useState(null);
+
+  // ── Private mode auth state ───────────────────────────────
   const [apiKey, setApiKey] = useState(() => getStoredKey());
   const [passphrase, setPassphrase] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [activePanel, setActivePanel] = useState(publicMode ? 'api' : 'rate');
-
-  // Catalog data
-  const [catalogs, setCatalogs] = useState({
-    templates: [], strategies: [], narratives: [], artStyles: [], topRecipes: []
-  });
+  // Private mode panel states
+  const [catalogs, setCatalogs] = useState({ templates: [], strategies: [], narratives: [], artStyles: [], topRecipes: [] });
   const [catalogLoading, setCatalogLoading] = useState(true);
-
-  // Rate panel state
   const [rateImageUrl, setRateImageUrl] = useState('');
   const [rateResult, setRateResult] = useState(null);
   const [rateLoading, setRateLoading] = useState(false);
-
-  // Generate panel state
   const [genForm, setGenForm] = useState({ topic: '', templateId: '', strategyId: '', narrativeId: '', artStyleId: '', mode: 'auto' });
   const [genResult, setGenResult] = useState(null);
   const [genLoading, setGenLoading] = useState(false);
-
-  // Catalog sub-tab
   const [catalogTab, setCatalogTab] = useState('templates');
-
-  // API panel state
   const [codeCopied, setCodeCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const [codeTab, setCodeTab] = useState('rate');
+  const [recipesLoaded, setRecipesLoaded] = useState(false);
 
-  // Build headers with current api key
   const labHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
     'x-api-key': apiKey || '',
   }), [apiKey]);
 
-  // Verify passphrase against backend
+  // ── Fetch prices (Create tab) ────────────────────────────
+  useEffect(() => {
+    if (!publicMode) return;
+    setPricesLoading(true);
+    fetch(`${API_BASE_URL}/api/memes/generate-price`)
+      .then(r => r.json())
+      .then(data => { if (data.success) setPrices(data); })
+      .catch(() => {})
+      .finally(() => setPricesLoading(false));
+  }, [publicMode]);
+
+  // ── Fetch headlines for rotating placeholder ──────────────
+  useEffect(() => {
+    if (!publicMode) return;
+    fetch(`${API_BASE_URL}/api/news/headlines`)
+      .then(r => r.json())
+      .then(data => { if (data.headlines?.length) setHeadlines(data.headlines); })
+      .catch(() => {});
+  }, [publicMode]);
+
+  // Rotate headline every 4 seconds
+  useEffect(() => {
+    if (headlines.length < 2) return;
+    const timer = setInterval(() => {
+      setHeadlineIdx(i => (i + 1) % headlines.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [headlines.length]);
+
+  // ── Fetch featured meme (recent winner) ───────────────────
+  useEffect(() => {
+    if (!publicMode) return;
+    fetch(`${API_BASE_URL}/api/lottery/recent-winners?limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        const winner = data.winners?.[0] || data.data?.[0];
+        if (winner) setFeaturedMeme(winner);
+      })
+      .catch(() => {});
+  }, [publicMode]);
+
+  // ── Solana payment + generation ───────────────────────────
+  const handleCreate = async (paymentToken) => {
+    if (!createTopic.trim()) return;
+    if (!authenticated) { login(); return; }
+
+    setCreateLoading(true);
+    setCreateError('');
+    setCreateResult(null);
+    setCreateStatus(GENERATION_MESSAGES[0]);
+
+    // Rotate status messages
+    let msgIdx = 0;
+    const statusTimer = setInterval(() => {
+      msgIdx = Math.min(msgIdx + 1, GENERATION_MESSAGES.length - 1);
+      setCreateStatus(GENERATION_MESSAGES[msgIdx]);
+    }, 12000);
+
+    try {
+      // 1. Find connected Solana wallet
+      //    Match the wallet address from useAuth() to ensure we use the same wallet
+      //    the user sees displayed. useAuth() prefers external wallets (Phantom) over embedded.
+      const solWallet = walletAddress
+        ? solanaWallets.find(w => w.address === walletAddress) || solanaWallets[0]
+        : solanaWallets[0];
+      if (!solWallet) throw new Error('No Solana wallet found. Please connect a wallet.');
+
+      // 2. Build transaction
+      const connection = new Connection(SOLANA_RPC, 'confirmed');
+      const fromPubkey = new PublicKey(solWallet.address);
+
+      let tx;
+      if (paymentToken === 'SOL') {
+        const lamports = Math.ceil(prices.sol.amount * LAMPORTS_PER_SOL);
+        tx = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey,
+            toPubkey: MEMEYA_WALLET,
+            lamports,
+          })
+        );
+      } else {
+        // $Memeya SPL token transfer
+        const rawAmount = BigInt(Math.ceil(prices.memeya.amount * 10 ** MEMEYA_DECIMALS));
+        const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey);
+        const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET);
+
+        tx = new Transaction();
+
+        // Create destination ATA if it doesn't exist
+        const toAtaInfo = await connection.getAccountInfo(toAta);
+        if (!toAtaInfo) {
+          tx.add(createAssociatedTokenAccountInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
+        }
+
+        tx.add(createTransferCheckedInstruction(
+          fromAta,
+          MEMEYA_MINT,
+          toAta,
+          fromPubkey,
+          rawAmount,
+          MEMEYA_DECIMALS,
+        ));
+      }
+
+      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = blockhash;
+      tx.feePayer = fromPubkey;
+
+      // 3. Serialize and sign+send via Privy SDK
+      //    Privy's signAndSendTransaction expects { transaction: Uint8Array, wallet, chain }
+      //    Return shape varies: { hash: string } (base58) or { signature: Uint8Array }
+      setCreateStatus('Waiting for wallet signature...');
+      const txBytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+      const result = await signAndSendTransaction({
+        transaction: txBytes,
+        wallet: solWallet,
+        chain: 'solana:mainnet',
+      });
+      // Handle both return shapes: hash (base58 string) or signature (raw bytes)
+      const signature = typeof result.hash === 'string'
+        ? result.hash
+        : result.signature
+          ? bs58.encode(result.signature)
+          : null;
+      if (!signature) throw new Error('Failed to get transaction signature from wallet');
+
+      // 4. Send to backend for verification + generation
+      setCreateStatus(GENERATION_MESSAGES[1]);
+      const res = await fetch(`${API_BASE_URL}/api/memes/generate-solana`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: createTopic.trim(),
+          txSignature: signature,
+          paymentToken,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Generation failed');
+      }
+
+      setCreateResult(data.meme);
+    } catch (err) {
+      if (err.message?.includes('User rejected') || err.message?.includes('cancelled')) {
+        setCreateError(t('lab.create.cancelled'));
+      } else {
+        setCreateError(err.message || 'Something went wrong');
+      }
+    } finally {
+      clearInterval(statusTimer);
+      setCreateLoading(false);
+      setCreateStatus('');
+    }
+  };
+
+  // ── Private mode handlers ─────────────────────────────────
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!passphrase.trim()) return;
     setAuthLoading(true);
     setAuthError('');
     try {
-      // Try fetching a lightweight catalog endpoint to verify the key
       const res = await fetch(`${API_BASE_URL}/api/catalog/art-styles`, {
         headers: { 'x-api-key': passphrase.trim() },
       });
@@ -175,7 +367,6 @@ const LabTab = ({ publicMode = false }) => {
     setCatalogs({ templates: [], strategies: [], narratives: [], artStyles: [], topRecipes: [] });
   };
 
-  // Fetch catalogs once authenticated
   useEffect(() => {
     if (!apiKey) return;
     const fetchCatalogs = async () => {
@@ -188,7 +379,6 @@ const LabTab = ({ publicMode = false }) => {
           fetch(`${API_BASE_URL}/api/catalog/narratives`, fetchOpts).then(r => r.json()),
           fetch(`${API_BASE_URL}/api/catalog/art-styles`, fetchOpts).then(r => r.json()),
         ]);
-        // If any response indicates auth failure, clear the stored key
         if (tpl.error === 'FORBIDDEN' || str.error === 'FORBIDDEN') {
           clearStoredKey();
           setApiKey(null);
@@ -210,8 +400,6 @@ const LabTab = ({ publicMode = false }) => {
     fetchCatalogs();
   }, [apiKey]);
 
-  // Load top recipes when catalog tab switches to recipes
-  const [recipesLoaded, setRecipesLoaded] = useState(false);
   useEffect(() => {
     if (!apiKey || catalogTab !== 'recipes' || recipesLoaded) return;
     setRecipesLoaded(true);
@@ -233,8 +421,7 @@ const LabTab = ({ publicMode = false }) => {
       if (res.status === 402) {
         setRateResult({ success: false, error: t('lab.rate.paymentRequired'), is402: true });
       } else {
-        const data = await res.json();
-        setRateResult(data);
+        setRateResult(await res.json());
       }
     } catch (err) {
       setRateResult({ success: false, error: err.message });
@@ -261,8 +448,7 @@ const LabTab = ({ publicMode = false }) => {
       if (res.status === 402) {
         setGenResult({ success: false, error: t('lab.generate.paymentRequired'), is402: true });
       } else {
-        const data = await res.json();
-        setGenResult(data);
+        setGenResult(await res.json());
       }
     } catch (err) {
       setGenResult({ success: false, error: err.message });
@@ -271,15 +457,20 @@ const LabTab = ({ publicMode = false }) => {
     }
   };
 
-  const allPanels = [
+  // ── Panel definitions ─────────────────────────────────────
+  const privatePanels = [
     { id: 'rate', label: t('lab.panels.rate') },
     { id: 'generate', label: t('lab.panels.generate') },
     { id: 'catalog', label: t('lab.panels.catalog') },
     { id: 'api', label: t('lab.panels.api') },
   ];
-  const panels = publicMode ? [{ id: 'api', label: t('lab.panels.api') }] : allPanels;
+  const publicPanels = [
+    { id: 'create', label: t('lab.create.tabCreate') },
+    { id: 'api', label: t('lab.panels.api') },
+  ];
+  const panels = publicMode ? publicPanels : privatePanels;
 
-  // ── Auth Gate ─────────────────────────────────────────────
+  // ── Private-mode auth gate ────────────────────────────────
   if (!apiKey && !publicMode) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -309,13 +500,22 @@ const LabTab = ({ publicMode = false }) => {
     );
   }
 
-  // ── Authenticated Lab UI ──────────────────────────────────
+  // ── Placeholder text from headlines ───────────────────────
+  const placeholderText = headlines.length > 0
+    ? headlines[headlineIdx]?.title || t('lab.create.placeholder')
+    : t('lab.create.placeholder');
+
+  // ── Main render ───────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white">{t('lab.title')}</h2>
-        <p className="text-gray-400 text-sm mt-1">{t('lab.subtitle')}</p>
+        <h2 className="text-2xl font-bold text-white">
+          {publicMode ? t('lab.create.title') : t('lab.title')}
+        </h2>
+        <p className="text-gray-400 text-sm mt-1">
+          {publicMode ? t('lab.create.subtitle') : t('lab.subtitle')}
+        </p>
         {!publicMode && (
           <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-gray-300 mt-1 transition-colors">
             {t('lab.auth.logout')}
@@ -323,8 +523,8 @@ const LabTab = ({ publicMode = false }) => {
         )}
       </div>
 
-      {/* Panel Switcher (hidden in public mode — only API panel) */}
-      {panels.length > 1 && <div className="flex gap-2 justify-center">
+      {/* Tab Switcher */}
+      <div className="flex gap-2 justify-center">
         {panels.map(p => (
           <button
             key={p.id}
@@ -338,9 +538,192 @@ const LabTab = ({ publicMode = false }) => {
             {p.label}
           </button>
         ))}
-      </div>}
+      </div>
 
-      {/* Panel Content */}
+      {/* ═══════════════════════════════════════════════════════
+          CREATE TAB — Google-search-style meme generator
+          ═══════════════════════════════════════════════════════ */}
+      {activePanel === 'create' && (
+        <div className="space-y-8">
+          {/* Search-style input area */}
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={createTopic}
+                onChange={e => setCreateTopic(e.target.value)}
+                placeholder={placeholderText}
+                disabled={createLoading}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && createTopic.trim() && !createLoading) {
+                    handleCreate(prices?.memeya ? 'MEMEYA' : 'SOL');
+                  }
+                }}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-4 text-white text-base placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all disabled:opacity-50"
+              />
+              {createTopic.trim() && !createLoading && (
+                <button
+                  onClick={() => setCreateTopic('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  x
+                </button>
+              )}
+            </div>
+
+            {/* Payment buttons */}
+            {!createLoading && !createResult && (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {/* $Memeya button */}
+                {prices?.memeya && (
+                  <button
+                    onClick={() => handleCreate('MEMEYA')}
+                    disabled={!createTopic.trim() || createLoading}
+                    className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+                  >
+                    <span className="text-lg">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
+                    <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">
+                      {Math.round(prices.memeya.discount * 100)}% off
+                    </span>
+                  </button>
+                )}
+
+                {/* SOL button */}
+                {prices?.sol && (
+                  <button
+                    onClick={() => handleCreate('SOL')}
+                    disabled={!createTopic.trim() || createLoading}
+                    className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
+                  >
+                    <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
+                  </button>
+                )}
+
+                {!prices && !pricesLoading && (
+                  <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>
+                )}
+                {pricesLoading && (
+                  <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>
+                )}
+              </div>
+            )}
+
+            {/* Connect wallet prompt */}
+            {!authenticated && createTopic.trim() && !createLoading && (
+              <p className="text-center text-xs text-gray-500">
+                {t('lab.create.connectHint')}
+              </p>
+            )}
+
+            {/* Price info */}
+            {prices && !createLoading && !createResult && (
+              <p className="text-center text-xs text-gray-600">
+                {t('lab.create.priceNote', { base: '$0.10' })}
+              </p>
+            )}
+          </div>
+
+          {/* Loading state */}
+          {createLoading && (
+            <div className="max-w-md mx-auto text-center space-y-4 py-8">
+              <div className="inline-block w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+              <p className="text-white font-medium">{t('lab.create.generating')}</p>
+              <p className="text-gray-400 text-sm animate-pulse">{createStatus}</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {createError && (
+            <div className="max-w-md mx-auto bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
+              <p className="text-red-400 text-sm">{createError}</p>
+              <button
+                onClick={() => setCreateError('')}
+                className="mt-2 text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                {t('lab.create.tryAnother')}
+              </button>
+            </div>
+          )}
+
+          {/* Result */}
+          {createResult && (
+            <div className="max-w-lg mx-auto space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                {createResult.imageUrl && (
+                  <img
+                    src={createResult.imageUrl}
+                    alt={createResult.title}
+                    className="w-full"
+                  />
+                )}
+                <div className="p-4 space-y-2">
+                  <h3 className="text-white font-bold text-lg">{createResult.title}</h3>
+                  {createResult.description && (
+                    <p className="text-gray-400 text-sm">{createResult.description}</p>
+                  )}
+                  {createResult.metadata?.qualityScore && (
+                    <p className="text-xs text-gray-500">
+                      {t('lab.create.quality')}: {createResult.metadata.qualityScore}/100
+                    </p>
+                  )}
+                  {createResult.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {createResult.tags.map((tag, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-gray-300 border border-white/10">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    const url = createResult.imageUrl || window.location.href;
+                    const text = `${createResult.title} — made with @MemeForgeAI`;
+                    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+                >
+                  {t('lab.create.share')}
+                </button>
+                <button
+                  onClick={() => { setCreateResult(null); setCreateTopic(''); }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
+                >
+                  {t('lab.create.tryAnother')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Featured meme showcase */}
+          {!createLoading && !createResult && featuredMeme && (
+            <div className="max-w-sm mx-auto">
+              <p className="text-center text-xs text-gray-500 mb-3">{t('lab.create.featured')}</p>
+              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                {featuredMeme.imageUrl && (
+                  <img
+                    src={featuredMeme.imageUrl}
+                    alt={featuredMeme.title}
+                    className="w-full"
+                  />
+                )}
+                <div className="p-3">
+                  <p className="text-white text-sm font-medium">{featuredMeme.title}</p>
+                  <p className="text-gray-500 text-xs mt-1">{t('lab.create.featuredWinner')}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          RATE TAB (private mode only)
+          ═══════════════════════════════════════════════════════ */}
       {activePanel === 'rate' && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white">{t('lab.rate.title')}</h3>
@@ -358,7 +741,6 @@ const LabTab = ({ publicMode = false }) => {
               />
             </div>
 
-            {/* Image preview */}
             {rateImageUrl.trim() && (
               <div className="flex justify-center">
                 <img
@@ -383,7 +765,6 @@ const LabTab = ({ publicMode = false }) => {
             )}
           </div>
 
-          {/* Rate Result */}
           {rateResult && (
             <div className="mt-4 space-y-3">
               {rateResult.success ? (
@@ -400,7 +781,6 @@ const LabTab = ({ publicMode = false }) => {
                     </div>
                   </div>
 
-                  {/* Score bar */}
                   <div className="bg-white/5 rounded-full h-3 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
@@ -434,6 +814,9 @@ const LabTab = ({ publicMode = false }) => {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          GENERATE TAB (private mode only)
+          ═══════════════════════════════════════════════════════ */}
       {activePanel === 'generate' && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white">{t('lab.generate.title')}</h3>
@@ -535,7 +918,6 @@ const LabTab = ({ publicMode = false }) => {
             )}
           </div>
 
-          {/* Generate Result */}
           {genResult && (
             <div className="mt-4">
               {genResult.success ? (
@@ -586,6 +968,9 @@ const LabTab = ({ publicMode = false }) => {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          CATALOG TAB (private mode only)
+          ═══════════════════════════════════════════════════════ */}
       {activePanel === 'catalog' && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white">{t('lab.catalog.title')}</h3>
@@ -677,15 +1062,16 @@ const LabTab = ({ publicMode = false }) => {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          API TAB (both modes)
+          ═══════════════════════════════════════════════════════ */}
       {activePanel === 'api' && (
         <div className="space-y-6">
-          {/* Title + subtitle */}
           <div className="text-center">
             <h3 className="text-lg font-semibold text-white">{t('lab.api.title')}</h3>
             <p className="text-gray-400 text-sm mt-1">{t('lab.api.subtitle')}</p>
           </div>
 
-          {/* Pricing cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {['rate', 'generate', 'catalog'].map(svc => (
               <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
@@ -700,14 +1086,12 @@ const LabTab = ({ publicMode = false }) => {
             ))}
           </div>
 
-          {/* Protocol badge */}
           <div className="text-center">
             <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-gray-300">
               {t('lab.api.protocol')}
             </span>
           </div>
 
-          {/* Quick Start — tabbed by endpoint */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-white">{t('lab.api.quickStart')}</h4>
@@ -742,7 +1126,6 @@ const LabTab = ({ publicMode = false }) => {
             </pre>
           </div>
 
-          {/* Base URL */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-white">{t('lab.api.baseUrl')}</h4>
             <div className="flex items-center gap-2 bg-[#0D1117] border border-white/10 rounded-lg px-4 py-3">

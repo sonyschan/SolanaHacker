@@ -711,6 +711,23 @@
         "artStyles": "艺术风格",
         "recipes": "热门配方"
       }
+    },
+    "create": {
+      "tabCreate": "创作",
+      "title": "Meme 锻造厂",
+      "subtitle": "将任何话题变成 AI meme — 使用 $Memeya 或 SOL 支付",
+      "placeholder": "币圈今天发生了什么事？",
+      "generating": "正在锻造你的 meme...",
+      "cancelled": "交易已取消",
+      "quality": "品质",
+      "share": "分享到 X",
+      "tryAnother": "再创作一张",
+      "featured": "近期获奖作品",
+      "featuredWinner": "每日抽奖获奖者",
+      "priceUnavailable": "价格暂时无法获取，请稍后再试",
+      "loadingPrices": "加载价格中...",
+      "connectHint": "连接钱包以生成 meme",
+      "priceNote": "基础价格：{{base}} 美元等值"
     }
   },
   "workshop": {
