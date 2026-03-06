@@ -12,7 +12,7 @@ import {
 import {
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
@@ -266,11 +266,8 @@ const LabTab = ({ publicMode = false }) => {
 
         tx = new Transaction();
 
-        // Create destination ATA if it doesn't exist
-        const toAtaInfo = await connection.getAccountInfo(toAta);
-        if (!toAtaInfo) {
-          tx.add(createAssociatedTokenAccountInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
-        }
+        // Ensure destination ATA exists (idempotent — no-op if already exists)
+        tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
 
         tx.add(createTransferCheckedInstruction(
           fromAta,
