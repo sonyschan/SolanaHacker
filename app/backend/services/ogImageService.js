@@ -1,10 +1,14 @@
 /**
  * OG Image Generation Service for AI MemeForge
  * Generates branded 1200x630 images for Twitter/X sharing
+ *
+ * Strategy: satori renders the text/layout SVG, resvg converts to PNG,
+ * then sharp composites the meme image on top (resvg can't render <image>).
  */
 
 const satori = require('satori').default;
 const { Resvg } = require('@resvg/resvg-js');
+const sharp = require('sharp');
 const { readFileSync } = require('fs');
 const { join } = require('path');
 
@@ -17,7 +21,6 @@ async function loadFonts() {
   if (fontsLoaded) return;
 
   try {
-    // Try to load local fonts first (using static woff files, not variable ttf)
     fontBold = readFileSync(join(__dirname, '../assets/fonts/Inter-Bold.woff'));
     fontRegular = readFileSync(join(__dirname, '../assets/fonts/Inter-Regular.woff'));
     fontsLoaded = true;
@@ -25,14 +28,12 @@ async function loadFonts() {
   } catch (e) {
     console.warn('[OG] Local fonts not found, fetching from CDN...');
     try {
-      // Fetch fonts using native fetch (Node 18+)
       const fetchFont = async (url) => {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
         return Buffer.from(await response.arrayBuffer());
       };
 
-      // Use jsDelivr CDN hosting @fontsource/inter TTF files
       const [boldRes, regularRes] = await Promise.all([
         fetchFont('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff'),
         fetchFont('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff')
@@ -48,33 +49,25 @@ async function loadFonts() {
 }
 
 /**
- * Fetch image and convert to data URL for satori embedding
+ * Fetch image as Buffer
  */
-async function fetchImageAsDataUrl(url) {
-  if (!url) {
-    console.log('[OG] No image URL provided');
-    return null;
-  }
+async function fetchImageBuffer(url) {
+  if (!url) return null;
   try {
-    console.log('[OG] Fetching image:', url);
     const response = await fetch(url);
-    console.log('[OG] Image fetch status:', response.status);
-    if (!response.ok) {
-      console.warn('[OG] Image fetch failed with status:', response.status);
-      return null;
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    console.log('[OG] Image size:', arrayBuffer.byteLength);
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType = response.headers.get('content-type') || 'image/png';
-    const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
-    console.log('[OG] Image converted to data URL, length:', dataUrl.length);
-    return dataUrl;
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
   } catch (e) {
-    console.error('[OG] Failed to fetch image:', e.message, e.stack);
+    console.error('[OG] Failed to fetch image:', e.message);
     return null;
   }
 }
+
+// Meme image position in the OG card (must match satori layout)
+const MEME_LEFT = 50;    // 20px padding + 30px marginLeft
+const MEME_TOP = 65;     // 20px padding + 45px marginTop
+const MEME_SIZE = 500;
+const MEME_RADIUS = 24;
 
 // Rarity colors
 const RARITY_COLORS = {
@@ -87,14 +80,10 @@ const RARITY_COLORS = {
 
 /**
  * Generate OG image for a meme
- * @param {Object} meme - Meme data with title, imageUrl, style, rarity, etc.
- * @returns {Buffer} PNG image buffer
  */
 async function generateOGImage(meme) {
-  // Ensure fonts are loaded
   await loadFonts();
 
-  // If fonts still aren't loaded, use simple SVG fallback
   if (!fontBold || !fontRegular) {
     console.warn('[OG] Using SVG fallback due to font loading failure');
     return generateSimpleOGImage(meme.title || 'AI Generated Meme');
@@ -107,32 +96,15 @@ async function generateOGImage(meme) {
   const rarityLevel = meme.rarity?.level || meme.finalRarity || '';
   const totalVotes = (meme.votes?.selection?.yes || 0) + (meme.votes?.selection?.no || 0);
 
-  // Detect if voting is still active (meme is from today)
   const memeDate = meme.generatedAt ? new Date(meme.generatedAt).toISOString().split('T')[0] : null;
   const today = new Date().toISOString().split('T')[0];
   const isVotingActive = memeDate === today && !meme.finalRarity;
 
-  // CTA text based on voting status
   const ctaText = isVotingActive ? 'Vote & Earn Tickets' : 'See More Memes';
-  const ctaIcon = isVotingActive ? '>' : '→';
-
-  // Always convert to data URL — satori cannot reliably fetch external URLs
-  let imageDataUrl = null;
-  if (meme.imageUrl) {
-    imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
-  }
-
-  // Load logo as data URL
-  let logoDataUrl = null;
-  try {
-    logoDataUrl = await fetchImageAsDataUrl('https://aimemeforge.io/images/logo-64.png');
-  } catch (e) {
-    console.log('[OG] Failed to load logo');
-  }
+  const ctaIcon = isVotingActive ? '>' : '>';
 
   const colors = RARITY_COLORS[rarityLevel] || RARITY_COLORS['Common'];
 
-  // Build tags array for display (style + newsSource + first 2 tags)
   const displayTags = [];
   if (style) displayTags.push({ text: style, color: '#a78bfa', bg: 'rgba(139, 92, 246, 0.25)' });
   if (newsSource) displayTags.push({ text: newsSource, color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.25)' });
@@ -140,6 +112,7 @@ async function generateOGImage(meme) {
     displayTags.push({ text: tag, color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.25)' });
   });
 
+  // Step 1: Render satori SVG WITHOUT the meme image (just placeholder box)
   const svg = await satori(
     {
       type: 'div',
@@ -153,7 +126,7 @@ async function generateOGImage(meme) {
           padding: '20px',
         },
         children: [
-          // Left side - Meme Image
+          // Left side - placeholder for meme image (sharp will composite later)
           {
             type: 'div',
             props: {
@@ -171,25 +144,14 @@ async function generateOGImage(meme) {
                 justifyContent: 'center',
                 backgroundColor: '#1a1a3e',
               },
-              children: imageDataUrl ? [
-                {
-                  type: 'img',
-                  props: {
-                    src: imageDataUrl,
-                    width: 500,
-                    height: 500,
-                    style: { objectFit: 'cover' },
-                  },
+              // No image — just empty placeholder
+              children: [{
+                type: 'span',
+                props: {
+                  style: { fontSize: '120px', color: '#2a2a5e' },
+                  children: '',
                 },
-              ] : [
-                {
-                  type: 'span',
-                  props: {
-                    style: { fontSize: '120px' },
-                    children: 'AI',
-                  },
-                },
-              ],
+              }],
             },
           },
 
@@ -215,42 +177,28 @@ async function generateOGImage(meme) {
                       alignItems: 'flex-start',
                     },
                     children: [
-                      // Logo with image
                       {
                         type: 'div',
                         props: {
                           style: { display: 'flex', alignItems: 'center', gap: '12px' },
                           children: [
-                            logoDataUrl ? {
-                              type: 'img',
-                              props: {
-                                src: logoDataUrl,
-                                width: 48,
-                                height: 48,
-                                style: { borderRadius: '8px' },
-                              },
-                            } : {
+                            {
                               type: 'span',
                               props: {
-                                style: { fontSize: '36px', color: '#06b6d4' },
-                                children: 'AI',
+                                style: { fontSize: '36px', fontWeight: 700, color: '#06b6d4' },
+                                children: 'M',
                               },
                             },
                             {
                               type: 'span',
                               props: {
-                                style: {
-                                  fontSize: '32px',
-                                  fontWeight: 700,
-                                  color: '#06b6d4',
-                                },
+                                style: { fontSize: '32px', fontWeight: 700, color: '#06b6d4' },
                                 children: 'AI MemeForge',
                               },
                             },
                           ],
                         },
                       },
-                      // Rarity badge
                       rarityLevel ? {
                         type: 'div',
                         props: {
@@ -263,26 +211,13 @@ async function generateOGImage(meme) {
                             alignItems: 'center',
                             gap: '8px',
                           },
-                          children: [
-                            rarityLevel === 'Legendary' ? {
-                              type: 'span',
-                              props: {
-                                style: { fontSize: '20px' },
-                                children: '*',
-                              },
-                            } : null,
-                            {
-                              type: 'span',
-                              props: {
-                                style: {
-                                  fontSize: '20px',
-                                  fontWeight: 700,
-                                  color: colors.primary,
-                                },
-                                children: rarityLevel,
-                              },
+                          children: [{
+                            type: 'span',
+                            props: {
+                              style: { fontSize: '20px', fontWeight: 700, color: colors.primary },
+                              children: rarityLevel,
                             },
-                          ].filter(Boolean),
+                          }],
                         },
                       } : null,
                     ].filter(Boolean),
@@ -293,13 +228,8 @@ async function generateOGImage(meme) {
                 {
                   type: 'div',
                   props: {
-                    style: {
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '16px',
-                    },
+                    style: { display: 'flex', flexDirection: 'column', gap: '16px' },
                     children: [
-                      // Title - larger font
                       {
                         type: 'span',
                         props: {
@@ -312,7 +242,6 @@ async function generateOGImage(meme) {
                           children: title,
                         },
                       },
-                      // Tags row - show multiple tags
                       displayTags.length > 0 ? {
                         type: 'div',
                         props: {
@@ -341,13 +270,8 @@ async function generateOGImage(meme) {
                 {
                   type: 'div',
                   props: {
-                    style: {
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                    },
+                    style: { display: 'flex', flexDirection: 'column', gap: '12px' },
                     children: [
-                      // Vote stats
                       totalVotes > 0 ? {
                         type: 'div',
                         props: {
@@ -359,21 +283,11 @@ async function generateOGImage(meme) {
                             color: '#a78bfa',
                           },
                           children: [
-                            {
-                              type: 'span',
-                              props: { children: 'VOTES:' },
-                            },
-                            {
-                              type: 'span',
-                              props: {
-                                style: { fontWeight: 600 },
-                                children: `${totalVotes} votes`,
-                              },
-                            },
+                            { type: 'span', props: { children: 'VOTES:' } },
+                            { type: 'span', props: { style: { fontWeight: 600 }, children: `${totalVotes} votes` } },
                           ],
                         },
                       } : null,
-                      // CTA - Larger and more prominent
                       {
                         type: 'div',
                         props: {
@@ -386,28 +300,15 @@ async function generateOGImage(meme) {
                             fontWeight: 700,
                           },
                           children: [
-                            {
-                              type: 'span',
-                              props: {
-                                style: { fontSize: '28px' },
-                                children: ctaIcon,
-                              },
-                            },
-                            {
-                              type: 'span',
-                              props: { children: ctaText },
-                            },
+                            { type: 'span', props: { style: { fontSize: '28px' }, children: ctaIcon } },
+                            { type: 'span', props: { children: ctaText } },
                           ],
                         },
                       },
-                      // Tagline
                       {
                         type: 'span',
                         props: {
-                          style: {
-                            fontSize: '18px',
-                            color: '#9ca3af',
-                          },
+                          style: { fontSize: '18px', color: '#9ca3af' },
                           children: 'AI Dreams. Humans Decide. | aimemeforge.io',
                         },
                       },
@@ -423,15 +324,50 @@ async function generateOGImage(meme) {
     {
       width: 1200,
       height: 630,
-      fonts: fontBold && fontRegular ? [
+      fonts: [
         { name: 'Inter', data: fontBold, weight: 700, style: 'normal' },
         { name: 'Inter', data: fontRegular, weight: 400, style: 'normal' },
-      ] : [],
+      ],
     }
   );
 
+  // Step 2: Convert SVG to PNG via resvg
   const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } });
-  return resvg.render().asPng();
+  const basePng = resvg.render().asPng();
+
+  // Step 3: Fetch meme image and composite with sharp
+  const memeBuffer = await fetchImageBuffer(meme.imageUrl);
+  if (!memeBuffer) {
+    console.log('[OG] No meme image available, returning base card');
+    return basePng;
+  }
+
+  // Resize meme image to fit the placeholder area, with rounded corners
+  const roundedMeme = await sharp(memeBuffer)
+    .resize(MEME_SIZE, MEME_SIZE, { fit: 'cover' })
+    .composite([{
+      input: Buffer.from(
+        `<svg width="${MEME_SIZE}" height="${MEME_SIZE}">
+          <rect x="0" y="0" width="${MEME_SIZE}" height="${MEME_SIZE}" rx="${MEME_RADIUS}" ry="${MEME_RADIUS}" fill="white"/>
+        </svg>`
+      ),
+      blend: 'dest-in',
+    }])
+    .png()
+    .toBuffer();
+
+  // Composite meme image onto the base card
+  const finalPng = await sharp(basePng)
+    .composite([{
+      input: roundedMeme,
+      left: MEME_LEFT,
+      top: MEME_TOP,
+    }])
+    .png()
+    .toBuffer();
+
+  console.log('[OG] Composited meme image via sharp');
+  return finalPng;
 }
 
 /**
@@ -448,7 +384,7 @@ async function generateSimpleOGImage(title = 'AI MemeForge') {
         </linearGradient>
       </defs>
       <rect width="100%" height="100%" fill="url(#bg)"/>
-      <text x="600" y="280" font-size="72" fill="#06b6d4" font-family="sans-serif" font-weight="bold" text-anchor="middle">🤖 AI MemeForge</text>
+      <text x="600" y="280" font-size="72" fill="#06b6d4" font-family="sans-serif" font-weight="bold" text-anchor="middle">AI MemeForge</text>
       <text x="600" y="380" font-size="36" fill="#ffffff" font-family="sans-serif" text-anchor="middle">${title}</text>
       <text x="600" y="480" font-size="24" fill="#9ca3af" font-family="sans-serif" text-anchor="middle">AI Dreams. Humans Decide. | aimemeforge.io</text>
     </svg>
