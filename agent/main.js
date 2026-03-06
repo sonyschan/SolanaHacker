@@ -628,6 +628,13 @@ Begin by checking your current task and memory. If there's pending work, continu
           continue;
         }
 
+        // Manual news search
+        if (cmd.type === 'news_search') {
+          this.chatMode.lastNewsSentAt = 0; // Reset cooldown so it runs immediately
+          await this.chatMode.doNewsSearch();
+          continue;
+        }
+
         // Status request
         if (cmd.type === 'status_request') {
           const hour = this.chatMode.getGMT8Hour();

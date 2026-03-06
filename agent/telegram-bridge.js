@@ -209,6 +209,17 @@ export class TelegramBridge {
         return;
       }
 
+      // === #news — Trigger immediate news search ===
+      if (text === '#news') {
+        this.mustQueue.push({
+          type: 'news_search',
+          timestamp: Date.now(),
+        });
+        this.bot.sendMessage(this.chatId, '📰 搜尋新聞中...');
+        console.log('[TG] Manual news search triggered');
+        return;
+      }
+
       // === #clear_message — Clear conversation history ===
       if (text.startsWith('#clear_message')) {
         this.mustQueue.push({

@@ -2634,6 +2634,9 @@ ${recentMemory.slice(-1500)}
       return;
     }
 
+    // Mandatory news search every 4 hours (doNewsSearch has its own 4h cooldown)
+    await this.doNewsSearch();
+
     if (!this.isActiveHours()) {
       console.log('[ChatMode] Outside active hours, skipping heartbeat');
       return;
@@ -2646,8 +2649,8 @@ ${recentMemory.slice(-1500)}
 
     this.lastHeartbeat = now;
 
-    // Random choice: reflect, search news, or stay quiet
-    const actions = ['reflect', 'news', 'quiet', 'quiet']; // 50% chance to stay quiet
+    // Random choice: reflect or stay quiet
+    const actions = ['reflect', 'quiet', 'quiet']; // 67% chance to stay quiet
     const action = actions[Math.floor(Math.random() * actions.length)];
 
     if (action === 'quiet') {
@@ -2657,8 +2660,6 @@ ${recentMemory.slice(-1500)}
 
     if (action === 'reflect') {
       await this.doReflection();
-    } else if (action === 'news') {
-      await this.doNewsSearch();
     }
   }
 
