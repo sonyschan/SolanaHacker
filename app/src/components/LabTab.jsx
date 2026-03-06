@@ -620,9 +620,14 @@ const LabTab = ({ publicMode = false }) => {
 
             {/* Price info */}
             {prices && !createLoading && !createResult && (
-              <p className="text-center text-xs text-gray-600">
-                {t('lab.create.priceNote', { base: '$0.10' })}
-              </p>
+              <div className="text-center space-y-1">
+                <p className="text-xs text-gray-600">
+                  {t('lab.create.priceNote', { base: '$0.10' })}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {t('lab.create.ecosystemFund')}
+                </p>
+              </div>
             )}
           </div>
 
