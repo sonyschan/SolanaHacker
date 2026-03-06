@@ -666,9 +666,12 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
   // Create a temporary executor to access generateTweet with the right baseDir
   const executors = createExecutors({ workDir: path.join(baseDir, 'agent') });
 
+  // Skip boring-check for dev_update — it's informational, not entertainment
+  const skipBored = topicChoice.topic === 'dev_update';
+
   let tweet;
   try {
-    tweet = await executors.generateTweet(topicChoice);
+    tweet = await executors.generateTweet(topicChoice, { skipBoredCheck: skipBored });
   } catch (err) {
     return { success: false, reason: `generate_failed: ${err.message}`, draft: null };
   }

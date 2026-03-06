@@ -131,20 +131,28 @@ const CATEGORY_NARRATIVE_BONUS = {
   C: ['superiority', 'market_always_same', 'invisible_manipulator', 'narrative_breakdown']
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
- * Compute cooldown weight for a narrative based on recent usage.
+ * Compute cooldown weight for a narrative based on real timestamps.
+ * Matches the archetype cooldown pattern in memeIdeaService.
  * @param {string} narrativeId
- * @param {string[]} recentNarrativeIds - most recent first
- * @returns {number} 0.2 (hot), 0.6 (warm), or 1.0 (cold)
+ * @param {object[]} recentMemes - objects with { narrativeId, generatedAt }
+ * @returns {number} 0.05 (near-block), 0.2 (heavy), or 1.0 (cold)
  */
-function getNarrativeCooldownWeight(narrativeId, recentNarrativeIds) {
-  for (let i = 0; i < recentNarrativeIds.length; i++) {
-    if (recentNarrativeIds[i] === narrativeId) {
-      if (i < 3) return 0.2;   // last ~24h
-      if (i < 9) return 0.6;   // last ~72h
-      return 1.0;
-    }
+function getNarrativeCooldownWeight(narrativeId, recentMemes) {
+  const now = Date.now();
+  let minDaysAgo = Infinity;
+
+  for (const m of recentMemes) {
+    if (m.narrativeId !== narrativeId) continue;
+    if (!m.generatedAt) continue;
+    const daysAgo = (now - Date.parse(m.generatedAt)) / MS_PER_DAY;
+    if (daysAgo < minDaysAgo) minDaysAgo = daysAgo;
   }
+
+  if (minDaysAgo < 3) return 0.05;  // near-block: 95% reduction
+  if (minDaysAgo < 7) return 0.2;   // heavy: 80% reduction
   return 1.0;
 }
 
@@ -163,10 +171,6 @@ function selectNarrative({ newsEvent, template, recentMemes = [], category, over
       return { ...found, selectedPhrase };
     }
   }
-  const recentNarrativeIds = recentMemes
-    .map(m => m.narrativeId)
-    .filter(Boolean);
-
   const scored = NARRATIVE_POOL.map(n => {
     let score = 1.0;
 
@@ -177,8 +181,8 @@ function selectNarrative({ newsEvent, template, recentMemes = [], category, over
       }
     }
 
-    // Cooldown penalty
-    score *= getNarrativeCooldownWeight(n.narrative_id, recentNarrativeIds);
+    // Cooldown penalty (timestamp-based)
+    score *= getNarrativeCooldownWeight(n.narrative_id, recentMemes);
 
     // Random tiebreaker
     score += Math.random() * 0.5;

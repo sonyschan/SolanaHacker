@@ -157,7 +157,15 @@ async function generateMemeIdea(event, template, recentThemes = [], strategy = n
       .slice(0, 10)
       .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
       .join('\n');
+    const recentNarratives = [...new Set(recentThemes.slice(0, 9).map(t => t.narrativeId).filter(Boolean))];
+    const recentStrategies = [...new Set(recentThemes.slice(0, 9).map(t => t.strategyId).filter(Boolean))];
     recentContext = `\nAVOID these recent themes — make something FRESH:\n${themesList}\n`;
+    if (recentNarratives.length > 0) {
+      recentContext += `AVOID these narrative angles (used recently): ${recentNarratives.join(', ')}\n`;
+    }
+    if (recentStrategies.length > 0) {
+      recentContext += `AVOID these comedy strategies (used recently): ${recentStrategies.join(', ')}\n`;
+    }
   }
 
   const slotLimitsText = formatSlotLimits(template);
@@ -186,7 +194,7 @@ FORBIDDEN PATTERNS (HARD RULES — never use these):
 - Avoid full sentences. Use fragments.
 
 GOOD caption examples:
-"Buying the dip" / "Still holding" / "Exit liquidity" / "Added leverage" / "Rug pulled again"
+"Buying the dip" / "Still holding" / "Added leverage" / "Rug pulled again" / "Trust the process"
 
 BAD caption examples:
 "My buying his bags" / "My portfolio after degen dip buy" / "Getting rekt because of leverage"
@@ -593,7 +601,15 @@ async function generateOriginalMemeIdea(event, recentThemes = [], strategy = nul
       .slice(0, 10)
       .map(t => `- "${t.title}" (${(t.tags || []).join(', ')})`)
       .join('\n');
+    const recentNarratives = [...new Set(recentThemes.slice(0, 9).map(t => t.narrativeId).filter(Boolean))];
+    const recentStrategies = [...new Set(recentThemes.slice(0, 9).map(t => t.strategyId).filter(Boolean))];
     recentContext = `\nAVOID these recent themes — make something FRESH:\n${themesList}\n`;
+    if (recentNarratives.length > 0) {
+      recentContext += `AVOID these narrative angles (used recently): ${recentNarratives.join(', ')}\n`;
+    }
+    if (recentStrategies.length > 0) {
+      recentContext += `AVOID these comedy strategies (used recently): ${recentStrategies.join(', ')}\n`;
+    }
   }
 
   const prompt = `You are a Crypto Twitter meme lord AND a creative visual artist. Generate an ORIGINAL meme concept — no template, free composition.

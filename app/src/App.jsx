@@ -145,6 +145,7 @@ function App() {
       } else if (urlHash === "" || urlHash === "#") {
         setCurrentView(authenticated && walletAddress ? "dashboard" : "home");
       }
+      window.scrollTo(0, 0);
     };
 
     window.addEventListener("hashchange", handleHashChange);

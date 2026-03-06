@@ -142,20 +142,28 @@ const CATEGORY_STRATEGY_BONUS = {
   C: ['superiority', 'self_roast', 'betrayal', 'irony']
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
- * Compute cooldown weight for a strategy based on recent usage.
+ * Compute cooldown weight for a strategy based on real timestamps.
+ * Matches the archetype cooldown pattern in memeIdeaService.
  * @param {string} strategyId
- * @param {string[]} recentStrategyIds - most recent first
- * @returns {number} 0.2 (hot), 0.6 (warm), or 1.0 (cold)
+ * @param {object[]} recentMemes - objects with { strategyId, generatedAt }
+ * @returns {number} 0.05 (near-block), 0.2 (heavy), or 1.0 (cold)
  */
-function getStrategyCooldownWeight(strategyId, recentStrategyIds) {
-  for (let i = 0; i < recentStrategyIds.length; i++) {
-    if (recentStrategyIds[i] === strategyId) {
-      if (i < 3) return 0.2;   // last ~24h
-      if (i < 9) return 0.6;   // last ~72h
-      return 1.0;
-    }
+function getStrategyCooldownWeight(strategyId, recentMemes) {
+  const now = Date.now();
+  let minDaysAgo = Infinity;
+
+  for (const m of recentMemes) {
+    if (m.strategyId !== strategyId) continue;
+    if (!m.generatedAt) continue;
+    const daysAgo = (now - Date.parse(m.generatedAt)) / MS_PER_DAY;
+    if (daysAgo < minDaysAgo) minDaysAgo = daysAgo;
   }
+
+  if (minDaysAgo < 3) return 0.05;  // near-block: 95% reduction
+  if (minDaysAgo < 7) return 0.2;   // heavy: 80% reduction
   return 1.0;
 }
 
@@ -169,10 +177,6 @@ function selectStrategy({ newsEvent, template, recentMemes = [], category, overr
     const found = STRATEGY_POOL.find(s => s.strategy_id === overrideStrategyId);
     if (found) return found;
   }
-  const recentStrategyIds = recentMemes
-    .map(m => m.strategyId)
-    .filter(Boolean);
-
   const scored = STRATEGY_POOL.map(s => {
     let score = 1.0;
 
@@ -183,8 +187,8 @@ function selectStrategy({ newsEvent, template, recentMemes = [], category, overr
       }
     }
 
-    // Cooldown penalty
-    score *= getStrategyCooldownWeight(s.strategy_id, recentStrategyIds);
+    // Cooldown penalty (timestamp-based)
+    score *= getStrategyCooldownWeight(s.strategy_id, recentMemes);
 
     // Random tiebreaker
     score += Math.random() * 0.5;

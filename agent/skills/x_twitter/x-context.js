@@ -47,7 +47,9 @@ export async function gatherContext(baseDir, opts = {}) {
     logCommentInsights(baseDir, comments);
   }
 
-  return { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc };
+  const realActivity = getRecentRealActivity(baseDir);
+
+  return { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc, realActivity };
 }
 
 async function fetchTodayMemes() {
@@ -98,6 +100,49 @@ function loadMemeyaJournal(baseDir) {
     }
     return text.slice(-2000);
   } catch { return ''; }
+}
+
+/**
+ * Extract real (non-ambient) activity entries from the last 24h diary.
+ * Returns structured entries like: { time, topic, text }
+ */
+function getRecentRealActivity(baseDir) {
+  try {
+    const diaryDir = path.join(baseDir, 'memory/journal/memeya');
+    if (!fs.existsSync(diaryDir)) return [];
+
+    // Read last 2 days of diary files to cover 24h window
+    const files = fs.readdirSync(diaryDir)
+      .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+      .sort()
+      .slice(-2);
+
+    const entries = [];
+    for (const f of files) {
+      const dateStr = f.replace('.md', '');
+      const content = fs.readFileSync(path.join(diaryDir, f), 'utf-8');
+      const blocks = content.split(/^## /m).filter(Boolean);
+
+      for (const block of blocks) {
+        // Skip ambient/story entries
+        if (/- Ambient: true/i.test(block)) continue;
+
+        const timeMatch = block.match(/(\d{2}:\d{2}:\d{2})/);
+        const topicMatch = block.match(/- Topic: (.+)/);
+        const postedMatch = block.match(/- Posted: (.+)/);
+        const textEnMatch = block.match(/- TextEn: (.+)/);
+
+        const topic = topicMatch ? topicMatch[1].trim() : 'other';
+        const text = postedMatch ? postedMatch[1].trim() : (textEnMatch ? textEnMatch[1].trim() : '');
+        if (!text) continue;
+
+        entries.push({ date: dateStr, time: timeMatch?.[1] || '', topic, text: text.slice(0, 200) });
+      }
+    }
+
+    // Return most recent first, limit 15
+    return entries.reverse().slice(0, 15);
+  } catch { return []; }
 }
 
 function loadProductDoc(baseDir) {
@@ -261,7 +306,7 @@ function weightedRandom(topics) {
  * Returns { topic, prompt, ogUrl, meta } where meta contains selection details.
  */
 export function chooseTopic(context) {
-  const { todayMemes, randomPastMeme, commits, recentPosts, comments } = context;
+  const { todayMemes, randomPastMeme, commits, recentPosts, comments, realActivity } = context;
 
   // ── Check if today's memes still need spotlight ──
   const recentMemeOgUrls = new Set(
@@ -294,7 +339,7 @@ export function chooseTopic(context) {
   const todayTopics = recentPosts.map(p => p.topic).filter(Boolean);
   const devUpdateToday = todayTopics.includes('dev_update');
   const tokenSpotlightToday = todayTopics.includes('token_spotlight');
-  const hasCommits = commits.length > 0;
+  const hasRealActivity = realActivity && realActivity.length > 0;
   let priorityForced = null;
 
   // Add community_response if there are comments on recent posts
@@ -322,8 +367,8 @@ export function chooseTopic(context) {
     chosen = priorityForced;
     initialPick = priorityForced;
   } else {
-    // Remove dev_update from pool if already posted today or no commits
-    const pool = devUpdateToday || !hasCommits
+    // Remove dev_update from pool if already posted today or no real activity
+    const pool = devUpdateToday || !hasRealActivity
       ? topics.filter(t => t.id !== 'dev_update')
       : topics;
 
@@ -361,9 +406,9 @@ export function chooseTopic(context) {
  * Apply data-availability fallbacks: if a topic has no supporting data, fall to personal_vibe.
  */
 function applyFallbacks(chosen, context) {
-  const { todayMemes, randomPastMeme, commits, comments, productDoc } = context;
+  const { todayMemes, randomPastMeme, commits, comments, productDoc, realActivity } = context;
   if (chosen === 'meme_spotlight' && todayMemes.length === 0 && !randomPastMeme) return 'personal_vibe';
-  if (chosen === 'dev_update' && commits.length === 0) return 'personal_vibe';
+  if (chosen === 'dev_update' && (!realActivity || realActivity.length === 0)) return 'personal_vibe';
   if (chosen === 'feature_showtime' && !productDoc) return 'personal_vibe';
   if (chosen === 'community_response' && (!comments || comments.length === 0)) return 'personal_vibe';
   return chosen;
@@ -451,18 +496,23 @@ function buildPrompt(topic, context) {
     }
 
     case 'dev_update': {
-      const commitList = commits.slice(0, 5).join('\n');
+      const activityLog = (context.realActivity || [])
+        .map(e => `[${e.topic}] ${e.text}`)
+        .join('\n');
       return { prompt: [
-        `TOPIC: Share what YOU just upgraded or crafted on AiMemeForge.`,
-        `You are Memeya, the builder. These are changes YOU made (for context — DO NOT include GitHub links):`,
-        commitList,
-        `Write as if YOU personally upgraded the system. Talk about what it means for users, not the technical details.`,
-        `FORMAT: Use a structured, listicle-style tweet. Use "．" or emoji bullets (🔧 🎨 ⚡ 🧠 etc.) to list 2-3 key updates.`,
+        `TOPIC: Share what's been happening on AiMemeForge in the last 24 hours.`,
+        `You are Memeya. Here is your REAL activity log from the last 24 hours (non-ambient entries only):`,
+        `---`,
+        activityLog || '(no recent activity)',
+        `---`,
+        `TASK: Read the activity log carefully. Select the 2-3 MOST IMPACTFUL items — new features, bug fixes, community milestones, successful meme forges, notable events.`,
+        `Ignore routine/repetitive entries (e.g. repeated Moltbook engagements). Focus on what users would care about.`,
+        `FORMAT: Use a structured, listicle-style tweet. Use emoji bullets (🔧 🎨 ⚡ 🧠 🏆 📊 etc.) to list key updates.`,
         `Start with a short punchy intro line, then bullet points. Example format:`,
         `"been cooking today ngl\n⚡ faster voting flow\n🎨 new rarity badges\n🧠 smarter meme picks\nwho noticed?"`,
         `TONE: Professional but playful — like a dev who's proud of their work but keeps it chill. Slight flex energy.`,
-        `Vary your framing — don't always say "just shipped". Try: "today's patch notes ↓", "small upgrades, big vibes", "changelog nobody asked for"`,
-        `Never include GitHub links. Never say "commit" or "merge".`,
+        `Vary your framing — don't always say "just shipped". Try: "today's patch notes ↓", "small upgrades, big vibes", "24h recap ↓"`,
+        `Never include GitHub links, API URLs, or technical jargon. Never say "commit", "merge", or "deploy".`,
       ].filter(Boolean).join('\n'), ogUrl: null };
     }
 
@@ -732,7 +782,7 @@ export function chooseTopicForSlot(diarySlot, context) {
  * falling back based on data availability.
  */
 function pickFlexTopic(pool, context) {
-  const { commits, comments, recentPosts, productDoc } = context;
+  const { commits, comments, recentPosts, productDoc, realActivity } = context;
 
   // Extract today's topics from journal (use GMT+8 to match diary schedule)
   const todayStr = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
@@ -744,7 +794,7 @@ function pickFlexTopic(pool, context) {
   // Filter: not used today + data available
   const available = pool.filter(t => {
     if (todayTopics.includes(t)) return false;
-    if (t === 'dev_update' && commits.length === 0) return false;
+    if (t === 'dev_update' && (!realActivity || realActivity.length === 0)) return false;
     if (t === 'community_response' && (!comments || comments.length === 0)) return false;
     if (t === 'feature_showtime' && !productDoc) return false;
     return true;
