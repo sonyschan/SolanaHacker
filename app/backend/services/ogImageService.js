@@ -116,24 +116,10 @@ async function generateOGImage(meme) {
   const ctaText = isVotingActive ? 'Vote & Earn Tickets' : 'See More Memes';
   const ctaIcon = isVotingActive ? '>' : '→';
 
-  // Try to use image URL directly (satori can fetch images)
-  // If that fails, we'll fall back to pre-fetching
-  let imageDataUrl = meme.imageUrl;
-
-  // Test if the image URL is accessible
+  // Always convert to data URL — satori cannot reliably fetch external URLs
+  let imageDataUrl = null;
   if (meme.imageUrl) {
-    try {
-      const testFetch = await fetch(meme.imageUrl, { method: 'HEAD' });
-      if (!testFetch.ok) {
-        console.log('[OG] Image URL not accessible, trying data URL');
-        imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
-      } else {
-        console.log('[OG] Using direct image URL');
-      }
-    } catch (e) {
-      console.log('[OG] URL test failed, trying data URL');
-      imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
-    }
+    imageDataUrl = await fetchImageAsDataUrl(meme.imageUrl);
   }
 
   // Load logo as data URL
