@@ -12,7 +12,7 @@ const PIE_COLORS = [
 const USER_COLOR = '#22c55e';
 const OTHERS_COLOR = '#374151';
 
-const TicketPieChart = ({ drawId, walletAddress, t }) => {
+const TicketPieChart = ({ drawId, walletAddress, t, onNoData }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,15 +22,22 @@ const TicketPieChart = ({ drawId, walletAddress, t }) => {
         const walletParam = walletAddress ? `?wallet=${walletAddress}` : '';
         const resp = await fetch(`${API_BASE_URL}/api/lottery/distribution/${drawId}${walletParam}`);
         const json = await resp.json();
-        if (json.success) setData(json.data);
-      } catch (e) { console.error('Failed to fetch distribution:', e); }
+        if (json.success) {
+          setData(json.data);
+        } else {
+          onNoData?.(drawId);
+        }
+      } catch (e) {
+        console.error('Failed to fetch distribution:', e);
+        onNoData?.(drawId);
+      }
       setLoading(false);
     };
     fetchDistribution();
   }, [drawId, walletAddress]);
 
   if (loading) return <div className="text-center py-4 text-gray-500 text-sm">Loading...</div>;
-  if (!data) return <div className="text-center py-4 text-gray-500 text-sm">{t('dashboard.winners.noSnapshot')}</div>;
+  if (!data) return null;
 
   // Build pie segments: top holders + optional user (if outside top 10) + others
   const segments = [];
@@ -163,6 +170,7 @@ const LotteryTab = ({
   const [winsFilter, setWinsFilter] = useState('all');
   const [winMemes, setWinMemes] = useState({});
   const [expandedDraw, setExpandedDraw] = useState(null);
+  const [noDataDraws, setNoDataDraws] = useState(new Set());
 
   // Fetch recent winners on mount
   useEffect(() => {
@@ -540,19 +548,23 @@ const LotteryTab = ({
                         <span className="text-sm font-mono text-gray-300">{privateWallet(w.winnerWallet)}</span>
                         {isYou && <span className="text-xs font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">{t('dashboard.winners.you')}</span>}
                       </div>
-                      {/* Votes — clickable to expand pie chart */}
+                      {/* Votes — clickable to expand pie chart (disabled if no snapshot) */}
                       <div className="md:col-span-1 text-sm text-gray-300 flex items-center">
                         <span className="md:hidden text-gray-500 mr-2">{t('dashboard.winners.votes')}:</span>
-                        <button
-                          onClick={() => setExpandedDraw(expandedDraw === w.drawId ? null : w.drawId)}
-                          className="hover:text-cyan-400 transition-colors cursor-pointer flex items-center gap-1"
-                          title={t('dashboard.winners.tapToSeeOdds')}
-                        >
-                          {w.winnerTickets} / {w.totalTickets}
-                          <svg className={`w-3 h-3 transition-transform ${expandedDraw === w.drawId ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
+                        {noDataDraws.has(w.drawId) ? (
+                          <span>{w.winnerTickets} / {w.totalTickets}</span>
+                        ) : (
+                          <button
+                            onClick={() => setExpandedDraw(expandedDraw === w.drawId ? null : w.drawId)}
+                            className="hover:text-cyan-400 transition-colors cursor-pointer flex items-center gap-1"
+                            title={t('dashboard.winners.tapToSeeOdds')}
+                          >
+                            {w.winnerTickets} / {w.totalTickets}
+                            <svg className={`w-3 h-3 transition-transform ${expandedDraw === w.drawId ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                       {/* Win Rate */}
                       <div className="md:col-span-2 text-sm text-right flex items-center justify-end">
@@ -565,7 +577,10 @@ const LotteryTab = ({
                     {/* Ticket Distribution Pie Chart (expanded) */}
                     {expandedDraw === w.drawId && (
                       <div className="border-t border-white/5 bg-white/[0.02]">
-                        <TicketPieChart drawId={w.drawId} walletAddress={walletAddress} t={t} />
+                        <TicketPieChart drawId={w.drawId} walletAddress={walletAddress} t={t} onNoData={(id) => {
+                          setNoDataDraws(prev => new Set(prev).add(id));
+                          setExpandedDraw(null);
+                        }} />
                       </div>
                     )}
                     {/* Lucky Voter Rows */}
