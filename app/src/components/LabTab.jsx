@@ -275,17 +275,20 @@ const LabTab = ({ publicMode = false }) => {
           }
         } catch (balErr) {
           if (balErr.message?.includes('Insufficient')) throw balErr;
-          // Token account doesn't exist — user has 0 $Memeya
-          throw new Error('You don\'t have any $Memeya tokens. Buy some or pay with SOL instead.');
+          // "could not find account" = token account doesn't exist = 0 balance
+          // Any other error (403, network) = skip balance check, let wallet handle it
+          const errMsg = balErr?.message || '';
+          if (errMsg.includes('could not find account') || errMsg.includes('Invalid param') || errMsg.includes('not found')) {
+            throw new Error('You don\'t have any $Memeya tokens. Buy some or pay with SOL instead.');
+          }
+          // RPC error — don't block the user, let the wallet simulation catch real issues
+          console.warn('Balance check failed (RPC issue?), proceeding anyway:', errMsg);
         }
 
         tx = new Transaction();
 
-        // Only add ATA creation if destination doesn't exist yet
-        const toAtaInfo = await connection.getAccountInfo(toAta);
-        if (!toAtaInfo) {
-          tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
-        }
+        // Ensure destination ATA exists (idempotent — no-op if already exists)
+        tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
 
         tx.add(createTransferCheckedInstruction(
           fromAta,

@@ -50,13 +50,18 @@ async function verifySolanaPayment(txSignature, paymentToken, minAmount, context
     }
   }
 
-  // 2. Fetch transaction from chain
-  const tx = await connection.getParsedTransaction(txSignature, {
-    maxSupportedTransactionVersion: 0,
-    commitment: 'confirmed',
-  });
-
+  // 2. Fetch transaction from chain (with retry for propagation delay)
   const solscanUrl = `https://solscan.io/tx/${txSignature}`;
+  let tx = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    tx = await connection.getParsedTransaction(txSignature, {
+      maxSupportedTransactionVersion: 0,
+      commitment: 'confirmed',
+    });
+    if (tx) break;
+    // Wait 3s before retrying — tx may still be propagating
+    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+  }
 
   if (!tx) {
     // Record: we received a signature but can't find it on-chain
