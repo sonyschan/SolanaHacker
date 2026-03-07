@@ -18,7 +18,7 @@ const { HTTPFacilitatorClient } = require('@x402/core/server');
 
 // ── Wallets ──────────────────────────────────────────────────────────
 const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
-const MEMEYA_SOLANA_WALLET = '4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP';
+const MEMEYA_SOLANA_WALLET = 'HFunb7hi2rMa14MkWSESABQWNJECKhQwvcUJZF4ZCdjS';
 
 // ── Networks (CAIP-2) ────────────────────────────────────────────────
 const BASE_MAINNET = 'eip155:8453';
