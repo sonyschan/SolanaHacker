@@ -355,10 +355,18 @@ async function generateDailyMemes(req, res) {
     );
     console.log(`🤖 AI image models: ${imageGenerators.map(g => g.modelName).join(', ')}`);
 
-    // 6. Generate each meme: 2× Mode A (template + art style) + 1× Mode B (art-first original)
+    // 6. Generate each meme: random 1-3 art-first originals (creativity-first strategy)
+    // At least 1 original guaranteed; can be all 3 originals
+    const originalCount = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+    const memeModes = Array(3).fill(false);
+    // Assign original slots randomly
+    const indices = [0, 1, 2].sort(() => Math.random() - 0.5);
+    for (let j = 0; j < originalCount; j++) memeModes[indices[j]] = true;
+    console.log(`🎲 Mode mix: ${memeModes.map((o, i) => `Meme ${i+1}=${o ? 'original' : 'template'}`).join(', ')} (${originalCount} originals)`);
+
     const savedMemes = [];
     for (let i = 0; i < 3; i++) {
-      const isOriginalMode = (i === 2); // 3rd meme is Mode B: Art-first Original
+      const isOriginalMode = memeModes[i];
       const newsItem = newsData[i] || newsData[0];
       const generator = imageGenerators[i];
       const tokenSymbol = (tokenSymbols[i] && tokenSymbols[i].symbol) || null;
