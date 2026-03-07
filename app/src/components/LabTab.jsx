@@ -744,7 +744,9 @@ const LabTab = ({ publicMode = false }) => {
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => {
-                    const url = createResult.imageUrl || window.location.href;
+                    const url = createResult.id
+                      ? `https://aimemeforge.io/meme/${createResult.id}`
+                      : window.location.href;
                     const text = `${createResult.title} — made with @MemeForgeAI`;
                     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
                   }}
