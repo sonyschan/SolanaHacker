@@ -444,11 +444,13 @@ EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
-CRITICAL — TEXT RULES:
+CRITICAL — TEXT RULES (STRICTLY ENFORCED):
 - The ONLY text in the image must come from LAYOUT AND TEXT PLACEMENT above.
 - Each text element must appear EXACTLY ONCE. NEVER render the same text twice or in multiple locations.
 - Do NOT render any text from VISUAL SCENE, ART STYLE, or EMOTION sections.
 - Do NOT add background text, watermarks, signs, screens, or labels with words — keep non-caption areas text-free.
+- Do NOT generate fake usernames, brand names, hashtags, URLs, tickers, or any invented small text anywhere in the image.
+- All non-caption areas must be purely visual (characters, objects, scenery) with ZERO text or letter-like shapes.
 - If the layout specifies 2 text regions, the image must contain exactly 2 text regions — no more, no less.
 
 Technical requirements:
@@ -763,11 +765,13 @@ TEXT OVERLAY (render each line EXACTLY ONCE — this is the ONLY text in the ima
 ${topText ? `- TOP: "${topText}" — BIG BOLD Impact font with black outline at the top` : ''}
 ${bottomText ? `- BOTTOM: "${bottomText}" — BIG BOLD Impact font with black outline at the bottom` : ''}
 
-CRITICAL — TEXT RULES:
+CRITICAL — TEXT RULES (STRICTLY ENFORCED):
 - The ONLY text in the image must come from TEXT OVERLAY above.
 - Each text element must appear EXACTLY ONCE. NEVER render the same text twice or in multiple locations.
 - Do NOT render any text from VISUAL SCENE, ART STYLE, or EMOTION sections.
 - Do NOT add background text, watermarks, signs, screens, or labels with words — keep non-overlay areas text-free.
+- Do NOT generate fake usernames, brand names, hashtags, URLs, tickers, or any invented small text anywhere in the image.
+- All non-overlay areas must be purely visual (characters, objects, scenery) with ZERO text or letter-like shapes.
 - The image must contain exactly ${[topText, bottomText].filter(Boolean).length} text region(s) — no more, no less.
 
 Technical requirements:

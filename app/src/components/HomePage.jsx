@@ -226,9 +226,14 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
               <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-4">
                 {t('home.hero.descLine2')}
               </p>
-              <a href="#gallery" className="text-purple-400 hover:text-purple-300 text-sm md:text-base font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
-                {t('home.hero.browseGallery')}
-              </a>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <a href="#gallery" className="text-purple-400 hover:text-purple-300 text-sm md:text-base font-semibold underline underline-offset-4 decoration-purple-400/30 hover:decoration-purple-400/60 transition-colors">
+                  {t('home.hero.browseGallery')} →
+                </a>
+                <button onClick={login} className="text-cyan-400 hover:text-cyan-300 text-sm md:text-base font-semibold underline underline-offset-4 decoration-cyan-400/30 hover:decoration-cyan-400/60 transition-colors cursor-pointer">
+                  {t('home.hero.createYourOwn')} →
+                </button>
+              </div>
             </div>
           </div>
 

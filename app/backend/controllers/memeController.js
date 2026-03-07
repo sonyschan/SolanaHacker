@@ -7,6 +7,8 @@ const newsService = require('../services/newsService');
 const memeIdeaService = require('../services/memeIdeaService');
 const memeStrategyService = require('../services/memeStrategyService');
 const memeNarrativeService = require('../services/memeNarrativeService');
+const { invalidate, invalidatePrefix } = require('../utils/cache');
+const ogRoutes = require('../routes/og');
 
 // Multi-model image generation pool
 const AI_IMAGE_MODELS = [
@@ -847,6 +849,11 @@ async function regenerateMemeImageInternal(memeId, model = 'gemini') {
     'metadata.fileSize': imageData.fileSize || 0,
     'metadata.storageLocation': imageData.storageLocation || 'unknown',
   });
+
+  // Invalidate caches so updated image shows immediately
+  invalidate('memes:today');
+  invalidate(`memes:${memeId}`);
+  ogRoutes.purgeCache(memeId);
 
   console.log(`✅ Image regenerated for meme ${memeId}: ${imageData.imageUrl}`);
   return { success: true, imageUrl: imageData.imageUrl, model: modelName };

@@ -42,6 +42,10 @@ router.get('/:memeId', async (req, res) => {
   const { memeId } = req.params;
 
   try {
+    // Allow cache purge via query param (admin use)
+    const forcePurge = req.query.purge === '1';
+    if (forcePurge) ogCache.delete(memeId);
+
     // Check cache first
     const cached = ogCache.get(memeId);
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
@@ -108,5 +112,8 @@ router.get('/:memeId', async (req, res) => {
     }
   }
 });
+
+// Allow other modules to purge a specific meme's OG cache
+router.purgeCache = (memeId) => { ogCache.delete(memeId); };
 
 module.exports = router;
