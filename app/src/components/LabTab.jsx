@@ -235,6 +235,7 @@ const LabTab = ({ publicMode = false }) => {
             id: d.memeId,
             title: d.memeTitle,
             imageUrl: d.memeImageUrl,
+            rarityScore: d.memeRarityScore,
           })));
         }
       })
@@ -861,6 +862,12 @@ const LabTab = ({ publicMode = false }) => {
                     )}
                     <div className="p-2">
                       <p className="text-white text-xs font-medium truncate">{meme.title}</p>
+                      {meme.rarityScore > 0 && (() => {
+                        const stars = Math.round(meme.rarityScore) / 2;
+                        const full = Math.floor(stars);
+                        const half = stars % 1 >= 0.5;
+                        return <p className="text-[10px] mt-0.5">{'⭐'.repeat(full)}{half ? '✨' : ''}</p>;
+                      })()}
                     </div>
                   </div>
                 ))}

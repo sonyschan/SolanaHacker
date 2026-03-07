@@ -412,6 +412,7 @@ async function getRecentWinners(limit = 10) {
       memeId: d.winningMemeId,
       memeTitle: memes[d.winningMemeId]?.title || null,
       memeImageUrl: memes[d.winningMemeId]?.imageUrl || null,
+      memeRarityScore: memes[d.winningMemeId]?.rarity?.averageScore || null,
       // Reward data
       rewardStatus: reward?.status || null,
       winnerUsdc: winnerTransfer?.amount || null,
