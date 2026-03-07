@@ -2634,8 +2634,8 @@ ${recentMemory.slice(-1500)}
       return;
     }
 
-    // NEWS SEARCH DISABLED — investigating Grok API budget drain
-    // await this.doNewsSearch();
+    // News search every 6 hours (doNewsSearch has its own cooldown)
+    await this.doNewsSearch();
 
     if (!this.isActiveHours()) {
       console.log('[ChatMode] Outside active hours, skipping heartbeat');
@@ -2861,9 +2861,9 @@ ${recentMemory}
    * Search latest news (cooldown: 4 hours between searches)
    */
   async doNewsSearch() {
-    // Skip if news was sent within the last 4 hours
-    const FOUR_HOURS = 4 * 60 * 60 * 1000;
-    if (this.lastNewsSentAt && Date.now() - this.lastNewsSentAt < FOUR_HOURS) {
+    // Skip if news was searched within the last 6 hours
+    const SIX_HOURS = 6 * 60 * 60 * 1000;
+    if (this.lastNewsSentAt && Date.now() - this.lastNewsSentAt < SIX_HOURS) {
       console.log('[ChatMode] News cooldown active, skipping (last sent ' +
         Math.round((Date.now() - this.lastNewsSentAt) / 60000) + 'm ago)');
       return null;
@@ -2874,11 +2874,12 @@ ${recentMemory}
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      const prompt = `現在是 ${today}。請搜尋「過去 4 小時內」Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的、有 meme 潛力的。
+      const prompt = `現在是 ${today}。請搜尋「過去 6 小時內」Web3/Crypto/AI Agent 領域的最新新聞，找出 1-2 則最有趣的、有 meme 潛力的。
 
-重要：只要最近 4 小時內的新聞，不要更早的！
+重要：只要最近 6 小時內的新聞，不要更早的！
+找出有「Meme 潛力」的新聞 — 能引發社群反應、有諷刺或戲劇性的事件優先。
 
-用中文簡短分享，包含日期和來源。如果過去 4 小時確實沒有重大新聞，請說「過去 4 小時暫無重大新聞」。`;
+用中文簡短分享，包含日期和來源。如果過去 6 小時確實沒有重大新聞，請說「過去 6 小時暫無重大新聞」。`;
       // Use search-enabled Grok for real-time news
       const news = await this.callGrokWithSearch(prompt, 400);
 
@@ -2912,6 +2913,8 @@ ${recentMemory}
       return news;
     } catch (err) {
       console.error('[ChatMode] News search error:', err.message);
+      // Set cooldown on failure too (1 hour) to prevent rapid retry on 429/errors
+      this.lastNewsSentAt = Date.now() - (5 * 60 * 60 * 1000); // retry in 1 hour
       return null;
     }
   }
