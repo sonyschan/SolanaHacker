@@ -334,7 +334,8 @@ const LabTab = ({ publicMode = false }) => {
       if (!signature) throw new Error('Failed to get transaction signature from wallet');
 
       // 4. Send to backend for verification + generation
-      setCreateStatus(GENERATION_MESSAGES[1]);
+      setCreateStatus(MEMEYA_CHAT[1].msg);
+      setCreateProgress(MEMEYA_CHAT[1].pct);
       const res = await fetch(`${API_BASE_URL}/api/memes/generate-solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
