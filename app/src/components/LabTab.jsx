@@ -810,11 +810,6 @@ const LabTab = ({ publicMode = false }) => {
                   {createResult.description && (
                     <p className="text-gray-400 text-sm">{createResult.description}</p>
                   )}
-                  {createResult.metadata?.qualityScore && (
-                    <p className="text-xs text-gray-500">
-                      {t('lab.create.quality')}: {createResult.metadata.qualityScore}/100
-                    </p>
-                  )}
                   {createResult.tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {createResult.tags.map((tag, i) => (
@@ -919,11 +914,6 @@ const LabTab = ({ publicMode = false }) => {
                   {selectedMeme.description && (
                     <p className="text-gray-400 text-sm">{selectedMeme.description}</p>
                   )}
-                  {selectedMeme.metadata?.qualityScore && (
-                    <p className="text-xs text-gray-500">
-                      {t('lab.myMemes.quality')}: {selectedMeme.metadata.qualityScore}/100
-                    </p>
-                  )}
                   {selectedMeme.tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {selectedMeme.tags.map((tag, i) => (
@@ -1016,9 +1006,6 @@ const LabTab = ({ publicMode = false }) => {
                   )}
                   <div className="p-2">
                     <p className="text-white text-xs font-medium truncate group-hover:text-indigo-300 transition-colors">{meme.title}</p>
-                    {meme.metadata?.qualityScore && (
-                      <p className="text-gray-500 text-[10px] mt-0.5">{t('lab.myMemes.quality')}: {meme.metadata.qualityScore}/100</p>
-                    )}
                   </div>
                 </button>
               ))}

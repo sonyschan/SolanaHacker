@@ -22,6 +22,16 @@ const getOriginBadge = (meme) => {
   return null; // daily memes — "Memeya Original" shown via absence of special badge
 };
 
+// Convert rarity averageScore (1-10) to star display (0.5-5 stars)
+const getStarRating = (meme) => {
+  const avg = meme.rarity?.averageScore;
+  if (!avg || avg <= 0) return null;
+  const stars = Math.round(avg) / 2; // 1-10 → 0.5-5, rounded to nearest 0.5
+  const full = Math.floor(stars);
+  const half = stars % 1 >= 0.5;
+  return '⭐'.repeat(full) + (half ? '✨' : '');
+};
+
 const GalleryTab = () => {
   const { t, i18n } = useTranslation();
   const { walletAddress } = useAuth();
@@ -341,7 +351,7 @@ const GalleryTab = () => {
                         {meme.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                        <span>{'\u2764\uFE0F'} {meme.votes?.selection?.yes || 0}</span>
+                        {getStarRating(meme) && <span>{getStarRating(meme)}</span>}
                         {meme.finalRarity && (
                           <span className="px-1.5 py-0.5 rounded" style={{
                             backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
@@ -441,10 +451,7 @@ const GalleryTab = () => {
 
                             {/* Stats */}
                             <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <span>{'\u2764\uFE0F'}</span>
-                                <span>{meme.votes?.selection?.yes || 0}</span>
-                              </span>
+                              {getStarRating(meme) && <span>{getStarRating(meme)}</span>}
                               {meme.finalRarity && (
                                 <span className="px-1.5 py-0.5 rounded" style={{
                                   backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
@@ -552,8 +559,8 @@ const GalleryTab = () => {
               {/* Vote Stats */}
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="bg-white/5 rounded-xl p-3 md:p-4 text-center">
-                  <div className="text-xl md:text-2xl font-bold text-green-400">
-                    {selectedMeme.votes?.selection?.yes || 0}
+                  <div className="text-xl md:text-2xl font-bold text-yellow-400">
+                    {getStarRating(selectedMeme) || '—'}
                   </div>
                   <div className="text-xs md:text-sm text-gray-400">{t('gallery.selectionVotes')}</div>
                 </div>
