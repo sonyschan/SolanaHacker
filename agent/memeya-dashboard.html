@@ -960,7 +960,7 @@ async function loadMoltbookState() {
 // ─── Load prompt data ───────────────────────────────────────
 async function loadPrompt() {
   try {
-    const res = await fetch('/api/memeya/prompt');
+    const res = await fetch('/api/memeya/prompt', { headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     document.getElementById('prompt-main-preview').textContent = truncate(data.memeyaPrompt, 80);
@@ -1048,7 +1048,7 @@ async function loadProductStats() {
 
 async function loadValues() {
   try {
-    const res = await fetch('/api/memeya/values');
+    const res = await fetch('/api/memeya/values', { headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const container = document.getElementById('values-content');
@@ -1067,7 +1067,7 @@ async function loadValues() {
 // ─── Load TODOs ─────────────────────────────────────────────
 async function loadTodos() {
   try {
-    const res = await fetch('/api/memeya/todos');
+    const res = await fetch('/api/memeya/todos', { headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const container = document.getElementById('todo-content');
@@ -1104,7 +1104,7 @@ async function loadTodos() {
 // ─── Load activity ──────────────────────────────────────────
 async function loadActivity() {
   try {
-    const res = await fetch('/api/memeya/activity');
+    const res = await fetch('/api/memeya/activity', { headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const container = document.getElementById('activity-content');
@@ -1329,9 +1329,9 @@ async function loadWalletData() {
 
   try {
     const [balRes, histRes, cfgRes] = await Promise.all([
-      fetch('/api/memeya/wallet-status'),
-      fetch('/api/memeya/wallet-history'),
-      fetch('/api/memeya/reward-config')
+      fetch('/api/memeya/wallet-status', { headers: authHeaders() }),
+      fetch('/api/memeya/wallet-history', { headers: authHeaders() }),
+      fetch('/api/memeya/reward-config', { headers: authHeaders() })
     ]);
     const balData = await balRes.json();
     const histData = await histRes.json();

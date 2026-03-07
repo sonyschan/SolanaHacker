@@ -96,9 +96,14 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // ─── Auth guard: all dangerous POST endpoints require Bearer token ───
-  const guardedPaths = ['/api/memeya/', '/shutdown', '/api/reboot', '/regen'];
-  if (req.method === 'POST' && guardedPaths.some(p => req.url.startsWith(p))) {
+  // ─── Auth guard: POST endpoints + sensitive GET endpoints require Bearer token ───
+  const guardedPostPaths = ['/api/memeya/', '/shutdown', '/api/reboot', '/regen'];
+  const guardedGetPaths = ['/api/memeya/prompt', '/api/memeya/journals', '/api/memeya/values',
+    '/api/memeya/todos', '/api/memeya/activity', '/api/memeya/wallet-status',
+    '/api/memeya/wallet-history', '/api/memeya/reward-config'];
+  const needsAuth = (req.method === 'POST' && guardedPostPaths.some(p => req.url.startsWith(p)))
+    || (req.method === 'GET' && guardedGetPaths.some(p => req.url === p || req.url.startsWith(p + '?')));
+  if (needsAuth) {
     const authHeader = req.headers['authorization'] || '';
     const token = authHeader.replace('Bearer ', '').trim();
     const expected = (process.env.AGENT_NAME || '').trim();

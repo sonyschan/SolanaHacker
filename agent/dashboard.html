@@ -257,6 +257,65 @@
 </head>
 <body>
 
+<!-- Login overlay -->
+<div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="text-align:center;">
+    <h2 style="margin-bottom:12px;">Agent Dashboard</h2>
+    <p style="color:var(--text-dim);font-size:0.85em;margin:0 0 20px;">Enter password to continue</p>
+    <input id="login-input" type="password" placeholder="Password"
+      style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1em;width:220px;"
+      onkeydown="if(event.key==='Enter')loginSubmit()">
+    <button onclick="loginSubmit()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer;margin-left:8px;">Login</button>
+    <p id="login-error" style="color:var(--red);font-size:0.85em;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+<script>
+(function() {
+  const AUTH_KEY = 'agent_dash_auth';
+  const TTL = 30 * 24 * 60 * 60 * 1000;
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (stored) {
+    try {
+      const { ts, pw } = JSON.parse(stored);
+      if (Date.now() - ts < TTL && pw) {
+        window.__dashToken = pw;
+        document.getElementById('login-overlay').style.display = 'none';
+        return;
+      }
+    } catch {}
+    localStorage.removeItem(AUTH_KEY);
+  }
+})();
+async function loginSubmit() {
+  const input = document.getElementById('login-input');
+  const errEl = document.getElementById('login-error');
+  const pw = input.value.trim();
+  if (!pw) { errEl.textContent = 'Please enter a password'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    const data = await r.json();
+    if (data.ok) {
+      window.__dashToken = pw;
+      localStorage.setItem('agent_dash_auth', JSON.stringify({ ts: Date.now(), pw }));
+      document.getElementById('login-overlay').style.display = 'none';
+    } else {
+      errEl.textContent = data.error || 'Wrong password';
+      errEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  } catch (err) {
+    errEl.textContent = 'Connection error';
+    errEl.style.display = 'block';
+  }
+}
+function authHeaders(extra = {}) {
+  const h = { ...extra };
+  if (window.__dashToken) h['Authorization'] = 'Bearer ' + window.__dashToken;
+  return h;
+}
+</script>
+
 <div class="status-bar" id="status-bar">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span class="status-dot" id="status-dot"></span>
@@ -595,7 +654,7 @@ async function shutdownServer() {
   if (!serverAlive) return;
   if (!confirm('Stop the dashboard server? You will need SSH to restart it:\n\nssh root@165.22.136.40\nsystemctl start dashboard-server')) return;
   try {
-    await fetch('/shutdown', { method: 'POST' });
+    await fetch('/shutdown', { method: 'POST', headers: authHeaders() });
     document.getElementById('status-dot').className = 'status-dot dead';
     document.getElementById('status-text').textContent = 'Shutting down...';
     document.getElementById('status-text').style.color = 'var(--orange)';
@@ -609,7 +668,7 @@ async function regen() {
   btn.textContent = 'Regenerating...';
   status.textContent = '';
   try {
-    const res = await fetch('/regen', { method: 'POST' });
+    const res = await fetch('/regen', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     if (data.ok) {
       status.style.color = 'var(--green)';

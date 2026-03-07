@@ -2220,7 +2220,7 @@ ${recentMemory.slice(-1500)}
       const dashboardPort = process.env.DASHBOARD_PORT || 8090;
       const postRes = await fetch(`http://localhost:${dashboardPort}/api/memeya/send-post`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.AGENT_NAME || ''}` },
         body: JSON.stringify(postBody),
         signal: postController.signal,
       });
