@@ -455,6 +455,47 @@ async function logSolanaTransaction(paymentToken, sender) {
 }
 
 /**
+ * DELETE /api/memes/:id - Delete a meme (owner only, verified via solana_orders)
+ * Body: { wallet }
+ */
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { wallet } = req.body;
+
+    if (!wallet || typeof wallet !== 'string' || wallet.length < 32) {
+      return res.status(400).json({ success: false, error: "Valid wallet address is required" });
+    }
+
+    const db = getFirestore();
+
+    // Verify ownership via solana_orders
+    const ordersSnap = await db.collection(collections.SOLANA_ORDERS)
+      .where('memeId', '==', id)
+      .where('sender', '==', wallet)
+      .where('status', '==', 'completed')
+      .limit(1)
+      .get();
+
+    if (ordersSnap.empty) {
+      return res.status(403).json({ success: false, error: "You don't own this meme" });
+    }
+
+    // Delete the meme doc
+    await db.collection(collections.MEMES).doc(id).delete();
+
+    // Mark order as deleted for audit trail
+    const orderDoc = ordersSnap.docs[0];
+    await orderDoc.ref.update({ status: 'deleted', deletedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Delete meme error:", error);
+    res.status(500).json({ success: false, error: "Failed to delete meme" });
+  }
+});
+
+/**
  * POST /api/memes/:id/regenerate-image - Retry image generation for a failed meme
  * Query: ?model=grok (optional, defaults to gemini)
  */

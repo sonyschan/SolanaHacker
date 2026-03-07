@@ -749,6 +749,10 @@
       "emptyHint": "創作你的第一張 meme，它會出現在這裡！",
       "connectWallet": "連接錢包查看你的 meme",
       "share": "分享到 X",
+      "copyLink": "複製連結",
+      "linkCopied": "已複製！",
+      "delete": "刪除",
+      "deleteConfirm": "確定要刪除嗎？此操作無法撤銷。",
       "quality": "品質",
       "loading": "載入你的 meme...",
       "backToGrid": "返回"

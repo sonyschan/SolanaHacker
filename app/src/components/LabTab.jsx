@@ -166,6 +166,8 @@ const LabTab = ({ publicMode = false }) => {
   const [myMemesLoading, setMyMemesLoading] = useState(false);
   const [myMemesLoaded, setMyMemesLoaded] = useState(false);
   const [selectedMeme, setSelectedMeme] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ── Private mode auth state ───────────────────────────────
   const [apiKey, setApiKey] = useState(() => getStoredKey());
@@ -933,7 +935,7 @@ const LabTab = ({ publicMode = false }) => {
                   )}
                 </div>
               </div>
-              <div className="flex gap-3 justify-center">
+              <div className="flex flex-wrap gap-3 justify-center">
                 <button
                   onClick={() => {
                     const url = `https://aimemeforge.io/meme/${selectedMeme.id}`;
@@ -943,6 +945,43 @@ const LabTab = ({ publicMode = false }) => {
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
                 >
                   {t('lab.myMemes.share')}
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://aimemeforge.io/meme/${selectedMeme.id}`);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+                >
+                  {linkCopied ? t('lab.myMemes.linkCopied') : t('lab.myMemes.copyLink')}
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={async () => {
+                    if (!window.confirm(t('lab.myMemes.deleteConfirm'))) return;
+                    setDeleting(true);
+                    try {
+                      const res = await fetch(`${API_BASE_URL}/api/memes/${selectedMeme.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ wallet: walletAddress }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setMyMemes(prev => prev.filter(m => m.id !== selectedMeme.id));
+                        setSelectedMeme(null);
+                        setMyMemesLoaded(false);
+                      }
+                    } catch (e) {
+                      console.error('Delete meme error:', e);
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all disabled:opacity-50"
+                >
+                  {t('lab.myMemes.delete')}
                 </button>
               </div>
             </div>

@@ -749,6 +749,10 @@
       "emptyHint": "Create your first meme and it will appear here!",
       "connectWallet": "Connect Wallet to see your memes",
       "share": "Share on X",
+      "copyLink": "Copy Link",
+      "linkCopied": "Copied!",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure? This cannot be undone.",
       "quality": "Quality",
       "loading": "Loading your memes...",
       "backToGrid": "Back"
