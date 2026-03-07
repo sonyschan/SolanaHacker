@@ -2871,6 +2871,9 @@ ${recentMemory}
 
     console.log('[ChatMode] Searching latest news...');
 
+    // Always set cooldown BEFORE the API call to prevent rapid retry on any outcome
+    this.lastNewsSentAt = Date.now();
+
     const today = new Date().toISOString().split('T')[0];
 
     try {
@@ -2896,7 +2899,6 @@ ${recentMemory}
       }
 
       await this.telegram.sendDevlog(`📰 <b>剛看到的新聞</b>\n\n${news}`);
-      this.lastNewsSentAt = Date.now();
 
       // Save to memory
       this.saveToJournal('news', news);
