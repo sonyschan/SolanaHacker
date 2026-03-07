@@ -740,7 +740,8 @@
       "connectWallet": "连接钱包开始创作",
       "connectHint": "连接钱包以生成 meme",
       "priceNote": "基础价格：{{base}} 美元等值",
-      "ecosystemFund": "\uD83C\uDF31 付款将进入 Memeya 钱包作为生态基金"
+      "ecosystemFund": "\uD83C\uDF31 付款将进入 Memeya 钱包作为生态基金",
+      "timeEstimate": "创作约需 1-2 分钟，Memeya 正在努力中！"
     }
   },
   "workshop": {

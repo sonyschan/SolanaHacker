@@ -13,6 +13,8 @@ import {
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
@@ -122,12 +124,15 @@ const narratives = await fetch('${base}/api/catalog/narratives')
   .then(r => r.json());`,
 };
 
-const GENERATION_MESSAGES = [
-  'Analyzing topic...',
-  'Crafting comedy architecture...',
-  'Selecting art style...',
-  'Generating image...',
-  'Almost there...',
+// Memeya chat messages during generation (~90s total, show each for ~12s)
+const MEMEYA_CHAT = [
+  { msg: "Ooh, let me think about this one...", pct: 5 },
+  { msg: "Scanning the meme multiverse for inspiration...", pct: 15 },
+  { msg: "Found it! Crafting the comedy architecture now.", pct: 25 },
+  { msg: "Picking the perfect art style. Trust me, I have taste.", pct: 40 },
+  { msg: "Generating image... this is the fun part!", pct: 60 },
+  { msg: "Adding the finishing touches. Almost ready!", pct: 80 },
+  { msg: "Just a few more seconds... worth the wait!", pct: 92 },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────
@@ -148,6 +153,7 @@ const LabTab = ({ publicMode = false }) => {
   const [headlineIdx, setHeadlineIdx] = useState(0);
   const [createLoading, setCreateLoading] = useState(false);
   const [createStatus, setCreateStatus] = useState('');
+  const [createProgress, setCreateProgress] = useState(0);
   const [createResult, setCreateResult] = useState(null);
   const [createError, setCreateError] = useState('');
   const [featuredMeme, setFeaturedMeme] = useState(null);
@@ -226,13 +232,15 @@ const LabTab = ({ publicMode = false }) => {
     setCreateLoading(true);
     setCreateError('');
     setCreateResult(null);
-    setCreateStatus(GENERATION_MESSAGES[0]);
+    setCreateStatus(MEMEYA_CHAT[0].msg);
+    setCreateProgress(MEMEYA_CHAT[0].pct);
 
-    // Rotate status messages
+    // Rotate Memeya chat messages with progress
     let msgIdx = 0;
     const statusTimer = setInterval(() => {
-      msgIdx = Math.min(msgIdx + 1, GENERATION_MESSAGES.length - 1);
-      setCreateStatus(GENERATION_MESSAGES[msgIdx]);
+      msgIdx = Math.min(msgIdx + 1, MEMEYA_CHAT.length - 1);
+      setCreateStatus(MEMEYA_CHAT[msgIdx].msg);
+      setCreateProgress(MEMEYA_CHAT[msgIdx].pct);
     }, 12000);
 
     try {
@@ -259,10 +267,10 @@ const LabTab = ({ publicMode = false }) => {
           })
         );
       } else {
-        // $Memeya SPL token transfer
+        // $Memeya SPL token transfer (Token-2022 program)
         const rawAmount = BigInt(Math.ceil(prices.memeya.amount * 10 ** MEMEYA_DECIMALS));
-        const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey);
-        const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET, true);
+        const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+        const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET, true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
         // Pre-flight: check user's $Memeya balance before building tx
         try {
@@ -275,20 +283,20 @@ const LabTab = ({ publicMode = false }) => {
           }
         } catch (balErr) {
           if (balErr.message?.includes('Insufficient')) throw balErr;
-          // "could not find account" = token account doesn't exist = 0 balance
-          // Any other error (403, network) = skip balance check, let wallet handle it
           const errMsg = balErr?.message || '';
           if (errMsg.includes('could not find account') || errMsg.includes('Invalid param') || errMsg.includes('not found')) {
             throw new Error('You don\'t have any $Memeya tokens. Buy some or pay with SOL instead.');
           }
-          // RPC error — don't block the user, let the wallet simulation catch real issues
           console.warn('Balance check failed (RPC issue?), proceeding anyway:', errMsg);
         }
 
         tx = new Transaction();
 
         // Ensure destination ATA exists (idempotent — no-op if already exists)
-        tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
+        tx.add(createAssociatedTokenAccountIdempotentInstruction(
+          fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT,
+          TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+        ));
 
         tx.add(createTransferCheckedInstruction(
           fromAta,
@@ -297,6 +305,8 @@ const LabTab = ({ publicMode = false }) => {
           fromPubkey,
           rawAmount,
           MEMEYA_DECIMALS,
+          [],
+          TOKEN_2022_PROGRAM_ID,
         ));
       }
 
@@ -308,6 +318,7 @@ const LabTab = ({ publicMode = false }) => {
       //    Privy's signAndSendTransaction expects { transaction: Uint8Array, wallet, chain }
       //    Return shape varies: { hash: string } (base58) or { signature: Uint8Array }
       setCreateStatus('Waiting for wallet signature...');
+      setCreateProgress(3);
       const txBytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
       const result = await signAndSendTransaction({
         transaction: txBytes,
@@ -354,6 +365,7 @@ const LabTab = ({ publicMode = false }) => {
       clearInterval(statusTimer);
       setCreateLoading(false);
       setCreateStatus('');
+      setCreateProgress(0);
     }
   };
 
@@ -655,10 +667,26 @@ const LabTab = ({ publicMode = false }) => {
 
           {/* Loading state */}
           {createLoading && (
-            <div className="max-w-md mx-auto text-center space-y-4 py-8">
-              <div className="inline-block w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-              <p className="text-white font-medium">{t('lab.create.generating')}</p>
-              <p className="text-gray-400 text-sm animate-pulse">{createStatus}</p>
+            <div className="max-w-md mx-auto py-8 space-y-5">
+              {/* Time estimate */}
+              <p className="text-center text-xs text-gray-500">{t('lab.create.timeEstimate')}</p>
+
+              {/* Progress bar */}
+              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${createProgress}%` }}
+                />
+              </div>
+              <p className="text-center text-xs text-gray-500">{createProgress}%</p>
+
+              {/* Memeya chat bubble */}
+              <div className="flex items-start gap-3">
+                <img src="/images/logo-48.png" alt="Memeya" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
+                <div className="bg-white/5 border border-white/10 rounded-xl rounded-tl-sm px-4 py-3 flex-1">
+                  <p className="text-gray-200 text-sm">{createStatus}</p>
+                </div>
+              </div>
             </div>
           )}
 

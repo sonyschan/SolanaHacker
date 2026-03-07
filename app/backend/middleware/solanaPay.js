@@ -123,8 +123,10 @@ async function verifySolanaPayment(txSignature, paymentToken, minAmount, context
     }
   } else if (paymentToken === 'MEMEYA') {
     // Look for SPL token transfer of $Memeya to our wallet
+    // $Memeya uses Token-2022 program, so check both 'spl-token' and 'spl-token-2022'
+    const tokenPrograms = ['spl-token', 'spl-token-2022'];
     for (const ix of instructions) {
-      if (ix.program === 'spl-token' && ix.parsed?.type === 'transferChecked') {
+      if (tokenPrograms.includes(ix.program) && ix.parsed?.type === 'transferChecked') {
         const info = ix.parsed.info;
         if (info.mint === MEMEYA_MINT.toBase58()) {
           const amount = Number(info.tokenAmount?.uiAmount || 0);
@@ -136,8 +138,8 @@ async function verifySolanaPayment(txSignature, paymentToken, minAmount, context
           }
         }
       }
-      // Also handle regular 'transfer' instruction for SPL (no mint check in ix itself)
-      if (ix.program === 'spl-token' && ix.parsed?.type === 'transfer') {
+      // Also handle regular 'transfer' instruction (no mint check in ix itself)
+      if (tokenPrograms.includes(ix.program) && ix.parsed?.type === 'transfer') {
         const postBalances = tx.meta?.postTokenBalances || [];
         const preBalances = tx.meta?.preTokenBalances || [];
         for (const post of postBalances) {

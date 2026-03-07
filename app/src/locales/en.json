@@ -740,7 +740,8 @@
       "connectWallet": "Connect Wallet to Generate",
       "connectHint": "Connect your wallet to generate a meme",
       "priceNote": "Base price: {{base}} USD equivalent",
-      "ecosystemFund": "\uD83C\uDF31 Payment goes to Memeya's wallet as ecosystem fund"
+      "ecosystemFund": "\uD83C\uDF31 Payment goes to Memeya's wallet as ecosystem fund",
+      "timeEstimate": "Creation takes about 1-2 minutes. Memeya is working hard!"
     }
   },
   "workshop": {
