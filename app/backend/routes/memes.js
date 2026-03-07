@@ -35,18 +35,19 @@ const VERIFY_FAIL_WINDOW = 15 * 60 * 1000;
 const X402_TEMPLATES = {
   '/rate': {
     amount: 0.05,
-    text_en: 'Earned $0.05 USDC — rated a meme for a client on Base',
-    text_zh: '為客戶評分一張 meme，賺取 $0.05 USDC (Base)',
+    text_en: (chain) => `Earned $0.05 USDC — rated a meme for a client via x402 (${chain})`,
+    text_zh: (chain) => `為客戶評分一張 meme，賺取 $0.05 USDC (${chain})`,
   },
   '/generate-custom': {
     amount: 0.10,
-    text_en: 'Earned $0.10 USDC — forged a custom meme for a client on Base',
-    text_zh: '為客戶打造一張自訂 meme，賺取 $0.10 USDC (Base)',
+    text_en: (chain) => `Earned $0.10 USDC — forged a custom meme for a client via x402 (${chain})`,
+    text_zh: (chain) => `為客戶打造一張自訂 meme，賺取 $0.10 USDC (${chain})`,
   },
 };
 
-async function logX402Transaction(endpoint) {
+async function logX402Transaction(endpoint, facilitator) {
   const tpl = X402_TEMPLATES[endpoint];
+  const chain = facilitator === 'dexter' ? 'Base/Solana' : 'Base';
   if (!tpl) return;
 
   const db = getFirestore();
@@ -60,8 +61,8 @@ async function logX402Transaction(endpoint) {
     entries: admin.firestore.FieldValue.arrayUnion({
       time,
       topic: 'x402_commerce',
-      text_en: tpl.text_en,
-      text_zh: tpl.text_zh,
+      text_en: tpl.text_en(chain),
+      text_zh: tpl.text_zh(chain),
       ambient: false,
     }),
   }, { merge: true });
@@ -69,6 +70,7 @@ async function logX402Transaction(endpoint) {
   // B. Store to x402_transactions for analytics
   await db.collection(collections.X402_TRANSACTIONS).add({
     endpoint,
+    facilitator: facilitator || 'unknown',
     amount: tpl.amount,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
     date,
@@ -241,7 +243,7 @@ router.post("/rate", requireLabKeyOrPayment, rateLimiter, async (req, res) => {
     const evaluation = await memeIdeaService.evaluatePublicMeme(imageUrl);
     res.json({ success: true, ...evaluation });
     if (req.authMethod === 'x402') {
-      logX402Transaction('/rate').catch(() => {});
+      logX402Transaction('/rate', req.x402Facilitator).catch(() => {});
     }
   } catch (error) {
     console.error("Rate meme error:", error);
@@ -264,7 +266,7 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
     const meme = await generateSingleMeme({ topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode });
     res.json({ success: true, meme });
     if (req.authMethod === 'x402') {
-      logX402Transaction('/generate-custom').catch(() => {});
+      logX402Transaction('/generate-custom', req.x402Facilitator).catch(() => {});
     }
   } catch (error) {
     console.error("Generate custom meme error:", error);

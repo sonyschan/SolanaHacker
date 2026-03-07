@@ -1,34 +1,65 @@
 /**
  * x402 Payment Middleware for AIMemeForge Commerce
  *
+ * Dual-facilitator architecture:
+ *   Primary:  Dexter (x402.dexter.cash) — Solana + Base, no auth required
+ *   Fallback: CDP (api.cdp.coinbase.com) — Base only, JWT auth
+ *
  * Dual-track auth: Lab passphrase (admin) OR x402 payment (commercial).
  * If request has valid x-api-key header → skip paywall (free lab access).
  * Otherwise → x402 paymentMiddleware (HTTP 402 → pay → proceed).
- *
- * Uses Coinbase CDP facilitator for Base mainnet.
- * Solana support can be added later via x402-solana package.
  */
 
 const crypto = require('crypto');
 const { paymentMiddleware, x402ResourceServer } = require('@x402/express');
 const { ExactEvmScheme } = require('@x402/evm/exact/server');
+const { ExactSvmScheme } = require('@x402/svm/exact/server');
 const { HTTPFacilitatorClient } = require('@x402/core/server');
 
-// Memeya's Base wallet (Crossmint Smart Wallet)
+// ── Wallets ──────────────────────────────────────────────────────────
 const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
+const MEMEYA_SOLANA_WALLET = '4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP';
 
-// Base mainnet CAIP-2 identifier
+// ── Networks (CAIP-2) ────────────────────────────────────────────────
 const BASE_MAINNET = 'eip155:8453';
+const SOLANA_MAINNET = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'; // mainnet-beta
 
-// CDP facilitator
+// ── Facilitators ─────────────────────────────────────────────────────
+const DEXTER_FACILITATOR_URL = 'https://x402.dexter.cash';
+
 const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const CDP_FACILITATOR_HOST = 'api.cdp.coinbase.com';
 const CDP_FACILITATOR_PATH = '/platform/v2/x402';
 
-/**
- * Generate a CDP JWT (Ed25519) for authenticating with the facilitator.
- * Replicates @coinbase/cdp-sdk JWT logic without the ESM-only `jose` dependency.
- */
+// ── Route pricing ────────────────────────────────────────────────────
+const ROUTES = [
+  {
+    key: 'POST /rate',
+    price: '$0.05',
+    description: 'Rate a meme image — AI quality scoring with grade and suggestions',
+    mimeType: 'application/json',
+  },
+  {
+    key: 'POST /generate-custom',
+    price: '$0.10',
+    description: 'Generate a custom AI meme with comedy architecture',
+    mimeType: 'application/json',
+  },
+];
+
+// ── Health check state ───────────────────────────────────────────────
+let _dexterHealthy = true; // optimistic start
+let _healthCheckTimer = null;
+
+// ── Cached middleware instances ──────────────────────────────────────
+let _dexterMiddleware = null;
+let _cdpMiddleware = null;
+let _initialized = false;
+
+// =====================================================================
+//  CDP JWT Auth (unchanged from original)
+// =====================================================================
+
 function generateCdpJwt(apiKeyId, apiKeySecret, method, path) {
   const now = Math.floor(Date.now() / 1000);
   const nonce = crypto.randomBytes(16).toString('hex');
@@ -47,11 +78,9 @@ function generateCdpJwt(apiKeyId, apiKeySecret, method, path) {
   const b64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signingInput = `${b64Header}.${b64Payload}`;
 
-  // Ed25519 key: 64 bytes base64 = 32-byte seed + 32-byte public key
   const decoded = Buffer.from(apiKeySecret, 'base64');
   const seed = decoded.subarray(0, 32);
 
-  // Build PKCS8 DER for Ed25519 private key
   const pkcs8Prefix = Buffer.from('302e020100300506032b657004220420', 'hex');
   const keyObj = crypto.createPrivateKey({
     key: Buffer.concat([pkcs8Prefix, seed]),
@@ -63,9 +92,6 @@ function generateCdpJwt(apiKeyId, apiKeySecret, method, path) {
   return `${signingInput}.${Buffer.from(signature).toString('base64url')}`;
 }
 
-/**
- * Build createAuthHeaders function for CDP facilitator (matches @coinbase/x402 interface).
- */
 function createCdpAuthHeaders(apiKeyId, apiKeySecret) {
   return async () => {
     const verifyAuth = `Bearer ${generateCdpJwt(apiKeyId, apiKeySecret, 'POST', `${CDP_FACILITATOR_PATH}/verify`)}`;
@@ -79,98 +105,200 @@ function createCdpAuthHeaders(apiKeyId, apiKeySecret) {
   };
 }
 
-let _x402Middleware = null;
+// =====================================================================
+//  Route config builder
+// =====================================================================
 
 /**
- * Lazily build and cache the x402 payment middleware.
- * Returns null if CDP credentials are missing (graceful degradation).
+ * Build route pricing config for a given set of networks.
+ * @param {string[]} networks - CAIP-2 network IDs to include
  */
-function getX402Middleware() {
-  if (_x402Middleware !== null) return _x402Middleware;
+function buildRouteConfig(networks) {
+  const config = {};
+  for (const route of ROUTES) {
+    const accepts = [];
+    for (const network of networks) {
+      if (network === BASE_MAINNET) {
+        accepts.push({
+          scheme: 'exact',
+          price: route.price,
+          network: BASE_MAINNET,
+          payTo: MEMEYA_BASE_WALLET,
+        });
+      } else if (network === SOLANA_MAINNET) {
+        accepts.push({
+          scheme: 'exact',
+          price: route.price,
+          network: SOLANA_MAINNET,
+          payTo: MEMEYA_SOLANA_WALLET,
+        });
+      }
+    }
+    config[route.key] = {
+      accepts,
+      description: route.description,
+      mimeType: route.mimeType,
+    };
+  }
+  return config;
+}
 
+// =====================================================================
+//  Middleware builders
+// =====================================================================
+
+function buildDexterMiddleware() {
+  const facilitator = new HTTPFacilitatorClient({
+    url: DEXTER_FACILITATOR_URL,
+  });
+
+  const server = new x402ResourceServer(facilitator)
+    .register(BASE_MAINNET, new ExactEvmScheme())
+    .register(SOLANA_MAINNET, new ExactSvmScheme());
+
+  const routeConfig = buildRouteConfig([BASE_MAINNET, SOLANA_MAINNET]);
+
+  return paymentMiddleware(routeConfig, server, {
+    appName: 'AIMemeForge',
+    appLogo: 'https://aimemeforge.io/images/logo-192.png',
+    testnet: false,
+  });
+}
+
+function buildCdpMiddleware(keyId, keySecret) {
+  const facilitator = new HTTPFacilitatorClient({
+    url: CDP_FACILITATOR_URL,
+    createAuthHeaders: createCdpAuthHeaders(keyId, keySecret),
+  });
+
+  const server = new x402ResourceServer(facilitator)
+    .register(BASE_MAINNET, new ExactEvmScheme());
+
+  const routeConfig = buildRouteConfig([BASE_MAINNET]);
+
+  return paymentMiddleware(routeConfig, server, {
+    appName: 'AIMemeForge',
+    appLogo: 'https://aimemeforge.io/images/logo-192.png',
+    testnet: false,
+  });
+}
+
+// =====================================================================
+//  Dexter health check
+// =====================================================================
+
+async function checkDexterHealth() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${DEXTER_FACILITATOR_URL}/supported`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    const wasHealthy = _dexterHealthy;
+    _dexterHealthy = res.ok;
+
+    if (wasHealthy && !_dexterHealthy) {
+      console.warn('⚠️ x402: Dexter DOWN → CDP fallback (Base only)');
+    } else if (!wasHealthy && _dexterHealthy) {
+      console.log('✅ x402: Dexter recovered (Base + Solana)');
+    }
+  } catch {
+    if (_dexterHealthy) {
+      console.warn('⚠️ x402: Dexter DOWN → CDP fallback (Base only)');
+    }
+    _dexterHealthy = false;
+  }
+}
+
+function startHealthCheck() {
+  // Initial check
+  checkDexterHealth();
+  // Poll every 30 seconds
+  _healthCheckTimer = setInterval(checkDexterHealth, 30_000);
+  _healthCheckTimer.unref(); // don't block process exit
+}
+
+// =====================================================================
+//  Initialization
+// =====================================================================
+
+function initializeMiddleware() {
+  if (_initialized) return;
+  _initialized = true;
+
+  // Dexter — always available (no credentials needed)
+  try {
+    _dexterMiddleware = buildDexterMiddleware();
+    console.log('✅ x402: Dexter initialized (Base + Solana)');
+  } catch (err) {
+    console.error('❌ x402: Dexter init failed:', err.message);
+    _dexterMiddleware = null;
+    _dexterHealthy = false;
+  }
+
+  // CDP — requires credentials
   const keyId = process.env.CDP_API_KEY_ID;
   const keySecret = process.env.CDP_API_KEY_SECRET;
 
-  if (!keyId || !keySecret) {
-    console.warn('⚠️ x402: CDP_API_KEY_ID or CDP_API_KEY_SECRET not set — x402 payments disabled');
-    _x402Middleware = false; // false = not available
-    return false;
+  if (keyId && keySecret) {
+    try {
+      _cdpMiddleware = buildCdpMiddleware(keyId, keySecret);
+      console.log('✅ x402: CDP fallback initialized (Base only)');
+    } catch (err) {
+      console.error('❌ x402: CDP init failed:', err.message);
+      _cdpMiddleware = null;
+    }
+  } else {
+    console.warn('⚠️ x402: CDP_API_KEY_ID or CDP_API_KEY_SECRET not set — CDP fallback disabled');
   }
 
-  try {
-    const facilitatorClient = new HTTPFacilitatorClient({
-      url: CDP_FACILITATOR_URL,
-      createAuthHeaders: createCdpAuthHeaders(keyId, keySecret),
-    });
-
-    const server = new x402ResourceServer(facilitatorClient)
-      .register(BASE_MAINNET, new ExactEvmScheme());
-
-    // Route → pricing config
-    // Keys use router-relative paths (req.path inside Express sub-router)
-    const routeConfig = {
-      'POST /rate': {
-        accepts: [{
-          scheme: 'exact',
-          price: '$0.05',
-          network: BASE_MAINNET,
-          payTo: MEMEYA_BASE_WALLET,
-        }],
-        description: 'Rate a meme image — AI quality scoring with grade and suggestions',
-        mimeType: 'application/json',
-      },
-      'POST /generate-custom': {
-        accepts: [{
-          scheme: 'exact',
-          price: '$0.10',
-          network: BASE_MAINNET,
-          payTo: MEMEYA_BASE_WALLET,
-        }],
-        description: 'Generate a custom AI meme with comedy architecture',
-        mimeType: 'application/json',
-      },
-    };
-
-    const paywallConfig = {
-      appName: 'AIMemeForge',
-      appLogo: 'https://aimemeforge.io/images/logo-192.png',
-      testnet: false,
-    };
-
-    _x402Middleware = paymentMiddleware(routeConfig, server, paywallConfig);
-    console.log('✅ x402: payment middleware initialized (Base mainnet)');
-    return _x402Middleware;
-  } catch (err) {
-    console.error('❌ x402: failed to initialize payment middleware:', err.message);
-    _x402Middleware = false;
-    return false;
+  // Start Dexter health monitoring
+  if (_dexterMiddleware) {
+    startHealthCheck();
   }
 }
+
+// =====================================================================
+//  Main middleware
+// =====================================================================
 
 /**
  * Dual-track middleware: Lab passphrase OR x402 payment.
  *
- * 1. If x-api-key header matches LAB_API_KEY → proceed (admin access)
- * 2. If x402 is configured → run payment middleware
- * 3. If x402 is NOT configured → fall back to requireLabKey only
+ * 1. Lab key match → next() (admin access)
+ * 2. Dexter healthy → dexterMiddleware (Solana + Base)
+ * 3. Dexter down → cdpMiddleware (Base only)
+ * 4. Neither available → 503
  */
 function requireLabKeyOrPayment(req, res, next) {
+  // Lazy init on first request
+  initializeMiddleware();
+
   // Track 1: Lab passphrase
   const labKey = req.headers['x-api-key'];
   const expectedLabKey = process.env.LAB_API_KEY;
   if (expectedLabKey && labKey === expectedLabKey) {
     req.authMethod = 'lab';
-    return next(); // admin access — skip paywall
+    return next();
   }
 
-  // Track 2: x402 payment
-  const middleware = getX402Middleware();
-  if (middleware) {
+  // Track 2: x402 payment — Dexter primary
+  if (_dexterHealthy && _dexterMiddleware) {
     req.authMethod = 'x402';
-    return middleware(req, res, next);
+    req.x402Facilitator = 'dexter';
+    return _dexterMiddleware(req, res, next);
   }
 
-  // Fallback: no x402, no lab key → reject
+  // Track 3: x402 payment — CDP fallback
+  if (_cdpMiddleware) {
+    req.authMethod = 'x402';
+    req.x402Facilitator = 'cdp';
+    return _cdpMiddleware(req, res, next);
+  }
+
+  // Nothing available
   if (!expectedLabKey) {
     return res.status(503).json({ error: 'SERVICE_NOT_CONFIGURED', message: 'Payment system not configured' });
   }
@@ -179,6 +307,7 @@ function requireLabKeyOrPayment(req, res, next) {
 
 module.exports = {
   requireLabKeyOrPayment,
-  getX402Middleware,
+  initializeMiddleware,
   MEMEYA_BASE_WALLET,
+  MEMEYA_SOLANA_WALLET,
 };
