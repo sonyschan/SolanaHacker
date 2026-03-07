@@ -683,7 +683,7 @@ const LabTab = ({ publicMode = false }) => {
 
               {/* Memeya chat bubble */}
               <div className="flex items-start gap-3">
-                <img src="/images/logo-48.png" alt="Memeya" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
+                <img src="/images/memeya-avatar.png" alt="Memeya" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
                 <div className="bg-white/5 border border-white/10 rounded-xl rounded-tl-sm px-4 py-3 flex-1">
                   <p className="text-gray-200 text-sm">{createStatus}</p>
                 </div>
