@@ -2634,8 +2634,8 @@ ${recentMemory.slice(-1500)}
       return;
     }
 
-    // Mandatory news search every 4 hours (doNewsSearch has its own 4h cooldown)
-    await this.doNewsSearch();
+    // NEWS SEARCH DISABLED — investigating Grok API budget drain
+    // await this.doNewsSearch();
 
     if (!this.isActiveHours()) {
       console.log('[ChatMode] Outside active hours, skipping heartbeat');
