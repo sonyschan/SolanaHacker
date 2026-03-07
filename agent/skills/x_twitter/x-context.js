@@ -764,7 +764,7 @@ export function chooseTopicForSlot(diarySlot, context) {
     }
 
     case 'flex_2': {
-      const pool = ['community_response', 'token_spotlight', 'personal_vibe'];
+      const pool = ['token_spotlight', 'crypto_commentary', 'feature_showtime'];
       const sub = pickFlexTopic(pool, context);
       const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
       return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
