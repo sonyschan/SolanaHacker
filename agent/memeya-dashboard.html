@@ -266,8 +266,9 @@
   const stored = localStorage.getItem(AUTH_KEY);
   if (stored) {
     try {
-      const { ts } = JSON.parse(stored);
-      if (Date.now() - ts < TTL) {
+      const { ts, pw } = JSON.parse(stored);
+      if (Date.now() - ts < TTL && pw) {
+        window.__dashToken = pw;
         document.getElementById('login-overlay').style.display = 'none';
         return;
       }
@@ -285,7 +286,8 @@ async function loginSubmit() {
     const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
     const data = await r.json();
     if (data.ok) {
-      localStorage.setItem('memeya_dash_auth', JSON.stringify({ ts: Date.now() }));
+      window.__dashToken = pw;
+      localStorage.setItem('memeya_dash_auth', JSON.stringify({ ts: Date.now(), pw }));
       document.getElementById('login-overlay').style.display = 'none';
     } else {
       errEl.textContent = data.error || 'Wrong password';
@@ -297,6 +299,11 @@ async function loginSubmit() {
     errEl.textContent = 'Connection error';
     errEl.style.display = 'block';
   }
+}
+function authHeaders(extra = {}) {
+  const h = { ...extra };
+  if (window.__dashToken) h['Authorization'] = 'Bearer ' + window.__dashToken;
+  return h;
 }
 </script>
 
@@ -891,7 +898,7 @@ async function triggerSpotlight() {
   status.textContent = 'Generating & posting...';
   status.style.color = 'var(--orange)';
   try {
-    const res = await fetch('/api/memeya/trigger-spotlight', { method: 'POST' });
+    const res = await fetch('/api/memeya/trigger-spotlight', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     if (data.success) {
       status.innerHTML = `Posted! <a href="${escHtml(data.url)}" target="_blank" style="color:var(--blue);">${escHtml(data.url)}</a>`;
@@ -988,7 +995,7 @@ function updateXPostUI(enabled) {
 }
 async function toggleXPost() {
   try {
-    const res = await fetch('/api/memeya/x-post-toggle', { method: 'POST' });
+    const res = await fetch('/api/memeya/x-post-toggle', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     updateXPostUI(data.enabled);
@@ -1191,7 +1198,7 @@ async function runTestGenerate() {
   try {
     const skipBoredCheck = isAnnouncement || isNewFeature || isSystemUpgrade || !!purpose;
     const formatPrefix = isAnnouncement ? 'Announcement' : isNewFeature ? 'New Feature!' : isSystemUpgrade ? 'System Upgrade' : '';
-    const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose, skipBoredCheck, formatPrefix }) });
+    const res = await fetch('/api/memeya/test-generate', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ purpose, skipBoredCheck, formatPrefix }) });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const f = data.flow || {}, ctx = f.context || {}, sel = f.topicSelection || {}, gen = f.generation || {}, gate = f.qualityGate || {};
@@ -1270,7 +1277,7 @@ async function sendPost() {
       imageBase64 = await fileToBase64(imageFile);
       imageMimeType = imageFile.type || 'image/jpeg';
     }
-    const res = await fetch('/api/memeya/send-post', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, topic, imageBase64, imageMimeType }) });
+    const res = await fetch('/api/memeya/send-post', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ text, topic, imageBase64, imageMimeType }) });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     status.innerHTML = `Posted! <a href="${escHtml(data.url)}" target="_blank" rel="noopener" style="color:var(--cyan);">${escHtml(data.url)}</a>`;
@@ -1293,7 +1300,7 @@ async function runAnalysis() {
   status.innerHTML = '<span class="spinner"></span>Calling Grok API...'; status.style.color = 'var(--text-dim)';
   card.classList.remove('visible');
   try {
-    const res = await fetch('/api/memeya/analyze', { method: 'POST' });
+    const res = await fetch('/api/memeya/analyze', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     text.textContent = data.analysis; card.classList.add('visible');
@@ -1429,7 +1436,7 @@ function updateRewardUI(enabled) {
 
 async function toggleReward() {
   try {
-    const res = await fetch('/api/memeya/reward-toggle', { method: 'POST' });
+    const res = await fetch('/api/memeya/reward-toggle', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     updateRewardUI(data.data?.rewardEnabled !== false);

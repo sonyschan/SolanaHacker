@@ -86,7 +86,27 @@ function stampTimestamp() {
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // ─── Auth guard: all dangerous POST endpoints require Bearer token ───
+  const guardedPaths = ['/api/memeya/', '/shutdown', '/api/reboot', '/regen'];
+  if (req.method === 'POST' && guardedPaths.some(p => req.url.startsWith(p))) {
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.replace('Bearer ', '').trim();
+    const expected = (process.env.AGENT_NAME || '').trim();
+    if (!expected || token !== expected) {
+      jsonRes(res, { error: 'Unauthorized' }, 401);
+      return;
+    }
+  }
 
   // ─── Auth endpoint ────────────────────────────────────────
   if (req.method === 'POST' && req.url === '/api/auth') {
