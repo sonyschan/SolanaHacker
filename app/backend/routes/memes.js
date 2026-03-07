@@ -19,8 +19,14 @@ const { verifySolanaPayment, markPaymentFailed, markPaymentRateLimited, markPaym
 const admin = require('firebase-admin');
 const rateLimiter = rateLimitByWallet(10, 15 * 60 * 1000);
 
-// Solana meme generation rate limiter: 3 per hour per wallet
+// Solana meme generation rate limiter: 5 per hour per wallet
 const solanaGenLimiter = new Map(); // wallet -> { count, resetAt }
+const SOLANA_GEN_LIMIT = 5;
+
+// Rate limiter for failed verification attempts (prevent RPC spam)
+const verifyFailLimiter = new Map(); // ip/fingerprint -> { count, resetAt }
+const VERIFY_FAIL_LIMIT = 10; // max 10 failed attempts per 15 min
+const VERIFY_FAIL_WINDOW = 15 * 60 * 1000;
 
 /**
  * Log a successful x402 transaction to Workshop feed + analytics collection.
@@ -355,6 +361,14 @@ router.post("/generate-solana", async (req, res) => {
       return res.status(400).json({ success: false, error: "paymentToken must be SOL, MEMEYA, or USDC" });
     }
 
+    // Pre-flight: rate limit failed verification attempts (prevent RPC spam)
+    const clientKey = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const now = Date.now();
+    const failEntry = verifyFailLimiter.get(clientKey);
+    if (failEntry && now < failEntry.resetAt && failEntry.count >= VERIFY_FAIL_LIMIT) {
+      return res.status(429).json({ success: false, error: "Too many failed attempts. Try again later." });
+    }
+
     const db = getFirestore();
 
     // Fetch current price to determine expected amount
@@ -381,17 +395,29 @@ router.post("/generate-solana", async (req, res) => {
     };
 
     // Verify on-chain payment (also extracts sender wallet + actual amount)
-    const { sender, actualAmount } = await verifySolanaPayment(txSignature, paymentToken, minAmount, orderContext);
+    let verifyResult;
+    try {
+      verifyResult = await verifySolanaPayment(txSignature, paymentToken, minAmount, orderContext);
+    } catch (verifyErr) {
+      // Track failed verification attempts per IP to prevent RPC spam
+      if (failEntry && now < failEntry.resetAt) {
+        failEntry.count++;
+      } else {
+        verifyFailLimiter.set(clientKey, { count: 1, resetAt: now + VERIFY_FAIL_WINDOW });
+      }
+      throw verifyErr;
+    }
 
-    // Rate limit: 3 per hour per wallet
+    const { sender, actualAmount } = verifyResult;
+
+    // Rate limit: 5 per hour per wallet
     // Checked AFTER payment verification so we know the sender, but the tx
     // is already stored as 'verified'. If rate-limited, mark it as failed
     // so the user can retry after the window expires.
-    const now = Date.now();
     const limiterEntry = solanaGenLimiter.get(sender);
-    if (limiterEntry && now < limiterEntry.resetAt && limiterEntry.count >= 3) {
-      await markPaymentRateLimited(txSignature).catch(() => {});
-      return res.status(429).json({ success: false, error: "Rate limit exceeded — 3 memes per hour. Your payment can be retried later." });
+    if (limiterEntry && now < limiterEntry.resetAt && limiterEntry.count >= SOLANA_GEN_LIMIT) {
+      await markPaymentRateLimited(txSignature).catch(e => console.error('markPaymentRateLimited failed:', e.message));
+      return res.status(429).json({ success: false, error: `Rate limit exceeded — ${SOLANA_GEN_LIMIT} memes per hour. Your payment can be retried later.` });
     }
     if (limiterEntry && now < limiterEntry.resetAt) {
       limiterEntry.count++;
@@ -405,19 +431,24 @@ router.post("/generate-solana", async (req, res) => {
       meme = await generateSingleMeme({ topic: topic.trim() });
     } catch (genErr) {
       // Mark payment as failed so user can retry
-      await markPaymentFailed(txSignature, genErr.message || 'Meme generation failed').catch(() => {});
+      await markPaymentFailed(txSignature, genErr.message || 'Meme generation failed').catch(e => console.error('markPaymentFailed failed:', e.message));
       throw genErr;
     }
 
     // Mark payment completed + denormalize creator on meme doc
-    await Promise.all([
-      markPaymentCompleted(txSignature, meme?.id),
-      meme?.id && db.collection(collections.MEMES).doc(meme.id).update({
-        createdBy: sender,
-        paymentToken,
-        paymentTxSignature: txSignature,
-      }),
-    ]).catch(() => {});
+    try {
+      await Promise.all([
+        markPaymentCompleted(txSignature, meme?.id),
+        meme?.id && db.collection(collections.MEMES).doc(meme.id).update({
+          createdBy: sender,
+          paymentToken,
+          paymentTxSignature: txSignature,
+        }),
+      ]);
+    } catch (dbErr) {
+      console.error(`Payment completion DB error (tx=${txSignature}, meme=${meme?.id}):`, dbErr.message);
+      // Don't throw — meme was generated successfully, user should still get it
+    }
 
     // Log to Workshop feed (fire-and-forget)
     logSolanaTransaction(paymentToken, sender).catch(() => {});

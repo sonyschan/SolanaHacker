@@ -279,7 +279,7 @@ async function markPaymentRateLimited(txSignature) {
   const db = getFirestore();
   await db.collection(ORDER_COLLECTION).doc(txSignature).update({
     status: 'generation_failed',
-    error: 'Rate limit exceeded — 3 memes per hour',
+    error: 'Rate limit exceeded — 5 memes per hour',
     failedAt: new Date().toISOString(),
   });
 }
