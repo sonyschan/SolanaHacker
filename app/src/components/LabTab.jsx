@@ -213,13 +213,19 @@ const LabTab = ({ publicMode = false }) => {
     return () => clearInterval(timer);
   }, [headlines.length]);
 
-  // ── Fetch featured memes (top recent memes) ──────────────
+  // ── Fetch featured memes (recent lottery winners — human-voted #1) ──
   useEffect(() => {
     if (!publicMode) return;
-    fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=7&limit=6`)
+    fetch(`${API_BASE_URL}/api/lottery/recent-winners?limit=9`)
       .then(r => r.json())
       .then(data => {
-        if (data.memes?.length) setFeaturedMeme(data.memes);
+        if (data.data?.length) {
+          setFeaturedMeme(data.data.map(d => ({
+            id: d.memeId,
+            title: d.memeTitle,
+            imageUrl: d.memeImageUrl,
+          })));
+        }
       })
       .catch(() => {});
   }, [publicMode]);
