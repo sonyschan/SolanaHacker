@@ -1,9 +1,15 @@
 /**
  * x402 Payment Middleware for AIMemeForge Commerce
  *
- * Dual-facilitator architecture:
- *   Primary:  Dexter (x402.dexter.cash) — Solana + Base, no auth required
- *   Fallback: CDP (api.cdp.coinbase.com) — Base only, JWT auth
+ * Multi-facilitator architecture (single middleware, multiple clients):
+ *   CDP (api.cdp.coinbase.com)    — Base (proven, primary for EVM)
+ *   Dexter (x402.dexter.cash)     — Solana + extra EVM chains
+ *
+ * The x402ResourceServer routes payments to the correct facilitator based
+ * on which one first claimed support for that version/network/scheme during
+ * initialization. CDP is registered first → Base goes through CDP.
+ * Dexter registered second → Solana (and any chains CDP doesn't cover) go
+ * through Dexter.
  *
  * Dual-track auth: Lab passphrase (admin) OR x402 payment (commercial).
  * If request has valid x-api-key header → skip paywall (free lab access).
@@ -99,17 +105,12 @@ const ROUTES = [
   },
 ];
 
-// ── Health check state ───────────────────────────────────────────────
-let _dexterHealthy = true; // optimistic start
-let _healthCheckTimer = null;
-
-// ── Cached middleware instances ──────────────────────────────────────
-let _dexterMiddleware = null;
-let _cdpMiddleware = null;
+// ── Cached middleware instance ────────────────────────────────────────
+let _paymentMiddleware = null;
 let _initialized = false;
 
 // =====================================================================
-//  CDP JWT Auth (unchanged from original)
+//  CDP JWT Auth
 // =====================================================================
 
 function generateCdpJwt(apiKeyId, apiKeySecret, method, path) {
@@ -197,19 +198,61 @@ function buildRouteConfig(networks) {
 }
 
 // =====================================================================
-//  Middleware builders
+//  Middleware builder — single middleware, multiple facilitators
 // =====================================================================
 
-function buildDexterMiddleware() {
-  const facilitator = new HTTPFacilitatorClient({
+/**
+ * Build a single payment middleware with:
+ *   - CDP client first → claims Base (eip155:8453)
+ *   - Dexter client second → claims Solana (and any EVM chains CDP misses)
+ *
+ * During initialize(), x402ResourceServer iterates facilitator clients in
+ * order. The first client to support a given version/network/scheme wins.
+ * This ensures Base payments go through CDP (proven) while Solana payments
+ * go through Dexter (new).
+ */
+function buildPaymentMiddleware(cdpKeyId, cdpKeySecret) {
+  const facilitators = [];
+
+  // CDP first — claims Base
+  if (cdpKeyId && cdpKeySecret) {
+    const cdpFacilitator = new HTTPFacilitatorClient({
+      url: CDP_FACILITATOR_URL,
+      createAuthHeaders: createCdpAuthHeaders(cdpKeyId, cdpKeySecret),
+    });
+    facilitators.push(cdpFacilitator);
+    console.log('✅ x402: CDP client added (Base)');
+  }
+
+  // Dexter second — claims Solana (+ any chains CDP doesn't cover)
+  const dexterFacilitator = new HTTPFacilitatorClient({
     url: DEXTER_FACILITATOR_URL,
   });
+  facilitators.push(dexterFacilitator);
+  console.log('✅ x402: Dexter client added (Solana + fallback EVM)');
 
-  const server = new x402ResourceServer(facilitator)
+  if (facilitators.length === 0) {
+    throw new Error('No facilitator clients available');
+  }
+
+  // Single server with both EVM and SVM schemes
+  const server = new x402ResourceServer(facilitators)
     .register(BASE_MAINNET, new ExactEvmScheme())
     .register(SOLANA_MAINNET, new ExactSvmScheme());
   server.registerExtension(bazaarResourceServerExtension);
 
+  // Debug hooks — log verify/settle results
+  server.onAfterVerify(({ paymentPayload, requirements, result }) => {
+    console.log(`[x402] ✅ Verify OK — network: ${requirements.network}, valid: ${result.isValid}`);
+  });
+  server.onVerifyFailure(({ paymentPayload, requirements, error }) => {
+    console.error(`[x402] ❌ Verify FAILED — network: ${requirements?.network}`, error?.message || error);
+  });
+  server.onSettleFailure(({ paymentPayload, requirements, error }) => {
+    console.error(`[x402] ❌ Settle FAILED — network: ${requirements?.network}`, error?.message || error);
+  });
+
+  // Route config includes both Base and Solana payment options
   const routeConfig = buildRouteConfig([BASE_MAINNET, SOLANA_MAINNET]);
 
   return paymentMiddleware(routeConfig, server, {
@@ -217,62 +260,6 @@ function buildDexterMiddleware() {
     appLogo: 'https://aimemeforge.io/images/logo-192.png',
     testnet: false,
   });
-}
-
-function buildCdpMiddleware(keyId, keySecret) {
-  const facilitator = new HTTPFacilitatorClient({
-    url: CDP_FACILITATOR_URL,
-    createAuthHeaders: createCdpAuthHeaders(keyId, keySecret),
-  });
-
-  const server = new x402ResourceServer(facilitator)
-    .register(BASE_MAINNET, new ExactEvmScheme());
-  server.registerExtension(bazaarResourceServerExtension);
-
-  const routeConfig = buildRouteConfig([BASE_MAINNET]);
-
-  return paymentMiddleware(routeConfig, server, {
-    appName: 'AIMemeForge',
-    appLogo: 'https://aimemeforge.io/images/logo-192.png',
-    testnet: false,
-  });
-}
-
-// =====================================================================
-//  Dexter health check
-// =====================================================================
-
-async function checkDexterHealth() {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${DEXTER_FACILITATOR_URL}/supported`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    const wasHealthy = _dexterHealthy;
-    _dexterHealthy = res.ok;
-
-    if (wasHealthy && !_dexterHealthy) {
-      console.warn('⚠️ x402: Dexter DOWN → CDP fallback (Base only)');
-    } else if (!wasHealthy && _dexterHealthy) {
-      console.log('✅ x402: Dexter recovered (Base + Solana)');
-    }
-  } catch {
-    if (_dexterHealthy) {
-      console.warn('⚠️ x402: Dexter DOWN → CDP fallback (Base only)');
-    }
-    _dexterHealthy = false;
-  }
-}
-
-function startHealthCheck() {
-  // Initial check
-  checkDexterHealth();
-  // Poll every 30 seconds
-  _healthCheckTimer = setInterval(checkDexterHealth, 30_000);
-  _healthCheckTimer.unref(); // don't block process exit
 }
 
 // =====================================================================
@@ -283,35 +270,19 @@ function initializeMiddleware() {
   if (_initialized) return;
   _initialized = true;
 
-  // Dexter — always available (no credentials needed)
-  try {
-    _dexterMiddleware = buildDexterMiddleware();
-    console.log('✅ x402: Dexter initialized (Base + Solana)');
-  } catch (err) {
-    console.error('❌ x402: Dexter init failed:', err.message);
-    _dexterMiddleware = null;
-    _dexterHealthy = false;
-  }
-
-  // CDP — requires credentials
   const keyId = process.env.CDP_API_KEY_ID;
   const keySecret = process.env.CDP_API_KEY_SECRET;
 
-  if (keyId && keySecret) {
-    try {
-      _cdpMiddleware = buildCdpMiddleware(keyId, keySecret);
-      console.log('✅ x402: CDP fallback initialized (Base only)');
-    } catch (err) {
-      console.error('❌ x402: CDP init failed:', err.message);
-      _cdpMiddleware = null;
-    }
-  } else {
-    console.warn('⚠️ x402: CDP_API_KEY_ID or CDP_API_KEY_SECRET not set — CDP fallback disabled');
+  if (!keyId || !keySecret) {
+    console.warn('⚠️ x402: CDP_API_KEY_ID or CDP_API_KEY_SECRET not set — Base payments via Dexter only');
   }
 
-  // Start Dexter health monitoring
-  if (_dexterMiddleware) {
-    startHealthCheck();
+  try {
+    _paymentMiddleware = buildPaymentMiddleware(keyId, keySecret);
+    console.log('✅ x402: Payment middleware initialized (Base via CDP, Solana via Dexter)');
+  } catch (err) {
+    console.error('❌ x402: Middleware init failed:', err.message);
+    _paymentMiddleware = null;
   }
 }
 
@@ -323,9 +294,8 @@ function initializeMiddleware() {
  * Dual-track middleware: Lab passphrase OR x402 payment.
  *
  * 1. Lab key match → next() (admin access)
- * 2. Dexter healthy → dexterMiddleware (Solana + Base)
- * 3. Dexter down → cdpMiddleware (Base only)
- * 4. Neither available → 503
+ * 2. x402 payment middleware (Base via CDP, Solana via Dexter)
+ * 3. Neither available → 503
  */
 function requireLabKeyOrPayment(req, res, next) {
   // Lazy init on first request
@@ -339,18 +309,10 @@ function requireLabKeyOrPayment(req, res, next) {
     return next();
   }
 
-  // Track 2: x402 payment — Dexter primary
-  if (_dexterHealthy && _dexterMiddleware) {
+  // Track 2: x402 payment
+  if (_paymentMiddleware) {
     req.authMethod = 'x402';
-    req.x402Facilitator = 'dexter';
-    return _dexterMiddleware(req, res, next);
-  }
-
-  // Track 3: x402 payment — CDP fallback
-  if (_cdpMiddleware) {
-    req.authMethod = 'x402';
-    req.x402Facilitator = 'cdp';
-    return _cdpMiddleware(req, res, next);
+    return _paymentMiddleware(req, res, next);
   }
 
   // Nothing available

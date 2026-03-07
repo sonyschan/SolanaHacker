@@ -45,9 +45,8 @@ const X402_TEMPLATES = {
   },
 };
 
-async function logX402Transaction(endpoint, facilitator) {
+async function logX402Transaction(endpoint) {
   const tpl = X402_TEMPLATES[endpoint];
-  const chain = facilitator === 'dexter' ? 'Base/Solana' : 'Base';
   if (!tpl) return;
 
   const db = getFirestore();
@@ -61,8 +60,8 @@ async function logX402Transaction(endpoint, facilitator) {
     entries: admin.firestore.FieldValue.arrayUnion({
       time,
       topic: 'x402_commerce',
-      text_en: tpl.text_en(chain),
-      text_zh: tpl.text_zh(chain),
+      text_en: tpl.text_en('Base/Solana'),
+      text_zh: tpl.text_zh('Base/Solana'),
       ambient: false,
     }),
   }, { merge: true });
@@ -70,7 +69,6 @@ async function logX402Transaction(endpoint, facilitator) {
   // B. Store to x402_transactions for analytics
   await db.collection(collections.X402_TRANSACTIONS).add({
     endpoint,
-    facilitator: facilitator || 'unknown',
     amount: tpl.amount,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
     date,
@@ -243,7 +241,7 @@ router.post("/rate", requireLabKeyOrPayment, rateLimiter, async (req, res) => {
     const evaluation = await memeIdeaService.evaluatePublicMeme(imageUrl);
     res.json({ success: true, ...evaluation });
     if (req.authMethod === 'x402') {
-      logX402Transaction('/rate', req.x402Facilitator).catch(() => {});
+      logX402Transaction('/rate').catch(() => {});
     }
   } catch (error) {
     console.error("Rate meme error:", error);
@@ -266,7 +264,7 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
     const meme = await generateSingleMeme({ topic, newsTitle, templateId, strategyId, narrativeId, artStyleId, mode });
     res.json({ success: true, meme });
     if (req.authMethod === 'x402') {
-      logX402Transaction('/generate-custom', req.x402Facilitator).catch(() => {});
+      logX402Transaction('/generate-custom').catch(() => {});
     }
   } catch (error) {
     console.error("Generate custom meme error:", error);

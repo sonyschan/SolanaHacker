@@ -13,3 +13,6 @@ coverage
 .DS_Store
 Dockerfile
 .dockerignore
+scripts/x402-test/
+.claude/
+CLAUDE.md
