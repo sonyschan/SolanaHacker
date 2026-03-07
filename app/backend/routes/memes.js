@@ -143,6 +143,70 @@ router.get("/hall-of-memes", cacheResponse("memes:hall-of-memes", TTL.MEDIUM), a
 });
 
 /**
+ * GET /api/memes/my-creations - Get memes created by a specific wallet
+ * Query: ?wallet=<address>&limit=20
+ */
+router.get("/my-creations", async (req, res) => {
+  try {
+    const { wallet, limit = 20 } = req.query;
+    if (!wallet || typeof wallet !== 'string' || wallet.length < 32) {
+      return res.status(400).json({ success: false, error: "Valid wallet address is required" });
+    }
+
+    const db = getFirestore();
+    const cap = Math.min(parseInt(limit) || 20, 50);
+
+    // Query solana_orders by sender wallet with completed status
+    const ordersSnap = await db.collection(collections.SOLANA_ORDERS)
+      .where('sender', '==', wallet)
+      .where('status', '==', 'completed')
+      .orderBy('completedAt', 'desc')
+      .limit(cap)
+      .get();
+
+    if (ordersSnap.empty) {
+      return res.json({ success: true, memes: [] });
+    }
+
+    // Batch-fetch meme docs
+    const memeIds = ordersSnap.docs
+      .map(d => d.data().memeId)
+      .filter(Boolean);
+
+    if (memeIds.length === 0) {
+      return res.json({ success: true, memes: [] });
+    }
+
+    // Firestore getAll supports up to 100 refs
+    const memeRefs = memeIds.map(id => db.collection(collections.MEMES).doc(id));
+    const memeDocs = await db.getAll(...memeRefs);
+
+    const memes = memeDocs
+      .filter(doc => doc.exists)
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          imageUrl: data.imageUrl,
+          description: data.description,
+          tags: data.tags || [],
+          metadata: data.metadata ? {
+            qualityScore: data.metadata.qualityScore,
+            artStyle: data.metadata.artStyle,
+          } : null,
+          generatedAt: data.generatedAt,
+        };
+      });
+
+    res.json({ success: true, memes });
+  } catch (error) {
+    console.error("My creations error:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch your memes" });
+  }
+});
+
+/**
  * POST /api/memes/generate-daily - Generate daily memes
  */
 router.post("/generate-daily", generateDailyMemes);
@@ -264,6 +328,7 @@ router.get("/generate-price", async (req, res) => {
         usd: memeyaUsd,
         discount: MEMEYA_DISCOUNT,
       } : null,
+      usdc: { amount: BASE_USD_PRICE },
       baseUsd: BASE_USD_PRICE,
     });
   } catch (error) {
@@ -274,7 +339,7 @@ router.get("/generate-price", async (req, res) => {
 
 /**
  * POST /api/memes/generate-solana — Generate a meme after on-chain payment
- * Body: { topic, txSignature, paymentToken: 'SOL'|'MEMEYA' }
+ * Body: { topic, txSignature, paymentToken: 'SOL'|'MEMEYA'|'USDC' }
  */
 router.post("/generate-solana", async (req, res) => {
   try {
@@ -286,9 +351,11 @@ router.post("/generate-solana", async (req, res) => {
     if (!txSignature || typeof txSignature !== 'string') {
       return res.status(400).json({ success: false, error: "txSignature is required" });
     }
-    if (!['SOL', 'MEMEYA'].includes(paymentToken)) {
-      return res.status(400).json({ success: false, error: "paymentToken must be SOL or MEMEYA" });
+    if (!['SOL', 'MEMEYA', 'USDC'].includes(paymentToken)) {
+      return res.status(400).json({ success: false, error: "paymentToken must be SOL, MEMEYA, or USDC" });
     }
+
+    const db = getFirestore();
 
     // Fetch current price to determine expected amount
     const { solUsd, memeyaUsd } = await fetchPrices();
@@ -297,9 +364,12 @@ router.post("/generate-solana", async (req, res) => {
     if (paymentToken === 'SOL') {
       if (!solUsd) return res.status(503).json({ success: false, error: "SOL price unavailable" });
       minAmount = BASE_USD_PRICE / solUsd;
-    } else {
+    } else if (paymentToken === 'MEMEYA') {
       if (!memeyaUsd) return res.status(503).json({ success: false, error: "$Memeya price unavailable" });
       minAmount = (BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
+    } else {
+      // USDC: 1 USDC ≈ $1, no price lookup needed
+      minAmount = BASE_USD_PRICE;
     }
 
     // Build context for order record (price snapshot + topic for auditing)
@@ -339,8 +409,15 @@ router.post("/generate-solana", async (req, res) => {
       throw genErr;
     }
 
-    // Mark payment completed
-    await markPaymentCompleted(txSignature, meme?.id).catch(() => {});
+    // Mark payment completed + denormalize creator on meme doc
+    await Promise.all([
+      markPaymentCompleted(txSignature, meme?.id),
+      meme?.id && db.collection(collections.MEMES).doc(meme.id).update({
+        createdBy: sender,
+        paymentToken,
+        paymentTxSignature: txSignature,
+      }),
+    ]).catch(() => {});
 
     // Log to Workshop feed (fire-and-forget)
     logSolanaTransaction(paymentToken, sender).catch(() => {});
@@ -363,7 +440,7 @@ async function logSolanaTransaction(paymentToken, sender) {
   const date = now.toISOString().slice(0, 10);
   const time = now.toTimeString().slice(0, 8);
   const short = sender.slice(0, 4) + '...' + sender.slice(-4);
-  const token = paymentToken === 'MEMEYA' ? '$Memeya' : 'SOL';
+  const token = paymentToken === 'MEMEYA' ? '$Memeya' : paymentToken === 'USDC' ? 'USDC' : 'SOL';
 
   const workshopRef = db.collection(collections.MEMEYA_WORKSHOP).doc(date);
   await workshopRef.set({

@@ -11,6 +11,8 @@ const { getFirestore } = require('../config/firebase');
 const MEMEYA_WALLET = new PublicKey('4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP');
 const MEMEYA_MINT = new PublicKey('mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump');
 const MEMEYA_DECIMALS = 6;
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+const USDC_DECIMALS = 6;
 const ORDER_COLLECTION = 'solana_orders';
 
 // 5% tolerance for price movement between quote and payment
@@ -24,7 +26,7 @@ const connection = new Connection(
 /**
  * Verify a Solana payment transaction.
  * @param {string} txSignature - The transaction signature
- * @param {'SOL'|'MEMEYA'} paymentToken - Expected token type
+ * @param {'SOL'|'MEMEYA'|'USDC'} paymentToken - Expected token type
  * @param {number} minAmount - Minimum expected amount (in SOL or token units)
  * @param {object} context - Additional context to store with the order
  * @param {string} context.topic - Meme topic requested
@@ -161,8 +163,46 @@ async function verifySolanaPayment(txSignature, paymentToken, minAmount, context
         if (verified) break;
       }
     }
+  } else if (paymentToken === 'USDC') {
+    // Look for USDC SPL token transfer (standard TOKEN_PROGRAM, not Token-2022)
+    for (const ix of instructions) {
+      if (ix.program === 'spl-token' && ix.parsed?.type === 'transferChecked') {
+        const info = ix.parsed.info;
+        if (info.mint === USDC_MINT.toBase58()) {
+          const amount = Number(info.tokenAmount?.uiAmount || 0);
+          actualAmount = amount;
+          if (amount >= minAmount * (1 - TOLERANCE)) {
+            sender = info.authority;
+            verified = true;
+            break;
+          }
+        }
+      }
+      // Fallback: regular 'transfer' instruction — check balance diff
+      if (ix.program === 'spl-token' && ix.parsed?.type === 'transfer') {
+        const postBalances = tx.meta?.postTokenBalances || [];
+        const preBalances = tx.meta?.preTokenBalances || [];
+        for (const post of postBalances) {
+          if (post.mint === USDC_MINT.toBase58() && post.owner === MEMEYA_WALLET.toBase58()) {
+            const pre = preBalances.find(
+              b => b.accountIndex === post.accountIndex && b.mint === USDC_MINT.toBase58()
+            );
+            const preAmount = Number(pre?.uiTokenAmount?.uiAmount || 0);
+            const postAmount = Number(post.uiTokenAmount?.uiAmount || 0);
+            const diff = postAmount - preAmount;
+            actualAmount = diff;
+            if (diff >= minAmount * (1 - TOLERANCE)) {
+              sender = ix.parsed.info?.authority;
+              verified = true;
+              break;
+            }
+          }
+        }
+        if (verified) break;
+      }
+    }
   } else {
-    throw new Error('Invalid paymentToken — must be SOL or MEMEYA');
+    throw new Error('Invalid paymentToken — must be SOL, MEMEYA, or USDC');
   }
 
   if (!verified) {
@@ -191,6 +231,8 @@ async function verifySolanaPayment(txSignature, paymentToken, minAmount, context
     estimatedUsdValue = actualAmount * context.solUsdPrice;
   } else if (paymentToken === 'MEMEYA' && context.memeyaUsdPrice) {
     estimatedUsdValue = actualAmount * context.memeyaUsdPrice;
+  } else if (paymentToken === 'USDC') {
+    estimatedUsdValue = actualAmount; // USDC ≈ $1
   }
 
   // 4. Store comprehensive order record
@@ -265,5 +307,7 @@ module.exports = {
   MEMEYA_WALLET,
   MEMEYA_MINT,
   MEMEYA_DECIMALS,
+  USDC_MINT,
+  USDC_DECIMALS,
   ORDER_COLLECTION,
 };

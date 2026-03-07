@@ -13,6 +13,7 @@ import {
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
+  TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
@@ -23,6 +24,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api
 const MEMEYA_WALLET = new PublicKey('4BqywEbjMf4APFBw1spPFr11q21Uu5A1fHpCRM2zSbMP');
 const MEMEYA_MINT = new PublicKey('mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump');
 const MEMEYA_DECIMALS = 6;
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+const USDC_DECIMALS = 6;
 
 const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
@@ -158,6 +161,12 @@ const LabTab = ({ publicMode = false }) => {
   const [createError, setCreateError] = useState('');
   const [featuredMeme, setFeaturedMeme] = useState(null);
 
+  // ── My Memes tab state ─────────────────────────────────────
+  const [myMemes, setMyMemes] = useState([]);
+  const [myMemesLoading, setMyMemesLoading] = useState(false);
+  const [myMemesLoaded, setMyMemesLoaded] = useState(false);
+  const [selectedMeme, setSelectedMeme] = useState(null);
+
   // ── Private mode auth state ───────────────────────────────
   const [apiKey, setApiKey] = useState(() => getStoredKey());
   const [passphrase, setPassphrase] = useState('');
@@ -230,6 +239,20 @@ const LabTab = ({ publicMode = false }) => {
       .catch(() => {});
   }, [publicMode]);
 
+  // ── Fetch my creations when tab is active ──────────────────
+  useEffect(() => {
+    if (activePanel !== 'myMemes' || !authenticated || !walletAddress || myMemesLoaded) return;
+    setMyMemesLoading(true);
+    fetch(`${API_BASE_URL}/api/memes/my-creations?wallet=${walletAddress}&limit=50`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setMyMemes(data.memes || []);
+        setMyMemesLoaded(true);
+      })
+      .catch(() => {})
+      .finally(() => setMyMemesLoading(false));
+  }, [activePanel, authenticated, walletAddress, myMemesLoaded]);
+
   // ── Solana payment + generation ───────────────────────────
   const handleCreate = async (paymentToken) => {
     if (!createTopic.trim()) return;
@@ -272,7 +295,7 @@ const LabTab = ({ publicMode = false }) => {
             lamports,
           })
         );
-      } else {
+      } else if (paymentToken === 'MEMEYA') {
         // $Memeya SPL token transfer (Token-2022 program)
         const rawAmount = BigInt(Math.ceil(prices.memeya.amount * 10 ** MEMEYA_DECIMALS));
         const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
@@ -313,6 +336,47 @@ const LabTab = ({ publicMode = false }) => {
           MEMEYA_DECIMALS,
           [],
           TOKEN_2022_PROGRAM_ID,
+        ));
+      } else {
+        // USDC SPL token transfer (standard TOKEN_PROGRAM)
+        const rawAmount = BigInt(Math.ceil(prices.usdc.amount * 10 ** USDC_DECIMALS));
+        const fromAta = getAssociatedTokenAddressSync(USDC_MINT, fromPubkey, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+        const toAta = getAssociatedTokenAddressSync(USDC_MINT, MEMEYA_WALLET, true, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+        // Pre-flight: check user's USDC balance
+        try {
+          const balInfo = await connection.getTokenAccountBalance(fromAta);
+          const userBalance = Number(balInfo.value.amount);
+          if (userBalance < Number(rawAmount)) {
+            const needed = (Number(rawAmount) / 10 ** USDC_DECIMALS).toFixed(2);
+            const have = (userBalance / 10 ** USDC_DECIMALS).toFixed(2);
+            throw new Error(`Insufficient USDC balance. Need ${needed}, have ${have}.`);
+          }
+        } catch (balErr) {
+          if (balErr.message?.includes('Insufficient')) throw balErr;
+          const errMsg = balErr?.message || '';
+          if (errMsg.includes('could not find account') || errMsg.includes('Invalid param') || errMsg.includes('not found')) {
+            throw new Error('No USDC found in your wallet. Pay with SOL instead.');
+          }
+          console.warn('Balance check failed (RPC issue?), proceeding anyway:', errMsg);
+        }
+
+        tx = new Transaction();
+
+        tx.add(createAssociatedTokenAccountIdempotentInstruction(
+          fromPubkey, toAta, MEMEYA_WALLET, USDC_MINT,
+          TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+        ));
+
+        tx.add(createTransferCheckedInstruction(
+          fromAta,
+          USDC_MINT,
+          toAta,
+          fromPubkey,
+          rawAmount,
+          USDC_DECIMALS,
+          [],
+          TOKEN_PROGRAM_ID,
         ));
       }
 
@@ -358,6 +422,7 @@ const LabTab = ({ publicMode = false }) => {
       }
 
       setCreateResult(data.meme);
+      setMyMemesLoaded(false); // refresh My Memes on next visit
     } catch (err) {
       console.error('Create meme error:', err);
       const msg = err?.message || err?.toString() || 'Something went wrong';
@@ -506,6 +571,7 @@ const LabTab = ({ publicMode = false }) => {
   ];
   const publicPanels = [
     { id: 'create', label: t('lab.create.tabCreate') },
+    { id: 'myMemes', label: t('lab.myMemes.tab') },
     { id: 'api', label: t('lab.panels.api') },
   ];
   const panels = publicMode ? publicPanels : privatePanels;
@@ -645,6 +711,17 @@ const LabTab = ({ publicMode = false }) => {
                         className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
                       >
                         <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
+                      </button>
+                    )}
+
+                    {/* USDC button */}
+                    {prices?.usdc && (
+                      <button
+                        onClick={() => handleCreate('USDC')}
+                        disabled={!createTopic.trim() || createLoading}
+                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+                      >
+                        <span className="text-lg">{prices.usdc.amount.toFixed(2)} USDC</span>
                       </button>
                     )}
 
@@ -790,6 +867,121 @@ const LabTab = ({ publicMode = false }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          MY MEMES TAB — browse past creations
+          ═══════════════════════════════════════════════════════ */}
+      {activePanel === 'myMemes' && (
+        <div className="space-y-6">
+          {/* Not logged in */}
+          {!authenticated ? (
+            <div className="text-center py-16 space-y-4">
+              <div className="text-4xl">🔒</div>
+              <p className="text-gray-400">{t('lab.myMemes.connectWallet')}</p>
+              <button
+                onClick={() => login()}
+                className="px-6 py-2.5 rounded-lg font-medium text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
+              >
+                {t('lab.create.connectWallet')}
+              </button>
+            </div>
+          ) : myMemesLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4" />
+              <p className="text-gray-400 text-sm">{t('lab.myMemes.loading')}</p>
+            </div>
+          ) : selectedMeme ? (
+            /* ── Expanded meme detail ── */
+            <div className="max-w-lg mx-auto space-y-4">
+              <button
+                onClick={() => setSelectedMeme(null)}
+                className="text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                ← {t('lab.myMemes.backToGrid')}
+              </button>
+              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                {selectedMeme.imageUrl && (
+                  <img
+                    src={selectedMeme.imageUrl}
+                    alt={selectedMeme.title}
+                    className="w-full"
+                  />
+                )}
+                <div className="p-4 space-y-2">
+                  <h3 className="text-white font-bold text-lg">{selectedMeme.title}</h3>
+                  {selectedMeme.description && (
+                    <p className="text-gray-400 text-sm">{selectedMeme.description}</p>
+                  )}
+                  {selectedMeme.metadata?.qualityScore && (
+                    <p className="text-xs text-gray-500">
+                      {t('lab.myMemes.quality')}: {selectedMeme.metadata.qualityScore}/100
+                    </p>
+                  )}
+                  {selectedMeme.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedMeme.tags.map((tag, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-gray-300 border border-white/10">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    const url = `https://aimemeforge.io/meme/${selectedMeme.id}`;
+                    const text = `${selectedMeme.title} — made with @MemeForgeAI`;
+                    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+                >
+                  {t('lab.myMemes.share')}
+                </button>
+              </div>
+            </div>
+          ) : myMemes.length === 0 ? (
+            /* ── Empty state ── */
+            <div className="text-center py-16 space-y-3">
+              <div className="text-4xl">🎨</div>
+              <p className="text-gray-300 font-medium">{t('lab.myMemes.empty')}</p>
+              <p className="text-gray-500 text-sm">{t('lab.myMemes.emptyHint')}</p>
+              <button
+                onClick={() => setActivePanel('create')}
+                className="mt-2 px-6 py-2.5 rounded-lg font-medium text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
+              >
+                {t('lab.create.tabCreate')}
+              </button>
+            </div>
+          ) : (
+            /* ── Meme grid ── */
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
+              {myMemes.map((meme) => (
+                <button
+                  key={meme.id}
+                  onClick={() => setSelectedMeme(meme)}
+                  className="bg-white/5 border border-white/10 rounded-xl overflow-hidden text-left hover:border-indigo-500/50 transition-all group"
+                >
+                  {meme.imageUrl && (
+                    <img
+                      src={meme.imageUrl}
+                      alt={meme.title}
+                      className="w-full aspect-square object-cover"
+                    />
+                  )}
+                  <div className="p-2">
+                    <p className="text-white text-xs font-medium truncate group-hover:text-indigo-300 transition-colors">{meme.title}</p>
+                    {meme.metadata?.qualityScore && (
+                      <p className="text-gray-500 text-[10px] mt-0.5">{t('lab.myMemes.quality')}: {meme.metadata.qualityScore}/100</p>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>
