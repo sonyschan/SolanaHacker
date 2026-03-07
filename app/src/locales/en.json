@@ -742,6 +742,16 @@
       "priceNote": "Base price: {{base}} USD equivalent",
       "ecosystemFund": "\uD83C\uDF31 Payment goes to Memeya's wallet as ecosystem fund",
       "timeEstimate": "Creation takes about 1-2 minutes. Memeya is working hard!"
+    },
+    "myMemes": {
+      "tab": "My Memes",
+      "empty": "No memes yet",
+      "emptyHint": "Create your first meme and it will appear here!",
+      "connectWallet": "Connect Wallet to see your memes",
+      "share": "Share on X",
+      "quality": "Quality",
+      "loading": "Loading your memes...",
+      "backToGrid": "Back"
     }
   },
   "workshop": {

@@ -385,15 +385,16 @@ const LabTab = ({ publicMode = false }) => {
       tx.feePayer = fromPubkey;
 
       // 3. Serialize and sign+send via Privy SDK
-      //    Privy's signAndSendTransaction expects { transaction: Uint8Array, wallet, chain }
+      //    Privy's signAndSendTransaction expects { transaction: Uint8Array, wallet }
       //    Return shape varies: { hash: string } (base58) or { signature: Uint8Array }
+      //    Note: omit chain param — Privy uses the default solanaClusters entry.
+      //    Passing 'solana:mainnet' breaks embedded wallets when solanaClusters uses 'mainnet-beta'.
       setCreateStatus('Waiting for wallet signature...');
       setCreateProgress(3);
       const txBytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
       const result = await signAndSendTransaction({
         transaction: txBytes,
         wallet: solWallet,
-        chain: 'solana:mainnet',
       });
       // Handle both return shapes: hash (base58 string) or signature (raw bytes)
       const signature = typeof result.hash === 'string'

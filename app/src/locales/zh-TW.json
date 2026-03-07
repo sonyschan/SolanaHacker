@@ -742,6 +742,16 @@
       "priceNote": "基礎價格：{{base}} 美元等值",
       "ecosystemFund": "\uD83C\uDF31 付款將進入 Memeya 錢包作為生態基金",
       "timeEstimate": "創作約需 1-2 分鐘，Memeya 正在努力中！"
+    },
+    "myMemes": {
+      "tab": "我的 Meme",
+      "empty": "還沒有 meme",
+      "emptyHint": "創作你的第一張 meme，它會出現在這裡！",
+      "connectWallet": "連接錢包查看你的 meme",
+      "share": "分享到 X",
+      "quality": "品質",
+      "loading": "載入你的 meme...",
+      "backToGrid": "返回"
     }
   },
   "workshop": {
