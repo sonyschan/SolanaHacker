@@ -264,10 +264,28 @@ const LabTab = ({ publicMode = false }) => {
         const fromAta = getAssociatedTokenAddressSync(MEMEYA_MINT, fromPubkey);
         const toAta = getAssociatedTokenAddressSync(MEMEYA_MINT, MEMEYA_WALLET, true);
 
+        // Pre-flight: check user's $Memeya balance before building tx
+        try {
+          const balInfo = await connection.getTokenAccountBalance(fromAta);
+          const userBalance = Number(balInfo.value.amount);
+          if (userBalance < Number(rawAmount)) {
+            const needed = (Number(rawAmount) / 10 ** MEMEYA_DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 0 });
+            const have = (userBalance / 10 ** MEMEYA_DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 0 });
+            throw new Error(`Insufficient $Memeya balance. Need ~${needed}, have ${have}.`);
+          }
+        } catch (balErr) {
+          if (balErr.message?.includes('Insufficient')) throw balErr;
+          // Token account doesn't exist — user has 0 $Memeya
+          throw new Error('You don\'t have any $Memeya tokens. Buy some or pay with SOL instead.');
+        }
+
         tx = new Transaction();
 
-        // Ensure destination ATA exists (idempotent — no-op if already exists)
-        tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
+        // Only add ATA creation if destination doesn't exist yet
+        const toAtaInfo = await connection.getAccountInfo(toAta);
+        if (!toAtaInfo) {
+          tx.add(createAssociatedTokenAccountIdempotentInstruction(fromPubkey, toAta, MEMEYA_WALLET, MEMEYA_MINT));
+        }
 
         tx.add(createTransferCheckedInstruction(
           fromAta,
