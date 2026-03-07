@@ -2858,7 +2858,7 @@ ${recentMemory}
   }
 
   /**
-   * Search latest news (cooldown: 4 hours between searches)
+   * Search latest news (cooldown: 6 hours between searches)
    */
   async doNewsSearch() {
     // Skip if news was searched within the last 6 hours
