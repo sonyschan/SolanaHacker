@@ -74,12 +74,12 @@ const V1_ART_STYLES = [
   {
     id: 'street_graffiti',
     name: 'Street Graffiti',
-    prompt: 'Street Graffiti style. Urban wall art aesthetic, spray paint textures, bold outlines, dripping paint, concrete/brick backgrounds, wildstyle lettering.',
+    prompt: 'Street Graffiti style. Urban wall art aesthetic, spray paint textures, bold outlines, dripping paint, concrete/brick backgrounds. Do NOT add decorative graffiti text — only render the specified caption text.',
   },
   {
     id: 'modern_flat',
     name: 'Modern Flat Design',
-    prompt: 'Modern Flat Design style. Minimalist geometric shapes, limited flat color palette, clean sans-serif typography, tech-startup illustration aesthetic.',
+    prompt: 'Modern Flat Design style. Minimalist geometric shapes, limited flat color palette, clean visual composition, tech-startup illustration aesthetic.',
   },
 ];
 

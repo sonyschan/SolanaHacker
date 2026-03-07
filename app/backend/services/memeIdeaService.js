@@ -26,9 +26,9 @@ const CRYPTO_TERMS = [
 
 // Style modes — meme_native is the default for daily memes
 const STYLE_MODES = {
-  meme_native: 'Classic internet meme style. Intentionally low resolution look. Slight compression artifacts. Flat colors. MS Paint aesthetic. Imperfect hand-drawn look. Uneven line art. Slightly awkward proportions. Low effort meme vibe. Mild JPEG artifacts. NOT cinematic. NOT realistic 3D. NOT polished illustration. White Impact font text with black outline.',
+  meme_native: 'Classic internet meme style. Intentionally low resolution look. Slight compression artifacts. Flat colors. MS Paint aesthetic. Imperfect hand-drawn look. Uneven line art. Slightly awkward proportions. Low effort meme vibe. Mild JPEG artifacts. NOT cinematic. NOT realistic 3D. NOT polished illustration.',
   stylized_illustration: 'Clean digital illustration style. Slightly polished but still meme-readable. Vibrant colors, clear composition. Think modern meme art — better than MS Paint but not trying to be gallery art.',
-  stylized_pixel: 'Retro pixel art style, 16-bit aesthetic. Chunky pixels, limited color palette. Nostalgic gaming vibes. Text in pixel font or bold overlay.'
+  stylized_pixel: 'Retro pixel art style, 16-bit aesthetic. Chunky pixels, limited color palette. Nostalgic gaming vibes.'
 };
 
 // Category → template affinity mapping
@@ -215,7 +215,7 @@ OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
   "template_id": "${template.id}",
   "caption": "The main caption text (summary across all slots)",
   "caption_slots": ${getCaptionSlotsExample(template)},
-  "visual_description": "Brief description of what the image should show beyond the standard template layout",
+  "visual_description": "Brief visual scene description (characters, objects, setting). DO NOT repeat caption text here — only describe what you SEE, not what you READ.",
   "emotion": "primary emotion (one word)",
   "twist": "What makes this funny — the ironic reversal or punchline",
   "event_angle": "How this connects to the news event"
@@ -427,20 +427,28 @@ function buildImagePrompt(memeIdea, artStyle = null) {
     captionPlacement = layoutInstructions.replace(/\{[^}]+\}/g, memeIdea.caption || '');
   }
 
+  // Strip any quoted caption text that leaked into visual_description
+  const visualDesc = (memeIdea.visual_description || '')
+    .replace(/["'][^"']{3,}["']/g, '') // Remove quoted phrases (likely caption text)
+    .trim();
+
   return `Create a meme image using the "${memeIdea.template_id}" meme template format.
 
-LAYOUT AND TEXT PLACEMENT:
+LAYOUT AND TEXT PLACEMENT (this is the ONLY text to render):
 ${captionPlacement}
 Text style: BIG BOLD Impact font with black outline, clearly legible against background.
 
-VISUAL DETAILS: ${memeIdea.visual_description || ''}
+VISUAL SCENE (characters, setting, objects — NO text here):
+${visualDesc}
 EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
 CRITICAL — TEXT RULES:
-- Each text element must appear EXACTLY ONCE in the image. NEVER render the same text twice.
-- Only render the text specified in LAYOUT AND TEXT PLACEMENT above. Do NOT add extra text.
+- The ONLY text in the image must come from LAYOUT AND TEXT PLACEMENT above.
+- Each text element must appear EXACTLY ONCE. NEVER render the same text twice or in multiple locations.
+- Do NOT render any text from VISUAL SCENE, ART STYLE, or EMOTION sections.
+- Do NOT add background text, watermarks, signs, screens, or labels with words — keep non-caption areas text-free.
 - If the layout specifies 2 text regions, the image must contain exactly 2 text regions — no more, no less.
 
 Technical requirements:
@@ -644,7 +652,7 @@ OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
   "caption": "Summary caption (top + bottom combined)",
   "caption_slots": {"top_text": "setup phrase", "bottom_text": "punchline phrase"},
-  "visual_description": "Detailed creative scene description — characters, poses, environment, key visual elements. This directs the entire image composition.",
+  "visual_description": "Detailed creative scene description — characters, poses, environment, key visual elements. DO NOT include any caption/overlay text here — only describe the visual scene.",
   "emotion": "primary emotion (one word)",
   "twist": "What makes this funny — the ironic reversal or punchline",
   "event_angle": "How this connects to the news event"
@@ -737,22 +745,29 @@ function buildOriginalImagePrompt(memeIdea, artStyle) {
   const bottomText = memeIdea.caption_slots?.bottom_text || '';
   const styleInstruction = artStyle?.prompt || STYLE_MODES.meme_native;
 
+  // Strip any quoted caption text that leaked into visual_description
+  const visualDesc = (memeIdea.visual_description || 'A vivid crypto-themed scene')
+    .replace(/["'][^"']{3,}["']/g, '')
+    .trim() || 'A vivid crypto-themed scene';
+
   return `Create an original meme image with a unique, creative composition.
 
-VISUAL SCENE (primary — this defines the entire image):
-${memeIdea.visual_description || 'A vivid crypto-themed scene'}
+VISUAL SCENE (primary — this defines the entire image, NO text here):
+${visualDesc}
 
 EMOTION/MOOD: ${memeIdea.emotion || 'funny'}
 
 ART STYLE: ${styleInstruction}
 
-TEXT OVERLAY (render each line EXACTLY ONCE — no duplicates):
+TEXT OVERLAY (render each line EXACTLY ONCE — this is the ONLY text in the image):
 ${topText ? `- TOP: "${topText}" — BIG BOLD Impact font with black outline at the top` : ''}
 ${bottomText ? `- BOTTOM: "${bottomText}" — BIG BOLD Impact font with black outline at the bottom` : ''}
 
 CRITICAL — TEXT RULES:
-- Each text element must appear EXACTLY ONCE in the image. NEVER render the same text twice.
-- Only render the text specified in TEXT OVERLAY above. Do NOT add extra text.
+- The ONLY text in the image must come from TEXT OVERLAY above.
+- Each text element must appear EXACTLY ONCE. NEVER render the same text twice or in multiple locations.
+- Do NOT render any text from VISUAL SCENE, ART STYLE, or EMOTION sections.
+- Do NOT add background text, watermarks, signs, screens, or labels with words — keep non-overlay areas text-free.
 - The image must contain exactly ${[topText, bottomText].filter(Boolean).length} text region(s) — no more, no less.
 
 Technical requirements:
