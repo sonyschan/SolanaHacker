@@ -15,6 +15,7 @@ const { paymentMiddleware, x402ResourceServer } = require('@x402/express');
 const { ExactEvmScheme } = require('@x402/evm/exact/server');
 const { ExactSvmScheme } = require('@x402/svm/exact/server');
 const { HTTPFacilitatorClient } = require('@x402/core/server');
+const { bazaarResourceServerExtension, declareDiscoveryExtension } = require('@x402/extensions/bazaar');
 
 // ── Wallets ──────────────────────────────────────────────────────────
 const MEMEYA_BASE_WALLET = '0xba646262871d295DeAe3062dF5bbe31fcc5841b8';
@@ -31,19 +32,70 @@ const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const CDP_FACILITATOR_HOST = 'api.cdp.coinbase.com';
 const CDP_FACILITATOR_PATH = '/platform/v2/x402';
 
-// ── Route pricing ────────────────────────────────────────────────────
+// ── Route pricing + Bazaar discovery metadata ───────────────────────
 const ROUTES = [
   {
     key: 'POST /rate',
     price: '$0.05',
     description: 'Rate a meme image — AI quality scoring with grade and suggestions',
     mimeType: 'application/json',
+    extensions: {
+      ...declareDiscoveryExtension({
+        input: { imageUrl: 'https://example.com/meme.jpg' },
+        inputSchema: {
+          properties: { imageUrl: { type: 'string', description: 'Public URL of a meme image to rate' } },
+          required: ['imageUrl'],
+        },
+        output: {
+          example: { success: true, score: 72, pass: true, grade: 'B+', suggestions: ['Add a punchline that contrasts the setup'] },
+          schema: {
+            properties: {
+              success: { type: 'boolean' },
+              score: { type: 'number', description: '0-100 quality score' },
+              pass: { type: 'boolean', description: 'Whether the meme passes quality threshold' },
+              grade: { type: 'string', description: 'Letter grade: S, A+, A, B+, B, C, D, F' },
+              suggestions: { type: 'array', items: { type: 'string' }, description: 'Up to 3 improvement suggestions' },
+            },
+          },
+        },
+        bodyType: 'json',
+      }),
+    },
   },
   {
     key: 'POST /generate-custom',
     price: '$0.10',
     description: 'Generate a custom AI meme with comedy architecture',
     mimeType: 'application/json',
+    extensions: {
+      ...declareDiscoveryExtension({
+        input: { topic: 'Bitcoin hits $150k' },
+        inputSchema: {
+          properties: {
+            topic: { type: 'string', description: 'Meme topic or news headline' },
+            templateId: { type: 'string', description: 'Optional template ID from /api/catalog/templates' },
+            strategyId: { type: 'string', description: 'Optional strategy ID from /api/catalog/strategies' },
+            narrativeId: { type: 'string', description: 'Optional narrative ID from /api/catalog/narratives' },
+            artStyleId: { type: 'string', description: 'Optional art style ID from /api/catalog/art-styles' },
+          },
+          required: ['topic'],
+        },
+        output: {
+          example: {
+            success: true,
+            meme: {
+              id: 'abc123',
+              title: 'When Bitcoin Hits $150k',
+              imageUrl: 'https://storage.googleapis.com/memeforge-images-web3ai/memes/abc123.png',
+              description: 'A meme about Bitcoin reaching new all-time highs',
+              tags: ['bitcoin', 'crypto', 'ath'],
+              metadata: { qualityScore: 88, artStyle: 'Cyberpunk Neon', strategy: 'Ironic Reversal' },
+            },
+          },
+        },
+        bodyType: 'json',
+      }),
+    },
   },
 ];
 
@@ -138,6 +190,7 @@ function buildRouteConfig(networks) {
       accepts,
       description: route.description,
       mimeType: route.mimeType,
+      ...(route.extensions && { extensions: route.extensions }),
     };
   }
   return config;
@@ -155,6 +208,7 @@ function buildDexterMiddleware() {
   const server = new x402ResourceServer(facilitator)
     .register(BASE_MAINNET, new ExactEvmScheme())
     .register(SOLANA_MAINNET, new ExactSvmScheme());
+  server.registerExtension(bazaarResourceServerExtension);
 
   const routeConfig = buildRouteConfig([BASE_MAINNET, SOLANA_MAINNET]);
 
@@ -173,6 +227,7 @@ function buildCdpMiddleware(keyId, keySecret) {
 
   const server = new x402ResourceServer(facilitator)
     .register(BASE_MAINNET, new ExactEvmScheme());
+  server.registerExtension(bazaarResourceServerExtension);
 
   const routeConfig = buildRouteConfig([BASE_MAINNET]);
 
