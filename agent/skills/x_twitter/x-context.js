@@ -770,6 +770,14 @@ export function chooseTopicForSlot(diarySlot, context) {
       return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
     }
 
+    case 'flex_3': {
+      // Late night slot — pick whatever flex_1 and flex_2 didn't use
+      const allFlex = ['personal_vibe', 'feature_showtime', 'token_spotlight', 'crypto_commentary'];
+      const sub = pickFlexTopic(allFlex, context);
+      const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
+      return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: allFlex } };
+    }
+
     default: {
       // Fallback: use existing chooseTopic
       return chooseTopic(context);

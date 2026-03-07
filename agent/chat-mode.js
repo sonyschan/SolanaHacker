@@ -1829,6 +1829,7 @@ ${recentMemory.slice(-1500)}
         meme_forge:   { window: [12, 13], status: 'pending' },
         flex_1:       { window: [15, 16], status: 'pending' },
         flex_2:       { window: [18, 19], status: 'pending' },
+        flex_3:       { window: [1, 3], status: 'pending' },
       },
       manualPostCount: 0,
     };
@@ -1973,7 +1974,7 @@ ${recentMemory.slice(-1500)}
 
     const currentHour = this._getGMT8Hour();
     const slots = this.diarySchedule.slots;
-    const slotOrder = ['news_digest', 'meme_forge', 'flex_1', 'flex_2'];
+    const slotOrder = ['news_digest', 'meme_forge', 'flex_1', 'flex_2', 'flex_3'];
 
     // Count total posts today (done slots + manual posts)
     const doneCount = Object.values(slots).filter(s => s.status === 'done').length;
