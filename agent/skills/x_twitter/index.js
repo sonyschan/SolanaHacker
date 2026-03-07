@@ -291,7 +291,7 @@ export function createExecutors(deps) {
    * @param {{ detailed?: boolean }} opts
    *   - detailed: if true, return { text, originalDraft, verdict, isBored } instead of string
    */
-  async function generateTweet(contextInput, { detailed = false, noCharLimit = false, skipBoredCheck = false } = {}) {
+  async function generateTweet(contextInput, { detailed = false, noCharLimit = false } = {}) {
     const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) throw new Error('XAI_API_KEY not configured — cannot generate tweet');
 
@@ -419,31 +419,7 @@ export function createExecutors(deps) {
     // Strip @mentions — Twitter Free/Basic API tier forbids them in new tweets
     tweet = tweet.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
 
-    // Skip boring check for meme_spotlight when featuring a meme not in recent posts
-    const isMemeSpotlight = isStructured && contextInput.topic === 'meme_spotlight';
-    const memeAlreadyPosted = isMemeSpotlight && ogUrl
-      ? recentPosts.some(p => typeof p === 'string' ? p.includes(ogUrl) : false)
-      : false;
-    const skipBoringCheck = skipBoredCheck || (isMemeSpotlight && ogUrl && !memeAlreadyPosted);
-    const skipReason = skipBoredCheck ? 'dashboard override' : 'unique meme';
-
-    if (skipBoringCheck) {
-      if (detailed) {
-        return {
-          text: tweet,
-          originalDraft: tweet,
-          verdict: `SKIP (${skipReason})`,
-          isBored: false,
-          flow: {
-            generation: { model: genModel, systemPrompt: systemPrompt, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
-            qualityGate: { model: 'skipped', checkPrompt: `(skipped — ${skipReason})`, verdict: `SKIP (${skipReason})`, isBored: false, boredReplacement: null },
-          },
-        };
-      }
-      return tweet;
-    }
-
-    // Hard pattern check — auto-reject without needing Grok if obviously repetitive
+    // Hard pattern check — auto-regenerate if obviously repetitive (no extra Grok call)
     const tweetLower = tweet.toLowerCase();
     const hardBannedOpeners = ['yo degens', 'degens,', 'degens '];
     const startsWithBanned = hardBannedOpeners.some(b => tweetLower.startsWith(b));
@@ -451,105 +427,36 @@ export function createExecutors(deps) {
     const hasLavaHammer = tweetLower.includes('lava hammer');
     const hardReject = startsWithBanned || (hasLavaHammer && lavaCount >= 3);
 
-    let verdict;
-    let isBored;
-    let checkPrompt = '';
-
     if (hardReject) {
-      // Skip Grok call — we know this pattern is overused
-      verdict = 'BORING (hard-reject: ' + (startsWithBanned ? 'banned opener' : 'lava hammer overused') + ')';
-      checkPrompt = verdict;
-      isBored = true;
-    } else {
-      // Boring/repetition check via second Grok call
-      checkPrompt = [
-        `You are a content quality judge for Memeya, the digital blacksmith who owns and runs AiMemeForge.`,
-        `Given a NEW tweet and a list of RECENT tweets, decide if the new tweet should be posted.`,
-        ``,
-        `Flag as BORING if the tweet:`,
-        `- Sounds like a generic AI/bot with NO personality (e.g. "Check out our platform!")`,
-        `- Almost copy-pastes an earlier tweet's exact phrasing or theme`,
-        `- Is pure marketing/announcement with zero character voice`,
-        `- Starts with a similar opener as 2+ recent posts`,
-        `- Uses "lava hammer", "forge", or "degen" when 3+ recent posts already used the same phrase`,
-        ``,
-        `Short tweets, low-energy vibes, or quirky one-liners are OK — those show personality.`,
-        `Memeya is allowed to be chill, weird, or minimal. That's not boring.`,
-        ``,
-        `NEW TWEET:`,
-        tweet,
-        ``,
-        `RECENT POSTS (last 3 days):`,
-        recentPostsSummary,
-        ``,
-        `Reply with EXACTLY one word:`,
-        `- "OK" if the tweet has personality AND a fresh angle different from recent posts`,
-        `- "BORING" if it's generic, repetitive in phrasing, or too similar to recent posts`,
-      ].join('\n');
-
-      verdict = await callGrok(apiKey, [
-        { role: 'user', content: checkPrompt },
-      ], { model: 'grok-3-mini', maxTokens: 20, temperature: 0.1 });
-
-      isBored = verdict.toUpperCase().includes('BORING');
+      const reason = startsWithBanned ? 'banned opener' : 'lava hammer overused';
+      console.log(`[X] Hard-reject: ${reason}, returning null to skip post`);
+      if (detailed) {
+        return {
+          text: null,
+          originalDraft: tweet,
+          verdict: `REJECT (${reason})`,
+          isBored: false,
+          flow: {
+            generation: { model: genModel, systemPrompt, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
+            qualityGate: { model: 'none', checkPrompt: reason, verdict: `REJECT (${reason})`, isBored: false, boredReplacement: null },
+          },
+        };
+      }
+      return null;
     }
 
-    // Build detailed flow object (only when detailed mode requested)
-    const buildFlow = (finalText, boredReplacement) => ({
-      text: finalText,
-      originalDraft: tweet,
-      verdict: verdict.trim(),
-      isBored,
-      flow: {
-        generation: {
-          model: genModel,
-          systemPrompt: systemPrompt,
-          userPrompt,
-          rawOutput: rawGrokOutput,
-          cleaned,
-          ogUrl,
-          charLimit: maxLen,
-          finalBeforeGate: tweet,
+    if (detailed) {
+      return {
+        text: tweet,
+        originalDraft: tweet,
+        verdict: 'OK',
+        isBored: false,
+        flow: {
+          generation: { model: genModel, systemPrompt, userPrompt, rawOutput: rawGrokOutput, cleaned, ogUrl, charLimit: maxLen, finalBeforeGate: tweet },
+          qualityGate: { model: 'none', checkPrompt: '(boring check removed)', verdict: 'OK', isBored: false, boredReplacement: null },
         },
-        qualityGate: {
-          model: 'grok-3-mini',
-          checkPrompt,
-          verdict: verdict.trim(),
-          isBored,
-          boredReplacement,
-        },
-      },
-    });
-
-    if (isBored) {
-      // Generate a bored Memeya moment — either an action or lazy speech — and post it instead
-      const boredTweet = await callGrok(apiKey, [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: [
-            `Your tweet draft was boring, so instead of posting it, do one of these:`,
-            ``,
-            `Option A — BORED ACTION in parentheses:`,
-            `  (Memeya yawns and stares at the blockchain)`,
-            `  (Memeya doomscrolls through her timeline looking for alpha)`,
-            `  (Memeya spins in her chair waiting for something interesting to happen)`,
-            ``,
-            `Option B — LAZY SPEECH, something low-energy but in-character:`,
-            `  "nothing interesting on-chain today... just vibes"`,
-            `  "sometimes the best move is no move"`,
-            ``,
-            `Pick one style randomly. Keep it under 100 chars. Just the action or speech, nothing else.`,
-          ].join('\n'),
-        },
-      ], { model: 'grok-3-mini', maxTokens: 80, temperature: 1.0 });
-
-      const finalText = boredTweet || '(Memeya stares into the void)';
-      if (detailed) return buildFlow(finalText, finalText);
-      return finalText;
+      };
     }
-
-    if (detailed) return buildFlow(tweet, null);
     return tweet;
   }
 
@@ -666,14 +573,15 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
   // Create a temporary executor to access generateTweet with the right baseDir
   const executors = createExecutors({ workDir: path.join(baseDir, 'agent') });
 
-  // Skip boring-check for dev_update — it's informational, not entertainment
-  const skipBored = topicChoice.topic === 'dev_update';
-
   let tweet;
   try {
-    tweet = await executors.generateTweet(topicChoice, { skipBoredCheck: skipBored });
+    tweet = await executors.generateTweet(topicChoice);
   } catch (err) {
     return { success: false, reason: `generate_failed: ${err.message}`, draft: null };
+  }
+
+  if (!tweet) {
+    return { success: false, reason: 'hard_reject: banned pattern detected', draft: null };
   }
 
   // Get Twitter client

@@ -489,7 +489,6 @@ const server = http.createServer((req, res) => {
 
         const body = JSON.parse(await readBody(req) || '{}');
         const purpose = (body.purpose || '').trim();
-        const skipBoredCheck = !!body.skipBoredCheck;
         const formatPrefix = (body.formatPrefix || '').trim();
 
         // Dynamic import x-context and index
@@ -528,7 +527,7 @@ const server = http.createServer((req, res) => {
         let error = null;
 
         try {
-          result = await executors.generateTweet(topicChoice, { detailed: true, noCharLimit: !!purpose, skipBoredCheck });
+          result = await executors.generateTweet(topicChoice, { detailed: true, noCharLimit: !!purpose });
         } catch (err) {
           error = err.message;
         }
