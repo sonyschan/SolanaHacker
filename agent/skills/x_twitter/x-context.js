@@ -757,14 +757,14 @@ export function chooseTopicForSlot(diarySlot, context) {
     }
 
     case 'flex_1': {
-      const pool = ['personal_vibe', 'dev_update', 'feature_showtime'];
+      const pool = ['dev_update', 'personal_vibe', 'feature_showtime'];
       const sub = pickFlexTopic(pool, context);
       const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
       return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
     }
 
     case 'flex_2': {
-      const pool = ['token_spotlight', 'crypto_commentary', 'feature_showtime'];
+      const pool = ['dev_update', 'token_spotlight', 'crypto_commentary'];
       const sub = pickFlexTopic(pool, context);
       const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
       return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
