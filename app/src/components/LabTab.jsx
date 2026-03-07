@@ -668,24 +668,28 @@ const LabTab = ({ publicMode = false }) => {
 
           {/* Loading state */}
           {createLoading && (
-            <div className="max-w-md mx-auto py-8 space-y-5">
+            <div className="max-w-lg mx-auto py-10 space-y-6">
               {/* Time estimate */}
-              <p className="text-center text-xs text-gray-500">{t('lab.create.timeEstimate')}</p>
+              <p className="text-center text-sm text-gray-400">{t('lab.create.timeEstimate')}</p>
 
-              {/* Progress bar */}
-              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${createProgress}%` }}
-                />
+              {/* Progress bar + percentage */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-3 bg-white/5 rounded-full overflow-hidden flex-1">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${createProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-cyan-400 tabular-nums w-12 text-right">{createProgress}%</span>
+                </div>
               </div>
-              <p className="text-center text-xs text-gray-500">{createProgress}%</p>
 
               {/* Memeya chat bubble */}
-              <div className="flex items-start gap-3">
-                <img src="/images/memeya-avatar.png" alt="Memeya" className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
-                <div className="bg-white/5 border border-white/10 rounded-xl rounded-tl-sm px-4 py-3 flex-1">
-                  <p className="text-gray-200 text-sm">{createStatus}</p>
+              <div className="flex items-start gap-4">
+                <img src="/images/memeya-avatar.png" alt="Memeya" className="w-10 h-10 rounded-full flex-shrink-0 mt-0.5" />
+                <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm px-5 py-4 flex-1">
+                  <p className="text-gray-200 text-base leading-relaxed">{createStatus}</p>
                 </div>
               </div>
             </div>
