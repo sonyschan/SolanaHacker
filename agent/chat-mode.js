@@ -44,7 +44,7 @@ export class ChatMode {
     this.sleepToday = false;
     this.lastHeartbeat = 0;
     this.heartbeatInterval = 60 * 60 * 1000; // 60 minutes
-    this.lastNewsSentAt = 0; // 4-hour cooldown for news search
+    this.lastNewsSentAt = Date.now(); // Skip news search on startup, wait for first 6h cycle
 
     // Diary schedule — replaces random X posting timer
     this.bootTime = Date.now();
