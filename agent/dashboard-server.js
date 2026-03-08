@@ -785,13 +785,29 @@ const server = http.createServer((req, res) => {
 
         const tweetPayload = { text };
         if (mediaIds) tweetPayload.media = { media_ids: mediaIds };
-        const { data } = await userClient.v2.tweet(tweetPayload);
+
+        let data, postedText = text;
+        try {
+          ({ data } = await userClient.v2.tweet(tweetPayload));
+        } catch (firstErr) {
+          // If tweet has @mentions, retry with them stripped
+          if (/@\w+/.test(text)) {
+            const stripped = text.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
+            console.log(`[Dashboard] Retrying without @mentions after error: ${firstErr.message}`);
+            const retryPayload = { text: stripped };
+            if (mediaIds) retryPayload.media = { media_ids: mediaIds };
+            ({ data } = await userClient.v2.tweet(retryPayload));
+            postedText = stripped;
+          } else {
+            throw firstErr;
+          }
+        }
         const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
         // Log to Memeya diary
         try {
           const { logPost } = await import('./skills/x_twitter/x-context.js');
-          logPost(BASE_DIR, topic, text, url);
+          logPost(BASE_DIR, topic, postedText, url);
         } catch { /* best-effort */ }
 
         // Reset agent's auto X post timer via shared file
@@ -808,7 +824,7 @@ const server = http.createServer((req, res) => {
           if (!g.token) continue;
           try {
             const intro = g.lang === 'zh' ? '剛在 X 上發了這個 🔥' : 'just dropped this on X 🔥';
-            const msg = `${intro}\n\n${text}\n\n${url}`;
+            const msg = `${intro}\n\n${postedText}\n\n${url}`;
             await fetch(`https://api.telegram.org/bot${g.token}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -832,7 +848,7 @@ const server = http.createServer((req, res) => {
                 profileId: memeyaProfileId,
                 properties: [
                   { key: 'source', value: 'memeya_agent' },
-                  { key: 'text', value: text },
+                  { key: 'text', value: postedText },
                   { key: 'topic', value: topic },
                   { key: 'x_url', value: url },
                 ],

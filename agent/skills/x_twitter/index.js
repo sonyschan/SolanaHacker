@@ -416,8 +416,7 @@ export function createExecutors(deps) {
     let tweet = ogUrl ? `${cleaned}${voteCta}\n${ogUrl}` : cleaned;
     const maxLen = null; // Premium account — no character limit
 
-    // Strip @mentions — Twitter Free/Basic API tier forbids them in new tweets
-    tweet = tweet.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
+    // Keep @mentions — try posting with them, strip only on API error (retry logic in callers)
 
     // Hard pattern check — auto-regenerate if obviously repetitive (no extra Grok call)
     const tweetLower = tweet.toLowerCase();
@@ -639,15 +638,34 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
   }
 
   console.log(`[autoPost] Tweet text (${tweet.length} chars): ${tweet.slice(0, 200)}${tweet.length > 200 ? '...' : ''}`);
-  try {
-    const tweetPayload = { text: tweet };
+
+  const postTweet = async (tweetText) => {
+    const tweetPayload = { text: tweetText };
     if (mediaIds.length > 0) {
       tweetPayload.media = { media_ids: mediaIds };
     }
-    const { data } = await userClient.v2.tweet(tweetPayload);
+    return userClient.v2.tweet(tweetPayload);
+  };
+
+  try {
+    let postedText = tweet;
+    let data;
+    try {
+      ({ data } = await postTweet(tweet));
+    } catch (firstErr) {
+      // If tweet has @mentions, retry with them stripped
+      if (/@\w+/.test(tweet)) {
+        const stripped = tweet.replace(/@(\w+)/g, '$1').replace(/ {2,}/g, ' ');
+        console.log(`[autoPost] Retrying without @mentions after error: ${firstErr.message}`);
+        ({ data } = await postTweet(stripped));
+        postedText = stripped;
+      } else {
+        throw firstErr;
+      }
+    }
     const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
-    logPost(baseDir, topicChoice.topic, tweet, url);
+    logPost(baseDir, topicChoice.topic, postedText, url);
 
     // Mirror to Tapestry (non-fatal)
     try {
@@ -664,7 +682,7 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
             profileId: memeyaProfileId,
             properties: [
               { key: 'source', value: 'memeya_agent' },
-              { key: 'text', value: tweet },
+              { key: 'text', value: postedText },
               { key: 'topic', value: topicChoice.topic },
               { key: 'x_url', value: url },
             ],
@@ -676,7 +694,7 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
       console.warn('[autoPost] Tapestry mirror failed (non-fatal):', tapErr.message);
     }
 
-    return { success: true, url, text: tweet, topic: topicChoice.topic, subTopic: topicChoice.subTopic || null };
+    return { success: true, url, text: postedText, topic: topicChoice.topic, subTopic: topicChoice.subTopic || null };
   } catch (err) {
     console.error(`[autoPost] Tweet FAILED: ${err.message}`, err.data ? JSON.stringify(err.data) : '');
     return { success: false, reason: `tweet_failed: ${err.message}`, draft: tweet };
