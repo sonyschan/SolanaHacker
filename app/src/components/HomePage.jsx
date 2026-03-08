@@ -189,7 +189,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto mb-8">
             {/* Vote & Earn card */}
             <div className="bg-white/5 backdrop-blur-sm border border-cyan-500/20 rounded-xl p-6 md:p-8 hover:border-cyan-500/40 transition-colors text-left">
-              <h3 className="text-cyan-400 font-bold text-lg md:text-xl mb-3 flex items-center gap-2">
+              <h3 className="text-cyan-400 font-bold text-xl md:text-2xl mb-3 flex items-center gap-2">
                 <span>&#128499;</span> {t('home.hero.cardVote')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
@@ -211,7 +211,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
 
             {/* API Services card */}
             <div className="bg-white/5 backdrop-blur-sm border border-purple-500/20 rounded-xl p-6 md:p-8 hover:border-purple-500/40 transition-colors text-left">
-              <h3 className="text-purple-400 font-bold text-lg md:text-xl mb-3 flex items-center gap-2">
+              <h3 className="text-purple-400 font-bold text-xl md:text-2xl mb-3 flex items-center gap-2">
                 <span>&#128268;</span> {t('home.hero.cardApi')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
