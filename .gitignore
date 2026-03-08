@@ -49,6 +49,12 @@ screenshots/
 .vscode/
 .idea/
 
+# === Claude Code ===
+.claude/
+.agents/
+**/CLAUDE.md
+skills-lock.json
+
 # === Internal Docs ===
 docs/TDD.md
 docs/virtuals-acp-strategy.md
