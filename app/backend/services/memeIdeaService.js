@@ -942,11 +942,102 @@ Respond with ONLY this JSON:
   };
 }
 
+/**
+ * Generate a collab meme idea — celebrating a partnership/integration between two projects.
+ * Uses original (Mode B) composition with collab-specific prompting.
+ *
+ * @param {{ title: string }} event - News event (headline)
+ * @param {object} collabContext - { partner, user, collabType, tone }
+ * @param {Array} recentThemes - Anti-repetition context
+ * @param {object|null} strategy - Comedy strategy
+ * @param {object|null} narrative - Narrative archetype
+ */
+async function generateCollabMemeIdea(event, collabContext, recentThemes = [], strategy = null, narrative = null) {
+  const { partner, user, collabType, tone } = collabContext;
+  const headline = event.title || event;
+
+  const toneDirectives = {
+    hype: 'CELEBRATORY energy — like a hype announcement. The crowd goes wild. Use exclamation energy and "LFG" vibes.',
+    flex: 'SHOWING OFF — both projects flexing on the timeline. Confident, slightly cocky. "We built different" energy.',
+    wholesome: 'WARM and supportive — two friends teaming up. Community love. "Together we rise" vibes.',
+    chaos: 'ABSURDIST and chaotic — unexpected crossover energy. Surreal humor. "What timeline is this?" vibes.',
+  };
+
+  const collabTypeContext = {
+    integration: 'Technical synergy — two systems connecting. API handshake, plugin moment, "it just works" energy.',
+    listing: 'Marketplace debut — new token/project appearing on a platform. Grand entrance vibes.',
+    partnership: 'Strategic alliance — two teams joining forces. Power move. Bigger together.',
+    launch: 'Joint launch — something new built together hitting the market. Maiden voyage energy.',
+    migration: 'Moving to a new home — project migrating to a new chain/platform. Fresh start energy.',
+  };
+
+  let recentContext = '';
+  if (recentThemes.length > 0) {
+    const themesList = recentThemes.slice(0, 5).map(t => `- "${t.title}"`).join('\n');
+    recentContext = `\nAVOID these recent themes:\n${themesList}\n`;
+  }
+
+  const prompt = `You are a Crypto Twitter meme lord. Generate a COLLAB meme celebrating a partnership between two crypto/web3 projects.
+
+COLLAB HEADLINE: "${headline}"
+COLLAB TYPE: ${collabType} — ${collabTypeContext[collabType] || 'Two projects working together.'}
+TONE: ${tone} — ${toneDirectives[tone] || toneDirectives.hype}
+
+PROJECT A (Partner): ${partner.name}${partner.handle ? ` (${partner.handle})` : ''}
+${partner.bio ? `Bio: ${partner.bio}` : ''}
+
+PROJECT B (Us): ${user.name}${user.handle ? ` (${user.handle})` : ''}
+${user.bio ? `Bio: ${user.bio}` : ''}
+${recentContext}
+COLLAB MEME RULES:
+- The caption MUST reference BOTH projects naturally — not just one
+- Visual scene should represent BOTH project identities (mascots, logos, themes)
+- Simple top_text + bottom_text layout (classic meme format)
+- Each slot MUST be <= 8 words. Short punchy phrases.
+- The joke should celebrate the collab, not mock either project
+- Use crypto-native language where appropriate
+- DO NOT use exact project names in captions — use recognizable references/nicknames instead
+  (e.g., use personality traits, mascots, or well-known features)
+
+VISUAL SCENE GUIDELINES:
+- Represent both projects through their visual identity (mascots, colors, themes)
+- Show them TOGETHER — shaking hands, fusing, working as a team, etc.
+- The scene should feel like a celebration or power-up moment
+- Make it visually striking and shareable
+${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
+${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
+
+OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
+{
+  "caption": "Summary caption (top + bottom combined)",
+  "caption_slots": {"top_text": "setup/context", "bottom_text": "punchline/celebration"},
+  "visual_description": "Detailed visual scene showing both projects together. NO caption text here — only describe what you SEE.",
+  "emotion": "primary emotion (one word)",
+  "twist": "What makes this funny or memorable",
+  "event_angle": "How this connects to the collab announcement",
+  "collab_reference": "How both projects are referenced in the meme"
+}`;
+
+  const result = await textModel.generateContent(prompt);
+  const response = await result.response;
+  let text = response.text().trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON in collab meme idea response');
+  }
+
+  const memeIdea = JSON.parse(jsonMatch[0]);
+  memeIdea.template_id = null; // Collab uses original composition (Mode B)
+  return memeIdea;
+}
+
 module.exports = {
   selectTemplate,
   selectArtStyle,
   generateMemeIdea,
   generateOriginalMemeIdea,
+  generateCollabMemeIdea,
   retryMemeIdea,
   retryOriginalMemeIdea,
   evaluateMemeIdea,

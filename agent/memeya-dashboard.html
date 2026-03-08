@@ -337,6 +337,7 @@ function authHeaders(extra = {}) {
   <button class="tab-btn" onclick="switchTab('timers')">Timers</button>
   <button class="tab-btn" onclick="switchTab('system')">System</button>
   <button class="tab-btn" onclick="switchTab('wallet')">Wallet</button>
+  <button class="tab-btn" onclick="switchTab('lab')">Lab</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -767,6 +768,97 @@ function authHeaders(extra = {}) {
 
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Lab -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-lab">
+
+  <!-- Collab Meme Generator -->
+  <div class="section" id="s-lab-collab">
+    <div class="section-header" onclick="toggle('s-lab-collab')">
+      <span class="icon">&#129514;</span>
+      <h2>Collab Meme Generator</h2>
+      <span class="badge" style="background:rgba(188,140,255,0.2);color:var(--purple);">Beta</span>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="section-body">
+
+      <!-- Step 1: URL Inputs -->
+      <div id="lab-step1">
+        <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
+          Enter X profile or website URLs for both projects. We'll scrape profile data automatically.
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div style="flex:1;">
+            <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Partner URL</label>
+            <input id="lab-partner-url" placeholder="https://x.com/VirtualProtocol" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;" />
+            <div id="lab-partner-status" class="loading-text" style="display:none;margin-top:4px;"></div>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Your URL</label>
+            <input id="lab-user-url" value="https://x.com/AiMemeForgeIO" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;" />
+            <div id="lab-user-status" class="loading-text" style="display:none;margin-top:4px;"></div>
+          </div>
+        </div>
+        <button class="analyze-btn" id="lab-fetch-btn" onclick="labFetchProfiles()" style="border-color:var(--purple);color:var(--purple);background:rgba(188,140,255,0.12);">Fetch Profiles</button>
+        <span id="lab-fetch-status" style="margin-left:8px;font-size:0.85em;"></span>
+      </div>
+
+      <!-- Step 2: Profile Preview (hidden until fetch completes) -->
+      <div id="lab-step2" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <h3 style="font-size:0.9em;color:var(--purple);margin-bottom:10px;">Profile Preview</h3>
+        <div style="display:flex;gap:16px;margin-bottom:12px;" id="lab-profiles">
+          <div id="lab-partner-card" class="timer-card" style="flex:1;"></div>
+          <div id="lab-user-card" class="timer-card" style="flex:1;"></div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px;">
+          <div>
+            <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">LLM-suggested tone</label>
+            <select id="lab-tone" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-family:inherit;font-size:0.88em;">
+              <option value="hype">Hype</option>
+              <option value="flex">Flex</option>
+              <option value="wholesome">Wholesome</option>
+              <option value="chaos">Chaos</option>
+            </select>
+          </div>
+          <div id="lab-tone-reasoning" style="font-size:0.82em;color:var(--text-dim);flex:1;"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Generate (hidden until step 2 visible) -->
+      <div id="lab-step3" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <h3 style="font-size:0.9em;color:var(--green);margin-bottom:10px;">Generate</h3>
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Collab type</label>
+            <select id="lab-collab-type" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-family:inherit;font-size:0.88em;">
+              <option value="integration">Integration</option>
+              <option value="listing">Listing</option>
+              <option value="partnership">Partnership</option>
+              <option value="launch">Launch</option>
+              <option value="migration">Migration</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Announcement headline <span style="color:var(--red);">*</span></label>
+            <input id="lab-headline" placeholder="AiMemeForge integrates Virtual Protocol agents" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;" />
+          </div>
+        </div>
+        <button class="analyze-btn" id="lab-gen-btn" onclick="labGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Generate Collab Meme &mdash; $0.15</button>
+        <span id="lab-gen-status" style="margin-left:8px;font-size:0.85em;"></span>
+      </div>
+
+      <!-- Result (hidden until generation completes) -->
+      <div id="lab-result" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <h3 style="font-size:0.9em;color:var(--pink);margin-bottom:10px;">Result</h3>
+        <div id="lab-result-content"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
 <!-- ─── Footer ─── -->
 <div class="meta" style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
   <a href="/dashboard.html" class="nav-link">&larr; Back to Agent Dashboard</a>
@@ -783,6 +875,7 @@ function switchTab(name) {
   if (name === 'timers') loadTimers();
   if (name === 'moltbook') loadMoltbookState();
   if (name === 'wallet') loadWalletData();
+  if (name === 'lab') { /* no initial data load needed */ }
 }
 
 function toggle(id) { document.getElementById(id).classList.toggle('collapsed'); }
@@ -1443,6 +1536,221 @@ async function toggleReward() {
   } catch (err) {
     alert('Toggle failed: ' + err.message);
   }
+}
+
+// ─── Lab: Collab Meme Generator ─────────────────────────────
+
+// Store fetched profiles
+window._labPartner = null;
+window._labUser = null;
+
+function labRenderProfileCard(containerId, profile) {
+  const el = document.getElementById(containerId);
+  const avatarHtml = profile.avatarUrl
+    ? `<img src="${escHtml(profile.avatarUrl)}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border);object-fit:cover;" onerror="this.style.display='none'" />`
+    : `<div style="width:48px;height:48px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${profile.source === 'x' ? '&#120143;' : '&#127760;'}</div>`;
+  const nameInputId = containerId + '-name';
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+      ${avatarHtml}
+      <div style="flex:1;">
+        <input id="${nameInputId}" value="${escHtml(profile.name)}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:0.9em;font-weight:600;" />
+        <div style="font-size:0.8em;color:var(--text-dim);margin-top:2px;">${escHtml(profile.handle)}</div>
+      </div>
+    </div>
+    <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;max-height:60px;overflow:hidden;">${escHtml(profile.bio ? profile.bio.slice(0, 200) : '(no bio)')}</div>
+    <div style="margin-top:4px;"><span class="tag ${profile.source === 'x' ? 'tag-cyan' : 'tag-orange'}">${profile.source === 'x' ? 'X Profile' : 'Website'}</span></div>`;
+}
+
+async function labFetchProfiles() {
+  // Reset state from previous run
+  document.getElementById('lab-step2').style.display = 'none';
+  document.getElementById('lab-step3').style.display = 'none';
+  document.getElementById('lab-result').style.display = 'none';
+  window._labPartner = null;
+  window._labUser = null;
+
+  const partnerUrl = document.getElementById('lab-partner-url').value.trim();
+  const userUrl = document.getElementById('lab-user-url').value.trim();
+  if (!partnerUrl || !userUrl) {
+    document.getElementById('lab-fetch-status').textContent = 'Both URLs are required';
+    document.getElementById('lab-fetch-status').style.color = 'var(--red)';
+    return;
+  }
+
+  const btn = document.getElementById('lab-fetch-btn');
+  const status = document.getElementById('lab-fetch-status');
+  const partnerStatus = document.getElementById('lab-partner-status');
+  const userStatus = document.getElementById('lab-user-status');
+  btn.disabled = true; btn.textContent = 'Fetching...';
+  status.innerHTML = '<span class="spinner"></span>Fetching profiles...';
+  status.style.color = 'var(--text-dim)';
+
+  // Show progressive status
+  partnerStatus.style.display = 'block';
+  partnerStatus.innerHTML = '<span class="spinner"></span>Resolving URL...';
+  userStatus.style.display = 'block';
+  userStatus.innerHTML = '<span class="spinner"></span>Resolving URL...';
+
+  // Fetch both in parallel
+  const fetchProfile = async (url, statusEl) => {
+    statusEl.innerHTML = '<span class="spinner"></span>Fetching profile data...';
+    const r = await fetch('/api/memeya/lab/fetch-profile', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ url }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    statusEl.innerHTML = '<span style="color:var(--green);">&#10003;</span> Done';
+    return data;
+  };
+
+  try {
+    const [partner, user] = await Promise.all([
+      fetchProfile(partnerUrl, partnerStatus),
+      fetchProfile(userUrl, userStatus),
+    ]);
+    window._labPartner = partner;
+    window._labUser = user;
+
+    // Render profile cards
+    labRenderProfileCard('lab-partner-card', partner);
+    labRenderProfileCard('lab-user-card', user);
+
+    // Show step 2
+    document.getElementById('lab-step2').style.display = 'block';
+    document.getElementById('lab-step3').style.display = 'block';
+
+    // Analyze tone in background
+    document.getElementById('lab-tone-reasoning').innerHTML = '<span class="spinner"></span>Analyzing tone...';
+    try {
+      const analyzeRes = await fetch('/api/memeya/lab/analyze-collab', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ partner, user }),
+      });
+      const analyzeData = await analyzeRes.json();
+      if (analyzeData.suggestedTone) {
+        document.getElementById('lab-tone').value = analyzeData.suggestedTone;
+        document.getElementById('lab-tone-reasoning').textContent = analyzeData.reasoning || '';
+      } else {
+        document.getElementById('lab-tone-reasoning').textContent = '';
+      }
+    } catch {
+      document.getElementById('lab-tone-reasoning').textContent = '(tone analysis unavailable)';
+    }
+
+    status.textContent = 'Profiles loaded';
+    status.style.color = 'var(--green)';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = 'var(--red)';
+    partnerStatus.style.display = 'none';
+    userStatus.style.display = 'none';
+  }
+  btn.disabled = false; btn.textContent = 'Fetch Profiles';
+}
+
+async function labGenerate() {
+  const headline = document.getElementById('lab-headline').value.trim();
+  if (!headline) {
+    document.getElementById('lab-gen-status').textContent = 'Headline is required';
+    document.getElementById('lab-gen-status').style.color = 'var(--red)';
+    return;
+  }
+  if (!window._labPartner || !window._labUser) {
+    document.getElementById('lab-gen-status').textContent = 'Fetch profiles first';
+    document.getElementById('lab-gen-status').style.color = 'var(--red)';
+    return;
+  }
+
+  // Read editable names from profile cards
+  const partnerNameEl = document.getElementById('lab-partner-card-name');
+  const userNameEl = document.getElementById('lab-user-card-name');
+  const partner = { ...window._labPartner };
+  const user = { ...window._labUser };
+  if (partnerNameEl) partner.name = partnerNameEl.value.trim() || partner.name;
+  if (userNameEl) user.name = userNameEl.value.trim() || user.name;
+
+  const collabType = document.getElementById('lab-collab-type').value;
+  const tone = document.getElementById('lab-tone').value;
+
+  const btn = document.getElementById('lab-gen-btn');
+  const status = document.getElementById('lab-gen-status');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  status.innerHTML = '<span class="spinner"></span>Generating collab meme (this may take 1-2 min)...';
+  status.style.color = 'var(--text-dim)';
+
+  // Hide previous result
+  document.getElementById('lab-result').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/memeya/lab/generate-collab', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ partner, user, collabType, headline, tone }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    const meme = data.meme;
+    const tweet = data.suggestedTweet || '';
+    const meta = meme?.metadata || {};
+
+    let html = '';
+    // Meme image
+    if (meme?.imageUrl) {
+      html += `<div style="margin-bottom:12px;"><img src="${escHtml(meme.imageUrl)}" style="max-width:100%;max-height:500px;border-radius:8px;border:1px solid var(--border);" /></div>`;
+    }
+    // Title + description
+    html += `<div style="font-weight:700;font-size:1.1em;color:var(--text);margin-bottom:4px;">${escHtml(meme?.title || '(no title)')}</div>`;
+    html += `<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">${escHtml(meme?.description || '')}</div>`;
+
+    // Suggested tweet
+    if (tweet) {
+      html += `<div style="margin-bottom:12px;">
+        <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Suggested Tweet</label>
+        <div class="pipe-final-tweet">${escHtml(tweet)}</div>
+        <div style="font-size:0.78em;color:var(--text-dim);margin-top:4px;">${tweet.length}/280 chars</div>
+      </div>`;
+    }
+
+    // Metadata
+    html += `<div style="margin-top:12px;">
+      <details>
+        <summary style="cursor:pointer;color:var(--cyan);font-size:0.85em;">Metadata</summary>
+        <div style="font-size:0.82em;margin-top:8px;">`;
+    html += kv('Meme ID', `<code>${escHtml(meme?.id || '?')}</code>`);
+    html += kv('Quality Score', `<strong style="color:${(meta.qualityScore || 0) >= 82 ? 'var(--green)' : 'var(--orange)'};">${meta.qualityScore || 0}/100</strong>`);
+    html += kv('Art Style', escHtml(meta.artStyleName || '?'));
+    html += kv('Strategy', escHtml(meta.strategyName || '?'));
+    html += kv('Narrative', escHtml(meta.narrativeName || '?'));
+    html += kv('AI Model', `<code>${escHtml(meta.aiModel || '?')}</code>`);
+    html += kv('Template', escHtml(meta.collabType || collabType));
+    html += kv('Tone', escHtml(meta.collabTone || tone));
+    if (meta.memeIdea) {
+      html += kv('Caption', escHtml(meta.memeIdea.caption || ''));
+      html += kv('Twist', escHtml(meta.memeIdea.twist || ''));
+      html += kv('Emotion', escHtml(meta.memeIdea.emotion || ''));
+    }
+    html += `</div></details></div>`;
+
+    // Tags
+    if (meme?.tags?.length) {
+      html += `<div style="margin-top:8px;">${meme.tags.map(t => `<span class="tag tag-cyan">${escHtml(t)}</span>`).join(' ')}</div>`;
+    }
+
+    document.getElementById('lab-result-content').innerHTML = html;
+    document.getElementById('lab-result').style.display = 'block';
+
+    status.textContent = 'Done';
+    status.style.color = 'var(--green)';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = 'var(--red)';
+  }
+  btn.disabled = false; btn.textContent = 'Generate Collab Meme \u2014 $0.15';
 }
 
 // ─── Load all on page load ──────────────────────────────────

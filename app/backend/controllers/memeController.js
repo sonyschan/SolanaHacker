@@ -885,10 +885,170 @@ async function regenerateMemeImage(req, res) {
   }
 }
 
+/**
+ * Generate a collaborative meme celebrating a partnership/integration.
+ * Reuses the existing pipeline with collab-specific modifications.
+ *
+ * @param {{ partner, user, collabType, headline, tone }} params
+ * @returns {{ meme, suggestedTweet }}
+ */
+async function generateCollabMeme({ partner, user, collabType, headline, tone }) {
+  console.log(`🤝 Collab: generating meme — "${headline}" (${collabType}/${tone})`);
+
+  // 1. Build news event
+  const newsItem = { title: headline, category: 'collab' };
+
+  // 2. Anti-repetition context
+  const recentThemes = await getRecentMemeThemes();
+
+  // 3. Select art style
+  const artStyle = memeIdeaService.selectArtStyle(recentThemes);
+  console.log(`🤝 Collab: art style="${artStyle.name}"`);
+
+  // 4. Select strategy + narrative
+  const strategy = memeStrategyService.selectStrategy({
+    newsEvent: newsItem, template: null, recentMemes: recentThemes, category: null,
+  });
+  const narrative = memeNarrativeService.selectNarrative({
+    newsEvent: newsItem, template: null, recentMemes: recentThemes, category: null,
+  });
+
+  // 5. Generate collab meme idea
+  const collabContext = { partner, user, collabType, tone };
+  let memeIdea = await memeIdeaService.generateCollabMemeIdea(newsItem, collabContext, recentThemes, strategy, narrative);
+
+  // 6. Skip quality evaluator — criteria (template_familiarity, crypto_nativeness)
+  //    are designed for crypto news memes and would unfairly penalize collab memes.
+  //    Dual-project reference validation is done below instead.
+  const evaluation = { pass: true, score: 0, scores: {} };
+
+  // 6b. Validate both projects are referenced
+  const ideaText = `${memeIdea.caption || ''} ${memeIdea.visual_description || ''} ${memeIdea.collab_reference || ''}`.toLowerCase();
+  const partnerRef = (partner.name || '').toLowerCase();
+  const userRef = (user.name || '').toLowerCase();
+  const hasPartner = partnerRef && ideaText.includes(partnerRef);
+  const hasUser = userRef && ideaText.includes(userRef);
+  if (!hasPartner || !hasUser) {
+    console.log(`🤝 Collab: dual-ref check failed (partner=${hasPartner}, user=${hasUser}), retrying...`);
+    try {
+      const missing = [];
+      if (!hasPartner) missing.push(partner.name);
+      if (!hasUser) missing.push(user.name);
+      memeIdea = await memeIdeaService.retryOriginalMemeIdea(
+        memeIdea,
+        [`The meme MUST clearly reference both projects: ${missing.join(' and ')}. Include their names or unmistakable visual identity in the scene.`],
+        strategy, narrative
+      );
+    } catch (retryErr) {
+      console.error('🤝 Collab: dual-ref retry error:', retryErr.message);
+      // proceed with original idea
+    }
+  }
+
+  // 7. Build image prompt (using original mode since collab uses free composition)
+  const imagePrompt = memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle);
+
+  // 8. Generate image
+  const generator = AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)];
+  const imageData = await generator.service.generateMemeImage(imagePrompt);
+
+  // 9. Generate title, description, tags
+  const title = await geminiService.generateMemeTitle(memeIdea);
+  const description = await geminiService.generateMemeDescription(memeIdea, headline);
+  const tags = await geminiService.generateMemeTags(memeIdea, headline);
+
+  // 10. Generate suggested tweet
+  let suggestedTweet = '';
+  try {
+    const tweetPrompt = `Write a single tweet (max 280 chars) announcing this collaboration.
+
+COLLAB: ${headline}
+TYPE: ${collabType}
+TONE: ${tone}
+PARTNER: ${partner.name}${partner.handle ? ` (${partner.handle})` : ''}
+US: ${user.name}${user.handle ? ` (${user.handle})` : ''}
+
+Rules:
+- Include @mentions if X handles are available (use X handle format like @username)
+- If a project has no X handle, use their project name instead
+- Use crypto-native language
+- Match the tone: ${tone}
+- End with a relevant emoji or two
+- NO hashtags
+- Keep it under 240 chars to leave room for image
+
+Respond with ONLY the tweet text, no quotes or explanation.`;
+    const tweetResult = await geminiService.textModel.generateContent(tweetPrompt);
+    const tweetResponse = await tweetResult.response;
+    suggestedTweet = tweetResponse.text().trim().replace(/^["']|["']$/g, '');
+  } catch (tweetErr) {
+    console.error('🤝 Collab: tweet generation error:', tweetErr.message);
+    const partnerTag = partner.handle?.startsWith('@') ? partner.handle : partner.name;
+    const userTag = user.handle?.startsWith('@') ? user.handle : user.name;
+    suggestedTweet = `${headline} — ${partnerTag} x ${userTag}`;
+  }
+
+  // 11. Build meme document
+  const memeDoc = {
+    id: `collab_${Date.now()}_${uuidv4().slice(0, 8)}`,
+    title,
+    description,
+    prompt: memeIdea.caption || imagePrompt,
+    imageUrl: imageData.imageUrl || imageData.fallbackUrl,
+    newsSource: headline,
+    generatedAt: new Date().toISOString(),
+    type: 'collab',
+    status: 'active',
+    style: artStyle.id,
+    tags,
+    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
+    metadata: {
+      source: 'lab',
+      originalNews: headline,
+      aiModel: generator.modelName,
+      styleMode: artStyle.id,
+      artStyleId: artStyle.id,
+      artStyleName: artStyle.name,
+      generationMode: 'original',
+      strategyId: strategy.strategy_id,
+      strategyName: strategy.strategy_name,
+      narrativeId: narrative.narrative_id,
+      narrativeName: narrative.narrative_name,
+      narrativePhrase: narrative.selectedPhrase,
+      collabType,
+      collabTone: tone,
+      collabPartner: { name: partner.name, handle: partner.handle },
+      collabUser: { name: user.name, handle: user.handle },
+      memeIdea: {
+        caption: memeIdea.caption,
+        caption_slots: memeIdea.caption_slots,
+        visual_description: memeIdea.visual_description,
+        emotion: memeIdea.emotion,
+        twist: memeIdea.twist,
+        event_angle: memeIdea.event_angle,
+        collab_reference: memeIdea.collab_reference,
+      },
+      qualityScore: evaluation.score || 0,
+      qualityPass: evaluation.pass !== false,
+      qualityScores: evaluation.scores || {},
+      imageGenerated: imageData.success,
+      fileSize: imageData.fileSize || 0,
+    },
+    rarity: 'unknown'
+  };
+
+  // 12. Save to Firestore
+  await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
+  console.log(`🤝 Collab: saved meme ${memeDoc.id}`);
+
+  return { meme: memeDoc, suggestedTweet };
+}
+
 module.exports = {
   generateMeme,
   generateDailyMemes,
   generateSingleMeme,
+  generateCollabMeme,
   getMemes,
   getTodaysMemes,
   getMemeById,

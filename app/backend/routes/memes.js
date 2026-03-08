@@ -8,6 +8,7 @@ const {
   getMemeById,
   testConnections,
   generateSingleMeme,
+  generateCollabMeme,
   regenerateMemeImage
 } = require("../controllers/memeController");
 const memeIdeaService = require("../services/memeIdeaService");
@@ -42,6 +43,11 @@ const X402_TEMPLATES = {
     amount: 0.10,
     text_en: (chain) => `Earned $0.10 USDC — forged a custom meme for a client via x402 (${chain})`,
     text_zh: (chain) => `為客戶打造一張自訂 meme，賺取 $0.10 USDC (${chain})`,
+  },
+  '/generate-collab': {
+    amount: 0.15,
+    text_en: (chain) => `Earned $0.15 USDC — forged a collab meme for a client via x402 (${chain})`,
+    text_zh: (chain) => `為客戶打造一張聯名 meme，賺取 $0.15 USDC (${chain})`,
   },
 };
 
@@ -269,6 +275,44 @@ router.post("/generate-custom", requireLabKeyOrPayment, customLimiter, async (re
   } catch (error) {
     console.error("Generate custom meme error:", error);
     res.status(500).json({ success: false, error: "Failed to generate custom meme", message: error.message });
+  }
+});
+
+/**
+ * POST /api/memes/generate-collab - Generate a collaborative meme
+ */
+const collabLimiter = rateLimitByWallet(2, 60 * 60 * 1000); // 2 per hour
+router.post("/generate-collab", requireLabKeyOrPayment, collabLimiter, async (req, res) => {
+  try {
+    const { partner, user, collabType, headline, tone } = req.body;
+    if (!partner?.name || !user?.name || !collabType || !headline || !tone) {
+      return res.status(400).json({ success: false, error: "partner, user, collabType, headline, and tone are required" });
+    }
+    if (headline.length > 200) {
+      return res.status(400).json({ success: false, error: "headline must be <= 200 chars" });
+    }
+    if (partner.name.length > 100 || user.name.length > 100) {
+      return res.status(400).json({ success: false, error: "name must be <= 100 chars" });
+    }
+    if ((partner.bio || '').length > 500 || (user.bio || '').length > 500) {
+      return res.status(400).json({ success: false, error: "bio must be <= 500 chars" });
+    }
+    const validTypes = ['integration', 'listing', 'partnership', 'launch', 'migration'];
+    const validTones = ['hype', 'flex', 'wholesome', 'chaos'];
+    if (!validTypes.includes(collabType)) {
+      return res.status(400).json({ success: false, error: `collabType must be one of: ${validTypes.join(', ')}` });
+    }
+    if (!validTones.includes(tone)) {
+      return res.status(400).json({ success: false, error: `tone must be one of: ${validTones.join(', ')}` });
+    }
+    const result = await generateCollabMeme({ partner, user, collabType, headline, tone });
+    res.json({ success: true, ...result });
+    if (req.authMethod === 'x402') {
+      logX402Transaction('/generate-collab').catch(() => {});
+    }
+  } catch (error) {
+    console.error("Generate collab meme error:", error);
+    res.status(500).json({ success: false, error: "Failed to generate collab meme", message: error.message });
   }
 });
 

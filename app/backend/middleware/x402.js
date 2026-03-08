@@ -103,6 +103,48 @@ const ROUTES = [
       }),
     },
   },
+  {
+    key: 'POST /generate-collab',
+    price: '$0.15',
+    description: 'Generate a collaborative meme celebrating a partnership or integration between two projects',
+    mimeType: 'application/json',
+    extensions: {
+      ...declareDiscoveryExtension({
+        input: {
+          partner: { name: 'Virtual Protocol', handle: '@virtaboreal', bio: 'AI agent protocol' },
+          user: { name: 'AiMemeForge', handle: '@AiMemeForgeIO', bio: 'AI meme forge on Solana' },
+          collabType: 'integration',
+          headline: 'AiMemeForge integrates Virtual Protocol agents',
+          tone: 'hype',
+        },
+        inputSchema: {
+          properties: {
+            partner: { type: 'object', description: 'Partner project profile (name, handle, bio)' },
+            user: { type: 'object', description: 'Your project profile (name, handle, bio)' },
+            collabType: { type: 'string', enum: ['integration', 'listing', 'partnership', 'launch', 'migration'], description: 'Type of collaboration' },
+            headline: { type: 'string', description: 'Announcement headline' },
+            tone: { type: 'string', enum: ['hype', 'flex', 'wholesome', 'chaos'], description: 'Meme tone' },
+          },
+          required: ['partner', 'user', 'collabType', 'headline', 'tone'],
+        },
+        output: {
+          example: {
+            success: true,
+            meme: {
+              id: 'collab_123',
+              title: 'Virtual x MemeForge',
+              imageUrl: 'https://storage.googleapis.com/memeforge-images-web3ai/memes/collab_123.png',
+              description: 'Celebrating the Virtual Protocol integration',
+              tags: ['collab', 'virtual', 'memeforge'],
+              metadata: { qualityScore: 85, artStyle: 'Cyberpunk Neon', strategy: 'Hype Train' },
+            },
+            suggestedTweet: 'We just integrated @virtaboreal into our meme forge!',
+          },
+        },
+        bodyType: 'json',
+      }),
+    },
+  },
 ];
 
 // ── Cached middleware instance ────────────────────────────────────────

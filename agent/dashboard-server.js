@@ -921,6 +921,205 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ─── Lab: Fetch Profile ─────────────────────────────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/lab/fetch-profile') {
+    (async () => {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const url = (body.url || '').trim();
+        if (!url) {
+          jsonRes(res, { error: 'url is required' }, 400);
+          return;
+        }
+
+        // Check if X/Twitter URL
+        const xMatch = url.match(/(?:x\.com|twitter\.com)\/(@?[\w]+)\/?$/i);
+        if (xMatch) {
+          const handle = xMatch[1].replace(/^@/, '');
+          const bearerToken = process.env.X_BEARER_TOKEN;
+          if (!bearerToken) {
+            jsonRes(res, { error: 'X_BEARER_TOKEN not configured' }, 500);
+            return;
+          }
+          const r = await fetch(`https://api.x.com/2/users/by/username/${handle}?user.fields=profile_image_url,description,name`, {
+            headers: { Authorization: `Bearer ${bearerToken}` },
+          });
+          if (!r.ok) {
+            const errText = await r.text();
+            jsonRes(res, { error: `X API error: ${r.status} ${errText.slice(0, 200)}` }, 502);
+            return;
+          }
+          const xData = await r.json();
+          const user = xData.data;
+          if (!user) {
+            jsonRes(res, { error: 'User not found on X' }, 404);
+            return;
+          }
+          // Get higher-res profile image (replace _normal with _400x400)
+          const avatarUrl = (user.profile_image_url || '').replace('_normal', '_400x400');
+          jsonRes(res, {
+            name: user.name,
+            handle: `@${user.username}`,
+            avatarUrl,
+            bio: user.description || '',
+            source: 'x',
+          });
+          return;
+        }
+
+        // Website URL — fetch OG metadata
+        try {
+          const parsed = new URL(url);
+          if (!['http:', 'https:'].includes(parsed.protocol)) {
+            jsonRes(res, { error: 'URL must be http or https' }, 400);
+            return;
+          }
+          // Block private/reserved IPs (SSRF prevention)
+          const hostname = parsed.hostname;
+          const blocked = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|localhost$|::1$|\[::1\])/i;
+          if (blocked.test(hostname)) {
+            jsonRes(res, { error: 'Internal URLs are not allowed' }, 400);
+            return;
+          }
+          const r = await fetch(url, {
+            headers: { 'User-Agent': 'MemeForge-Lab/1.0' },
+            signal: AbortSignal.timeout(10000),
+            redirect: 'follow',
+          });
+          const html = await r.text();
+
+          // Extract OG tags
+          const ogTitle = (html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+                           html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i) ||
+                           html.match(/<title[^>]*>([^<]+)<\/title>/i) || [])[1] || parsed.hostname;
+          const ogImage = (html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+                           html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) || [])[1] || '';
+          const ogDesc = (html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
+                          html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i) ||
+                          html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) || [])[1] || '';
+          // Favicon fallback
+          const favicon = (html.match(/<link[^>]+rel=["'](?:icon|shortcut icon)["'][^>]+href=["']([^"']+)["']/i) || [])[1] || '';
+          const avatarUrl = ogImage || (favicon.startsWith('http') ? favicon : favicon ? new URL(favicon, url).href : '');
+
+          jsonRes(res, {
+            name: ogTitle.slice(0, 100),
+            handle: parsed.hostname,
+            avatarUrl,
+            bio: ogDesc.slice(0, 300),
+            source: 'website',
+          });
+        } catch (fetchErr) {
+          jsonRes(res, { error: 'Failed to fetch URL: ' + fetchErr.message }, 502);
+        }
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
+  // ─── Lab: Analyze Collab (LLM suggests tone) ──────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/lab/analyze-collab') {
+    (async () => {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const { partner, user } = body;
+        if (!partner?.name || !user?.name) {
+          jsonRes(res, { error: 'partner and user with name are required' }, 400);
+          return;
+        }
+
+        // Use Grok or Gemini to suggest tone
+        let suggestedTone = 'hype';
+        let reasoning = '';
+        try {
+          const xApiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+          if (xApiKey) {
+            const r = await fetch('https://api.x.ai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${xApiKey}` },
+              body: JSON.stringify({
+                model: 'grok-3-mini',
+                messages: [{
+                  role: 'user',
+                  content: `Given these two crypto/web3 projects, suggest the best meme TONE for a collaboration announcement.
+
+PROJECT A: ${partner.name}
+${partner.bio ? `Bio: ${partner.bio}` : ''}
+
+PROJECT B: ${user.name}
+${user.bio ? `Bio: ${user.bio}` : ''}
+
+Choose ONE tone from: hype, flex, wholesome, chaos
+- hype: celebratory, LFG energy
+- flex: confident, showing off
+- wholesome: warm, community love
+- chaos: absurdist, unexpected crossover
+
+Respond with ONLY JSON: {"tone": "...", "reasoning": "one sentence why"}`
+                }],
+                max_tokens: 100,
+              }),
+            });
+            if (r.ok) {
+              const data = await r.json();
+              const text = data.choices?.[0]?.message?.content || '';
+              const jsonMatch = text.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (['hype', 'flex', 'wholesome', 'chaos'].includes(parsed.tone)) {
+                  suggestedTone = parsed.tone;
+                  reasoning = parsed.reasoning || '';
+                }
+              }
+            }
+          }
+        } catch { /* fallback to hype */ }
+
+        jsonRes(res, { suggestedTone, reasoning });
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
+  // ─── Lab: Generate Collab Meme ─────────────────────────────
+  if (req.method === 'POST' && req.url === '/api/memeya/lab/generate-collab') {
+    (async () => {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const { partner, user, collabType, headline, tone } = body;
+        if (!partner?.name || !user?.name || !collabType || !headline || !tone) {
+          jsonRes(res, { error: 'partner, user, collabType, headline, and tone are required' }, 400);
+          return;
+        }
+
+        // Proxy to backend generate-collab endpoint with LAB_API_KEY
+        const labKey = process.env.LAB_API_KEY;
+        if (!labKey) {
+          jsonRes(res, { error: 'LAB_API_KEY not configured' }, 500);
+          return;
+        }
+
+        const r = await fetch(`${BACKEND_URL}/api/memes/generate-collab`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': labKey,
+          },
+          body: JSON.stringify({ partner, user, collabType, headline, tone }),
+          signal: AbortSignal.timeout(180000), // 3 min timeout for LLM + image gen
+        });
+        const data = await r.json();
+        jsonRes(res, data, r.status);
+      } catch (err) {
+        jsonRes(res, { error: err.message }, 500);
+      }
+    })();
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not found');
 });
