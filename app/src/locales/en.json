@@ -35,7 +35,7 @@
       "title": "Memes as a Service",
       "subtitle": "Vote on daily memes. Commission custom creations. Integrate via API.",
       "desc": "Our AI generates memes daily. The community votes to verify quality. Developers and agents can access meme services via pay-per-use <strong>x402 API</strong>.",
-      "descLine1": "AI generates memes daily — rate them to earn tickets and win USDC rewards.",
+      "descLine1": "AI generates memes daily — your ratings drive quality evolution. Vote to earn tickets and win USDC.",
       "descLine2": "Diverse art styles with auto-optimized templates — generate quality memes via API.",
       "ctaSignIn": "Sign in to rate & earn USDC →",
       "cardVote": "Rate & Earn",
@@ -74,7 +74,7 @@
     },
     "memeya": {
       "officialToken": "\u2014 Official Token",
-      "holdBonus": "Hold $Memeya tokens to boost your daily ticket earnings!",
+      "holdBonus": "Hold $Memeya tokens to boost daily ticket earnings — more tickets, higher USDC lottery odds!",
       "buyOnPumpFun": "Buy on PumpFun"
     },
     "valueProps": {
