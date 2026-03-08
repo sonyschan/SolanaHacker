@@ -65,7 +65,8 @@ const GRADE_COLORS = {
 };
 
 const CODE_SNIPPETS = {
-  rate: (base) => `npm install @x402/fetch @x402/evm viem
+  rate: {
+    base: (base) => `npm install @x402/fetch @x402/evm viem
 
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
@@ -76,7 +77,7 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Rate a meme — $0.05 USDC
+// Rate a meme — $0.05 USDC on Base
 const res = await fetchPaid('${base}/api/memes/rate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -85,8 +86,31 @@ const res = await fetchPaid('${base}/api/memes/rate', {
   }),
 });
 const { score, grade, pass, suggestions } = await res.json();`,
+    solana: (base) => `npm install @x402/fetch @x402/svm @solana/signers bs58
 
-  generate: (base) => `npm install @x402/fetch @x402/evm viem
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactSvmScheme } from '@x402/svm/exact/client';
+import { createKeyPairSignerFromBytes } from '@solana/signers';
+import bs58 from 'bs58';
+
+const client = new x402Client();
+const keyBytes = bs58.decode('your-base58-secret-key');
+const signer = await createKeyPairSignerFromBytes(keyBytes);
+registerExactSvmScheme(client, { signer });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Rate a meme — $0.05 USDC on Solana (gas sponsored by Dexter)
+const res = await fetchPaid('${base}/api/memes/rate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/meme.png'
+  }),
+});
+const { score, grade, pass, suggestions } = await res.json();`,
+  },
+  generate: {
+    base: (base) => `npm install @x402/fetch @x402/evm viem
 
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
@@ -97,7 +121,7 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Generate a custom meme — $0.10 USDC
+// Generate a custom meme — $0.10 USDC on Base
 const res = await fetchPaid('${base}/api/memes/generate-custom', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -108,7 +132,83 @@ const res = await fetchPaid('${base}/api/memes/generate-custom', {
 });
 const { meme } = await res.json();
 // meme.imageUrl, meme.title, meme.tags, meme.metadata`,
+    solana: (base) => `npm install @x402/fetch @x402/svm @solana/signers bs58
 
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactSvmScheme } from '@x402/svm/exact/client';
+import { createKeyPairSignerFromBytes } from '@solana/signers';
+import bs58 from 'bs58';
+
+const client = new x402Client();
+const keyBytes = bs58.decode('your-base58-secret-key');
+const signer = await createKeyPairSignerFromBytes(keyBytes);
+registerExactSvmScheme(client, { signer });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a custom meme — $0.10 USDC on Solana (gas sponsored by Dexter)
+const res = await fetchPaid('${base}/api/memes/generate-custom', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    topic: 'Bitcoin hits $200K',
+    // Optional: template, strategy, narrative, artStyle
+  }),
+});
+const { meme } = await res.json();
+// meme.imageUrl, meme.title, meme.tags, meme.metadata`,
+  },
+  collab: {
+    base: (base) => `npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a collab meme — $0.15 USDC on Base
+const res = await fetchPaid('${base}/api/memes/generate-collab', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    partner: { name: 'Virtuals Protocol', handle: '@virtaboreal' },
+    user: { name: 'AiMemeForge', handle: '@AiMemeForgeIO' },
+    collabType: 'integration',
+    headline: 'Memeya launches on Virtuals!',
+    tone: 'hype',
+  }),
+});
+const { meme, suggestedTweet } = await res.json();`,
+    solana: (base) => `npm install @x402/fetch @x402/svm @solana/signers bs58
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactSvmScheme } from '@x402/svm/exact/client';
+import { createKeyPairSignerFromBytes } from '@solana/signers';
+import bs58 from 'bs58';
+
+const client = new x402Client();
+const keyBytes = bs58.decode('your-base58-secret-key');
+const signer = await createKeyPairSignerFromBytes(keyBytes);
+registerExactSvmScheme(client, { signer });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a collab meme — $0.15 USDC on Solana (gas sponsored by Dexter)
+const res = await fetchPaid('${base}/api/memes/generate-collab', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    partner: { name: 'Virtuals Protocol', handle: '@virtaboreal' },
+    user: { name: 'AiMemeForge', handle: '@AiMemeForgeIO' },
+    collabType: 'integration',
+    headline: 'Memeya launches on Virtuals!',
+    tone: 'hype',
+  }),
+});
+const { meme, suggestedTweet } = await res.json();`,
+  },
   catalog: (base) => `// Browse catalog — Free, no x402 needed
 
 // Art styles
@@ -189,6 +289,7 @@ const LabTab = ({ publicMode = false }) => {
   const [codeCopied, setCodeCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const [codeTab, setCodeTab] = useState('rate');
+  const [chainTab, setChainTab] = useState('solana');
   const [recipesLoaded, setRecipesLoaded] = useState(false);
 
   const labHeaders = useCallback(() => ({
@@ -1351,12 +1452,12 @@ const LabTab = ({ publicMode = false }) => {
             <p className="text-gray-400 text-sm mt-1">{t('lab.api.subtitle')}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {['rate', 'generate', 'catalog'].map(svc => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {['rate', 'generate', 'collab', 'catalog'].map(svc => (
               <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
                 <p className="text-white font-medium text-sm">{t(`lab.api.${svc}.name`)}</p>
                 <p className="text-green-400 text-2xl font-bold">{t(`lab.api.${svc}.price`)}</p>
-                <p className="text-gray-500 text-xs">USDC on Base</p>
+                <p className="text-gray-500 text-xs">{svc === 'catalog' ? '\u2014' : 'USDC on Base & Solana'}</p>
                 {t(`lab.api.${svc}.sla`) !== '\u2014' && (
                   <p className="text-gray-400 text-xs">SLA: {t(`lab.api.${svc}.sla`)}</p>
                 )}
@@ -1365,28 +1466,59 @@ const LabTab = ({ publicMode = false }) => {
             ))}
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-gray-300">
               {t('lab.api.protocol')}
             </span>
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+              <a href="https://app.virtuals.io" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">
+                Virtuals Protocol
+              </a>
+              <span>·</span>
+              <a href="https://dexter.cash" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">
+                Dexter x402 Facilitator
+              </a>
+            </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-white">{t('lab.api.quickStart')}</h4>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(CODE_SNIPPETS[codeTab](API_BASE_URL));
-                  setCodeCopied(true);
-                  setTimeout(() => setCodeCopied(false), 2000);
-                }}
-                className="px-3 py-1 rounded text-xs font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
-              >
-                {codeCopied ? t('common.copied') : t('lab.api.copyCode')}
-              </button>
+              <div className="flex items-center gap-2">
+                {codeTab !== 'catalog' && (
+                  <div className="flex bg-white/5 border border-white/10 rounded overflow-hidden">
+                    {['solana', 'base'].map(chain => (
+                      <button
+                        key={chain}
+                        onClick={() => setChainTab(chain)}
+                        className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                          chainTab === chain
+                            ? 'bg-white/10 text-white'
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {chain === 'solana' ? 'Solana' : 'Base'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    const snippet = codeTab === 'catalog'
+                      ? CODE_SNIPPETS.catalog(API_BASE_URL)
+                      : CODE_SNIPPETS[codeTab][chainTab](API_BASE_URL);
+                    navigator.clipboard.writeText(snippet);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 2000);
+                  }}
+                  className="px-3 py-1 rounded text-xs font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+                >
+                  {codeCopied ? t('common.copied') : t('lab.api.copyCode')}
+                </button>
+              </div>
             </div>
             <div className="flex gap-1 mb-1">
-              {['rate', 'generate', 'catalog'].map(tab => (
+              {['rate', 'generate', 'collab', 'catalog'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setCodeTab(tab)}
@@ -1401,7 +1533,9 @@ const LabTab = ({ publicMode = false }) => {
               ))}
             </div>
             <pre className="bg-[#0D1117] border border-white/10 rounded-lg rounded-tl-none p-4 overflow-x-auto text-xs font-mono text-gray-300 leading-relaxed">
-              {CODE_SNIPPETS[codeTab](API_BASE_URL)}
+              {codeTab === 'catalog'
+                ? CODE_SNIPPETS.catalog(API_BASE_URL)
+                : CODE_SNIPPETS[codeTab][chainTab](API_BASE_URL)}
             </pre>
           </div>
 

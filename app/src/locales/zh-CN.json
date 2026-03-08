@@ -103,7 +103,7 @@
       "title": "梗图 API 服务",
       "desc": "将 AI 梗图生成和品质评分集成到你的应用或代理工作流程中。",
       "cta": "探索 API",
-      "protocol": "Powered by x402 · USDC on Base"
+      "protocol": "Powered by x402 · USDC on Base & Solana"
     },
     "cta": {
       "liveNow": "正在进行",
@@ -655,7 +655,7 @@
     "api": {
       "title": "API 访问",
       "subtitle": "通过 x402 微支付整合 Memeya 的梗图服务",
-      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base & Solana",
       "quickStart": "快速开始",
       "copyCode": "复制",
       "codeCopied": "已复制!",
@@ -671,6 +671,12 @@
         "price": "$0.10",
         "sla": "~60s",
         "desc": "自定义 AI 梗图，搭载喜剧架构"
+      },
+      "collab": {
+        "name": "联名梗图",
+        "price": "$0.15",
+        "sla": "~90s",
+        "desc": "生成庆祝两个项目合作的联名梗图"
       },
       "catalog": {
         "name": "目录 API",

@@ -103,7 +103,7 @@
       "title": "Meme API Services",
       "desc": "Integrate AI meme generation and quality scoring into your app or agent workflow.",
       "cta": "Explore API",
-      "protocol": "Powered by x402 \u00b7 USDC on Base"
+      "protocol": "Powered by x402 \u00b7 USDC on Base & Solana"
     },
     "cta": {
       "liveNow": "Live Now",
@@ -655,7 +655,7 @@
     "api": {
       "title": "API Access",
       "subtitle": "Integrate Memeya's meme services via x402 micropayments",
-      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base & Solana",
       "quickStart": "Quick Start",
       "copyCode": "Copy",
       "codeCopied": "Copied!",
@@ -671,6 +671,12 @@
         "price": "$0.10",
         "sla": "~60s",
         "desc": "Custom AI meme with comedy architecture"
+      },
+      "collab": {
+        "name": "Collab Meme",
+        "price": "$0.15",
+        "sla": "~90s",
+        "desc": "Generate a partnership meme celebrating two projects"
       },
       "catalog": {
         "name": "Catalog API",

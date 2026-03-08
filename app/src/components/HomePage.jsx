@@ -118,6 +118,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   const API_SERVICES = [
     { key: 'rate', price: '$0.05', sla: '~10s', color: 'cyan' },
     { key: 'generate', price: '$0.10', sla: '~60s', color: 'purple' },
+    { key: 'collab', price: '$0.15', sla: '~90s', color: 'pink' },
     { key: 'catalog', price: 'Free', sla: null, color: 'green' },
   ];
 
@@ -297,12 +298,12 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
             {API_SERVICES.map(svc => (
               <div key={svc.key} className={`bg-white/5 border border-white/10 rounded-xl p-6 md:p-8 text-center hover:border-${svc.color}-500/50 transition-all duration-300`}>
                 <p className="text-white font-semibold text-sm md:text-base mb-2">{t(`lab.api.${svc.key}.name`)}</p>
                 <p className="text-green-400 text-3xl md:text-4xl font-bold mb-1">{svc.price}</p>
-                <p className="text-gray-500 text-xs md:text-sm mb-3">USDC on Base</p>
+                <p className="text-gray-500 text-xs md:text-sm mb-3">{svc.key === 'catalog' ? '\u2014' : 'USDC on Base & Solana'}</p>
                 {svc.sla && <p className="text-gray-400 text-xs md:text-sm mb-2">SLA: {svc.sla}</p>}
                 <p className="text-gray-400 text-xs md:text-sm">{t(`lab.api.${svc.key}.desc`)}</p>
               </div>

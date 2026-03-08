@@ -103,7 +103,7 @@
       "title": "迷因 API 服務",
       "desc": "將 AI 迷因生成和品質評分整合到你的應用或代理工作流程中。",
       "cta": "探索 API",
-      "protocol": "Powered by x402 · USDC on Base"
+      "protocol": "Powered by x402 · USDC on Base & Solana"
     },
     "cta": {
       "liveNow": "正在進行",
@@ -655,7 +655,7 @@
     "api": {
       "title": "API 存取",
       "subtitle": "透過 x402 微支付整合 Memeya 的迷因服務",
-      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base",
+      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base & Solana",
       "quickStart": "快速開始",
       "copyCode": "複製",
       "codeCopied": "已複製!",
@@ -671,6 +671,12 @@
         "price": "$0.10",
         "sla": "~60s",
         "desc": "自訂 AI 迷因，搭載喜劇架構"
+      },
+      "collab": {
+        "name": "聯名迷因",
+        "price": "$0.15",
+        "sla": "~90s",
+        "desc": "生成慶祝兩個項目合作的聯名迷因"
       },
       "catalog": {
         "name": "目錄 API",
