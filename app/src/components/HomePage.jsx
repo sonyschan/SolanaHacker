@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import WalletConnection from './WalletConnection';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '../hooks/useAuth';
+import MemeCard from './MemeCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 const MEMEYA_TOKEN_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
@@ -31,14 +32,6 @@ const toLocalHHMM = (time, dateStr) => {
     const d = new Date(`${dateStr}T${time}+08:00`);
     return isNaN(d.getTime()) ? time.slice(0, 5) : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   } catch { return time.slice(0, 5); }
-};
-
-const RARITY_COLORS = {
-  legendary: { color: '#FF8000', bg: 'rgba(255,128,0,0.2)' },
-  epic: { color: '#A335EE', bg: 'rgba(163,53,238,0.2)' },
-  rare: { color: '#0070DD', bg: 'rgba(0,112,221,0.2)' },
-  uncommon: { color: '#1EFF00', bg: 'rgba(30,255,0,0.2)' },
-  common: { color: '#A9A9A9', bg: 'rgba(169,169,169,0.2)' },
 };
 
 const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
@@ -77,7 +70,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=14&limit=20`);
+        const res = await fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=30&limit=50`);
         const data = await res.json();
         if (data.success && data.memes) {
           // Only show daily #1 winners
@@ -270,46 +263,15 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
-              {featuredMemes.map(meme => {
-                const rarity = RARITY_COLORS[meme.finalRarity] || RARITY_COLORS.common;
-                return (
-                  <a
-                    key={meme.id}
-                    href="#gallery"
-                    className="group relative bg-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:shadow-cyan-500/10"
-                  >
-                    {meme.isWinner && (
-                      <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
-                        #1
-                      </div>
-                    )}
-                    <div className="aspect-square bg-gray-800 overflow-hidden">
-                      <img
-                        src={meme.imageUrl || meme.image}
-                        alt={meme.title}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/300x300/1F2937/9CA3AF?text=${encodeURIComponent(meme.title || 'Meme')}`;
-                        }}
-                      />
-                    </div>
-                    <div className="p-2">
-                      <h4 className="font-bold text-white text-xs truncate group-hover:text-cyan-300 transition-colors">
-                        {meme.title}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                        <span>{'\u2764\uFE0F'} {meme.votes?.selection?.yes || 0}</span>
-                        {meme.finalRarity && (
-                          <span className="px-1.5 py-0.5 rounded" style={{ backgroundColor: rarity.bg, color: rarity.color }}>
-                            {meme.finalRarity}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </a>
-                );
-              })}
+              {featuredMemes.map(meme => (
+                <MemeCard
+                  key={meme.id}
+                  meme={meme}
+                  href="#gallery"
+                  hoverColor="yellow"
+                  showBadges={{ winner: true, date: true }}
+                />
+              ))}
             </div>
 
             <div className="text-center mt-8">

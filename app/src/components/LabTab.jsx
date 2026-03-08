@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
+import MemeCard from './MemeCard';
 import { useWallets, useSignAndSendTransaction } from '@privy-io/react-auth/solana';
 import {
   Connection,
@@ -852,24 +853,11 @@ const LabTab = ({ publicMode = false }) => {
               <p className="text-center text-xs text-gray-500 mb-3">{t('lab.create.featured')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {featuredMeme.map((meme, i) => (
-                  <div key={meme.id || i} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                    {meme.imageUrl && (
-                      <img
-                        src={meme.imageUrl}
-                        alt={meme.title}
-                        className="w-full aspect-square object-cover"
-                      />
-                    )}
-                    <div className="p-2">
-                      <p className="text-white text-xs font-medium truncate">{meme.title}</p>
-                      {meme.rarityScore > 0 && (() => {
-                        const stars = Math.round(meme.rarityScore) / 2;
-                        const full = Math.floor(stars);
-                        const half = stars % 1 >= 0.5;
-                        return <p className="text-[10px] mt-0.5">{'⭐'.repeat(full)}{half ? '✨' : ''}</p>;
-                      })()}
-                    </div>
-                  </div>
+                  <MemeCard
+                    key={meme.id || i}
+                    meme={meme}
+                    imageFit="object-cover"
+                  />
                 ))}
               </div>
             </div>
@@ -999,22 +987,13 @@ const LabTab = ({ publicMode = false }) => {
             /* ── Meme grid ── */
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
               {myMemes.map((meme) => (
-                <button
+                <MemeCard
                   key={meme.id}
+                  meme={meme}
                   onClick={() => setSelectedMeme(meme)}
-                  className="bg-white/5 border border-white/10 rounded-xl overflow-hidden text-left hover:border-indigo-500/50 transition-all group"
-                >
-                  {meme.imageUrl && (
-                    <img
-                      src={meme.imageUrl}
-                      alt={meme.title}
-                      className="w-full aspect-square object-cover"
-                    />
-                  )}
-                  <div className="p-2">
-                    <p className="text-white text-xs font-medium truncate group-hover:text-indigo-300 transition-colors">{meme.title}</p>
-                  </div>
-                </button>
+                  hoverColor="indigo"
+                  imageFit="object-cover"
+                />
               ))}
             </div>
           )}

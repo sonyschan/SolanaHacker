@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTokenAmount } from '../services/solanaService';
+import MemeCard from './MemeCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
@@ -661,53 +662,38 @@ const LotteryTab = ({
                       {filteredWins.map((win, i) => {
                         const meme = winMemes[win.memeId];
                         return (
-                          <div key={win.memeId + i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/30 transition-all group">
-                            {/* Meme Image */}
-                            <div className="aspect-square bg-gray-800 relative">
-                              {meme ? (
-                                <img
-                                  src={meme.imageUrl || meme.image}
-                                  alt={meme.title || 'Winning Meme'}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">{'\uD83C\uDFA8'}</div>
-                              )}
-                              {/* Status badge */}
-                              <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${
-                                win.claimed
-                                  ? 'bg-green-500/80 text-white'
-                                  : 'bg-yellow-500/80 text-white'
-                              }`}>
-                                {win.claimed ? t('common.minted') : t('common.claimable')}
-                              </div>
+                          <MemeCard
+                            key={win.memeId + i}
+                            meme={meme || { title: `Meme ${win.memeId.slice(-6)}` }}
+                            hoverColor="yellow"
+                          >
+                            <div className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              win.claimed
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {win.claimed ? t('common.minted') : t('common.claimable')}
                             </div>
-                            {/* Info */}
-                            <div className="p-4">
-                              <h4 className="font-bold text-white truncate">
-                                {meme?.title || `Meme ${win.memeId.slice(-6)}`}
-                              </h4>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {t('dashboard.winners.won', { date: new Date(win.selectedAt).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }) })}
-                              </div>
-                              {win.drawId && (
-                                <div className="text-xs text-gray-500 mt-0.5">{t('dashboard.winners.drawId', { id: win.drawId })}</div>
-                              )}
-                              {!win.claimed ? (
-                                <button
-                                  className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
-                                  disabled
-                                  title="NFT minting coming soon"
-                                >
-                                  {t('dashboard.winners.claimNftSoon')}
-                                </button>
-                              ) : (
-                                <div className="mt-3 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
-                                  {t('common.minted')}
-                                </div>
-                              )}
+                            <div className="text-xs text-gray-400 mt-1">
+                              {t('dashboard.winners.won', { date: new Date(win.selectedAt).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }) })}
                             </div>
-                          </div>
+                            {win.drawId && (
+                              <div className="text-xs text-gray-500 mt-0.5">{t('dashboard.winners.drawId', { id: win.drawId })}</div>
+                            )}
+                            {!win.claimed ? (
+                              <button
+                                className="mt-2 w-full text-sm font-bold py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white opacity-60 cursor-not-allowed"
+                                disabled
+                                title="NFT minting coming soon"
+                              >
+                                {t('dashboard.winners.claimNftSoon')}
+                              </button>
+                            ) : (
+                              <div className="mt-2 w-full text-sm font-bold py-2 rounded-lg bg-green-500/10 text-green-400 text-center border border-green-500/20">
+                                {t('common.minted')}
+                              </div>
+                            )}
+                          </MemeCard>
                         );
                       })}
                     </div>

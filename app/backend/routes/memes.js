@@ -102,7 +102,7 @@ router.get("/today", cacheResponse("memes:today", TTL.MEDIUM), getTodaysMemes);
 /**
  * GET /api/memes/hall-of-memes - Get historical memes for gallery
  */
-router.get("/hall-of-memes", cacheResponse("memes:hall-of-memes", TTL.MEDIUM), async (req, res) => {
+router.get("/hall-of-memes", cacheResponse(req => `memes:hall-of-memes:${req.query.days || 30}:${req.query.limit || 50}`, TTL.MEDIUM), async (req, res) => {
   try {
     const { days = 30, limit = 50 } = req.query;
     

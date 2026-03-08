@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import memeService from '../services/memeService';
 import MemeModal from './MemeModal';
 import ModalOverlay from './ModalOverlay';
+import MemeCard from './MemeCard';
 
 const MEMEYA_CA = 'mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump';
 const MEMEYA_THRESHOLD = 10000;
@@ -380,92 +381,41 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
               {dailyMemes.map((meme) => (
-                <div key={meme.id} className="bg-gray-900/95 backdrop-blur-md rounded-2xl overflow-hidden border border-white border-opacity-20 hover:scale-105 transition-transform">
-                  <img
-                    src={meme.imageUrl || meme.image}
-                    alt={meme.title}
-                    className="w-full h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
-                    onClick={() => {
-                      const index = dailyMemes.findIndex(m => m.id === meme.id);
-                      setModalMemeIndex(index >= 0 ? index : 0);
-                      setModalMeme(meme);
-                      setIsModalOpen(true);
-                    }}
-                    title="Click to enlarge"
-                    onError={(e) => {
-                      e.target.src = `https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=${encodeURIComponent(meme.title)}`;
-                    }}
-                  />
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">{meme.title}</h3>
-                    <p className="text-gray-300 text-sm mb-4">
-                      {meme.description || `AI-generated from: ${meme.newsSource}`}
-                    </p>
-
-                    {/* NFT Traits - Row 1 */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {meme.metadata?.imageGenerated && (
-                        <span className="text-xs bg-green-600 bg-opacity-20 text-green-300 px-2 py-1 rounded">
-                          {meme.metadata?.aiModel?.includes('grok') ? 'Grok' : 'Gemini'}
-                        </span>
-                      )}
-                      {meme.style && (
-                        <span className="text-xs bg-purple-600 bg-opacity-20 text-purple-300 px-2 py-1 rounded">
-                          {meme.style}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* NFT Traits - Row 2 */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {meme.newsSource && (
-                        <span className="text-xs bg-blue-600 bg-opacity-20 text-blue-300 px-2 py-1 rounded">
-                          {meme.newsSource}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* NFT Traits - Row 3 */}
-                    {meme.tags && meme.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {meme.tags.map((tag, idx) => (
-                          <span key={idx} className="text-xs bg-cyan-600 bg-opacity-20 text-cyan-300 px-2 py-1 rounded">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="text-sm text-gray-400">
-                        {t('forge.phase1.currentVotes')}<span className="text-white font-bold">{votes[meme.id] || 0}</span>
-                      </div>
-                    </div>
-
-                    {votedMemeId === null ? (
-                      <button
-                        onClick={() => handleVote(meme.id)}
-                        className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
-                      >
-                        ❤️ {t('forge.phase1.voteButton')}
-                      </button>
-                    ) : votedMemeId === meme.id ? (
-                      <button
-                        disabled
-                        className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90"
-                      >
-                        ✅ {t('forge.phase1.votedButton')}
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50"
-                      >
-                        {t('forge.phase1.notVoted')}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <MemeCard
+                  key={meme.id}
+                  meme={meme}
+                  variant="detailed"
+                  onClick={() => {
+                    const index = dailyMemes.findIndex(m => m.id === meme.id);
+                    setModalMemeIndex(index >= 0 ? index : 0);
+                    setModalMeme(meme);
+                    setIsModalOpen(true);
+                  }}
+                  voteCount={votes[meme.id] || 0}
+                >
+                  {votedMemeId === null ? (
+                    <button
+                      onClick={() => handleVote(meme.id)}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:scale-105 transition-transform"
+                    >
+                      ❤️ {t('forge.phase1.voteButton')}
+                    </button>
+                  ) : votedMemeId === meme.id ? (
+                    <button
+                      disabled
+                      className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold cursor-not-allowed opacity-90"
+                    >
+                      ✅ {t('forge.phase1.votedButton')}
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full py-3 bg-gray-600 rounded-lg font-semibold cursor-not-allowed opacity-50"
+                    >
+                      {t('forge.phase1.notVoted')}
+                    </button>
+                  )}
+                </MemeCard>
               ))}
             </div>
           )}

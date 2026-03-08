@@ -4,33 +4,9 @@ import { createPortal } from 'react-dom';
 import ModalOverlay from './ModalOverlay';
 import CommentSection from './CommentSection';
 import { useAuth } from '../hooks/useAuth';
+import MemeCard, { getStarRating, getOriginBadge, RARITY_COLORS } from './MemeCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
-
-// Origin badge config — provenance labels for meme cards
-const ORIGIN_BADGES = {
-  // Custom memes from Lab / x402 / ACP
-  lab:  { label: 'Lab Experiment', color: '#FACC15', bg: 'rgba(250,204,21,0.15)', border: 'rgba(250,204,21,0.3)' },
-  x402: { label: 'Custom Commission', color: '#4ADE80', bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.3)' },
-  acp:  { label: 'Agent Commission', color: '#C084FC', bg: 'rgba(192,132,252,0.15)', border: 'rgba(192,132,252,0.3)' },
-};
-
-const getOriginBadge = (meme) => {
-  const source = meme.metadata?.source;
-  if (source && ORIGIN_BADGES[source]) return ORIGIN_BADGES[source];
-  if (meme.type === 'custom') return ORIGIN_BADGES.lab; // fallback for custom without source
-  return null; // daily memes — "Memeya Original" shown via absence of special badge
-};
-
-// Convert rarity averageScore (1-10) to star display (0.5-5 stars)
-const getStarRating = (meme) => {
-  const avg = meme.rarity?.averageScore;
-  if (!avg || avg <= 0) return null;
-  const stars = Math.round(avg) / 2; // 1-10 → 0.5-5, rounded to nearest 0.5
-  const full = Math.floor(stars);
-  const half = stars % 1 >= 0.5;
-  return '⭐'.repeat(full) + (half ? '✨' : '');
-};
 
 const GalleryTab = () => {
   const { t, i18n } = useTranslation();
@@ -305,81 +281,23 @@ const GalleryTab = () => {
               {filteredMemes
                 .sort((a, b) => (b.generatedAt || '').localeCompare(a.generatedAt || ''))
                 .map((meme) => (
-                  <div
+                  <MemeCard
                     key={meme.id}
+                    meme={meme}
                     onClick={() => setSelectedMeme(meme)}
-                    className="group relative cursor-pointer bg-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-yellow-500/30 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:border-yellow-400 hover:shadow-yellow-500/20"
+                    hoverColor="yellow"
+                    showBadges={{ winner: true, date: true, origin: true, nftOwner: true }}
                   >
-                    {/* Winner Badge */}
-                    <div className="absolute top-1.5 right-1.5 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
-                      {'\uD83C\uDFC6'}
-                    </div>
-
-                    {/* Date Badge */}
-                    <div className="absolute top-1.5 left-1.5 z-10 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                      {formatDate(meme.generatedAt)}
-                    </div>
-
-                    {/* Origin Badge */}
-                    {(() => { const ob = getOriginBadge(meme); return ob ? (
-                      <div className="absolute top-7 left-1.5 z-10 text-[9px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm"
-                        style={{ backgroundColor: ob.bg, color: ob.color, border: `1px solid ${ob.border}` }}>
-                        {ob.label}
-                      </div>
-                    ) : null; })()}
-
-                    {/* Image */}
-                    <div className="relative aspect-square bg-gray-800 overflow-hidden">
-                      {meme.nftOwner && (
-                        <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
-                          {t('gallery.owned', { address: `${meme.nftOwner.walletAddress.slice(0, 4)}...${meme.nftOwner.walletAddress.slice(-4)}` })}
-                        </div>
-                      )}
-                      <img
-                        src={meme.imageUrl || meme.image}
-                        alt={meme.title}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/200x200/1F2937/9CA3AF?text=${encodeURIComponent(meme.title || 'Meme')}`;
-                        }}
-                      />
-                    </div>
-
-                    {/* Compact Content */}
-                    <div className="p-2">
-                      <h3 className="font-bold text-white text-xs truncate group-hover:text-yellow-300 transition-colors">
-                        {meme.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                        {getStarRating(meme) && <span>{getStarRating(meme)}</span>}
-                        {meme.finalRarity && (
-                          <span className="px-1.5 py-0.5 rounded" style={{
-                            backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
-                              meme.finalRarity === 'epic' ? 'rgba(163,53,238,0.2)' :
-                              meme.finalRarity === 'rare' ? 'rgba(0,112,221,0.2)' :
-                              meme.finalRarity === 'uncommon' ? 'rgba(30,255,0,0.2)' :
-                              'rgba(169,169,169,0.2)',
-                            color: meme.finalRarity === 'legendary' ? '#FF8000' :
-                              meme.finalRarity === 'epic' ? '#A335EE' :
-                              meme.finalRarity === 'rare' ? '#0070DD' :
-                              meme.finalRarity === 'uncommon' ? '#1EFF00' :
-                              '#A9A9A9'
-                          }}>
-                            {meme.finalRarity}
+                    {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getMatchingTags(meme, searchQuery).map(tag => (
+                          <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                            #{tag}
                           </span>
-                        )}
+                        ))}
                       </div>
-                      {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {getMatchingTags(meme, searchQuery).map(tag => (
-                            <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    )}
+                  </MemeCard>
                 ))}
             </div>
           ) : (
@@ -403,83 +321,23 @@ const GalleryTab = () => {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                       {dayMemes.map((meme) => (
-                        <div
+                        <MemeCard
                           key={meme.id}
+                          meme={meme}
                           onClick={() => setSelectedMeme(meme)}
-                          className={`group relative cursor-pointer bg-white/5 backdrop-blur-md rounded-xl overflow-hidden border transition-all duration-300 hover:scale-[1.03] hover:shadow-xl ${
-                            meme.isWinner
-                              ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20'
-                              : 'border-white/10 hover:border-cyan-500/50 hover:shadow-cyan-500/20'
-                          }`}
+                          hoverColor={meme.isWinner ? 'yellow' : 'cyan'}
+                          showBadges={{ winner: meme.isWinner, origin: true, nftOwner: true }}
                         >
-                          {/* Winner Badge */}
-                          {meme.isWinner && (
-                            <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                              #1
+                          {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {getMatchingTags(meme, searchQuery).map(tag => (
+                                <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                                  #{tag}
+                                </span>
+                              ))}
                             </div>
                           )}
-
-                          {/* Origin Badge */}
-                          {(() => { const ob = getOriginBadge(meme); return ob ? (
-                            <div className="absolute top-2 left-2 z-10 text-[10px] font-medium px-2 py-0.5 rounded backdrop-blur-sm"
-                              style={{ backgroundColor: ob.bg, color: ob.color, border: `1px solid ${ob.border}` }}>
-                              {ob.label}
-                            </div>
-                          ) : null; })()}
-
-                          <div className="relative aspect-square bg-gray-800 overflow-hidden">
-                            {meme.nftOwner && (
-                              <div className="absolute bottom-2 left-2 z-10 bg-purple-600/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm">
-                                {t('gallery.owned', { address: `${meme.nftOwner.walletAddress.slice(0, 4)}...${meme.nftOwner.walletAddress.slice(-4)}` })}
-                              </div>
-                            )}
-                            <img
-                              src={meme.imageUrl || meme.image}
-                              alt={meme.title}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                e.target.src = `https://via.placeholder.com/400x400/1F2937/9CA3AF?text=${encodeURIComponent(meme.title || 'Meme')}`;
-                              }}
-                            />
-                          </div>
-
-                          {/* Content */}
-                          <div className="p-2">
-                            <h3 className="font-bold text-white text-xs truncate group-hover:text-cyan-300 transition-colors">
-                              {meme.title}
-                            </h3>
-
-                            {/* Stats */}
-                            <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                              {getStarRating(meme) && <span>{getStarRating(meme)}</span>}
-                              {meme.finalRarity && (
-                                <span className="px-1.5 py-0.5 rounded" style={{
-                                  backgroundColor: meme.finalRarity === 'legendary' ? 'rgba(255,128,0,0.2)' :
-                                    meme.finalRarity === 'epic' ? 'rgba(163,53,238,0.2)' :
-                                    meme.finalRarity === 'rare' ? 'rgba(0,112,221,0.2)' :
-                                    meme.finalRarity === 'uncommon' ? 'rgba(30,255,0,0.2)' :
-                                    'rgba(169,169,169,0.2)',
-                                  color: meme.finalRarity === 'legendary' ? '#FF8000' :
-                                    meme.finalRarity === 'epic' ? '#A335EE' :
-                                    meme.finalRarity === 'rare' ? '#0070DD' :
-                                    meme.finalRarity === 'uncommon' ? '#1EFF00' :
-                                    '#A9A9A9'
-                                }}>
-                                  {meme.finalRarity}
-                                </span>
-                              )}
-                            </div>
-                            {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {getMatchingTags(meme, searchQuery).map(tag => (
-                                  <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        </MemeCard>
                       ))}
                     </div>
                   </div>
@@ -566,11 +424,7 @@ const GalleryTab = () => {
                 </div>
                 <div className="bg-white/5 rounded-xl p-3 md:p-4 text-center">
                   <div className="text-xl md:text-2xl font-bold" style={{
-                    color: selectedMeme.finalRarity === 'legendary' ? '#FF8000' :
-                      selectedMeme.finalRarity === 'epic' ? '#A335EE' :
-                      selectedMeme.finalRarity === 'rare' ? '#0070DD' :
-                      selectedMeme.finalRarity === 'uncommon' ? '#1EFF00' :
-                      '#A9A9A9'
+                    color: (RARITY_COLORS[selectedMeme.finalRarity] || RARITY_COLORS.common).color
                   }}>
                     {selectedMeme.finalRarity || t('common.pending')}
                   </div>
