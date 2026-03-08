@@ -248,6 +248,9 @@ function buildPaymentMiddleware(cdpKeyId, cdpKeySecret) {
   server.onVerifyFailure(({ paymentPayload, requirements, error }) => {
     console.error(`[x402] ❌ Verify FAILED — network: ${requirements?.network}`, error?.message || error);
   });
+  server.onAfterSettle(({ paymentPayload, requirements, result }) => {
+    console.log(`[x402] ✅ Settle OK — network: ${requirements.network}, tx: ${result.transaction}, payer: ${result.payer}`);
+  });
   server.onSettleFailure(({ paymentPayload, requirements, error }) => {
     console.error(`[x402] ❌ Settle FAILED — network: ${requirements?.network}`, error?.message || error);
   });

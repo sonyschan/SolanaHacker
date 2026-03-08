@@ -52,6 +52,7 @@ screenshots/
 # === Internal Docs ===
 docs/TDD.md
 docs/virtuals-acp-strategy.md
+docs/agentic-commerce-strategy.md
 
 # === Proprietary Backend Logic ===
 app/backend/services/memeStrategyService.js

@@ -290,6 +290,51 @@ const WikiPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Winning odds explanation */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 space-y-4">
+              <h3 className="text-xl font-bold text-blue-400">{t('wiki.howto.oddsTitle')}</h3>
+              <p className="text-gray-400 leading-relaxed">{t('wiki.howto.oddsDesc')}</p>
+
+              {/* Visual example: 3 participants with ticket bars */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-400 w-14 text-right">Alice</span>
+                  <div className="flex-1 bg-white/5 rounded-full h-6 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-cyan-500/60 to-cyan-400/60 rounded-full flex items-center justify-end pr-2" style={{ width: '25%' }}>
+                      <span className="text-xs text-white font-medium">5</span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-cyan-400 w-12">25%</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-400 w-14 text-right">Bob</span>
+                  <div className="flex-1 bg-white/5 rounded-full h-6 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-purple-500/60 to-purple-400/60 rounded-full flex items-center justify-end pr-2" style={{ width: '15%' }}>
+                      <span className="text-xs text-white font-medium">3</span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-purple-400 w-12">15%</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-400 w-14 text-right">Carol</span>
+                  <div className="flex-1 bg-white/5 rounded-full h-6 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-yellow-500/60 to-yellow-400/60 rounded-full flex items-center justify-end pr-2" style={{ width: '60%' }}>
+                      <span className="text-xs text-white font-medium">12</span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-yellow-400 w-12">60%</span>
+                </div>
+              </div>
+
+              <p className="text-gray-400 text-sm leading-relaxed">{t('wiki.howto.oddsExample')}</p>
+
+              <div className="p-4 rounded-xl bg-black/30 border border-blue-500/20">
+                <p className="text-blue-300 font-mono text-sm text-center">{t('wiki.howto.oddsFormula')}</p>
+              </div>
+
+              <p className="text-gray-500 text-sm">{t('wiki.howto.oddsTip')}</p>
+            </div>
           </section>
 
           {/* Section 3: Referral / Invite Friends */}
