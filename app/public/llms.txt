@@ -1,6 +1,6 @@
 # AI MemeForge
 
-> The world's first AI meme democracy on Solana. AI generates daily crypto memes, community votes for free, winners earn NFT ownership.
+> Community-curated AI meme platform on Solana. AI generates daily crypto memes, community votes for free, winners earn NFT ownership.
 
 ## About
 

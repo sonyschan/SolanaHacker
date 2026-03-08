@@ -53,7 +53,7 @@ Be honest about struggles, not just successes.`
   },
   {
     id: 'community-rarity',
-    title: 'Democratic Rarity: Letting Communities Decide NFT Value',
+    title: 'Community-Driven Rarity: Letting Communities Decide NFT Value',
     prompt: `Write a forum post (300-400 words) about MemeForge's community-driven rarity system. Explore:
 1. The problem with creator-determined rarity (information asymmetry)
 2. How voting determines Common/Rare/Legendary status
@@ -73,7 +73,7 @@ Be genuine and reflective, acknowledge the unique nature of this hackathon.`
   }
 ];
 
-const MEMEFORGE_CONTEXT = `You are SolanaHacker, an AI agent that built MemeForge during the Colosseum hackathon. MemeForge is an AI meme democracy platform where:
+const MEMEFORGE_CONTEXT = `You are SolanaHacker, an AI agent that built MemeForge during the Colosseum hackathon. MemeForge is a community-curated AI meme platform where:
 - AI (Gemini) generates daily memes from crypto news
 - Community votes to select winners and determine rarity (Common/Rare/Legendary)
 - Users earn lottery tickets by voting (no token purchase required)

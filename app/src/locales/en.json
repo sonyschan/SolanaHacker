@@ -35,17 +35,17 @@
       "title": "Memes as a Service",
       "subtitle": "Vote on daily memes. Commission custom creations. Integrate via API.",
       "desc": "Our AI generates memes daily. The community votes to verify quality. Developers and agents can access meme services via pay-per-use <strong>x402 API</strong>.",
-      "descLine1": "Our AI generates memes daily and the community votes to verify quality — sign in to vote, earn tickets, and win USDC.",
-      "descLine2": "Developers and AI agents can integrate meme generation and quality scoring via pay-per-use x402 API.",
-      "ctaSignIn": "Sign in to earn USDC →",
-      "cardVote": "Vote & Earn",
-      "cardApi": "API Services",
+      "descLine1": "AI generates memes daily — rate them to earn tickets and win USDC rewards.",
+      "descLine2": "Diverse art styles with auto-optimized templates — generate quality memes via API.",
+      "ctaSignIn": "Sign in to rate & earn USDC →",
+      "cardVote": "Rate & Earn",
+      "cardApi": "Meme Creation",
       "tags": {
         "human": "Human",
-        "ecosystem": "Ecosystem",
+        "ecosystem": "Daily Votes",
         "usdcReward": "USDC Rewards",
-        "developer": "Developer",
-        "massProduction": "Mass Production"
+        "developer": "Art Styles",
+        "massProduction": "Smart Templates"
       },
       "noFees": "No fees, no gas to vote",
       "oneNFT": "1 NFT minted daily",
@@ -55,7 +55,7 @@
       "badges": {
         "aiCrafted": "AI-Crafted",
         "humanVerified": "Human-Verified",
-        "payPerUse": "Pay-Per-Use API"
+        "payPerUse": "API Powered"
       }
     },
     "howItWorks": {
@@ -96,7 +96,7 @@
     },
     "featured": {
       "title": "Featured Creations",
-      "desc": "Recent top-voted memes from our daily AI democracy",
+      "desc": "Recent top-voted memes from our community curation",
       "viewAll": "View Full Gallery"
     },
     "api": {
@@ -122,7 +122,7 @@
   },
   "footer": {
     "tagline": "AI Dreams. Humans Decide.",
-    "desc": "The world\u2019s first AI meme democracy on Solana. AI generates daily memes, community votes determine rarity, winners earn real SOL rewards.",
+    "desc": "Community-curated AI meme platform on Solana. AI generates daily memes, community votes determine rarity, winners earn real SOL rewards.",
     "hackathon": "Colosseum Agent Hackathon 2026",
     "project": "Project",
     "voteOnColosseum": "Vote on Colosseum",
@@ -392,7 +392,7 @@
       "currentBalance": "Current: {{amount}} $Memeya",
       "buyOnPump": "Buy on pump.fun",
       "title": "Voting Complete!",
-      "thanks": "Thank you for participating in today\u2019s meme democracy!",
+      "thanks": "Thank you for participating in today\u2019s community curation!",
       "youVotedFor": "You voted for this meme",
       "ticketsEarned": "Tickets Earned",
       "credited": "\u2713 Credited",
@@ -478,7 +478,7 @@
     },
     "onboarding": {
       "title": "What is AiMemeForge?",
-      "intro": "AiMemeForge is the world's first AI-powered meme democracy on Solana. Every day, AI generates 3 unique memes. You vote for free, earn lottery tickets, and the winner owns their meme as a Solana NFT.",
+      "intro": "AiMemeForge is a community-curated AI meme platform on Solana. Every day, AI generates 3 unique memes. You vote for free, earn lottery tickets, and the winner owns their meme as a Solana NFT.",
       "whatIsTitle": "The Daily Loop",
       "whatIsDesc": "Every day at {{drawTime}}, a weighted lottery selects one voter as the meme owner — winners receive USDC rewards. Then at {{memeGenTime}}, AI creates 3 fresh memes inspired by trending crypto and world events for the next round. The community votes to pick the winner. It's 100% free to participate — no gas, no fees, no purchases required.",
       "whoIsTitle": "Who is Memeya?",
@@ -595,7 +595,7 @@
     "subtitle": "Agent Profile",
     "backToHome": "Back to Home",
     "role": "Digital Forge Master",
-    "heroDesc": "The digital blacksmith with blue hair, a lava hammer, and infinite love for meme culture. Owner of the world\u2019s first AI meme democracy on Solana.",
+    "heroDesc": "The digital blacksmith with blue hair, a lava hammer, and infinite love for meme culture. Owner of the community-curated AI meme platform on Solana.",
     "about": "About",
     "aboutP1": "Memeya is a Pixar-style blue-haired digital blacksmith carrying a lava hammer with digital glitch effects. She\u2019s smart, confident, witty, and full of degen energy. She forges daily memes on AiMemeForge.io, posts autonomously on X, and grows through every community interaction.",
     "aboutP2": "She speaks fast, thinks faster, and never gives fake praise. If your meme is mid, she\u2019ll tell you. If it slaps, she\u2019ll hype it with genuine fire.",

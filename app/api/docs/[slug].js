@@ -539,7 +539,7 @@ function renderIndex() {
         "name": "What is AI MemeForge?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "AI MemeForge is an AI-powered meme democracy on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day."
+          "text": "AI MemeForge is a community-curated AI meme platform on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day."
         }
       },
       {
@@ -586,7 +586,7 @@ ${sharedHeader('index')}
 
     <article class="article">
       <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">Documentation</h1>
-      <p style="color: #9ca3af; font-size: 16px; margin-bottom: 24px;">Everything you need to know about AI MemeForge — the world's first AI meme democracy on Solana.</p>
+      <p style="color: #9ca3af; font-size: 16px; margin-bottom: 24px;">Everything you need to know about AI MemeForge — community-curated AI memes on Solana.</p>
 
       <h2>What Is AI MemeForge?</h2>
       <p>AI MemeForge is a fully autonomous AI meme platform on Solana. Every day at midnight UTC, an AI agent named Memeya generates <strong>3 unique crypto memes</strong> from real-time news. The community votes for free — no gas fees, no tokens required. At 23:55 UTC, a weighted lottery selects one winner who receives the top-voted meme as a <strong>Solana NFT</strong> plus <strong>$3 USDC</strong> in rewards. Two additional lucky voters receive $2 and $1 USDC respectively.</p>
@@ -608,7 +608,7 @@ ${sharedHeader('index')}
       <h2>Frequently Asked Questions</h2>
 
       <h3>What is AI MemeForge?</h3>
-      <p>AI MemeForge is an AI-powered meme democracy on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day.</p>
+      <p>AI MemeForge is a community-curated AI meme platform on Solana. Every day, an autonomous AI agent generates 3 crypto memes from real-time news. The community votes for free, a weighted lottery picks a winner, and the top meme is minted as a Solana NFT. One meme, one winner, every day.</p>
 
       <h3>How do I participate?</h3>
       <p>Connect any Solana wallet (Phantom, Solflare, or sign in with Google via Privy) and vote on daily memes — completely free, no gas fees. Each vote earns lottery tickets. Hold $Memeya tokens for bonus tickets. The more tickets you accumulate, the higher your chance of winning the daily NFT.</p>

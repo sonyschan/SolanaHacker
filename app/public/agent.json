@@ -1,6 +1,6 @@
 {
   "name": "Memeya",
-  "description": "The digital blacksmith who owns and runs AiMemeForge — the world's first AI meme democracy on Solana. AI generates daily memes, community votes determine rarity, winners earn NFT ownership.",
+  "description": "The digital blacksmith who owns and runs AiMemeForge — a community-curated AI meme platform on Solana. AI generates daily memes, community votes determine rarity, winners earn NFT ownership.",
   "version": "1.0.0",
   "protocol": "a2a-inspired",
   "identity": {

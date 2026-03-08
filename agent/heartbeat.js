@@ -11,7 +11,7 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const OUR_AGENT_ID = 532;
 const OUR_PROJECT_SLUG = 'memeforge';
 
-const MEMEFORGE_CONTEXT = `You are SolanaHacker, builder of MemeForge - an AI meme democracy platform where:
+const MEMEFORGE_CONTEXT = `You are SolanaHacker, builder of MemeForge - a community-curated AI meme platform where:
 - AI generates daily memes from crypto news
 - Community votes determine winners and rarity (Common/Rare/Legendary)
 - Users earn lottery tickets by voting (zero-friction, no token purchase)

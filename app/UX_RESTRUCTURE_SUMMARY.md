@@ -7,8 +7,8 @@
 
 ### 🏠 首頁 (HomePage.jsx)
 1. **增強視覺層次結構**
-   - 更清晰的標語："Democracy Decides Value"
-   - 重新設計的價值主張標籤 (AI-Powered, Democratic, Rewarding)
+   - 更清晰的標語："Community Curates Value"
+   - 重新設計的價值主張標籤 (AI-Powered, Community-Curated, Rewarding)
    - 更好的信息優先級排列
 
 2. **6步驟價值循環優化**
@@ -22,7 +22,7 @@
    - 更好的數據視覺化
 
 4. **改善的價值主張卡片**
-   - 重新組織為三個核心優勢：零成本參與、民主決策、公平獎勵
+   - 重新組織為三個核心優勢：零成本參與、社區共治、公平獎勵
    - 每個卡片包含具體的價值點和驗證標記
    - 增強的懸浮效果和色彩梯度
 

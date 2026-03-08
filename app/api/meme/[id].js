@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     }
 
     const title = escapeHtml(meme.title || 'AI MemeForge Meme');
-    const description = escapeHtml(meme.description || 'AI-generated meme from MemeForge - Vote for meme democracy!');
+    const description = escapeHtml(meme.description || 'AI-generated meme from MemeForge - Rate and earn USDC!');
     const ogImageUrl = `${API_BASE}/api/og/${id}`;
     const canonicalUrl = `${SITE_URL}/meme/${id}`;
     const imageUrl = escapeHtml(meme.imageUrl || '');
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": meme.title || 'AI MemeForge Meme',
-      "description": meme.description || 'AI-generated meme from the daily crypto meme democracy on Solana',
+      "description": meme.description || 'AI-generated meme from the community-curated AI meme platform on Solana',
       "image": meme.imageUrl,
       "thumbnailUrl": ogImageUrl,
       "url": canonicalUrl,
