@@ -81,7 +81,7 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
         const data = await res.json();
         if (data.success && data.memes) {
           // Only show daily #1 winners
-          const winners = data.memes.filter(m => m.isWinner).slice(0, 8);
+          const winners = data.memes.filter(m => m.isWinner).slice(0, 4);
           setFeaturedMemes(winners);
         }
       } catch (err) {
