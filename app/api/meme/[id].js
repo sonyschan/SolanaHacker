@@ -158,7 +158,7 @@ export default async function handler(req, res) {
   <meta property="og:image" content="${ogImageUrl}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="AI MemeForge - AI Meme Democracy">
+  <meta property="og:site_name" content="AI MemeForge — Meme as a Service">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">

@@ -141,7 +141,7 @@
     "api": "API"
   },
   "dashboard": {
-    "subtitle": "AI 迷因民主平台",
+    "subtitle": "Meme 即服務 | 創作即收益",
     "findMeOnX": "在 X 上找到我!",
     "tabs": {
       "forge": "鍛造",
@@ -509,7 +509,12 @@
       "baseTickets": "基礎（每次投票）",
       "streakBonus": "連續加成",
       "tokenBonus": "$Memeya 加成",
-      "maxPerVote": "單次最高"
+      "maxPerVote": "單次最高",
+      "oddsTitle": "中獎機率如何計算",
+      "oddsDesc": "每日抽獎使用加權隨機抽選。你持有的每張票券算作一次抽選機會。票券越多，中獎機率越高。",
+      "oddsExample": "範例：如果 Alice 有 5 張票券、Bob 有 3 張、Carol 有 12 張，總獎池為 20 張票券。Alice 中獎機率為 25% (5/20)，Bob 為 15% (3/20)，Carol 為 60% (12/20)。系統從 0 到 19 隨機選一個數字，依序走過每位參與者的票券範圍，直到命中贏家。",
+      "oddsFormula": "你的機率 = 你的票券數 / 抽獎池總票券數",
+      "oddsTip": "小技巧：累積多天的票券，在看到值得收藏的迷因時再參加抽獎。票券越多 = 參加時勝率越高。"
     },
     "referral": {
       "title": "邀請朋友計畫",

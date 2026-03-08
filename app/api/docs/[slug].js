@@ -266,7 +266,7 @@ function sharedHead(title, description, canonicalUrl, schemaJson) {
   <meta property="og:title" content="${escapeHtml(title)} | AI MemeForge">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${SITE_URL}/images/logo-192.png">
-  <meta property="og:site_name" content="AI MemeForge - AI Meme Democracy">
+  <meta property="og:site_name" content="AI MemeForge — Meme as a Service">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">

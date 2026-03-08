@@ -141,7 +141,7 @@
     "api": "API"
   },
   "dashboard": {
-    "subtitle": "AI 梗图民主平台",
+    "subtitle": "Meme 即服务 | 创作即收益",
     "findMeOnX": "在 X 上找到我!",
     "tabs": {
       "forge": "锻造",
@@ -509,7 +509,12 @@
       "baseTickets": "基础（每次投票）",
       "streakBonus": "连续加成",
       "tokenBonus": "$Memeya 加成",
-      "maxPerVote": "单次最高"
+      "maxPerVote": "单次最高",
+      "oddsTitle": "中奖概率如何计算",
+      "oddsDesc": "每日抽奖使用加权随机抽选。你持有的每张票券算作一次抽选机会。票券越多，中奖概率越高。",
+      "oddsExample": "示例：如果 Alice 有 5 张票券、Bob 有 3 张、Carol 有 12 张，总奖池为 20 张票券。Alice 中奖概率为 25% (5/20)，Bob 为 15% (3/20)，Carol 为 60% (12/20)。系统从 0 到 19 随机选一个数字，依序走过每位参与者的票券范围，直到命中赢家。",
+      "oddsFormula": "你的概率 = 你的票券数 / 抽奖池总票券数",
+      "oddsTip": "小技巧：累积多天的票券，在看到值得收藏的梗图时再参加抽奖。票券越多 = 参加时胜率越高。"
     },
     "referral": {
       "title": "邀请朋友计划",

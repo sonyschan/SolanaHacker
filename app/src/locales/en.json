@@ -141,7 +141,7 @@
     "api": "API"
   },
   "dashboard": {
-    "subtitle": "AI Meme Democracy Platform",
+    "subtitle": "Meme as a Service | Create and Earn",
     "findMeOnX": "Find me on X!",
     "tabs": {
       "forge": "Forge",
@@ -509,7 +509,12 @@
       "baseTickets": "Base (per vote)",
       "streakBonus": "Streak Bonus",
       "tokenBonus": "$Memeya Bonus",
-      "maxPerVote": "Max per Vote"
+      "maxPerVote": "Max per Vote",
+      "oddsTitle": "How Winning Odds Work",
+      "oddsDesc": "The daily lottery uses a weighted random draw. Each ticket you hold counts as one entry. The more tickets you have, the higher your chance of winning.",
+      "oddsExample": "Example: If Alice has 5 tickets, Bob has 3, and Carol has 12, the total pool is 20 tickets. Alice has a 25% chance (5/20), Bob 15% (3/20), and Carol 60% (12/20). The system picks a random number from 0 to 19 and walks through each participant's ticket range until it lands on a winner.",
+      "oddsFormula": "Your odds = Your tickets / Total tickets in the draw",
+      "oddsTip": "Tip: Stack your tickets over multiple days and enter the draw only when you see a meme worth owning. More tickets = better odds when you choose to enter."
     },
     "referral": {
       "title": "Invite Friends Program",
