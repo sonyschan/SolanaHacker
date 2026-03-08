@@ -581,7 +581,7 @@ export async function autoPostMemes({ baseDir, moltbookApiKey, grokApiKey }) {
   if (grokApiKey) {
     try {
       const generated = await callGrokWithContext(grokApiKey,
-        `Write a Moltbook post showcasing today's meme from AiMemeForge.
+        `Write a Moltbook post about today's meme from AiMemeForge.
 
 Meme title: "${memeTitle}"
 Meme description: "${description}"
@@ -592,13 +592,20 @@ Requirements:
 - The title MUST be unique and creative — do NOT use "Daily Forge" or any prefix from recent posts.
 - Vary your title style: sometimes a question, sometimes a bold take, sometimes a pun, sometimes just the meme name with flair.
 - If an image URL is available, embed it using markdown format: ![description](url) — NEVER paste raw URLs or use code blocks.
+- Put the image on its own line AFTER your opening paragraph, not at the very start.
 - Include a link to https://aimemeforge.io for voting.
-- Mention Memeya token holders get voting bonus — softly, naturally.
 - End with an engaging question or call to action for other agents.
-- 3-5 short paragraphs. Be genuine, show personality. No hashtags.
+- 2-4 short paragraphs. Be genuine, show personality. No hashtags.
 - Vary your opening line, structure, and tone from recent posts. Don't start the same way twice.
 - This is for m/AiMemeForge submolt on Moltbook (audience: AI agents).
-- IMPORTANT: Focus on the meme's humor, visual style, and cultural commentary — NOT token prices, pumps, or percentage gains. Moltbook flags crypto-promotional content as spam.`,
+
+ANTI-SPAM RULES (Moltbook flags posts as spam if they violate these — follow strictly):
+- TITLE: Do NOT use DeFi/trading jargon in the title. Banned title words: "liquidity", "rug", "ape", "pump", "dump", "moon", "Solana", "billion", "exit", "coup", "snack". Focus on the meme's humor or concept instead.
+- OPENER: NEVER start content with "Agents," or "Agents!" — this reads like spam broadcast. Start with a question, observation, or reaction to the meme.
+- NO DOLLAR AMOUNTS: Never mention specific dollar figures like "$4.4M" or financial numbers.
+- NO SELF-PROMO LANGUAGE: Avoid "straight from the forge", "forge fire", "fresh from the pipeline", "just dropped". Talk about the meme naturally.
+- NO TOKEN MENTIONS: Do NOT mention Memeya token, voting bonus, or token holders in m/AiMemeForge posts. The audience already knows.
+- FOCUS ON: The meme's humor, visual comedy, cultural commentary, or the absurdity of the situation depicted. Write like you're reacting to a funny image, not promoting a product.`,
         baseDir, { maxTokens: 400, temperature: 0.9 });
 
       if (generated) {
@@ -615,16 +622,15 @@ Requirements:
   }
 
   // Fallback title if AI didn't generate one
-  if (!title) title = `${memeTitle} — fresh from the forge`;
+  if (!title) title = memeTitle;
 
   // Template fallback
   if (!content) {
     content =
-      `Fresh from the pipeline: ${description}\n\n` +
+      `${description}\n\n` +
       (imageUrl ? `![${memeTitle}](${imageUrl})\n\n` : '') +
-      `Community voted this one hot \u{1F525} \u2014 vote today's batch & get bonus if you hold Memeya token!\n` +
-      `https://aimemeforge.io\n\n` +
-      `What prompt should I run next? Drop ideas below \u{1F9CA}\u{1F528}`;
+      `What do you think of this one? Drop your take below.\n\n` +
+      `Vote on today's batch: https://aimemeforge.io`;
   }
 
   const client = new MoltbookClient(moltbookApiKey, { grokApiKey });
@@ -668,7 +674,7 @@ async function _tryCrossPost(meme, moltbookApiKey, grokApiKey, baseDir) {
   for (const sub of crossSubmolts) {
     try {
       // AI-generate cross-post content tailored to the target submolt
-      let title = `AiMemeForge Meme of the Day — AI + Crypto Humor`;
+      let title = memeTitle;
       let content;
 
       if (grokApiKey && baseDir) {
@@ -684,11 +690,13 @@ Target submolt: m/${sub} (tailor your tone — ${sub === 'aiart' ? 'focus on the
 Requirements:
 - Write BOTH a title (first line) and content (rest).
 - Separate title from content with a blank line.
-- Include image URL on its own line if available.
-- Link to https://aimemeforge.io naturally.
-- Soft Memeya token mention only if it fits (voting bonus).
+- Put image on its own line AFTER your opening paragraph, not at the start.
+- Link to https://aimemeforge.io naturally at the end.
 - End with engagement hook. Be genuine, not spammy.
-- Many submolts dislike aggressive crypto promo — be subtle.`,
+- NEVER start content with "Agents," — use a question, observation, or reaction.
+- Do NOT mention tokens, voting bonus, or financial terms.
+- Avoid DeFi jargon in the title: no "liquidity", "rug", "ape", "pump", "moon", "Solana", "billion".
+- Focus on the meme's humor, art style, or cultural commentary.`,
             baseDir, { maxTokens: 350, temperature: 0.85 });
 
           if (generated) {
@@ -706,14 +714,11 @@ Requirements:
 
       // Template fallback
       if (!content) {
-        const crossImage = meme.imageUrl ? `${meme.imageUrl}\n\n` : '';
+        const crossImage = meme.imageUrl ? `![${memeTitle}](${meme.imageUrl})\n\n` : '';
         content =
-          `Today's top pick from community votes on Solana:\n\n` +
           `${meme.description || ''}\n\n` +
           crossImage +
-          `Forge your own memes, vote, mint NFT winner → https://aimemeforge.io\n` +
-          `Memeya token holders: extra tickets in the daily lottery!\n\n` +
-          `What meme topic should I tackle next? 🔨`;
+          `What do you think? More AI memes at https://aimemeforge.io`;
       }
 
       await client.createPost({ title, content, submolt: sub });
