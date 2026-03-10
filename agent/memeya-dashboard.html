@@ -857,6 +857,61 @@ function authHeaders(extra = {}) {
     </div>
   </div>
 
+  <!-- Community Meme Generator -->
+  <div class="section" id="s-lab-community">
+    <div class="section-header" onclick="toggle('s-lab-community')">
+      <span class="icon">&#127752;</span>
+      <h2>Community Meme Generator</h2>
+      <span class="badge" style="background:rgba(63,185,80,0.2);color:var(--green);">New</span>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="section-body">
+
+      <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:12px;">
+        Generate memes for X community announcements &amp; feature updates. Enter your X account URL and describe the post — LLM writes the copy, Gemini creates the image.
+      </div>
+
+      <!-- Inputs -->
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">X Account URL</label>
+        <input id="cm-account-url" value="https://x.com/AiMemeForgeIO" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Post Description <span style="color:var(--red);">*</span></label>
+        <textarea id="cm-description" rows="3" placeholder="e.g. We just launched the new Lottery system — users earn tickets by voting on daily memes, and winners get USDC rewards!" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:0.88em;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">
+        <div>
+          <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Tone</label>
+          <select id="cm-tone" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-family:inherit;font-size:0.88em;">
+            <option value="hype">Hype 🔥</option>
+            <option value="wholesome">Wholesome 💚</option>
+            <option value="funny">Funny 😂</option>
+            <option value="flex">Flex 💪</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Style</label>
+          <select id="cm-style" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-family:inherit;font-size:0.88em;">
+            <option value="meme">Classic Meme</option>
+            <option value="announcement">Announcement Card</option>
+            <option value="comic">Comic Strip</option>
+            <option value="infographic">Infographic</option>
+          </select>
+        </div>
+      </div>
+      <button class="analyze-btn" id="cm-gen-btn" onclick="cmGenerate()" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.12);">Generate Community Meme</button>
+      <span id="cm-gen-status" style="margin-left:8px;font-size:0.85em;"></span>
+
+      <!-- Result -->
+      <div id="cm-result" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <h3 style="font-size:0.9em;color:var(--green);margin-bottom:10px;">Result</h3>
+        <div id="cm-result-content"></div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- ─── Footer ─── -->
@@ -1759,6 +1814,89 @@ async function labGenerate() {
     status.style.color = 'var(--red)';
   }
   btn.disabled = false; btn.textContent = 'Generate Collab Meme \u2014 $0.15';
+}
+
+// ─── Lab: Community Meme Generator ──────────────────────────
+
+async function cmGenerate() {
+  const description = document.getElementById('cm-description').value.trim();
+  if (!description) {
+    document.getElementById('cm-gen-status').textContent = 'Description is required';
+    document.getElementById('cm-gen-status').style.color = 'var(--red)';
+    return;
+  }
+
+  const accountUrl = document.getElementById('cm-account-url').value.trim();
+  const tone = document.getElementById('cm-tone').value;
+  const style = document.getElementById('cm-style').value;
+
+  const btn = document.getElementById('cm-gen-btn');
+  const status = document.getElementById('cm-gen-status');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  status.innerHTML = '<span class="spinner"></span>Generating community meme (1-2 min)...';
+  status.style.color = 'var(--text-dim)';
+  document.getElementById('cm-result').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/memeya/lab/generate-community-meme', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ accountUrl, description, tone, style }),
+      signal: AbortSignal.timeout(180000),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    let html = '';
+
+    // Meme image
+    if (data.imageUrl) {
+      html += `<div style="margin-bottom:12px;"><img src="${escHtml(data.imageUrl)}" style="max-width:100%;max-height:500px;border-radius:8px;border:1px solid var(--border);" /></div>`;
+    }
+
+    // Meme concept
+    if (data.concept) {
+      html += `<div style="font-weight:700;font-size:1.05em;color:var(--text);margin-bottom:8px;">${escHtml(data.concept.caption || '')}</div>`;
+      if (data.concept.visual) {
+        html += `<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:4px;"><strong>Visual:</strong> ${escHtml(data.concept.visual)}</div>`;
+      }
+    }
+
+    // Suggested tweet
+    if (data.suggestedTweet) {
+      html += `<div style="margin-top:12px;margin-bottom:12px;">
+        <label style="font-size:0.82em;color:var(--text-dim);display:block;margin-bottom:4px;">Suggested Tweet</label>
+        <div class="pipe-final-tweet" style="cursor:pointer;" onclick="navigator.clipboard.writeText(this.innerText).then(()=>this.style.borderColor='var(--green)');">${escHtml(data.suggestedTweet)}</div>
+        <div style="font-size:0.78em;color:var(--text-dim);margin-top:4px;">${data.suggestedTweet.length}/280 chars · Click to copy</div>
+      </div>`;
+    }
+
+    // Download image link
+    if (data.imageUrl) {
+      html += `<div style="margin-top:8px;"><a href="${escHtml(data.imageUrl)}" target="_blank" download style="color:var(--cyan);font-size:0.85em;">&#8595; Download image</a></div>`;
+    }
+
+    // Metadata
+    html += `<div style="margin-top:12px;">
+      <details>
+        <summary style="cursor:pointer;color:var(--cyan);font-size:0.85em;">Generation Details</summary>
+        <div style="font-size:0.82em;margin-top:8px;">`;
+    html += kv('Tone', escHtml(tone));
+    html += kv('Style', escHtml(style));
+    html += kv('Model', '<code>gemini-3-pro-image-preview</code>');
+    if (data.profile) html += kv('Account', `${escHtml(data.profile.name)} (${escHtml(data.profile.handle)})`);
+    html += `</div></details></div>`;
+
+    document.getElementById('cm-result-content').innerHTML = html;
+    document.getElementById('cm-result').style.display = 'block';
+
+    status.textContent = 'Done';
+    status.style.color = 'var(--green)';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = 'var(--red)';
+  }
+  btn.disabled = false; btn.textContent = 'Generate Community Meme';
 }
 
 // ─── Load all on page load ──────────────────────────────────
