@@ -232,27 +232,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Serve generated images (community memes, etc.)
-  if (req.method === 'GET' && req.url.startsWith('/generated/')) {
-    const filename = path.basename(req.url);
-    const filePath = path.join(__dirname, 'public', 'generated', filename);
-    try {
-      if (fs.existsSync(filePath)) {
-        const ext = path.extname(filename).toLowerCase();
-        const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
-        res.writeHead(200, { 'Content-Type': mimeMap[ext] || 'application/octet-stream', 'Cache-Control': 'public, max-age=86400' });
-        fs.createReadStream(filePath).pipe(res);
-      } else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not found');
-      }
-    } catch {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Error serving file');
-    }
-    return;
-  }
-
   // ─── Memeya API: Timer State ────────────────────────────────
   if (req.method === 'GET' && req.url === '/api/memeya/timers') {
     const timerPath = path.join(__dirname, '.timer-state.json');
@@ -1116,15 +1095,14 @@ Respond with ONLY JSON: {"tone": "...", "reasoning": "one sentence why"}`
           return;
         }
 
-        const xApiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
-        const geminiKey = process.env.GEMINI_API_KEY;
-        if (!geminiKey) {
-          jsonRes(res, { error: 'GEMINI_API_KEY not configured' }, 500);
+        const labKey = process.env.LAB_API_KEY;
+        if (!labKey) {
+          jsonRes(res, { error: 'LAB_API_KEY not configured' }, 500);
           return;
         }
 
-        // Step 1: Fetch X profile (optional, for context)
-        let profile = null;
+        // Fetch X profile for context (reuse existing fetch-profile logic)
+        let account = null;
         if (accountUrl) {
           const xMatch = accountUrl.match(/(?:x\.com|twitter\.com)\/(@?[\w]+)\/?$/i);
           if (xMatch) {
@@ -1139,7 +1117,7 @@ Respond with ONLY JSON: {"tone": "...", "reasoning": "one sentence why"}`
                 if (r.ok) {
                   const xData = await r.json();
                   if (xData.data) {
-                    profile = {
+                    account = {
                       name: xData.data.name,
                       handle: `@${xData.data.username}`,
                       avatarUrl: (xData.data.profile_image_url || '').replace('_normal', '_400x400'),
@@ -1147,159 +1125,32 @@ Respond with ONLY JSON: {"tone": "...", "reasoning": "one sentence why"}`
                     };
                   }
                 }
-              } catch { /* profile fetch is best-effort */ }
+              } catch { /* profile fetch best-effort */ }
             }
           }
         }
 
-        // Step 2: Generate meme concept via Grok
-        const toneGuide = {
-          hype: 'celebratory, LFG energy, exciting',
-          wholesome: 'warm, community-positive, feel-good',
-          funny: 'witty humor, clever wordplay, meme-worthy punchline',
-          flex: 'confident, showing off achievements, impressive',
-        };
-        const styleGuide = {
-          meme: 'classic internet meme format with bold text overlay, reaction image style',
-          announcement: 'polished announcement card with clean typography and brand colors',
-          comic: 'short comic strip panels with characters reacting to the news',
-          infographic: 'visual infographic highlighting key points with icons and stats',
-        };
+        // Proxy to backend generate-community endpoint
+        const r = await fetch(`${BACKEND_URL}/api/memes/generate-community`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': labKey },
+          body: JSON.stringify({ description, tone: tone || 'hype', style: style || 'meme', account }),
+          signal: AbortSignal.timeout(180000),
+        });
+        const data = await r.json();
 
-        let concept = { caption: description, visual: '' };
-        if (xApiKey) {
-          try {
-            const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${xApiKey}` },
-              body: JSON.stringify({
-                model: 'grok-3-mini',
-                messages: [{
-                  role: 'user',
-                  content: `You are a meme copywriter for crypto/web3 community posts on X (Twitter).
-${profile ? `Account: ${profile.name} (${profile.handle}) — ${profile.bio}` : ''}
-
-ANNOUNCEMENT: ${description}
-
-TONE: ${toneGuide[tone] || 'fun and engaging'}
-VISUAL STYLE: ${styleGuide[style] || 'classic meme'}
-
-Generate a meme concept for this announcement. The meme should be:
-- Positive and community-friendly
-- Witty with a clever twist or punchline
-- Suitable for X community posting
-- NOT cringy, NOT overly promotional
-- NEVER fabricate specific numbers, dollar amounts, or stats
-
-Respond with ONLY JSON:
-{
-  "caption": "The meme caption/text overlay (short, punchy, under 80 chars)",
-  "visual": "Detailed visual description for AI image generation (describe scene, characters, style, colors, mood — 2-3 sentences)",
-  "tweet": "Suggested tweet text to accompany the meme image (under 250 chars, include 1-2 relevant emojis, no hashtag spam)"
-}`
-                }],
-                max_tokens: 400,
-              }),
-              signal: AbortSignal.timeout(30000),
-            });
-            if (grokRes.ok) {
-              const grokData = await grokRes.json();
-              const text = grokData.choices?.[0]?.message?.content || '';
-              const jsonMatch = text.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                concept = { caption: parsed.caption || concept.caption, visual: parsed.visual || '', tweet: parsed.tweet || '' };
-              }
-            }
-          } catch (grokErr) {
-            console.warn('[Lab] Grok concept generation failed:', grokErr.message);
-          }
+        if (!data.success) {
+          jsonRes(res, { error: data.error || 'Generation failed' }, r.status);
+          return;
         }
 
-        // Step 3: Generate image via Gemini 3 Pro Image Preview
-        const imagePrompt = [
-          `Create a ${styleGuide[style] || 'meme'} image for a crypto community X post.`,
-          concept.visual ? `VISUAL: ${concept.visual}` : '',
-          concept.caption ? `TEXT OVERLAY: "${concept.caption}"` : '',
-          `STYLE: Vibrant, eye-catching, social-media-optimized. Professional but fun.`,
-          `The image should be high quality, suitable for posting on X/Twitter community.`,
-          profile ? `BRAND: ${profile.name}` : '',
-        ].filter(Boolean).join('\n');
-
-        let imageUrl = null;
-        try {
-          const { GoogleGenerativeAI } = await import('@google/generative-ai');
-          const genAI = new GoogleGenerativeAI(geminiKey);
-          const model = genAI.getGenerativeModel({
-            model: 'gemini-3-pro-image-preview',
-            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
-          });
-
-          // Include profile avatar as reference if available
-          const parts = [];
-          if (profile?.avatarUrl) {
-            try {
-              const avatarRes = await fetch(profile.avatarUrl, { signal: AbortSignal.timeout(10000) });
-              if (avatarRes.ok) {
-                const buf = Buffer.from(await avatarRes.arrayBuffer());
-                const ct = avatarRes.headers.get('content-type') || 'image/jpeg';
-                parts.push({ inlineData: { mimeType: ct.split(';')[0], data: buf.toString('base64') } });
-                parts.push({ text: `[Reference: ${profile.name} logo/avatar — incorporate this brand identity subtly]` });
-              }
-            } catch { /* avatar fetch best-effort */ }
-          }
-          parts.push({ text: imagePrompt });
-
-          console.log('[Lab] Generating community meme image via Gemini...');
-          const result = await model.generateContent(parts);
-          const candidates = result.response?.candidates;
-          const imagePart = candidates?.[0]?.content?.parts?.find(p => p.inlineData?.mimeType?.startsWith('image/'));
-
-          if (imagePart?.inlineData?.data) {
-            // Save to disk
-            const outputDir = path.join(BASE_DIR, 'agent', 'public', 'generated');
-            if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-            const filename = `community-meme-${Date.now()}.png`;
-            const outputPath = path.join(outputDir, filename);
-            fs.writeFileSync(outputPath, Buffer.from(imagePart.inlineData.data, 'base64'));
-            imageUrl = `/generated/${filename}`;
-            console.log(`[Lab] Community meme saved: ${outputPath}`);
-          } else {
-            console.warn('[Lab] Gemini returned no image');
-          }
-        } catch (imgErr) {
-          console.error('[Lab] Gemini image generation failed:', imgErr.message);
-        }
-
-        // Step 4: Generate suggested tweet if Grok didn't provide one
-        let suggestedTweet = concept.tweet || '';
-        if (!suggestedTweet && xApiKey) {
-          try {
-            const tweetRes = await fetch('https://api.x.ai/v1/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${xApiKey}` },
-              body: JSON.stringify({
-                model: 'grok-3-mini',
-                messages: [{
-                  role: 'user',
-                  content: `Write a short X/Twitter post (under 250 chars) for this community announcement:\n${description}\n\nTone: ${tone}. Include 1-2 emojis. No hashtag spam. Be genuine and engaging. Respond with ONLY the tweet text.`
-                }],
-                max_tokens: 100,
-              }),
-              signal: AbortSignal.timeout(15000),
-            });
-            if (tweetRes.ok) {
-              const td = await tweetRes.json();
-              suggestedTweet = (td.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
-            }
-          } catch { /* tweet gen best-effort */ }
-        }
-
+        // Reshape response for frontend
         jsonRes(res, {
-          imageUrl,
-          concept,
-          suggestedTweet,
-          profile,
+          imageUrl: data.meme?.imageUrl || null,
+          concept: data.meme?.metadata?.memeIdea || null,
+          suggestedTweet: data.suggestedTweet || '',
+          profile: account,
+          meme: data.meme,
         });
       } catch (err) {
         jsonRes(res, { error: err.message }, 500);

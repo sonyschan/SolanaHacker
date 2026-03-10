@@ -905,17 +905,14 @@ async function generateCollabMeme({ partner, user, collabType, headline, tone })
   const artStyle = memeIdeaService.selectArtStyle(recentThemes);
   console.log(`🤝 Collab: art style="${artStyle.name}"`);
 
-  // 4. Select strategy + narrative
-  const strategy = memeStrategyService.selectStrategy({
-    newsEvent: newsItem, template: null, recentMemes: recentThemes, category: null,
-  });
-  const narrative = memeNarrativeService.selectNarrative({
-    newsEvent: newsItem, template: null, recentMemes: recentThemes, category: null,
-  });
+  // 4. Skip strategy + narrative for collab memes — those layers are designed for
+  //    crypto news loss-humor (self_roast, future_regret, betrayal, etc.) and inject
+  //    negative punchline patterns that fight against partnership celebration tone.
+  //    The collab prompt has its own tone directives and collab type context instead.
 
   // 5. Generate collab meme idea
   const collabContext = { partner, user, collabType, tone };
-  let memeIdea = await memeIdeaService.generateCollabMemeIdea(newsItem, collabContext, recentThemes, strategy, narrative);
+  let memeIdea = await memeIdeaService.generateCollabMemeIdea(newsItem, collabContext, recentThemes);
 
   // 6. Skip quality evaluator — criteria (template_familiarity, crypto_nativeness)
   //    are designed for crypto news memes and would unfairly penalize collab memes.
@@ -937,7 +934,7 @@ async function generateCollabMeme({ partner, user, collabType, headline, tone })
       memeIdea = await memeIdeaService.retryOriginalMemeIdea(
         memeIdea,
         [`The meme MUST clearly reference both projects: ${missing.join(' and ')}. Include their names or unmistakable visual identity in the scene.`],
-        strategy, narrative
+        null, null
       );
     } catch (retryErr) {
       console.error('🤝 Collab: dual-ref retry error:', retryErr.message);
@@ -948,9 +945,31 @@ async function generateCollabMeme({ partner, user, collabType, headline, tone })
   // 7. Build image prompt (using original mode since collab uses free composition)
   const imagePrompt = memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle);
 
-  // 8. Generate image
-  const generator = AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)];
-  const imageData = await generator.service.generateMemeImage(imagePrompt);
+  // 8. Fetch partner/user logos and generate image with Gemini (supports image references)
+  const referenceImages = [];
+  for (const project of [{ ...partner, label: partner.name }, { ...user, label: user.name }]) {
+    if (!project.avatarUrl) continue;
+    try {
+      const r = await fetch(project.avatarUrl, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        const mime = r.headers.get('content-type') || 'image/png';
+        referenceImages.push({ data: buf.toString('base64'), mimeType: mime, label: project.label });
+        console.log(`🤝 Collab: fetched logo for ${project.label} (${(buf.length / 1024).toFixed(0)}KB)`);
+      }
+    } catch (e) {
+      console.warn(`🤝 Collab: failed to fetch logo for ${project.label}: ${e.message}`);
+    }
+  }
+
+  // Use Gemini for collab (supports multimodal reference images); fall back to random if no refs
+  let imageData;
+  if (referenceImages.length > 0) {
+    imageData = await geminiService.generateMemeImageWithReferences(imagePrompt, referenceImages);
+  } else {
+    const generator = AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)];
+    imageData = await generator.service.generateMemeImage(imagePrompt);
+  }
 
   // 9. Generate title, description, tags
   const title = await geminiService.generateMemeTitle(memeIdea);
@@ -1005,29 +1024,26 @@ Respond with ONLY the tweet text, no quotes or explanation.`;
     metadata: {
       source: 'lab',
       originalNews: headline,
-      aiModel: generator.modelName,
+      aiModel: imageData.referenceCount ? 'gemini-3-pro-image-preview+refs' : 'gemini-3-pro-image-preview',
       styleMode: artStyle.id,
       artStyleId: artStyle.id,
       artStyleName: artStyle.name,
       generationMode: 'original',
-      strategyId: strategy.strategy_id,
-      strategyName: strategy.strategy_name,
-      narrativeId: narrative.narrative_id,
-      narrativeName: narrative.narrative_name,
-      narrativePhrase: narrative.selectedPhrase,
       collabType,
       collabTone: tone,
       collabPartner: { name: partner.name, handle: partner.handle },
       collabUser: { name: user.name, handle: user.handle },
-      memeIdea: {
-        caption: memeIdea.caption,
-        caption_slots: memeIdea.caption_slots,
-        visual_description: memeIdea.visual_description,
-        emotion: memeIdea.emotion,
-        twist: memeIdea.twist,
-        event_angle: memeIdea.event_angle,
-        collab_reference: memeIdea.collab_reference,
-      },
+      memeIdea: Object.fromEntries(
+        Object.entries({
+          caption: memeIdea.caption,
+          caption_slots: memeIdea.caption_slots,
+          visual_description: memeIdea.visual_description,
+          emotion: memeIdea.emotion,
+          twist: memeIdea.twist,
+          event_angle: memeIdea.event_angle,
+          collab_reference: memeIdea.collab_reference,
+        }).filter(([, v]) => v !== undefined)
+      ),
       qualityScore: evaluation.score || 0,
       qualityPass: evaluation.pass !== false,
       qualityScores: evaluation.scores || {},
@@ -1044,11 +1060,172 @@ Respond with ONLY the tweet text, no quotes or explanation.`;
   return { meme: memeDoc, suggestedTweet };
 }
 
+/**
+ * Generate a community meme for X announcements & feature updates.
+ * Simpler pipeline than collab: LLM concept → Gemini image → tweet.
+ */
+async function generateCommunityMeme({ description, tone, style, account }) {
+  console.log(`🌈 Community: generating meme — "${description.slice(0, 60)}..." (${tone}/${style})`);
+
+  const toneGuide = {
+    hype: 'celebratory, LFG energy, exciting and bold',
+    wholesome: 'warm, community-positive, feel-good',
+    funny: 'witty humor, clever wordplay, meme-worthy punchline',
+    flex: 'confident, showing off achievements',
+  };
+  const styleGuide = {
+    meme: 'classic internet meme with bold text overlay, reaction image format',
+    announcement: 'polished announcement card with clean typography',
+    comic: 'short comic strip panels with characters reacting',
+    infographic: 'visual infographic with icons and key points',
+  };
+
+  // 1. Generate meme concept via Gemini text model
+  let memeIdea;
+  try {
+    const conceptPrompt = `You are a meme concept designer for a crypto/web3 community on X (Twitter).
+${account ? `Account: ${account.name} (${account.handle}) — ${account.bio || ''}` : ''}
+
+ANNOUNCEMENT: ${description}
+TONE: ${toneGuide[tone] || 'fun and engaging'}
+VISUAL STYLE: ${styleGuide[style] || 'classic meme'}
+
+Create a meme concept. Requirements:
+- Positive and community-friendly
+- Witty with a clever twist
+- NOT cringy, NOT overly promotional
+- NEVER fabricate specific numbers, dollar amounts, or stats
+
+Respond with ONLY valid JSON:
+{
+  "caption": "Short meme text overlay (under 80 chars, punchy)",
+  "visual_description": "Detailed scene description for AI image generation (characters, style, colors, mood, composition — 3-4 sentences)",
+  "emotion": "Primary emotion (e.g. excitement, pride, humor)",
+  "twist": "What makes this meme clever or unexpected"
+}`;
+    const conceptResult = await geminiService.textModel.generateContent(conceptPrompt);
+    const conceptText = (await conceptResult.response).text();
+    const jsonMatch = conceptText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      memeIdea = JSON.parse(jsonMatch[0]);
+    }
+  } catch (err) {
+    console.warn('🌈 Community: concept generation failed:', err.message);
+  }
+  if (!memeIdea) {
+    memeIdea = { caption: description.slice(0, 80), visual_description: description, emotion: tone, twist: '' };
+  }
+
+  // 2. Select art style
+  const recentThemes = await getRecentMemeThemes();
+  const artStyle = memeIdeaService.selectArtStyle(recentThemes);
+
+  // 3. Build image prompt
+  const imagePrompt = [
+    `Create a ${styleGuide[style] || 'meme'} image for a crypto community X post.`,
+    `VISUAL: ${memeIdea.visual_description}`,
+    memeIdea.caption ? `TEXT OVERLAY: "${memeIdea.caption}"` : '',
+    `ART STYLE: ${artStyle.name}`,
+    `The image should be vibrant, eye-catching, social-media-optimized. Professional but fun.`,
+    account ? `BRAND: ${account.name}` : '',
+  ].filter(Boolean).join('\n');
+
+  // 4. Generate image (with account avatar as reference if available)
+  let imageData;
+  const referenceImages = [];
+  if (account?.avatarUrl) {
+    try {
+      const r = await fetch(account.avatarUrl, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        const mime = r.headers.get('content-type') || 'image/png';
+        referenceImages.push({ data: buf.toString('base64'), mimeType: mime, label: account.name });
+      }
+    } catch { /* best-effort */ }
+  }
+
+  if (referenceImages.length > 0) {
+    imageData = await geminiService.generateMemeImageWithReferences(imagePrompt, referenceImages);
+  } else {
+    imageData = await geminiService.generateMemeImage(imagePrompt);
+  }
+
+  // 5. Generate title, description, tags
+  const title = await geminiService.generateMemeTitle(memeIdea);
+  const memeDescription = await geminiService.generateMemeDescription(memeIdea, description);
+  const tags = await geminiService.generateMemeTags(memeIdea, description);
+
+  // 6. Generate suggested tweet
+  let suggestedTweet = '';
+  try {
+    const tweetPrompt = `Write a single tweet (max 250 chars) for this community announcement.
+
+ANNOUNCEMENT: ${description}
+TONE: ${tone}
+${account?.handle ? `ACCOUNT: ${account.handle}` : ''}
+
+Rules:
+- Match the tone: ${toneGuide[tone] || 'engaging'}
+- Use 1-2 relevant emojis
+- NO hashtag spam (max 1 hashtag if natural)
+- Be genuine and community-friendly
+- Keep under 250 chars to leave room for image
+
+Respond with ONLY the tweet text.`;
+    const tweetResult = await geminiService.textModel.generateContent(tweetPrompt);
+    suggestedTweet = (await tweetResult.response).text().trim().replace(/^["']|["']$/g, '');
+  } catch (tweetErr) {
+    console.warn('🌈 Community: tweet generation failed:', tweetErr.message);
+    suggestedTweet = description.slice(0, 240);
+  }
+
+  // 7. Build meme document
+  const memeDoc = {
+    id: `community_${Date.now()}_${uuidv4().slice(0, 8)}`,
+    title,
+    description: memeDescription,
+    prompt: memeIdea.caption || imagePrompt,
+    imageUrl: imageData.imageUrl || imageData.fallbackUrl,
+    newsSource: description,
+    generatedAt: new Date().toISOString(),
+    type: 'community',
+    status: 'active',
+    style: artStyle.id,
+    tags,
+    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
+    metadata: {
+      source: 'lab',
+      aiModel: imageData.referenceCount ? 'gemini-3-pro-image-preview+refs' : 'gemini-3-pro-image-preview',
+      artStyleId: artStyle.id,
+      artStyleName: artStyle.name,
+      communityTone: tone,
+      communityStyle: style,
+      account: account ? { name: account.name, handle: account.handle } : null,
+      memeIdea: {
+        caption: memeIdea.caption,
+        visual_description: memeIdea.visual_description,
+        emotion: memeIdea.emotion,
+        twist: memeIdea.twist,
+      },
+      imageGenerated: imageData.success,
+      fileSize: imageData.fileSize || 0,
+    },
+    rarity: 'unknown'
+  };
+
+  // 8. Save to Firestore
+  await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
+  console.log(`🌈 Community: saved meme ${memeDoc.id}`);
+
+  return { meme: memeDoc, suggestedTweet };
+}
+
 module.exports = {
   generateMeme,
   generateDailyMemes,
   generateSingleMeme,
   generateCollabMeme,
+  generateCommunityMeme,
   getMemes,
   getTodaysMemes,
   getMemeById,

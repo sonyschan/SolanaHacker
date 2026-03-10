@@ -9,6 +9,7 @@ const {
   testConnections,
   generateSingleMeme,
   generateCollabMeme,
+  generateCommunityMeme,
   regenerateMemeImage
 } = require("../controllers/memeController");
 const memeIdeaService = require("../services/memeIdeaService");
@@ -313,6 +314,40 @@ router.post("/generate-collab", requireLabKeyOrPayment, collabLimiter, async (re
   } catch (error) {
     console.error("Generate collab meme error:", error);
     res.status(500).json({ success: false, error: "Failed to generate collab meme", message: error.message });
+  }
+});
+
+/**
+ * POST /api/memes/generate-community - Generate a community meme for X announcements
+ */
+const communityLimiter = rateLimitByWallet(5, 60 * 60 * 1000); // 5 per hour
+router.post("/generate-community", requireLabKeyOrPayment, communityLimiter, async (req, res) => {
+  try {
+    const { description, tone, style, account } = req.body;
+    if (!description) {
+      return res.status(400).json({ success: false, error: "description is required" });
+    }
+    if (description.length > 500) {
+      return res.status(400).json({ success: false, error: "description must be <= 500 chars" });
+    }
+    const validTones = ['hype', 'wholesome', 'funny', 'flex'];
+    const validStyles = ['meme', 'announcement', 'comic', 'infographic'];
+    if (tone && !validTones.includes(tone)) {
+      return res.status(400).json({ success: false, error: `tone must be one of: ${validTones.join(', ')}` });
+    }
+    if (style && !validStyles.includes(style)) {
+      return res.status(400).json({ success: false, error: `style must be one of: ${validStyles.join(', ')}` });
+    }
+    const result = await generateCommunityMeme({
+      description,
+      tone: tone || 'hype',
+      style: style || 'meme',
+      account: account || null,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error("Generate community meme error:", error);
+    res.status(500).json({ success: false, error: "Failed to generate community meme", message: error.message });
   }
 });
 
