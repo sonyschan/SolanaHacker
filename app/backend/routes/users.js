@@ -36,7 +36,11 @@ router.get('/:wallet', async (req, res) => {
     }
     
     const userProfile = await getUserProfile(wallet);
-    
+
+    // Ticket/streak data lives in a wallet-keyed doc (written by awardVotingTickets)
+    // while the profile may live in a UUID-keyed doc — merge them
+    const ticketDoc = await dbUtils.getDocument(collections.USERS, wallet);
+
     if (!userProfile) {
       // Create default profile if user doesn't exist
       return res.json({
@@ -45,9 +49,11 @@ router.get('/:wallet', async (req, res) => {
           wallet,
           displayName: `User_${wallet.slice(0, 6)}`,
           joinDate: new Date().toISOString(),
-          weeklyTickets: 0,
-          streakDays: 0,
-          totalVotes: 0,
+          weeklyTickets: ticketDoc?.weeklyTickets || 0,
+          streakDays: ticketDoc?.streakDays || 0,
+          lotteryOptIn: ticketDoc?.lotteryOptIn !== false,
+          nftWins: ticketDoc?.nftWins || [],
+          totalVotes: ticketDoc?.totalVotes || 0,
           winCount: 0,
           level: 'Rookie',
           isNewUser: true,
@@ -61,6 +67,11 @@ router.get('/:wallet', async (req, res) => {
       success: true,
       user: {
         ...userProfile,
+        // Overlay ticket/streak from wallet-keyed doc if profile doc lacks them
+        weeklyTickets: userProfile.weeklyTickets ?? ticketDoc?.weeklyTickets ?? 0,
+        streakDays: userProfile.streakDays ?? ticketDoc?.streakDays ?? 0,
+        lotteryOptIn: userProfile.lotteryOptIn ?? (ticketDoc?.lotteryOptIn !== false),
+        nftWins: userProfile.nftWins ?? ticketDoc?.nftWins ?? [],
         referredBy: userProfile.referredBy || null,
         referralCount: userProfile.referralCount || 0,
         referralId: userProfile.referralId || null
