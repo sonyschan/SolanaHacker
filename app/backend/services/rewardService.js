@@ -2,10 +2,10 @@
  * Reward Distribution Service
  *
  * Distributes USDC rewards after daily lottery:
- * - $3 to meme winner
- * - $2 to lucky draw voter 1
- * - $1 to lucky draw voter 2
- * - Skip if balance < $6; alert TG dev group if < $10
+ * - 10% of wallet USDC to meme winner
+ * - 7% to lucky draw voter 1
+ * - 4% to lucky draw voter 2
+ * - Skip if balance < $1; alert TG dev group if < $10
  *
  * All distributions are idempotent (keyed by drawId) and recorded in Firestore.
  */
@@ -15,11 +15,11 @@ const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const crossmintService = require('./crossmintService');
 const { getMemeyaBalance } = require('./solanaService');
 
-const WINNER_REWARD = 3;      // Fixed $3 to meme winner
-const VOTER_1_REWARD = 2;     // Fixed $2 to lucky draw voter 1
-const VOTER_2_REWARD = 1;     // Fixed $1 to lucky draw voter 2
-const TOTAL_PAYOUT = WINNER_REWARD + VOTER_1_REWARD + VOTER_2_REWARD; // $6
-const MIN_BALANCE = TOTAL_PAYOUT;    // Skip distribution below this
+const WINNER_REWARD_PCT = 0.10;    // 10% of wallet USDC to meme winner
+const VOTER_1_REWARD_PCT = 0.07;   // 7% to lucky draw voter 1
+const VOTER_2_REWARD_PCT = 0.04;   // 4% to lucky draw voter 2
+const TOTAL_PAYOUT_PCT = 0.21;   // 10% + 7% + 4%
+const MIN_BALANCE = 1;             // Skip distribution if wallet < $1
 const LOW_BALANCE_ALERT = 10; // TG alert threshold
 
 // Referral program constants (single-level only)
@@ -131,9 +131,12 @@ async function distributeRewards(drawResult, options = {}) {
     );
   }
 
-  const winnerAmount = WINNER_REWARD;
+  const winnerAmount = +(usdcBalance * WINNER_REWARD_PCT).toFixed(2);
+  const voterAmounts = [
+    +(usdcBalance * VOTER_1_REWARD_PCT).toFixed(2),
+    +(usdcBalance * VOTER_2_REWARD_PCT).toFixed(2)
+  ];
   let remaining = usdcBalance - (winnerQualified ? winnerAmount : 0);
-  const voterAmounts = [VOTER_1_REWARD, VOTER_2_REWARD];
 
   // 6. Select 2 random voters
   const randomVoters = await selectRandomVoters(drawId, winnerWallet, 2);
@@ -151,6 +154,7 @@ async function distributeRewards(drawResult, options = {}) {
       simTransfers.push({ type: 'voter', wallet: randomVoters[i], amount: voterAmounts[i], txSignature: 'SIM' });
     }
 
+    const simTotal = (winnerQualified ? winnerAmount : 0) + voterAmounts[0] + voterAmounts[1];
     await recordDistribution(drawId, {
       status: 'simulated',
       balance: usdcBalance,
@@ -162,10 +166,14 @@ async function distributeRewards(drawResult, options = {}) {
       errors: [],
       randomVoters,
       calculatedAmounts: {
+        walletBalance: usdcBalance,
+        winnerPct: WINNER_REWARD_PCT,
+        voter1Pct: VOTER_1_REWARD_PCT,
+        voter2Pct: VOTER_2_REWARD_PCT,
         winner: winnerQualified ? winnerAmount : 0,
-        voter1: VOTER_1_REWARD,
-        voter2: VOTER_2_REWARD,
-        total: (winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD
+        voter1: voterAmounts[0],
+        voter2: voterAmounts[1],
+        total: simTotal
       }
     });
 
@@ -176,9 +184,10 @@ async function distributeRewards(drawResult, options = {}) {
     await sendTgAlert(
       `🧪 *Reward Simulation* (draw ${drawId})\n` +
       `Balance: $${usdcBalance.toFixed(2)} USDC\n` +
+      `Rates: ${(WINNER_REWARD_PCT * 100)}% / ${(VOTER_1_REWARD_PCT * 100)}% / ${(VOTER_2_REWARD_PCT * 100)}%\n` +
       `Winner: \`${winnerWallet.slice(0, 4)}…${winnerWallet.slice(-4)}\` → $${(winnerQualified ? winnerAmount : 0).toFixed(2)}${!winnerQualified ? ' (SKIPPED — <10K $Memeya)' : ''}\n` +
       voterLines +
-      `\nTotal: $${((winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD).toFixed(2)}\n` +
+      `\nTotal: $${simTotal.toFixed(2)}\n` +
       `_No actual transfers made — simulation mode_`
     );
 
@@ -207,7 +216,7 @@ async function distributeRewards(drawResult, options = {}) {
       errors.push({ type: 'winner', wallet: winnerWallet, error: err.message });
     }
   } else {
-    console.log(`⏭️ Winner $3 skipped — ${winnerWallet} holds < ${MEMEYA_THRESHOLD} $Memeya`);
+    console.log(`⏭️ Winner $${winnerAmount} skipped — ${winnerWallet} holds < ${MEMEYA_THRESHOLD} $Memeya`);
     transfers.push({
       type: 'winner',
       wallet: winnerWallet,
@@ -313,11 +322,15 @@ async function distributeRewards(drawResult, options = {}) {
     referralPayouts,
     referralErrors,
     calculatedAmounts: {
+      walletBalance: usdcBalance,
+      winnerPct: WINNER_REWARD_PCT,
+      voter1Pct: VOTER_1_REWARD_PCT,
+      voter2Pct: VOTER_2_REWARD_PCT,
       winner: winnerQualified ? winnerAmount : 0,
-      voter1: VOTER_1_REWARD,
-      voter2: VOTER_2_REWARD,
+      voter1: voterAmounts[0],
+      voter2: voterAmounts[1],
       referralBonuses: referralBonusTotal,
-      total: (winnerQualified ? winnerAmount : 0) + VOTER_1_REWARD + VOTER_2_REWARD + referralBonusTotal
+      total: (winnerQualified ? winnerAmount : 0) + voterAmounts[0] + voterAmounts[1] + referralBonusTotal
     }
   });
 
@@ -526,5 +539,5 @@ module.exports = {
   distributeRewards,
   getHistory,
   getDistribution,
-  config: { MIN_BALANCE, LOW_BALANCE_ALERT, WINNER_REWARD, VOTER_1_REWARD, VOTER_2_REWARD, TOTAL_PAYOUT, REFERRAL_BONUS_PCT, REFERRER_REWARD_PCT, REFERRER_MEMEYA_THRESHOLD }
+  config: { MIN_BALANCE, LOW_BALANCE_ALERT, WINNER_REWARD_PCT, VOTER_1_REWARD_PCT, VOTER_2_REWARD_PCT, TOTAL_PAYOUT_PCT, REFERRAL_BONUS_PCT, REFERRER_REWARD_PCT, REFERRER_MEMEYA_THRESHOLD }
 };

@@ -563,7 +563,7 @@ function renderIndex() {
         "name": "How does the daily reward system work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards: $3 to the meme winner (most-voted meme's lottery winner), $2 to a random lucky voter, and $1 to a second lucky voter. Total daily payout is $6 USDC, sent directly to winners' Solana wallets."
+          "text": "At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards as a percentage of the treasury: 10% to the meme winner, 7% to a random lucky voter, and 4% to a second lucky voter (21% total). Rewards scale with treasury balance and are sent directly to winners' Solana wallets."
         }
       }
     ]
@@ -589,7 +589,7 @@ ${sharedHeader('index')}
       <p style="color: #9ca3af; font-size: 16px; margin-bottom: 24px;">Everything you need to know about AI MemeForge — community-curated AI memes on Solana.</p>
 
       <h2>What Is AI MemeForge?</h2>
-      <p>AI MemeForge is a fully autonomous AI meme platform on Solana. Every day at midnight UTC, an AI agent named Memeya generates <strong>3 unique crypto memes</strong> from real-time news. The community votes for free — no gas fees, no tokens required. At 23:55 UTC, a weighted lottery selects one winner who receives the top-voted meme as a <strong>Solana NFT</strong> plus <strong>$3 USDC</strong> in rewards. Two additional lucky voters receive $2 and $1 USDC respectively.</p>
+      <p>AI MemeForge is a fully autonomous AI meme platform on Solana. Every day at midnight UTC, an AI agent named Memeya generates <strong>3 unique crypto memes</strong> from real-time news. The community votes for free — no gas fees, no tokens required. At 23:55 UTC, a weighted lottery selects one winner who receives the top-voted meme as a <strong>Solana NFT</strong> plus <strong>10% of the treasury</strong> in USDC rewards. Two additional lucky voters receive 7% and 4% respectively.</p>
 
       <h2>Quick Reference</h2>
       <table>
@@ -598,7 +598,7 @@ ${sharedHeader('index')}
           <tr><td>Daily memes</td><td>3 AI-generated memes at 00:00 UTC from real-time crypto news</td></tr>
           <tr><td>Voting</td><td>Free, unlimited wallet types (Phantom, Solflare, Google sign-in)</td></tr>
           <tr><td>Lottery</td><td>Weighted random draw at 23:55 UTC — more tickets = higher odds</td></tr>
-          <tr><td>Daily rewards</td><td>$3 winner + $2 lucky voter + $1 lucky voter (USDC via Crossmint)</td></tr>
+          <tr><td>Daily rewards</td><td>10% winner + 7% lucky voter + 4% lucky voter (% of treasury USDC via Crossmint)</td></tr>
           <tr><td>NFT standard</td><td>Metaplex pNFT on Solana, stored permanently on Arweave</td></tr>
           <tr><td>Token</td><td>$Memeya (SPL) — hold for bonus lottery tickets</td></tr>
           <tr><td>AI agent</td><td>Memeya — autonomous posting on X, Telegram, and Moltbook</td></tr>
@@ -617,7 +617,7 @@ ${sharedHeader('index')}
       <p>$Memeya is the SPL utility token on Solana (CA: <code>mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump</code>). Holding $Memeya boosts daily lottery ticket earnings with a logarithmic bonus: 10 tokens = +1, 1K = +3, 100K = +5 extra tickets per vote. Available on <a href="https://pump.fun/coin/mPj8dgqLDciVX27vU5efHiodbQhsgK43gGhjQrBpump">PumpFun</a>.</p>
 
       <h3>How does the daily reward system work?</h3>
-      <p>At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards: $3 to the meme winner (most-voted meme's lottery winner), $2 to a random lucky voter, and $1 to a second lucky voter. Total daily payout is $6 USDC, sent directly to winners' Solana wallets.</p>
+      <p>At 23:55 UTC daily, Memeya's Crossmint wallet automatically distributes USDC rewards as a percentage of the treasury: 10% to the meme winner (most-voted meme's lottery winner), 7% to a random lucky voter, and 4% to a second lucky voter (21% total). Rewards scale with treasury balance and are sent directly to winners' Solana wallets.</p>
     </article>
 
     <h2 style="font-size: 22px; font-weight: 700; color: #06b6d4; margin: 40px 0 16px;">Explore the Docs</h2>

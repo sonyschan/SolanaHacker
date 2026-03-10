@@ -80,8 +80,8 @@ export function createExecutors(deps) {
           `Thresholds:`,
           `  Min distribution: $${d.thresholds.minDistribution}`,
           `  Low balance alert: $${d.thresholds.lowBalanceAlert}`,
-          `  Min winner reward: $${d.thresholds.minWinnerReward}`,
-          `  Min voter reward: $${d.thresholds.minVoterReward}`,
+          `  Reward rates: ${(d.rewards.winnerPct * 100)}% / ${(d.rewards.voter1Pct * 100)}% / ${(d.rewards.voter2Pct * 100)}%`,
+          `  Projected payout: $${d.rewards.projected.winner} + $${d.rewards.projected.voter1} + $${d.rewards.projected.voter2} = $${d.rewards.projected.total}`,
         ];
 
         if (d.usdc < d.thresholds.lowBalanceAlert) {
@@ -115,7 +115,7 @@ export function createExecutors(deps) {
             lines.push(`  Winner: \`${d.winnerWallet.slice(0, 8)}...\``);
           }
           if (d.calculatedAmounts) {
-            lines.push(`  Amounts: winner $${d.calculatedAmounts.winner?.toFixed(2)}, voter $${d.calculatedAmounts.voter?.toFixed(2)}`);
+            lines.push(`  Amounts: winner $${d.calculatedAmounts.winner?.toFixed(2)}, voter1 $${d.calculatedAmounts.voter1?.toFixed(2)}, voter2 $${d.calculatedAmounts.voter2?.toFixed(2)}`);
           }
           lines.push('');
         }

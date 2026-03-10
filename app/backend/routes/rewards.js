@@ -89,10 +89,16 @@ router.get('/balance', cacheResponse('rewards:balance', TTL.LONG), async (req, r
           lowBalanceAlert: rewardService.config.LOW_BALANCE_ALERT
         },
         rewards: {
-          winner: rewardService.config.WINNER_REWARD,
-          voter1: rewardService.config.VOTER_1_REWARD,
-          voter2: rewardService.config.VOTER_2_REWARD,
-          total: rewardService.config.TOTAL_PAYOUT
+          winnerPct: rewardService.config.WINNER_REWARD_PCT,
+          voter1Pct: rewardService.config.VOTER_1_REWARD_PCT,
+          voter2Pct: rewardService.config.VOTER_2_REWARD_PCT,
+          totalPct: rewardService.config.TOTAL_PAYOUT_PCT,
+          projected: (() => {
+            const w = +(solanaBalances.usdc * rewardService.config.WINNER_REWARD_PCT).toFixed(2);
+            const v1 = +(solanaBalances.usdc * rewardService.config.VOTER_1_REWARD_PCT).toFixed(2);
+            const v2 = +(solanaBalances.usdc * rewardService.config.VOTER_2_REWARD_PCT).toFixed(2);
+            return { winner: w, voter1: v1, voter2: v2, total: +(w + v1 + v2).toFixed(2) };
+          })()
         },
         timestamp: new Date().toISOString()
       }

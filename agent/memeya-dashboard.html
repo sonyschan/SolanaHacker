@@ -718,14 +718,14 @@ function authHeaders(extra = {}) {
         <h3 style="font-size:0.88em;color:var(--pink);margin-bottom:8px;">Distribution Preview</h3>
         <table>
           <tr><th>Recipient</th><th>Amount</th></tr>
-          <tr><td>Meme Winner</td><td id="dist-winner">$3.00</td></tr>
-          <tr><td>Lucky Draw Voter 1</td><td id="dist-voter1">$2.00</td></tr>
-          <tr><td>Lucky Draw Voter 2</td><td id="dist-voter2">$1.00</td></tr>
-          <tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Payout</td><td id="dist-total">$6.00</td></tr>
+          <tr><td>Meme Winner (10%)</td><td id="dist-winner">--</td></tr>
+          <tr><td>Lucky Draw Voter 1 (7%)</td><td id="dist-voter1">--</td></tr>
+          <tr><td>Lucky Draw Voter 2 (4%)</td><td id="dist-voter2">--</td></tr>
+          <tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Payout (21%)</td><td id="dist-total">--</td></tr>
         </table>
         <div class="note" style="margin-top:8px;border-left-color:var(--cyan);">
           Next distribution: <strong style="color:var(--text);">23:55 UTC daily</strong> &middot;
-          Min balance: <strong>$6</strong> &middot; Low alert: <strong>$10</strong>
+          Min balance: <strong>$1</strong> &middot; Low alert: <strong>$10</strong>
         </div>
       </div>
       <div id="wallet-error" class="error-text" style="display:none;"></div>
@@ -1408,7 +1408,7 @@ function truncAddr(addr) {
   return addr.slice(0, 4) + '…' + addr.slice(-4);
 }
 
-const REWARD_TOTAL = 6; // $3 + $2 + $1
+const REWARD_TOTAL = 1; // min balance to distribute (percentage-based: 10% + 7% + 4%)
 
 async function loadWalletData() {
   const loading = document.getElementById('wallet-loading');
@@ -1458,7 +1458,15 @@ async function loadWalletData() {
         document.getElementById('dist-winner').textContent = '--';
         document.getElementById('dist-voter1').textContent = '--';
         document.getElementById('dist-voter2').textContent = '--';
-        document.getElementById('dist-total').innerHTML = '<span style="color:var(--red);">Skipped (below $6 min)</span>';
+        document.getElementById('dist-total').innerHTML = '<span style="color:var(--red);">Skipped (below $1 min)</span>';
+      } else {
+        const dw = +(usdc * 0.10).toFixed(2);
+        const dv1 = +(usdc * 0.07).toFixed(2);
+        const dv2 = +(usdc * 0.04).toFixed(2);
+        document.getElementById('dist-winner').textContent = '$' + dw.toFixed(2);
+        document.getElementById('dist-voter1').textContent = '$' + dv1.toFixed(2);
+        document.getElementById('dist-voter2').textContent = '$' + dv2.toFixed(2);
+        document.getElementById('dist-total').textContent = '$' + (dw + dv1 + dv2).toFixed(2);
       }
 
       loading.style.display = 'none';
