@@ -153,14 +153,14 @@ const MemeCard = ({
     <>
       {/* Winner Badge */}
       {showBadges.winner && (
-        <div className="absolute top-1.5 right-1.5 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
+        <div className="absolute top-1.5 right-1.5 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
           {'\uD83C\uDFC6'}
         </div>
       )}
 
       {/* Date Badge */}
       {showBadges.date && meme.generatedAt && (
-        <div className="absolute top-1.5 left-1.5 z-10 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+        <div className="absolute top-1.5 left-1.5 z-10 bg-black/60 text-white text-[11px] px-1.5 py-0.5 rounded">
           {formatDate(meme.generatedAt)}
         </div>
       )}
@@ -168,7 +168,7 @@ const MemeCard = ({
       {/* Origin Badge */}
       {originBadge && (
         <div
-          className={`absolute ${showBadges.date && meme.generatedAt ? 'top-7' : 'top-2'} left-1.5 z-10 text-[9px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm`}
+          className={`absolute ${showBadges.date && meme.generatedAt ? 'top-7' : 'top-2'} left-1.5 z-10 text-[11px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm`}
           style={{ backgroundColor: originBadge.bg, color: originBadge.color, border: `1px solid ${originBadge.border}` }}
         >
           {originBadge.label}
@@ -178,7 +178,7 @@ const MemeCard = ({
       {/* Image */}
       <div className="relative aspect-square bg-gray-800 overflow-hidden">
         {showBadges.nftOwner && meme.nftOwner && (
-          <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+          <div className="absolute bottom-1.5 left-1.5 z-10 bg-purple-600/80 text-white text-[11px] px-1.5 py-0.5 rounded backdrop-blur-sm">
             {t('gallery.owned', { address: `${meme.nftOwner.walletAddress.slice(0, 4)}...${meme.nftOwner.walletAddress.slice(-4)}` })}
           </div>
         )}
@@ -203,7 +203,7 @@ const MemeCard = ({
           {meme.title}
         </h3>
         {(stars || rarity) && (
-          <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+          <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
             {stars && <span>{stars}</span>}
             {rarity && (
               <span className="px-1.5 py-0.5 rounded" style={{ backgroundColor: rarity.bg, color: rarity.color }}>

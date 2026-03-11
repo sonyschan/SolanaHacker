@@ -230,9 +230,9 @@ const LotteryTab = ({
       {/* ===== TICKET SUMMARY SECTION ===== */}
       <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-center">
         <div className="text-5xl text-yellow-400 mb-4">{'\uD83C\uDFAB'}</div>
-        <div className="text-6xl text-yellow-400 font-bold font-mono mb-2">{userTickets}</div>
-        <h3 className="text-2xl font-extrabold tracking-tight mb-3">{t('dashboard.tickets.title')}</h3>
-        <p className="text-gray-400 mb-6 max-w-md mx-auto">
+        <div className="text-5xl sm:text-6xl text-yellow-400 font-bold font-mono mb-2">{userTickets}</div>
+        <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight mb-3">{t('dashboard.tickets.title')}</h3>
+        <p className="text-sm sm:text-base text-gray-400 mb-6 max-w-md mx-auto">
           {t('dashboard.tickets.desc')}
         </p>
 
@@ -667,7 +667,7 @@ const LotteryTab = ({
                             meme={meme || { title: `Meme ${win.memeId.slice(-6)}` }}
                             hoverColor="yellow"
                           >
-                            <div className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            <div className={`mt-1 inline-block text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
                               win.claimed
                                 ? 'bg-green-500/20 text-green-400'
                                 : 'bg-yellow-500/20 text-yellow-400'

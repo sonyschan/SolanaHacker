@@ -339,7 +339,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           <div className="flex items-center gap-3">
             <img src="/images/memeya-avatar.png" alt="Memeya" className="w-6 h-6 rounded-full" />
             <span className="text-sm text-gray-300 font-bold">{t('workshop.terminal.title')}</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/30">{t('workshop.terminal.version')}</span>
+            <span className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/30">{t('workshop.terminal.version')}</span>
           </div>
           {/* Dynamic LIVE indicator */}
           <div className="flex items-center gap-2">
@@ -359,9 +359,9 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
             className="flex items-center gap-1.5 hover:text-gray-200 transition-colors"
             title={MEMEYA_WALLET}
           >
-            <span className="text-purple-400/60 text-[10px]">SOL</span>
+            <span className="text-purple-400/60 text-[11px]">SOL</span>
             <span className="text-gray-500">{MEMEYA_WALLET.slice(0, 4)}...{MEMEYA_WALLET.slice(-4)}</span>
-            <span className="text-[10px]">{copied ? t('common.copied') : t('common.copy')}</span>
+            <span className="text-[11px]">{copied ? t('common.copied') : t('common.copy')}</span>
           </button>
           <span className="text-white/10">|</span>
           <button
@@ -369,9 +369,9 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
             className="flex items-center gap-1.5 hover:text-gray-200 transition-colors"
             title={MEMEYA_BASE_WALLET}
           >
-            <span className="text-blue-400/60 text-[10px]">BASE</span>
+            <span className="text-blue-400/60 text-[11px]">BASE</span>
             <span className="text-gray-500">{MEMEYA_BASE_WALLET.slice(0, 6)}...{MEMEYA_BASE_WALLET.slice(-4)}</span>
-            <span className="text-[10px]">{copiedBase ? t('common.copied') : t('common.copy')}</span>
+            <span className="text-[11px]">{copiedBase ? t('common.copied') : t('common.copy')}</span>
           </button>
           <span className="text-white/10">|</span>
           <a
@@ -409,7 +409,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <h3 className="text-sm font-bold text-gray-300 font-mono">{t('workshop.feed.title')}</h3>
           {entries.length > 0 && (
-            <span className="text-[10px] text-gray-500 font-mono">{entries.length} entries</span>
+            <span className="text-[11px] text-gray-500 font-mono">{entries.length} entries</span>
           )}
         </div>
         <div
@@ -449,7 +449,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
                       </span>
                       <div className="flex-1 min-w-0">
                         {/* Action tag badge */}
-                        <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border mb-1 ${topicColor}`}>
+                        <span className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded border mb-1 ${topicColor}`}>
                           {actionTag.tag} {actionTag.emoji}
                         </span>
                         {/* Personality filler */}
@@ -463,7 +463,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
                         {needsTruncate && (
                           <button
                             onClick={() => setExpandedEntry(isExpanded ? null : i)}
-                            className="text-[10px] text-cyan-400 hover:text-cyan-300 mt-1"
+                            className="text-[11px] text-cyan-400 hover:text-cyan-300 mt-1"
                           >
                             {isExpanded ? 'less' : 'more'}
                           </button>
@@ -474,7 +474,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
                             href={entry.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] text-gray-500 hover:text-cyan-400 mt-1.5 transition-colors"
+                            className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-cyan-400 mt-1.5 transition-colors"
                           >
                             <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                             View on X
@@ -494,7 +494,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Wallet Balances with float-up animation */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center relative">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
           <div className="flex items-center justify-center gap-3">
             <div className="relative">
               <div className="text-lg font-bold font-mono text-green-400">
@@ -505,33 +505,33 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
                   </span>
                 )}
               </div>
-              <div className="text-[10px] text-purple-400/60">SOL</div>
+              <div className="text-[11px] text-purple-400/60">SOL</div>
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div>
               <div className="text-lg font-bold font-mono text-green-400">
                 {baseWalletUsdc !== null && baseWalletUsdc !== undefined ? `$${baseWalletUsdc.toFixed(2)}` : '--'}
               </div>
-              <div className="text-[10px] text-blue-400/60">BASE</div>
+              <div className="text-[11px] text-blue-400/60">BASE</div>
             </div>
           </div>
-          <div className="text-[10px] text-gray-600">USDC</div>
+          <div className="text-[11px] text-gray-600">USDC</div>
         </div>
         {/* X Posts Today — count only entries with a url (actual X posts) */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.postsToday')}</div>
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.postsToday')}</div>
           <div className="text-lg font-bold font-mono text-cyan-400">
             {entries.filter(e => e.url).length}
           </div>
-          <div className="text-[10px] text-gray-600">tweets</div>
+          <div className="text-[11px] text-gray-600">tweets</div>
         </div>
         {/* Next Plan */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextPlan')}</div>
+          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextPlan')}</div>
           <div className="text-lg font-bold font-mono text-orange-400">
             {stats.nextSlot ? SLOT_META[stats.nextSlot.id]?.time || '--' : '--'}
           </div>
-          <div className="text-[10px] text-gray-600">
+          <div className="text-[11px] text-gray-600">
             {stats.nextSlot ? t(`workshop.schedule.${stats.nextSlot.id === 'news_digest' ? 'news' : stats.nextSlot.id === 'meme_forge' ? 'forge' : 'flex'}`) : 'done'}
           </div>
         </div>

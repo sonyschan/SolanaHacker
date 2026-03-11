@@ -187,10 +187,10 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 <span>&#128499;</span> {t('home.hero.cardVote')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">Memeya</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-green-400/10 text-green-400 border border-green-400/20">{t('home.hero.tags.human')}</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">{t('home.hero.tags.ecosystem')}</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">{t('home.hero.tags.usdcReward')}</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">Memeya</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-green-400/10 text-green-400 border border-green-400/20">{t('home.hero.tags.human')}</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">{t('home.hero.tags.ecosystem')}</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">{t('home.hero.tags.usdcReward')}</span>
               </div>
               <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-4">
                 {t('home.hero.descLine1')}
@@ -209,10 +209,10 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
                 <span>&#127912;</span> {t('home.hero.cardApi')}
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20">Agent</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-orange-400/10 text-orange-400 border border-orange-400/20">{t('home.hero.tags.developer')}</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-pink-400/10 text-pink-400 border border-pink-400/20">{t('home.hero.tags.massProduction')}</span>
-                <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full bg-indigo-400/10 text-indigo-400 border border-indigo-400/20">API</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20">Agent</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-orange-400/10 text-orange-400 border border-orange-400/20">{t('home.hero.tags.developer')}</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-pink-400/10 text-pink-400 border border-pink-400/20">{t('home.hero.tags.massProduction')}</span>
+                <span className="px-2 py-0.5 text-[11px] md:text-xs font-medium rounded-full bg-indigo-400/10 text-indigo-400 border border-indigo-400/20">API</span>
               </div>
               <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-4">
                 {t('home.hero.descLine2')}

@@ -131,8 +131,8 @@ const GalleryTab = () => {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-3xl font-extrabold tracking-tight mb-2">{'\uD83C\uDFDB\uFE0F'} {t('gallery.title')}</h2>
-        <p className="text-gray-300 mb-4">{t('gallery.desc')}</p>
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">{'\uD83C\uDFDB\uFE0F'} {t('gallery.title')}</h2>
+        <p className="text-sm sm:text-base text-gray-300 mb-4">{t('gallery.desc')}</p>
 
         {/* Filter Tabs */}
         <div className="flex justify-center gap-3">
@@ -291,7 +291,7 @@ const GalleryTab = () => {
                     {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {getMatchingTags(meme, searchQuery).map(tag => (
-                          <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                          <span key={tag} className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
                             #{tag}
                           </span>
                         ))}
@@ -331,7 +331,7 @@ const GalleryTab = () => {
                           {searchQuery && getMatchingTags(meme, searchQuery).length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {getMatchingTags(meme, searchQuery).map(tag => (
-                                <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
+                                <span key={tag} className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">
                                   #{tag}
                                 </span>
                               ))}

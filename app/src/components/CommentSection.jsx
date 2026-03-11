@@ -147,7 +147,7 @@ const CommentSection = ({ memeId, walletAddress }) => {
 
           {/* Powered by Tapestry */}
           <div className="px-3 py-1.5 bg-white/5 border-t border-white/10">
-            <p className="text-[10px] text-gray-600 text-center">
+            <p className="text-[11px] text-gray-600 text-center">
               Powered by <a href="https://usetapestry.dev" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-400">Tapestry</a>
             </p>
           </div>

@@ -747,10 +747,10 @@ const LabTab = ({ publicMode = false }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
           {publicMode ? t('lab.create.title') : t('lab.title')}
         </h2>
-        <p className="text-gray-400 text-sm mt-2 tracking-wide">
+        <p className="text-gray-400 text-sm sm:text-base mt-2 tracking-wide">
           {publicMode ? t('lab.create.subtitle') : t('lab.subtitle')}
         </p>
         {!publicMode && (
@@ -1551,7 +1551,7 @@ const LabTab = ({ publicMode = false }) => {
                   {item.suitability_tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.suitability_tags.slice(0, 5).map((tag, i) => (
-                        <span key={i} className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">{tag}</span>
+                        <span key={i} className="px-1.5 py-0.5 rounded text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/20">{tag}</span>
                       ))}
                     </div>
                   )}
@@ -1566,7 +1566,7 @@ const LabTab = ({ publicMode = false }) => {
                   {item.punchline_patterns?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.punchline_patterns.map((p, i) => (
-                        <span key={i} className="px-1.5 py-0.5 rounded text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">{p}</span>
+                        <span key={i} className="px-1.5 py-0.5 rounded text-[11px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">{p}</span>
                       ))}
                     </div>
                   )}
@@ -1598,7 +1598,7 @@ const LabTab = ({ publicMode = false }) => {
                     <p className="text-white font-medium text-sm">{item.title}</p>
                     <span className="text-xs text-green-400 font-mono">{item.votes}v</span>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-1 text-[10px]">
+                  <div className="flex flex-wrap gap-1 mt-1 text-[11px]">
                     {item.templateId && <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">{item.templateId}</span>}
                     {item.strategyId && <span className="px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">{item.strategyId}</span>}
                     {item.narrativeId && <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">{item.narrativeId}</span>}

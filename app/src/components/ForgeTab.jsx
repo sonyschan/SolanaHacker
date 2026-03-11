@@ -338,8 +338,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'selection' && (
         <div>
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold tracking-tight mb-4">🤖 {t('forge.phase1.title')}</h2>
-            <p className="text-gray-300">{t('forge.phase1.desc')}</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-4">🤖 {t('forge.phase1.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-300">{t('forge.phase1.desc')}</p>
 
             <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4 mt-4 inline-block">
               <span className="text-green-300">🚀 {t('forge.phase1.indicator')}</span>
@@ -426,8 +426,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
       {!isInitializing && currentPhase === 'rarity' && selectedMeme && (
         <div>
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold tracking-tight mb-4">🏆 {t('forge.phase2.title')}</h2>
-            <p className="text-gray-300">{t('forge.phase2.desc')}</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-4">🏆 {t('forge.phase2.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-300">{t('forge.phase2.desc')}</p>
             <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mt-4 inline-block">
               <span className="text-blue-300">💎 {t('forge.phase2.indicator')}</span>
             </div>
@@ -581,8 +581,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               </div>
             )}
 
-            <h2 className="text-4xl font-extrabold tracking-tight mb-4">🎉 {t('forge.completed.title')}</h2>
-            <p className="text-lg text-gray-300 mb-6">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">🎉 {t('forge.completed.title')}</h2>
+            <p className="text-base sm:text-lg text-gray-300 mb-6">
               {t('forge.completed.thanks')}
             </p>
 
@@ -618,7 +618,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-5">
                 <div className="text-2xl mb-1">🎫</div>
                 <h3 className="font-bold text-sm mb-1">{t('forge.completed.ticketsEarned')}</h3>
-                <div className="text-xl font-mono text-green-300">
+                <div className="text-2xl font-mono text-green-300">
                   {earnedTickets > 0 ? earnedTickets : t('forge.completed.credited')}
                 </div>
               </div>
@@ -626,14 +626,14 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               <div className="bg-purple-600 bg-opacity-20 border border-purple-600 rounded-xl p-5">
                 <div className="text-2xl mb-1">🔥</div>
                 <h3 className="font-bold text-sm mb-1">{t('forge.completed.votingStreak')}</h3>
-                <div className="text-xl font-mono text-purple-300">{votingStreak} day{votingStreak !== 1 ? 's' : ''}</div>
+                <div className="text-2xl font-mono text-purple-300">{votingStreak} day{votingStreak !== 1 ? 's' : ''}</div>
               </div>
 
               {tokenBonus > 0 && (
                 <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-5">
                   <div className="text-2xl mb-1">&#129689;</div>
                   <h3 className="font-bold text-sm mb-1">{t('forge.completed.memeyaBonus')}</h3>
-                  <div className="text-xl font-mono text-yellow-300">+{tokenBonus}</div>
+                  <div className="text-2xl font-mono text-yellow-300">+{tokenBonus}</div>
                 </div>
               )}
             </div>
