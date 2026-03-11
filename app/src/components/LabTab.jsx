@@ -747,7 +747,7 @@ const LabTab = ({ publicMode = false }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="font-display text-3xl font-bold text-white tracking-tight">
+        <h2 className="text-3xl font-extrabold text-white tracking-tight">
           {publicMode ? t('lab.create.title') : t('lab.title')}
         </h2>
         <p className="text-gray-400 text-sm mt-2 tracking-wide">
@@ -786,7 +786,7 @@ const LabTab = ({ publicMode = false }) => {
           {/* ── Step 1: Category Selection ── */}
           {!createCategory && !createLoading && !createResult && !createError && (
             <div className="max-w-3xl mx-auto space-y-6">
-              <h3 className="font-display text-center text-xl font-bold text-white tracking-tight">{t('lab.create.categoryTitle')}</h3>
+              <h3 className="text-center text-xl font-extrabold text-white tracking-tight">{t('lab.create.categoryTitle')}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* News Memes Card */}
                 <button
@@ -794,14 +794,14 @@ const LabTab = ({ publicMode = false }) => {
                   className="group text-left p-7 rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 hover:border-cyan-500/40 hover:from-cyan-500/10 hover:to-blue-500/10 transition-all"
                 >
                   <div className="text-3xl mb-4">🗞️</div>
-                  <h4 className="font-display text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{t('lab.create.newsLabel')}</h4>
+                  <h4 className="text-xl font-extrabold text-white mb-3 group-hover:text-cyan-400 transition-colors tracking-tight">{t('lab.create.newsLabel')}</h4>
                   <p className="text-sm text-gray-300/90 mb-5 leading-relaxed">{t('lab.create.newsDesc')}</p>
                   <div className="space-y-2 text-xs text-gray-400/80 mb-5">
                     <p>📥 {t('lab.create.newsInput')}</p>
                     <p>📤 {t('lab.create.newsOutput')}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-xl font-bold text-cyan-400">{t('lab.create.newsCost')}</span>
+                    <span className="text-xl font-extrabold font-mono text-cyan-400">{t('lab.create.newsCost')}</span>
                     <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.newsWhy')}</span>
                   </div>
                 </button>
@@ -812,14 +812,14 @@ const LabTab = ({ publicMode = false }) => {
                   className="group text-left p-7 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-green-500/5 hover:border-emerald-500/40 hover:from-emerald-500/10 hover:to-green-500/10 transition-all"
                 >
                   <div className="text-3xl mb-4">🌐</div>
-                  <h4 className="font-display text-xl font-bold text-white mb-3 group-hover:text-emerald-400 transition-colors">{t('lab.create.communityLabel')}</h4>
+                  <h4 className="text-xl font-extrabold text-white mb-3 group-hover:text-emerald-400 transition-colors tracking-tight">{t('lab.create.communityLabel')}</h4>
                   <p className="text-sm text-gray-300/90 mb-5 leading-relaxed">{t('lab.create.communityDesc')}</p>
                   <div className="space-y-2 text-xs text-gray-400/80 mb-5">
                     <p>📥 {t('lab.create.communityInput')}</p>
                     <p>📤 {t('lab.create.communityOutput')}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-xl font-bold text-emerald-400">{t('lab.create.communityCost')}</span>
+                    <span className="text-xl font-extrabold font-mono text-emerald-400">{t('lab.create.communityCost')}</span>
                     <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.communityWhy')}</span>
                   </div>
                 </button>
@@ -870,18 +870,18 @@ const LabTab = ({ publicMode = false }) => {
                   <>
                     {prices?.memeya && (
                       <button onClick={() => handleCreate('MEMEYA')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20">
-                        <span className="font-display text-lg font-bold">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
+                        <span className="text-lg font-bold font-mono">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
                         <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">{Math.round(prices.memeya.discount * 100)}% off</span>
                       </button>
                     )}
                     {prices?.sol && (
                       <button onClick={() => handleCreate('SOL')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20">
-                        <span className="font-display text-lg font-bold">{prices.sol.amount.toFixed(6)} SOL</span>
+                        <span className="text-lg font-bold font-mono">{prices.sol.amount.toFixed(6)} SOL</span>
                       </button>
                     )}
                     {prices?.usdc && (
                       <button onClick={() => handleCreate('USDC')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
-                        <span className="font-display text-lg font-bold">{prices.usdc.amount.toFixed(2)} USDC</span>
+                        <span className="text-lg font-bold font-mono">{prices.usdc.amount.toFixed(2)} USDC</span>
                       </button>
                     )}
                     {!prices && !pricesLoading && <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>}
@@ -908,7 +908,7 @@ const LabTab = ({ publicMode = false }) => {
 
               {/* X Account */}
               <div>
-                <label className="font-display text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.xAccount')}</label>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.xAccount')}</label>
                 <input
                   type="text"
                   value={communityForm.xAccount}
@@ -920,7 +920,7 @@ const LabTab = ({ publicMode = false }) => {
 
               {/* Description */}
               <div>
-                <label className="font-display text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.postDescription')} <span className="text-red-400">*</span></label>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.postDescription')} <span className="text-red-400">*</span></label>
                 <textarea
                   rows={3}
                   value={communityForm.description}
@@ -933,7 +933,7 @@ const LabTab = ({ publicMode = false }) => {
               {/* Tone + Style */}
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="font-display text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.tone')}</label>
+                  <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.tone')}</label>
                   <select
                     value={communityForm.tone}
                     onChange={e => setCommunityForm(f => ({ ...f, tone: e.target.value }))}
@@ -946,7 +946,7 @@ const LabTab = ({ publicMode = false }) => {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="font-display text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.visualStyle')}</label>
+                  <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.visualStyle')}</label>
                   <select
                     value={communityForm.style}
                     onChange={e => setCommunityForm(f => ({ ...f, style: e.target.value }))}
@@ -973,12 +973,12 @@ const LabTab = ({ publicMode = false }) => {
                   <>
                     {prices?.sol && (
                       <button onClick={() => handleCreate('SOL')} disabled={!communityForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20">
-                        <span className="font-display text-lg font-bold">{prices.sol.amount.toFixed(6)} SOL</span>
+                        <span className="text-lg font-bold font-mono">{prices.sol.amount.toFixed(6)} SOL</span>
                       </button>
                     )}
                     {prices?.usdc && (
                       <button onClick={() => handleCreate('USDC')} disabled={!communityForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
-                        <span className="font-display text-lg font-bold">{prices.usdc.amount.toFixed(2)} USDC</span>
+                        <span className="text-lg font-bold font-mono">{prices.usdc.amount.toFixed(2)} USDC</span>
                       </button>
                     )}
                     {!prices && !pricesLoading && <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>}
@@ -1056,7 +1056,7 @@ const LabTab = ({ publicMode = false }) => {
                   />
                 )}
                 <div className="p-4 space-y-2">
-                  <h3 className="font-display text-white font-bold text-xl">{createResult.title}</h3>
+                  <h3 className="text-white font-extrabold text-xl tracking-tight">{createResult.title}</h3>
                   {createResult.description && (
                     <p className="text-gray-400 text-sm leading-relaxed">{createResult.description}</p>
                   )}
@@ -1075,7 +1075,7 @@ const LabTab = ({ publicMode = false }) => {
               {/* Suggested Tweet (community memes) */}
               {createResult.suggestedTweet && (
                 <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-2">
-                  <p className="font-display text-xs text-emerald-400 font-bold uppercase tracking-wider">{t('lab.create.suggestedTweet')}</p>
+                  <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">{t('lab.create.suggestedTweet')}</p>
                   <p className="text-gray-200 text-sm whitespace-pre-wrap">{createResult.suggestedTweet}</p>
                   <button
                     onClick={() => {

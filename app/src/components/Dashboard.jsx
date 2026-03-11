@@ -294,7 +294,7 @@ const Dashboard = ({
                 className="w-10 h-10 md:w-12 md:h-12 rounded-xl shadow-lg shadow-cyan-500/25"
               />
               <div>
-                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-lg md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                   AI MemeForge
                 </h1>
                 <div className="hidden md:block text-xs text-gray-500">{t('dashboard.subtitle')}</div>
@@ -343,7 +343,7 @@ const Dashboard = ({
                   <>
                     <div className="text-center">
                       <div className="text-sm text-gray-400">$Memeya</div>
-                      <div className="font-bold text-yellow-400 text-lg">{formatTokenAmount(memeyaBalance)}</div>
+                      <div className="font-bold font-mono text-yellow-400 text-lg">{formatTokenAmount(memeyaBalance)}</div>
                     </div>
                     <div className="w-px h-8 bg-white/10" />
                   </>
@@ -744,7 +744,7 @@ const Dashboard = ({
             <div className="p-6 md:p-8 space-y-8">
               {/* Header */}
               <div className="text-center pr-8">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">{t('dashboard.howItWorks.title')}</h2>
+                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">{t('dashboard.howItWorks.title')}</h2>
                 <p className="text-gray-400">{t('dashboard.howItWorks.desc')}</p>
               </div>
 

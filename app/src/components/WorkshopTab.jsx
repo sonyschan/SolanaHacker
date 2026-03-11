@@ -497,10 +497,10 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
           <div className="flex items-center justify-center gap-3">
             <div className="relative">
-              <div className="text-lg font-bold text-green-400">
+              <div className="text-lg font-bold font-mono text-green-400">
                 {rewardPool !== null ? `$${rewardPool.toFixed(2)}` : '--'}
                 {floatAmount !== null && (
-                  <span className="workshop-reward-float absolute left-1/2 -translate-x-1/2 -top-1 text-xs font-bold text-green-400">
+                  <span className="workshop-reward-float absolute left-1/2 -translate-x-1/2 -top-1 text-xs font-bold font-mono text-green-400">
                     +${floatAmount.toFixed(2)}
                   </span>
                 )}
@@ -509,7 +509,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div>
-              <div className="text-lg font-bold text-green-400">
+              <div className="text-lg font-bold font-mono text-green-400">
                 {baseWalletUsdc !== null && baseWalletUsdc !== undefined ? `$${baseWalletUsdc.toFixed(2)}` : '--'}
               </div>
               <div className="text-[10px] text-blue-400/60">BASE</div>
@@ -520,7 +520,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
         {/* X Posts Today — count only entries with a url (actual X posts) */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.postsToday')}</div>
-          <div className="text-lg font-bold text-cyan-400">
+          <div className="text-lg font-bold font-mono text-cyan-400">
             {entries.filter(e => e.url).length}
           </div>
           <div className="text-[10px] text-gray-600">tweets</div>
@@ -528,7 +528,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
         {/* Next Plan */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextPlan')}</div>
-          <div className="text-lg font-bold text-orange-400">
+          <div className="text-lg font-bold font-mono text-orange-400">
             {stats.nextSlot ? SLOT_META[stats.nextSlot.id]?.time || '--' : '--'}
           </div>
           <div className="text-[10px] text-gray-600">
