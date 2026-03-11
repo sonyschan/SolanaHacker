@@ -157,7 +157,7 @@ const res = await fetchPaid('${base}/api/memes/generate-custom', {
 const { meme } = await res.json();
 // meme.imageUrl, meme.title, meme.tags, meme.metadata`,
   },
-  collab: {
+  community: {
     base: (base) => `npm install @x402/fetch @x402/evm viem
 
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
@@ -169,16 +169,14 @@ const account = privateKeyToAccount('0x...');
 registerExactEvmScheme(client, { signer: account });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Generate a collab meme — $0.15 USDC on Base
-const res = await fetchPaid('${base}/api/memes/generate-collab', {
+// Generate a community meme — $0.15 USDC on Base
+const res = await fetchPaid('${base}/api/memes/generate-community', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    partner: { name: 'Virtuals Protocol', handle: '@virtaboreal' },
-    user: { name: 'AiMemeForge', handle: '@AiMemeForgeIO' },
-    collabType: 'integration',
-    headline: 'Memeya launches on Virtuals!',
+    description: 'Memeya token pumping to the moon',
     tone: 'hype',
+    style: 'meme',
   }),
 });
 const { meme, suggestedTweet } = await res.json();`,
@@ -195,16 +193,14 @@ const signer = await createKeyPairSignerFromBytes(keyBytes);
 registerExactSvmScheme(client, { signer });
 const fetchPaid = wrapFetchWithPayment(fetch, client);
 
-// Generate a collab meme — $0.15 USDC on Solana (gas sponsored by Dexter)
-const res = await fetchPaid('${base}/api/memes/generate-collab', {
+// Generate a community meme — $0.15 USDC on Solana (gas sponsored by Dexter)
+const res = await fetchPaid('${base}/api/memes/generate-community', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    partner: { name: 'Virtuals Protocol', handle: '@virtaboreal' },
-    user: { name: 'AiMemeForge', handle: '@AiMemeForgeIO' },
-    collabType: 'integration',
-    headline: 'Memeya launches on Virtuals!',
+    description: 'Memeya token pumping to the moon',
     tone: 'hype',
+    style: 'meme',
   }),
 });
 const { meme, suggestedTweet } = await res.json();`,
@@ -1623,7 +1619,7 @@ const LabTab = ({ publicMode = false }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {['rate', 'generate', 'collab', 'catalog'].map(svc => (
+            {['rate', 'generate', 'community', 'catalog'].map(svc => (
               <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
                 <p className="text-white font-medium text-sm">{t(`lab.api.${svc}.name`)}</p>
                 <p className="text-green-400 text-2xl font-bold">{t(`lab.api.${svc}.price`)}</p>
@@ -1688,7 +1684,7 @@ const LabTab = ({ publicMode = false }) => {
               </div>
             </div>
             <div className="flex gap-1 mb-1">
-              {['rate', 'generate', 'collab', 'catalog'].map(tab => (
+              {['rate', 'generate', 'community', 'catalog'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setCodeTab(tab)}

@@ -50,6 +50,11 @@ const X402_TEMPLATES = {
     text_en: (chain) => `Earned $0.15 USDC — forged a collab meme for a client via x402 (${chain})`,
     text_zh: (chain) => `為客戶打造一張聯名 meme，賺取 $0.15 USDC (${chain})`,
   },
+  '/generate-community': {
+    amount: 0.15,
+    text_en: (chain) => `Earned $0.15 USDC — generated a community meme for a client via x402 (${chain})`,
+    text_zh: (chain) => `為客戶生成一張社群 meme，賺取 $0.15 USDC (${chain})`,
+  },
 };
 
 async function logX402Transaction(endpoint) {
