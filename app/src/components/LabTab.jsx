@@ -747,10 +747,10 @@ const LabTab = ({ publicMode = false }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="font-display text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="font-display text-3xl font-bold text-white tracking-tight">
           {publicMode ? t('lab.create.title') : t('lab.title')}
         </h2>
-        <p className="text-gray-400 text-sm mt-1.5 tracking-wide">
+        <p className="text-gray-400 text-sm mt-2 tracking-wide">
           {publicMode ? t('lab.create.subtitle') : t('lab.subtitle')}
         </p>
         {!publicMode && (
@@ -791,17 +791,17 @@ const LabTab = ({ publicMode = false }) => {
                 {/* News Memes Card */}
                 <button
                   onClick={() => setCreateCategory('news')}
-                  className="group text-left p-6 rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 hover:border-cyan-500/40 hover:from-cyan-500/10 hover:to-blue-500/10 transition-all"
+                  className="group text-left p-7 rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 hover:border-cyan-500/40 hover:from-cyan-500/10 hover:to-blue-500/10 transition-all"
                 >
-                  <div className="text-3xl mb-3">🗞️</div>
-                  <h4 className="font-display text-xl font-extrabold text-white mb-2 group-hover:text-cyan-400 transition-colors tracking-tight">{t('lab.create.newsLabel')}</h4>
-                  <p className="text-sm text-gray-300/90 mb-4 leading-relaxed">{t('lab.create.newsDesc')}</p>
-                  <div className="space-y-1.5 text-xs text-gray-400/80 mb-4">
+                  <div className="text-3xl mb-4">🗞️</div>
+                  <h4 className="font-display text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{t('lab.create.newsLabel')}</h4>
+                  <p className="text-sm text-gray-300/90 mb-5 leading-relaxed">{t('lab.create.newsDesc')}</p>
+                  <div className="space-y-2 text-xs text-gray-400/80 mb-5">
                     <p>📥 {t('lab.create.newsInput')}</p>
                     <p>📤 {t('lab.create.newsOutput')}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-xl font-extrabold text-cyan-400">{t('lab.create.newsCost')}</span>
+                    <span className="font-display text-xl font-bold text-cyan-400">{t('lab.create.newsCost')}</span>
                     <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.newsWhy')}</span>
                   </div>
                 </button>
@@ -809,17 +809,17 @@ const LabTab = ({ publicMode = false }) => {
                 {/* Community Memes Card */}
                 <button
                   onClick={() => setCreateCategory('community')}
-                  className="group text-left p-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-green-500/5 hover:border-emerald-500/40 hover:from-emerald-500/10 hover:to-green-500/10 transition-all"
+                  className="group text-left p-7 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-green-500/5 hover:border-emerald-500/40 hover:from-emerald-500/10 hover:to-green-500/10 transition-all"
                 >
-                  <div className="text-3xl mb-3">🌐</div>
-                  <h4 className="font-display text-xl font-extrabold text-white mb-2 group-hover:text-emerald-400 transition-colors tracking-tight">{t('lab.create.communityLabel')}</h4>
-                  <p className="text-sm text-gray-300/90 mb-4 leading-relaxed">{t('lab.create.communityDesc')}</p>
-                  <div className="space-y-1.5 text-xs text-gray-400/80 mb-4">
+                  <div className="text-3xl mb-4">🌐</div>
+                  <h4 className="font-display text-xl font-bold text-white mb-3 group-hover:text-emerald-400 transition-colors">{t('lab.create.communityLabel')}</h4>
+                  <p className="text-sm text-gray-300/90 mb-5 leading-relaxed">{t('lab.create.communityDesc')}</p>
+                  <div className="space-y-2 text-xs text-gray-400/80 mb-5">
                     <p>📥 {t('lab.create.communityInput')}</p>
                     <p>📤 {t('lab.create.communityOutput')}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-xl font-extrabold text-emerald-400">{t('lab.create.communityCost')}</span>
+                    <span className="font-display text-xl font-bold text-emerald-400">{t('lab.create.communityCost')}</span>
                     <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.communityWhy')}</span>
                   </div>
                 </button>
@@ -1056,7 +1056,7 @@ const LabTab = ({ publicMode = false }) => {
                   />
                 )}
                 <div className="p-4 space-y-2">
-                  <h3 className="font-display text-white font-extrabold text-xl tracking-tight">{createResult.title}</h3>
+                  <h3 className="font-display text-white font-bold text-xl">{createResult.title}</h3>
                   {createResult.description && (
                     <p className="text-gray-400 text-sm leading-relaxed">{createResult.description}</p>
                   )}
