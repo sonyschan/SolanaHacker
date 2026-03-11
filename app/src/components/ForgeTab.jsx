@@ -594,7 +594,7 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                     <img
                       src={selectedMeme.imageUrl || selectedMeme.image}
                       alt={selectedMeme.title}
-                      className="w-64 h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
+                      className="w-full max-w-xs h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
                       onClick={() => {
                         const index = dailyMemes.findIndex(m => m.id === selectedMeme.id);
                         setModalMemeIndex(index >= 0 ? index : 0);
@@ -614,8 +614,8 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
               </div>
             )}
 
-            <div className={`grid ${tokenBonus > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-6`}>
-              <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-4">
+            <div className={`grid ${tokenBonus > 0 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'} gap-4 mb-6`}>
+              <div className="bg-green-600 bg-opacity-20 border border-green-600 rounded-xl p-5">
                 <div className="text-2xl mb-1">🎫</div>
                 <h3 className="font-bold text-sm mb-1">{t('forge.completed.ticketsEarned')}</h3>
                 <div className="text-xl font-mono text-green-300">
@@ -623,14 +623,14 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                 </div>
               </div>
 
-              <div className="bg-purple-600 bg-opacity-20 border border-purple-600 rounded-xl p-4">
+              <div className="bg-purple-600 bg-opacity-20 border border-purple-600 rounded-xl p-5">
                 <div className="text-2xl mb-1">🔥</div>
                 <h3 className="font-bold text-sm mb-1">{t('forge.completed.votingStreak')}</h3>
                 <div className="text-xl font-mono text-purple-300">{votingStreak} day{votingStreak !== 1 ? 's' : ''}</div>
               </div>
 
               {tokenBonus > 0 && (
-                <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-4">
+                <div className="bg-yellow-600 bg-opacity-20 border border-yellow-600 rounded-xl p-5">
                   <div className="text-2xl mb-1">&#129689;</div>
                   <h3 className="font-bold text-sm mb-1">{t('forge.completed.memeyaBonus')}</h3>
                   <div className="text-xl font-mono text-yellow-300">+{tokenBonus}</div>

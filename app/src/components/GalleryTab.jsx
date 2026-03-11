@@ -130,12 +130,12 @@ const GalleryTab = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-extrabold tracking-tight mb-4">{'\uD83C\uDFDB\uFE0F'} {t('gallery.title')}</h2>
-        <p className="text-gray-300">{t('gallery.desc')}</p>
+      <div className="text-center mb-6">
+        <h2 className="text-3xl font-extrabold tracking-tight mb-2">{'\uD83C\uDFDB\uFE0F'} {t('gallery.title')}</h2>
+        <p className="text-gray-300 mb-4">{t('gallery.desc')}</p>
 
         {/* Filter Tabs */}
-        <div className="flex justify-center gap-4 mt-6">
+        <div className="flex justify-center gap-3">
           <button
             onClick={() => { setFilter('all'); setVisibleDays(DAYS_PER_PAGE); }}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
@@ -159,7 +159,7 @@ const GalleryTab = () => {
         </div>
 
         {/* Search Input */}
-        <div className="relative max-w-md mx-auto mt-4">
+        <div className="relative max-w-md mx-auto mt-3">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

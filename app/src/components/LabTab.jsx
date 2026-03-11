@@ -800,9 +800,9 @@ const LabTab = ({ publicMode = false }) => {
                     <p>📥 {t('lab.create.newsInput')}</p>
                     <p>📤 {t('lab.create.newsOutput')}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-extrabold font-mono text-cyan-400">{t('lab.create.newsCost')}</span>
-                    <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.newsWhy')}</span>
+                  <div className="space-y-1.5">
+                    <span className="text-xl font-extrabold font-mono text-cyan-400 block">{t('lab.create.newsCost')}</span>
+                    <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.newsWhy')}</span>
                   </div>
                 </button>
 
@@ -818,9 +818,9 @@ const LabTab = ({ publicMode = false }) => {
                     <p>📥 {t('lab.create.communityInput')}</p>
                     <p>📤 {t('lab.create.communityOutput')}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-extrabold font-mono text-emerald-400">{t('lab.create.communityCost')}</span>
-                    <span className="text-[11px] text-gray-500 text-right max-w-[60%] leading-snug italic">{t('lab.create.communityWhy')}</span>
+                  <div className="space-y-1.5">
+                    <span className="text-xl font-extrabold font-mono text-emerald-400 block">{t('lab.create.communityCost')}</span>
+                    <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.communityWhy')}</span>
                   </div>
                 </button>
               </div>
@@ -931,7 +931,7 @@ const LabTab = ({ publicMode = false }) => {
               </div>
 
               {/* Tone + Style */}
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.tone')}</label>
                   <select

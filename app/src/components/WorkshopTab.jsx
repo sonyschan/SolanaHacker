@@ -491,9 +491,9 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
       </div>
 
       {/* D. Stats Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Wallet Balances with float-up animation */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center relative">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center relative">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.rewardPool')}</div>
           <div className="flex items-center justify-center gap-3">
             <div className="relative">
@@ -518,7 +518,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           <div className="text-[10px] text-gray-600">USDC</div>
         </div>
         {/* X Posts Today — count only entries with a url (actual X posts) */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.postsToday')}</div>
           <div className="text-lg font-bold font-mono text-cyan-400">
             {entries.filter(e => e.url).length}
@@ -526,7 +526,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           <div className="text-[10px] text-gray-600">tweets</div>
         </div>
         {/* Next Plan */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-5 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('workshop.stats.nextPlan')}</div>
           <div className="text-lg font-bold font-mono text-orange-400">
             {stats.nextSlot ? SLOT_META[stats.nextSlot.id]?.time || '--' : '--'}

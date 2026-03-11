@@ -229,15 +229,15 @@ const LotteryTab = ({
     <div className="space-y-8">
       {/* ===== TICKET SUMMARY SECTION ===== */}
       <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-center">
-        <div className="text-8xl text-yellow-400 mb-6">{'\uD83C\uDFAB'}</div>
-        <div className="text-6xl text-yellow-400 font-bold font-mono mb-4">{userTickets}</div>
-        <h3 className="text-2xl font-extrabold tracking-tight mb-4">{t('dashboard.tickets.title')}</h3>
-        <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
+        <div className="text-5xl text-yellow-400 mb-4">{'\uD83C\uDFAB'}</div>
+        <div className="text-6xl text-yellow-400 font-bold font-mono mb-2">{userTickets}</div>
+        <h3 className="text-2xl font-extrabold tracking-tight mb-3">{t('dashboard.tickets.title')}</h3>
+        <p className="text-gray-400 mb-6 max-w-md mx-auto">
           {t('dashboard.tickets.desc')}
         </p>
 
         {/* Ticket Earning Breakdown */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 max-w-3xl mx-auto">
           <div className="bg-white/5 rounded-xl p-6">
             <h4 className="font-bold mb-2 text-cyan-400">{t('dashboard.tickets.baseRoll')}</h4>
             <div className="text-2xl font-bold font-mono mb-2">{t('dashboard.tickets.baseRange')}</div>
@@ -311,7 +311,7 @@ const LotteryTab = ({
         {/* Lottery Strategy - Side by side cards */}
         <div className="mb-8 max-w-2xl mx-auto">
           <h4 className="font-extrabold text-xl md:text-2xl mb-4 text-purple-400 tracking-tight">{t('dashboard.tickets.strategy')}</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Enter Tonight */}
             <button
               onClick={async () => {
