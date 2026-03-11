@@ -588,13 +588,13 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
 
             {/* Show the voted meme */}
             {selectedMeme && (
-              <div className="mb-6">
-                <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-1 rounded-2xl inline-block">
+              <div className="mb-8">
+                <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-1 rounded-2xl inline-block max-w-sm w-full">
                   <div className="bg-gray-900/95 rounded-xl overflow-hidden">
                     <img
                       src={selectedMeme.imageUrl || selectedMeme.image}
                       alt={selectedMeme.title}
-                      className="w-full max-w-xs h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
+                      className="w-full aspect-square object-cover cursor-pointer hover:scale-[1.02] transition-transform"
                       onClick={() => {
                         const index = dailyMemes.findIndex(m => m.id === selectedMeme.id);
                         setModalMemeIndex(index >= 0 ? index : 0);
@@ -602,11 +602,11 @@ const ForgeTab = ({ userTickets, votingStreak, setUserTickets, setVotingStreak, 
                         setIsModalOpen(true);
                       }}
                       onError={(e) => {
-                        e.target.src = `https://via.placeholder.com/256x192/F59E0B/FFFFFF?text=${encodeURIComponent(selectedMeme.title)}`;
+                        e.target.src = `https://via.placeholder.com/384x384/F59E0B/FFFFFF?text=${encodeURIComponent(selectedMeme.title)}`;
                       }}
                     />
-                    <div className="p-3">
-                      <h3 className="font-bold text-white text-sm">{selectedMeme.title}</h3>
+                    <div className="p-4">
+                      <h3 className="font-extrabold text-white text-base tracking-tight">{selectedMeme.title}</h3>
                       <span className="text-xs text-yellow-300">👑 {t('forge.completed.youVotedFor')}</span>
                     </div>
                   </div>
