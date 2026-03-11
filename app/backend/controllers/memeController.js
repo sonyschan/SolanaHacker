@@ -1098,8 +1098,8 @@ Create a meme concept. Requirements:
 
 Respond with ONLY valid JSON:
 {
-  "caption": "Short meme text overlay (under 80 chars, punchy)",
-  "visual_description": "Detailed scene description for AI image generation (characters, style, colors, mood, composition — 3-4 sentences)",
+  "caption": "VERY short meme text (MAX 5 words, e.g. 'Rewards just got real'). Keep it extremely brief — AI image generators garble long text. NO slang abbreviations like LFG, WAGMI etc.",
+  "visual_description": "Detailed scene description for AI image generation. Describe the scene, characters, style, colors, mood, composition in 3-4 sentences. The visual should tell the story — don't rely on text overlay.",
   "emotion": "Primary emotion (e.g. excitement, pride, humor)",
   "twist": "What makes this meme clever or unexpected"
 }`;

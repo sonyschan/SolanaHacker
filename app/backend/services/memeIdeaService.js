@@ -952,7 +952,7 @@ Respond with ONLY this JSON:
  * @param {object|null} strategy - Comedy strategy
  * @param {object|null} narrative - Narrative archetype
  */
-async function generateCollabMemeIdea(event, collabContext, recentThemes = [], strategy = null, narrative = null) {
+async function generateCollabMemeIdea(event, collabContext, recentThemes = []) {
   const { partner, user, collabType, tone } = collabContext;
   const headline = event.title || event;
 
@@ -977,11 +977,12 @@ async function generateCollabMemeIdea(event, collabContext, recentThemes = [], s
     recentContext = `\nAVOID these recent themes:\n${themesList}\n`;
   }
 
-  const prompt = `You are a Crypto Twitter meme lord. Generate a COLLAB meme celebrating a partnership between two crypto/web3 projects.
+  const prompt = `You are a meme strategist for crypto partnerships. Your job is to create a meme that makes BOTH projects look good and clearly communicates WHAT they built together.
 
-COLLAB HEADLINE: "${headline}"
-COLLAB TYPE: ${collabType} — ${collabTypeContext[collabType] || 'Two projects working together.'}
-TONE: ${tone} — ${toneDirectives[tone] || toneDirectives.hype}
+PARTNERSHIP CONTEXT:
+- Headline: "${headline}"
+- Type: ${collabType} — ${collabTypeContext[collabType] || 'Two projects working together.'}
+- Tone: ${tone} — ${toneDirectives[tone] || toneDirectives.hype}
 
 PROJECT A (Partner): ${partner.name}${partner.handle ? ` (${partner.handle})` : ''}
 ${partner.bio ? `Bio: ${partner.bio}` : ''}
@@ -989,23 +990,25 @@ ${partner.bio ? `Bio: ${partner.bio}` : ''}
 PROJECT B (Us): ${user.name}${user.handle ? ` (${user.handle})` : ''}
 ${user.bio ? `Bio: ${user.bio}` : ''}
 ${recentContext}
-COLLAB MEME RULES:
-- The caption MUST reference BOTH projects naturally — not just one
-- Visual scene should represent BOTH project identities (mascots, logos, themes)
-- Simple top_text + bottom_text layout (classic meme format)
+CAPTION RULES (CRITICAL — read carefully):
+- The caption MUST tell the viewer WHAT the partnership is about
+- Both project names (or recognizable references) MUST appear in the caption
+- top_text = the setup/context (what happened, what they built, or the "before")
+- bottom_text = the punchline (the payoff, flex, or celebration)
 - Each slot MUST be <= 8 words. Short punchy phrases.
-- The joke should celebrate the collab, not mock either project
-- Use crypto-native language where appropriate
-- DO NOT use exact project names in captions — use recognizable references/nicknames instead
-  (e.g., use personality traits, mascots, or well-known features)
+- The humor should come from the partnership VALUE — what these two projects do TOGETHER
+- DO NOT write generic crypto slang ("WAGMI", "LFG", "rugged my bags") without connecting it to the actual partnership
+- DO NOT use negative/loss humor (regret, rug pulls, bags, pain) — this is a CELEBRATION, not a roast
+- BAD example: "They rugged. My bags. Dexter's alpha. WAGMI." ← generic, says nothing about the collab
+- BAD example: "My regret is pre-ordered" ← negative/loss framing, wrong tone for a partnership
+- GOOD example: "When your memes start accepting payments" / "AiMemeForge x Dexter: built different" ← tells you what the collab does
 
 VISUAL SCENE GUIDELINES:
-- Represent both projects through their visual identity (mascots, colors, themes)
-- Show them TOGETHER — shaking hands, fusing, working as a team, etc.
-- The scene should feel like a celebration or power-up moment
+- Show both projects' visual identity TOGETHER — mascots, brand elements, product UI
+- If the partner has a known logo or mascot, include it prominently
+- The scene should illustrate the partnership in action (e.g., two products connecting, a handshake, a fusion)
+- DO NOT just show random crypto imagery (rockets, charts, generic coins, Pepe frogs) — make it specific to these two projects
 - Make it visually striking and shareable
-${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
-${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {

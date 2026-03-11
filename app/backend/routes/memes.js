@@ -543,6 +543,128 @@ router.post("/generate-solana", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/memes/generate-community-solana — Generate a community meme after on-chain payment
+ * Body: { description, tone, style, account, txSignature, paymentToken: 'SOL'|'MEMEYA'|'USDC' }
+ */
+router.post("/generate-community-solana", async (req, res) => {
+  try {
+    const { description, tone, style, account, txSignature, paymentToken } = req.body;
+
+    if (!description || typeof description !== 'string' || description.trim().length < 2) {
+      return res.status(400).json({ success: false, error: "description is required (min 2 chars)" });
+    }
+    if (description.length > 500) {
+      return res.status(400).json({ success: false, error: "description must be <= 500 chars" });
+    }
+    if (!txSignature || typeof txSignature !== 'string') {
+      return res.status(400).json({ success: false, error: "txSignature is required" });
+    }
+    if (!['SOL', 'MEMEYA', 'USDC'].includes(paymentToken)) {
+      return res.status(400).json({ success: false, error: "paymentToken must be SOL, MEMEYA, or USDC" });
+    }
+
+    // Pre-flight: rate limit failed verification attempts
+    const clientKey = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const now = Date.now();
+    const failEntry = verifyFailLimiter.get(clientKey);
+    if (failEntry && now < failEntry.resetAt && failEntry.count >= VERIFY_FAIL_LIMIT) {
+      return res.status(429).json({ success: false, error: "Too many failed attempts. Try again later." });
+    }
+
+    const db = getFirestore();
+
+    // Fetch current price to determine expected amount
+    const { solUsd, memeyaUsd } = await fetchPrices();
+
+    let minAmount;
+    if (paymentToken === 'SOL') {
+      if (!solUsd) return res.status(503).json({ success: false, error: "SOL price unavailable" });
+      minAmount = BASE_USD_PRICE / solUsd;
+    } else if (paymentToken === 'MEMEYA') {
+      if (!memeyaUsd) return res.status(503).json({ success: false, error: "$Memeya price unavailable" });
+      minAmount = (BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
+    } else {
+      minAmount = BASE_USD_PRICE;
+    }
+
+    const orderContext = {
+      topic: `[community] ${description.trim().slice(0, 100)}`,
+      solUsdPrice: solUsd,
+      memeyaUsdPrice: memeyaUsd,
+      baseUsdPrice: BASE_USD_PRICE,
+    };
+
+    // Verify on-chain payment
+    let verifyResult;
+    try {
+      verifyResult = await verifySolanaPayment(txSignature, paymentToken, minAmount, orderContext);
+    } catch (verifyErr) {
+      if (failEntry && now < failEntry.resetAt) {
+        failEntry.count++;
+      } else {
+        verifyFailLimiter.set(clientKey, { count: 1, resetAt: now + VERIFY_FAIL_WINDOW });
+      }
+      throw verifyErr;
+    }
+
+    const { sender, actualAmount } = verifyResult;
+
+    // Rate limit: 5 per hour per wallet
+    const limiterEntry = solanaGenLimiter.get(sender);
+    if (limiterEntry && now < limiterEntry.resetAt && limiterEntry.count >= SOLANA_GEN_LIMIT) {
+      await markPaymentRateLimited(txSignature).catch(e => console.error('markPaymentRateLimited failed:', e.message));
+      return res.status(429).json({ success: false, error: `Rate limit exceeded — ${SOLANA_GEN_LIMIT} memes per hour. Your payment can be retried later.` });
+    }
+    if (limiterEntry && now < limiterEntry.resetAt) {
+      limiterEntry.count++;
+    } else {
+      solanaGenLimiter.set(sender, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    }
+
+    // Generate community meme
+    let result;
+    try {
+      result = await generateCommunityMeme({
+        description: description.trim(),
+        tone: tone || 'hype',
+        style: style || 'meme',
+        account: account || null,
+      });
+    } catch (genErr) {
+      await markPaymentFailed(txSignature, genErr.message || 'Community meme generation failed').catch(e => console.error('markPaymentFailed failed:', e.message));
+      throw genErr;
+    }
+
+    const meme = result.meme;
+
+    // Mark payment completed + denormalize creator on meme doc
+    try {
+      await Promise.all([
+        markPaymentCompleted(txSignature, meme?.id),
+        meme?.id && db.collection(collections.MEMES).doc(meme.id).update({
+          createdBy: sender,
+          paymentToken,
+          paymentTxSignature: txSignature,
+        }),
+      ]);
+    } catch (dbErr) {
+      console.error(`Payment completion DB error (tx=${txSignature}, meme=${meme?.id}):`, dbErr.message);
+    }
+
+    logSolanaTransaction(paymentToken, sender).catch(() => {});
+
+    res.json({ success: true, meme, suggestedTweet: result.suggestedTweet });
+  } catch (error) {
+    const status = error.status || 500;
+    console.error("Generate-community-solana error:", error.message);
+    res.status(status).json({
+      success: false,
+      error: error.message || "Failed to generate community meme",
+    });
+  }
+});
+
 /** Log Solana payment to Workshop feed */
 async function logSolanaTransaction(paymentToken, sender) {
   const db = getFirestore();

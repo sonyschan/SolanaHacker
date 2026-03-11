@@ -43,14 +43,15 @@ class GrokImageService {
       const shouldUseCloudStorage = isProduction || isVercel || useGCS;
 
       const imageBuffer = Buffer.from(b64, 'base64');
-      const filename = storageService.generateFilename('meme', 'png');
+      // Grok image API returns JPEG
+      const filename = storageService.generateFilename('meme', 'jpg');
 
       let imageUrl, localPath, storageLocation;
 
       if (shouldUseCloudStorage) {
         try {
           const uploadResult = await storageService.uploadImage(imageBuffer, filename, {
-            contentType: 'image/png',
+            contentType: 'image/jpeg',
             aiModel: 'grok-imagine-image-pro',
             generatedAt: new Date().toISOString()
           });

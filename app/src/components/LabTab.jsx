@@ -250,7 +250,9 @@ const LabTab = ({ publicMode = false }) => {
   const [activePanel, setActivePanel] = useState(publicMode ? 'create' : 'rate');
 
   // ── Create tab state ──────────────────────────────────────
+  const [createCategory, setCreateCategory] = useState(null); // null | 'news' | 'community'
   const [createTopic, setCreateTopic] = useState('');
+  const [communityForm, setCommunityForm] = useState({ xAccount: '', description: '', tone: 'hype', style: 'meme' });
   const [prices, setPrices] = useState(null);
   const [pricesLoading, setPricesLoading] = useState(false);
   const [headlines, setHeadlines] = useState([]);
@@ -261,6 +263,7 @@ const LabTab = ({ publicMode = false }) => {
   const [createResult, setCreateResult] = useState(null);
   const [createError, setCreateError] = useState('');
   const [featuredMeme, setFeaturedMeme] = useState(null);
+  const [tweetCopied, setTweetCopied] = useState(false);
 
   // ── My Memes tab state ─────────────────────────────────────
   const [myMemes, setMyMemes] = useState([]);
@@ -360,7 +363,12 @@ const LabTab = ({ publicMode = false }) => {
 
   // ── Solana payment + generation ───────────────────────────
   const handleCreate = async (paymentToken) => {
-    if (!createTopic.trim()) return;
+    // Validate input based on category
+    if (createCategory === 'community') {
+      if (!communityForm.description.trim()) return;
+    } else {
+      if (!createTopic.trim()) return;
+    }
     if (!authenticated) { login(); return; }
 
     setCreateLoading(true);
@@ -512,14 +520,31 @@ const LabTab = ({ publicMode = false }) => {
       // 4. Send to backend for verification + generation
       setCreateStatus(MEMEYA_CHAT[1].msg);
       setCreateProgress(MEMEYA_CHAT[1].pct);
-      const res = await fetch(`${API_BASE_URL}/api/memes/generate-solana`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+
+      let endpoint, body;
+      if (createCategory === 'community') {
+        endpoint = `${API_BASE_URL}/api/memes/generate-community-solana`;
+        body = {
+          description: communityForm.description.trim(),
+          tone: communityForm.tone,
+          style: communityForm.style,
+          account: communityForm.xAccount.trim() ? { handle: communityForm.xAccount.trim() } : null,
+          txSignature: signature,
+          paymentToken,
+        };
+      } else {
+        endpoint = `${API_BASE_URL}/api/memes/generate-solana`;
+        body = {
           topic: createTopic.trim(),
           txSignature: signature,
           paymentToken,
-        }),
+        };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -527,7 +552,7 @@ const LabTab = ({ publicMode = false }) => {
         throw new Error(data.error || 'Generation failed');
       }
 
-      setCreateResult(data.meme);
+      setCreateResult({ ...data.meme, suggestedTweet: data.suggestedTweet });
       setMyMemesLoaded(false); // refresh My Memes on next visit
     } catch (err) {
       console.error('Create meme error:', err);
@@ -753,38 +778,86 @@ const LabTab = ({ publicMode = false }) => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          CREATE TAB — Google-search-style meme generator
+          CREATE TAB — Category selection → Input → Payment
           ═══════════════════════════════════════════════════════ */}
       {activePanel === 'create' && (
         <div className="space-y-8">
-          {/* Search-style input area */}
-          <div className="max-w-2xl mx-auto space-y-4">
-            <div className="relative">
-              <input
-                type="text"
-                value={createTopic}
-                onChange={e => setCreateTopic(e.target.value)}
-                placeholder={placeholderText}
-                disabled={createLoading}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && createTopic.trim() && !createLoading) {
-                    handleCreate(prices?.memeya ? 'MEMEYA' : 'SOL');
-                  }
-                }}
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-4 text-white text-base placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all disabled:opacity-50"
-              />
-              {createTopic.trim() && !createLoading && (
-                <button
-                  onClick={() => setCreateTopic('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  x
-                </button>
-              )}
-            </div>
 
-            {/* Payment buttons or Connect Wallet */}
-            {!createLoading && !createResult && (
+          {/* ── Step 1: Category Selection ── */}
+          {!createCategory && !createLoading && !createResult && !createError && (
+            <div className="max-w-3xl mx-auto space-y-6">
+              <h3 className="text-center text-lg font-semibold text-white">{t('lab.create.categoryTitle')}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* News Memes Card */}
+                <button
+                  onClick={() => setCreateCategory('news')}
+                  className="group text-left p-6 rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 hover:border-cyan-500/40 hover:from-cyan-500/10 hover:to-blue-500/10 transition-all"
+                >
+                  <div className="text-3xl mb-3">🗞️</div>
+                  <h4 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{t('lab.create.newsLabel')}</h4>
+                  <p className="text-sm text-gray-300 mb-4">{t('lab.create.newsDesc')}</p>
+                  <div className="space-y-1.5 text-xs text-gray-400 mb-4">
+                    <p>📥 {t('lab.create.newsInput')}</p>
+                    <p>📤 {t('lab.create.newsOutput')}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-cyan-400">{t('lab.create.newsCost')}</span>
+                    <span className="text-xs text-gray-500 text-right max-w-[60%]">{t('lab.create.newsWhy')}</span>
+                  </div>
+                </button>
+
+                {/* Community Memes Card */}
+                <button
+                  onClick={() => setCreateCategory('community')}
+                  className="group text-left p-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-green-500/5 hover:border-emerald-500/40 hover:from-emerald-500/10 hover:to-green-500/10 transition-all"
+                >
+                  <div className="text-3xl mb-3">🌐</div>
+                  <h4 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">{t('lab.create.communityLabel')}</h4>
+                  <p className="text-sm text-gray-300 mb-4">{t('lab.create.communityDesc')}</p>
+                  <div className="space-y-1.5 text-xs text-gray-400 mb-4">
+                    <p>📥 {t('lab.create.communityInput')}</p>
+                    <p>📤 {t('lab.create.communityOutput')}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-emerald-400">{t('lab.create.communityCost')}</span>
+                    <span className="text-xs text-gray-500 text-right max-w-[60%]">{t('lab.create.communityWhy')}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 2a: News Memes Input (existing flow) ── */}
+          {createCategory === 'news' && !createLoading && !createResult && !createError && (
+            <div className="max-w-2xl mx-auto space-y-4">
+              <button onClick={() => setCreateCategory(null)} className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                {t('lab.create.backToCategories')}
+              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={createTopic}
+                  onChange={e => setCreateTopic(e.target.value)}
+                  placeholder={placeholderText}
+                  disabled={createLoading}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && createTopic.trim() && !createLoading) {
+                      handleCreate(prices?.memeya ? 'MEMEYA' : 'SOL');
+                    }
+                  }}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-4 text-white text-base placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all disabled:opacity-50"
+                />
+                {createTopic.trim() && !createLoading && (
+                  <button
+                    onClick={() => setCreateTopic('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    x
+                  </button>
+                )}
+              </div>
+
+              {/* Payment buttons */}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 {!authenticated ? (
                   <button
@@ -795,65 +868,133 @@ const LabTab = ({ publicMode = false }) => {
                   </button>
                 ) : (
                   <>
-                    {/* $Memeya button */}
                     {prices?.memeya && (
-                      <button
-                        onClick={() => handleCreate('MEMEYA')}
-                        disabled={!createTopic.trim() || createLoading}
-                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
-                      >
+                      <button onClick={() => handleCreate('MEMEYA')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20">
                         <span className="text-lg">~{prices.memeya.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} $Memeya</span>
-                        <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">
-                          {Math.round(prices.memeya.discount * 100)}% off
-                        </span>
+                        <span className="text-xs opacity-80 bg-white/20 rounded-full px-2 py-0.5">{Math.round(prices.memeya.discount * 100)}% off</span>
                       </button>
                     )}
-
-                    {/* SOL button */}
                     {prices?.sol && (
-                      <button
-                        onClick={() => handleCreate('SOL')}
-                        disabled={!createTopic.trim() || createLoading}
-                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
-                      >
+                      <button onClick={() => handleCreate('SOL')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20">
                         <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
                       </button>
                     )}
-
-                    {/* USDC button */}
                     {prices?.usdc && (
-                      <button
-                        onClick={() => handleCreate('USDC')}
-                        disabled={!createTopic.trim() || createLoading}
-                        className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
-                      >
+                      <button onClick={() => handleCreate('USDC')} disabled={!createTopic.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
                         <span className="text-lg">{prices.usdc.amount.toFixed(2)} USDC</span>
                       </button>
                     )}
-
-                    {!prices && !pricesLoading && (
-                      <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>
-                    )}
-                    {pricesLoading && (
-                      <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>
-                    )}
+                    {!prices && !pricesLoading && <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>}
+                    {pricesLoading && <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>}
                   </>
                 )}
               </div>
-            )}
 
-            {/* Price info */}
-            {prices && !createLoading && !createResult && (
-              <div className="text-center space-y-1">
-                <p className="text-xs text-gray-600">
-                  {t('lab.create.priceNote', { base: '$0.10' })}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {t('lab.create.ecosystemFund')}
-                </p>
+              {prices && (
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: '$0.10' })}</p>
+                  <p className="text-xs text-gray-500">{t('lab.create.ecosystemFund')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Step 2b: Community Memes Input ── */}
+          {createCategory === 'community' && !createLoading && !createResult && !createError && (
+            <div className="max-w-2xl mx-auto space-y-4">
+              <button onClick={() => setCreateCategory(null)} className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                {t('lab.create.backToCategories')}
+              </button>
+
+              {/* X Account */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">{t('lab.create.xAccount')}</label>
+                <input
+                  type="text"
+                  value={communityForm.xAccount}
+                  onChange={e => setCommunityForm(f => ({ ...f, xAccount: e.target.value }))}
+                  placeholder={t('lab.create.xPlaceholder')}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all"
+                />
               </div>
-            )}
-          </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">{t('lab.create.postDescription')} <span className="text-red-400">*</span></label>
+                <textarea
+                  rows={3}
+                  value={communityForm.description}
+                  onChange={e => setCommunityForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder={t('lab.create.descPlaceholder')}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all resize-vertical"
+                />
+              </div>
+
+              {/* Tone + Style */}
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-400 block mb-1">{t('lab.create.tone')}</label>
+                  <select
+                    value={communityForm.tone}
+                    onChange={e => setCommunityForm(f => ({ ...f, tone: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition-all"
+                  >
+                    <option value="hype">{t('lab.create.toneHype')}</option>
+                    <option value="wholesome">{t('lab.create.toneWholesome')}</option>
+                    <option value="funny">{t('lab.create.toneFunny')}</option>
+                    <option value="flex">{t('lab.create.toneFlex')}</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-400 block mb-1">{t('lab.create.visualStyle')}</label>
+                  <select
+                    value={communityForm.style}
+                    onChange={e => setCommunityForm(f => ({ ...f, style: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition-all"
+                  >
+                    <option value="meme">{t('lab.create.styleMeme')}</option>
+                    <option value="announcement">{t('lab.create.styleAnnouncement')}</option>
+                    <option value="comic">{t('lab.create.styleComic')}</option>
+                    <option value="infographic">{t('lab.create.styleInfoGraphic')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Payment buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {!authenticated ? (
+                  <button
+                    onClick={() => login()}
+                    className="px-8 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white shadow-lg shadow-indigo-500/20"
+                  >
+                    {t('lab.create.connectWallet')}
+                  </button>
+                ) : (
+                  <>
+                    {prices?.sol && (
+                      <button onClick={() => handleCreate('SOL')} disabled={!communityForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20">
+                        <span className="text-lg">{prices.sol.amount.toFixed(6)} SOL</span>
+                      </button>
+                    )}
+                    {prices?.usdc && (
+                      <button onClick={() => handleCreate('USDC')} disabled={!communityForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
+                        <span className="text-lg">{prices.usdc.amount.toFixed(2)} USDC</span>
+                      </button>
+                    )}
+                    {!prices && !pricesLoading && <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>}
+                    {pricesLoading && <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>}
+                  </>
+                )}
+              </div>
+
+              {prices && (
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: '$0.10' })}</p>
+                  <p className="text-xs text-gray-500">{t('lab.create.ecosystemFund')}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Loading state */}
           {createLoading && (
@@ -894,6 +1035,12 @@ const LabTab = ({ publicMode = false }) => {
               >
                 {t('lab.create.tryAnother')}
               </button>
+              <button
+                onClick={() => { setCreateError(''); setCreateCategory(null); }}
+                className="mt-2 ml-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                {t('lab.create.backToCategories')}
+              </button>
             </div>
           )}
 
@@ -925,21 +1072,44 @@ const LabTab = ({ publicMode = false }) => {
                 </div>
               </div>
 
+              {/* Suggested Tweet (community memes) */}
+              {createResult.suggestedTweet && (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-2">
+                  <p className="text-xs text-emerald-400 font-medium">{t('lab.create.suggestedTweet')}</p>
+                  <p className="text-gray-200 text-sm whitespace-pre-wrap">{createResult.suggestedTweet}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(createResult.suggestedTweet);
+                      setTweetCopied(true);
+                      setTimeout(() => setTweetCopied(false), 2000);
+                    }}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    {tweetCopied ? t('lab.create.copied') : t('lab.create.copyTweet')}
+                  </button>
+                </div>
+              )}
+
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => {
                     const url = createResult.id
                       ? `https://aimemeforge.io/meme/${createResult.id}`
                       : window.location.href;
-                    const text = `${createResult.title} — made with @MemeForgeAI`;
-                    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                    const text = createResult.suggestedTweet
+                      ? `${createResult.suggestedTweet}\n\n${url}`
+                      : `${createResult.title} — made with @MemeForgeAI`;
+                    const shareUrl = createResult.suggestedTweet
+                      ? `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`
+                      : `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+                    window.open(shareUrl, '_blank');
                   }}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
                 >
                   {t('lab.create.share')}
                 </button>
                 <button
-                  onClick={() => { setCreateResult(null); setCreateTopic(''); }}
+                  onClick={() => { setCreateResult(null); setTweetCopied(false); }}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
                 >
                   {t('lab.create.tryAnother')}
@@ -948,8 +1118,8 @@ const LabTab = ({ publicMode = false }) => {
             </div>
           )}
 
-          {/* Featured memes showcase */}
-          {!createLoading && !createResult && Array.isArray(featuredMeme) && featuredMeme.length > 0 && (
+          {/* Featured memes showcase — show on category selection screen */}
+          {!createCategory && !createLoading && !createResult && !createError && Array.isArray(featuredMeme) && featuredMeme.length > 0 && (
             <div className="max-w-4xl mx-auto">
               <p className="text-center text-xs text-gray-500 mb-3">{t('lab.create.featured')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
