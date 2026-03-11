@@ -200,7 +200,9 @@ Description:`;
       const shouldUseCloudStorage = isProduction || isVercel || useGCS;
 
       const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      const filename = storageService.generateFilename('meme', 'png');
+      const mimeType = imagePart.inlineData.mimeType || 'image/png';
+      const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+      const filename = storageService.generateFilename('meme', ext);
 
       let imageUrl, localPath, storageLocation;
 
@@ -208,7 +210,7 @@ Description:`;
         // Production/Vercel: Store in Google Cloud Storage
         try {
           const uploadResult = await storageService.uploadImage(imageBuffer, filename, {
-            contentType: 'image/png',
+            contentType: mimeType,
             aiModel: 'gemini-3-pro-image-preview',
             generatedAt: new Date().toISOString()
           });
@@ -265,6 +267,112 @@ Description:`;
         fallbackUrl: 'https://via.placeholder.com/512x512/ef4444/ffffff?text=Generation+Failed',
         note: 'Image generation failed - using error placeholder'
       };
+    }
+  }
+
+  /**
+   * Generate meme image with reference images (logos/avatars) for collab memes.
+   * @param {string} imagePrompt - Text prompt for image generation
+   * @param {{ data: string, mimeType: string, label: string }[]} referenceImages - Base64 images with labels
+   */
+  async generateMemeImageWithReferences(imagePrompt, referenceImages = []) {
+    if (!referenceImages.length) {
+      return this.generateMemeImage(imagePrompt);
+    }
+
+    try {
+      console.log(`🎨 Generating meme image with ${referenceImages.length} reference image(s)...`);
+
+      // Build multimodal prompt: text + reference images
+      const parts = [];
+      for (const ref of referenceImages) {
+        parts.push({ inlineData: { mimeType: ref.mimeType, data: ref.data } });
+        parts.push({ text: `[Reference: ${ref.label} logo/avatar — IMPORTANT: Place this EXACT image as-is into the meme. Do NOT redraw, reinterpret, modify, or restyle this logo/avatar. Preserve the original colors, proportions, and details pixel-perfectly. Treat it as a sticker overlay.]` });
+      }
+      parts.push({ text: imagePrompt });
+
+      const result = await this.imageModel.generateContent(parts);
+      const response = result.response;
+      const candidates = response.candidates;
+
+      if (!candidates || candidates.length === 0) {
+        throw new Error('No candidates in Gemini response');
+      }
+
+      const resParts = candidates[0].content?.parts;
+      if (!resParts) {
+        throw new Error('No parts in Gemini response');
+      }
+
+      const imagePart = resParts.find((part) =>
+        part.inlineData?.mimeType?.startsWith('image/')
+      );
+
+      if (!imagePart || !imagePart.inlineData?.data) {
+        const textPart = resParts.find((part) => part.text);
+        if (textPart) {
+          throw new Error(`Image generation failed - ${textPart.text.substring(0, 200)}`);
+        }
+        throw new Error('No image in Gemini response');
+      }
+
+      // Reuse same storage logic
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isVercel = process.env.VERCEL === '1';
+      const useGCS = process.env.USE_GCS === 'true';
+      const shouldUseCloudStorage = isProduction || isVercel || useGCS;
+
+      const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+      const mimeType = imagePart.inlineData.mimeType || 'image/png';
+      const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+      const filename = storageService.generateFilename('meme', ext);
+
+      let imageUrl, localPath, storageLocation;
+
+      if (shouldUseCloudStorage) {
+        try {
+          const uploadResult = await storageService.uploadImage(imageBuffer, filename, {
+            contentType: mimeType,
+            aiModel: 'gemini-3-pro-image-preview',
+            generatedAt: new Date().toISOString()
+          });
+          imageUrl = uploadResult.url;
+          storageLocation = 'gcs';
+          console.log(`✅ Image with references uploaded to GCS: ${filename}`);
+        } catch (gcsError) {
+          console.error('GCS upload failed, falling back to local storage:', gcsError);
+          const outputDir = path.join(__dirname, '../public/generated');
+          fs.mkdirSync(outputDir, { recursive: true });
+          localPath = path.join(outputDir, filename);
+          fs.writeFileSync(localPath, imageBuffer);
+          imageUrl = `/generated/${filename}`;
+          storageLocation = 'local-fallback';
+        }
+      } else {
+        const outputDir = path.join(__dirname, '../public/generated');
+        fs.mkdirSync(outputDir, { recursive: true });
+        localPath = path.join(outputDir, filename);
+        fs.writeFileSync(localPath, imageBuffer);
+        imageUrl = `/generated/${filename}`;
+        storageLocation = 'local';
+      }
+
+      return {
+        success: true,
+        imagePrompt,
+        imageData: imagePart.inlineData.data,
+        imageUrl,
+        localPath,
+        fileSize: imageBuffer.length,
+        storageLocation,
+        referenceCount: referenceImages.length,
+        environment: { isProduction, isVercel, useGCS, shouldUseCloudStorage }
+      };
+    } catch (error) {
+      console.error('Error in meme image generation with references:', error);
+      // Fallback to text-only generation
+      console.log('⚠️ Falling back to text-only image generation...');
+      return this.generateMemeImage(imagePrompt);
     }
   }
 

@@ -1128,6 +1128,7 @@ Respond with ONLY valid JSON:
     `ART STYLE: ${artStyle.name}`,
     `The image should be vibrant, eye-catching, social-media-optimized. Professional but fun.`,
     account ? `BRAND: ${account.name}` : '',
+    `CRITICAL LOGO RULE: If reference logos/avatars are provided, place them EXACTLY as-is — do NOT redraw, restyle, or reinterpret any logo or profile picture. They must appear pixel-perfect as sticker overlays, preserving original colors, proportions, and details.`,
   ].filter(Boolean).join('\n');
 
   // 4. Generate image (with account avatar as reference if available)
