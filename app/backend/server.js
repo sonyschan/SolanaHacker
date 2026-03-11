@@ -361,30 +361,32 @@ app.use((err, req, res, next) => {
 // Cloud Scheduler calls POST /api/scheduler/trigger/:taskName endpoints
 // This ensures reliability even when Cloud Run scales to zero
 
-// Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 MemeForge API server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🎨 Ready for AI meme generation and voting! 🗳️`);
-  console.log(`⏰ Scheduler: GCP Cloud Scheduler (external) triggers /api/scheduler/trigger/:taskName`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
+// Start server (only when run directly, not when imported for testing)
+if (require.main === module) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 MemeForge API server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`🎨 Ready for AI meme generation and voting! 🗳️`);
+    console.log(`⏰ Scheduler: GCP Cloud Scheduler (external) triggers /api/scheduler/trigger/:taskName`);
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('\nSIGINT received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGINT', () => {
+    console.log('\nSIGINT received, shutting down gracefully...');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  });
+}
 
 module.exports = app;
