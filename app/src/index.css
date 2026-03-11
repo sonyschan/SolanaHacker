@@ -90,6 +90,11 @@
   }
 }
 
+/* Display typography — Syne for headings */
+.font-display {
+  font-family: 'Syne', 'Inter', sans-serif;
+}
+
 /* Additional modern styling */
 .glass-morphism {
   background: rgba(255, 255, 255, 0.05);
