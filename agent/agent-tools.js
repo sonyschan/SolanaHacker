@@ -503,6 +503,12 @@ export const TOOL_DEFINITIONS = [
 const DANGEROUS_CMD =
   /rm\s+-rf\s+\/|mkfs|dd\s+if=|shutdown|reboot|:()\s*\{|wget.*\|\s*sh|curl.*\|\s*sh|pkill\s+(-f\s+)?node|killall\s+node|pkill\s+(-f\s+)?agent|kill\s+-9\s+\$\$|kill\s+-9\s+\$PPID/i;
 
+// v4.7: Block git commands that remove ignored files (like .env, node_modules)
+// git stash -a/--all stashes AND REMOVES ignored files from working dir
+// git clean with -x flag removes ignored files
+const GIT_DANGEROUS_CMD =
+  /git\s+stash\s+.*(-a|--all)|git\s+clean\s+.*-[a-z]*x|git\s+checkout\s+--\s+\./i;
+
 /**
  * Create tool executors bound to agent dependencies.
  *
@@ -677,6 +683,9 @@ export function createToolExecutors(deps) {
     async run_command({ command, timeout_ms = 120000 }) {
       if (DANGEROUS_CMD.test(command)) {
         return `Error: Dangerous command blocked: ${command}`;
+      }
+      if (GIT_DANGEROUS_CMD.test(command)) {
+        return `Error: This git command would delete .env and node_modules. Blocked for safety. Use git_commit and git_release tools instead.`;
       }
 
       // v4.6: Resolve paths in mkdir commands to prevent workDir/baseDir mismatch

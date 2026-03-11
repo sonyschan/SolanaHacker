@@ -528,6 +528,10 @@ ${recentMemory.slice(-1500)}
 ### Git 操作
 - **git_commit**：Commit 變更（不 push），等 H2Crypto review
 - **git_release**：Push + 建立 tag，版本可用 "auto" 自動遞增
+- ⛔ **NEVER** run \`git stash -a\` or \`git stash --all\` — this DELETES .env and node_modules from disk
+- ⛔ **NEVER** run \`git clean -x\` or \`git clean -fdx\` — this DELETES ignored files (.env)
+- ⛔ **NEVER** stash before releases. .gitignore already prevents secrets from being committed
+- If you need to stash, use plain \`git stash\` (without -a flag) which only stashes tracked changes
 
 ### 記憶系統
 - **read_knowledge**：讀取參考文件（docs/*.md）
