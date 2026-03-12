@@ -358,8 +358,9 @@ router.post("/generate-community", requireLabKeyOrPayment, communityLimiter, asy
 
 // ── Solana on-chain payment endpoints ──────────────────────────────────
 
-const BASE_USD_PRICE = 0.10;
-const MEMEYA_DISCOUNT = 0.20; // 20% off
+const BASE_USD_PRICE = 0.10;       // News Memes
+const COMMUNITY_USD_PRICE = 0.15;  // Community Memes
+const MEMEYA_DISCOUNT = 0.20;      // 20% off
 
 /**
  * Fetch SOL + Memeya USD prices (cached 5min).
@@ -403,8 +404,11 @@ router.get("/generate-price", async (req, res) => {
       return res.status(503).json({ success: false, error: 'SOL price unavailable, try again shortly' });
     }
 
-    const solAmount = BASE_USD_PRICE / solUsd;
-    const memeyaDiscountedUsd = BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT);
+    // Support ?type=community for different pricing
+    const priceUsd = req.query.type === 'community' ? COMMUNITY_USD_PRICE : BASE_USD_PRICE;
+
+    const solAmount = priceUsd / solUsd;
+    const memeyaDiscountedUsd = priceUsd * (1 - MEMEYA_DISCOUNT);
     const memeyaAmount = memeyaUsd ? (memeyaDiscountedUsd / memeyaUsd) : null;
 
     res.json({
@@ -418,8 +422,8 @@ router.get("/generate-price", async (req, res) => {
         usd: memeyaUsd,
         discount: MEMEYA_DISCOUNT,
       } : null,
-      usdc: { amount: BASE_USD_PRICE },
-      baseUsd: BASE_USD_PRICE,
+      usdc: { amount: priceUsd },
+      baseUsd: priceUsd,
     });
   } catch (error) {
     console.error("Generate price error:", error);
@@ -585,19 +589,19 @@ router.post("/generate-community-solana", async (req, res) => {
     let minAmount;
     if (paymentToken === 'SOL') {
       if (!solUsd) return res.status(503).json({ success: false, error: "SOL price unavailable" });
-      minAmount = BASE_USD_PRICE / solUsd;
+      minAmount = COMMUNITY_USD_PRICE / solUsd;
     } else if (paymentToken === 'MEMEYA') {
       if (!memeyaUsd) return res.status(503).json({ success: false, error: "$Memeya price unavailable" });
-      minAmount = (BASE_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
+      minAmount = (COMMUNITY_USD_PRICE * (1 - MEMEYA_DISCOUNT)) / memeyaUsd;
     } else {
-      minAmount = BASE_USD_PRICE;
+      minAmount = COMMUNITY_USD_PRICE;
     }
 
     const orderContext = {
       topic: `[community] ${description.trim().slice(0, 100)}`,
       solUsdPrice: solUsd,
       memeyaUsdPrice: memeyaUsd,
-      baseUsdPrice: BASE_USD_PRICE,
+      baseUsdPrice: COMMUNITY_USD_PRICE,
     };
 
     // Verify on-chain payment

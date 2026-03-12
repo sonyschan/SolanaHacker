@@ -28,6 +28,14 @@ const MEMEYA_DECIMALS = 6;
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const USDC_DECIMALS = 6;
 
+// ── Single source of truth for meme service pricing ──────────────────
+const MEME_PRICES = {
+  news: 0.10,       // News Memes (generate-custom)
+  generate: 0.10,   // x402 API alias for news/generate-custom
+  community: 0.15,  // Community Memes (generate-community)
+  rate: 0.05,       // Rate a Meme
+};
+
 const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 // ── Private-mode auth helpers ──────────────────────────────────────────
@@ -296,16 +304,17 @@ const LabTab = ({ publicMode = false }) => {
     'x-api-key': apiKey || '',
   }), [apiKey]);
 
-  // ── Fetch prices (Create tab) ────────────────────────────
+  // ── Fetch prices (Create tab) — re-fetches when category changes ──
   useEffect(() => {
-    if (!publicMode) return;
+    if (!publicMode || !createCategory) return;
     setPricesLoading(true);
-    fetch(`${API_BASE_URL}/api/memes/generate-price`)
+    const typeParam = createCategory === 'community' ? '?type=community' : '';
+    fetch(`${API_BASE_URL}/api/memes/generate-price${typeParam}`)
       .then(r => r.json())
       .then(data => { if (data.success) setPrices(data); })
       .catch(() => {})
       .finally(() => setPricesLoading(false));
-  }, [publicMode]);
+  }, [publicMode, createCategory]);
 
   // ── Fetch headlines for rotating placeholder ──────────────
   useEffect(() => {
@@ -797,7 +806,7 @@ const LabTab = ({ publicMode = false }) => {
                     <p>📤 {t('lab.create.newsOutput')}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <span className="text-xl font-extrabold font-mono text-cyan-400 block">{t('lab.create.newsCost')}</span>
+                    <span className="text-xl font-extrabold font-mono text-cyan-400 block">${MEME_PRICES.news.toFixed(2)}</span>
                     <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.newsWhy')}</span>
                   </div>
                 </button>
@@ -815,7 +824,7 @@ const LabTab = ({ publicMode = false }) => {
                     <p>📤 {t('lab.create.communityOutput')}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <span className="text-xl font-extrabold font-mono text-emerald-400 block">{t('lab.create.communityCost')}</span>
+                    <span className="text-xl font-extrabold font-mono text-emerald-400 block">${MEME_PRICES.community.toFixed(2)}</span>
                     <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.communityWhy')}</span>
                   </div>
                 </button>
@@ -888,7 +897,7 @@ const LabTab = ({ publicMode = false }) => {
 
               {prices && (
                 <div className="text-center space-y-1">
-                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: '$0.10' })}</p>
+                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: `$${MEME_PRICES[createCategory || 'news'].toFixed(2)}` })}</p>
                   <p className="text-xs text-gray-500">{t('lab.create.ecosystemFund')}</p>
                 </div>
               )}
@@ -985,7 +994,7 @@ const LabTab = ({ publicMode = false }) => {
 
               {prices && (
                 <div className="text-center space-y-1">
-                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: '$0.10' })}</p>
+                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: `$${MEME_PRICES[createCategory || 'news'].toFixed(2)}` })}</p>
                   <p className="text-xs text-gray-500">{t('lab.create.ecosystemFund')}</p>
                 </div>
               )}
@@ -1622,7 +1631,7 @@ const LabTab = ({ publicMode = false }) => {
             {['rate', 'generate', 'community', 'catalog'].map(svc => (
               <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
                 <p className="text-white font-medium text-sm">{t(`lab.api.${svc}.name`)}</p>
-                <p className="text-green-400 text-2xl font-bold">{t(`lab.api.${svc}.price`)}</p>
+                <p className="text-green-400 text-2xl font-bold">{MEME_PRICES[svc] ? `$${MEME_PRICES[svc].toFixed(2)}` : t(`lab.api.${svc}.price`)}</p>
                 <p className="text-gray-500 text-xs">{svc === 'catalog' ? '\u2014' : 'USDC on Base & Solana'}</p>
                 {t(`lab.api.${svc}.sla`) !== '\u2014' && (
                   <p className="text-gray-400 text-xs">SLA: {t(`lab.api.${svc}.sla`)}</p>
