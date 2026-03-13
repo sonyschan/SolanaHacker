@@ -412,7 +412,7 @@ export function createExecutors(deps) {
 
     // Append OG link + CTA if applicable (Premium account — no char truncation needed)
     const ogUrl = isStructured ? contextInput.ogUrl : null;
-    const voteCta = isStructured && contextInput.topic === 'meme_spotlight' && ogUrl ? '\n\nVote for this Meme \u{1F447}' : '';
+    const voteCta = isStructured && (contextInput.topic === 'meme_spotlight' || contextInput.topic === 'meme_share') && ogUrl ? '\n\nVote for this Meme \u{1F447}' : '';
     let tweet = ogUrl ? `${cleaned}${voteCta}\n${ogUrl}` : cleaned;
     const maxLen = null; // Premium account — no character limit
 
@@ -559,12 +559,12 @@ export function createExecutors(deps) {
  * @param {{ baseDir: string, grokApiKey: string }} deps
  * @returns {{ success: boolean, url?: string, text?: string, topic?: string, reason?: string, draft?: string }}
  */
-export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
+export async function autoPost({ baseDir, grokApiKey, diarySlot = null, assignedMemeId = null }) {
   const context = await gatherContext(baseDir, { grokApiKey });
 
   // Route to slot-aware or legacy topic selection
   const topicChoice = diarySlot
-    ? chooseTopicForSlot(diarySlot, context)
+    ? chooseTopicForSlot(diarySlot, context, { assignedMemeId })
     : chooseTopic(context);
 
   console.log(`[autoPost] Topic: ${topicChoice.topic}${diarySlot ? ` (slot: ${diarySlot})` : ''}`);
@@ -608,7 +608,7 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null }) {
     accessSecret,
   });
 
-  // Multi-image upload (for meme_forge slot)
+  // Multi-image upload (for meme_share slots)
   let mediaIds = [];
   if (topicChoice.memeImages && topicChoice.memeImages.length > 0) {
     console.log(`[autoPost] Uploading ${topicChoice.memeImages.length} meme images...`);

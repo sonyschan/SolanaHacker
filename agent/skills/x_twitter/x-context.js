@@ -733,27 +733,47 @@ export function saveTodo(baseDir, item, source) {
 /**
  * Choose topic + prompt for a specific diary slot.
  * Called from autoPost when diarySlot is provided.
- * @param {string} diarySlot - one of: news_digest, meme_forge, flex_1, flex_2
+ * @param {string} diarySlot - one of: news_digest, meme_share_1/2/3, flex_1, flex_3
  * @param {object} context - gathered context from gatherContext()
+ * @param {object} [opts] - optional params (e.g. assignedMemeId)
  * @returns {{ topic, prompt, ogUrl, memeImages?, subTopic?, useLiveSearch?, meta }}
  */
-export function chooseTopicForSlot(diarySlot, context) {
+export function chooseTopicForSlot(diarySlot, context, opts = {}) {
   switch (diarySlot) {
     case 'news_digest': {
       const { prompt, ogUrl } = buildDiaryPrompt('news_digest', context);
       return { topic: 'news_digest', prompt, ogUrl, useLiveSearch: true, subTopic: null, meta: { slot: diarySlot } };
     }
 
-    case 'meme_forge': {
+    case 'meme_share_1':
+    case 'meme_share_2':
+    case 'meme_share_3': {
       const { todayMemes } = context;
-      // Collect up to 3 meme image URLs for multi-image tweet
-      const memeImages = todayMemes
-        .filter(m => m.imageUrl)
-        .slice(0, 3)
-        .map(m => ({ url: m.imageUrl, id: m.id, title: m.title || m.topText || 'Untitled' }));
+      const { assignedMemeId } = opts;
 
-      const { prompt, ogUrl } = buildDiaryPrompt('meme_forge', context);
-      return { topic: 'meme_forge', prompt, ogUrl: ogUrl || SITE_URL, memeImages, subTopic: null, meta: { slot: diarySlot, imageCount: memeImages.length } };
+      // Find the assigned meme by ID
+      const meme = assignedMemeId
+        ? todayMemes.find(m => m.id === assignedMemeId)
+        : null;
+
+      if (!meme || !meme.imageUrl) {
+        // Fallback: no meme available, post personal_vibe instead
+        const { prompt, ogUrl } = buildDiaryPrompt('personal_vibe', context);
+        return { topic: 'personal_vibe', prompt, ogUrl, subTopic: 'personal_vibe', meta: { slot: diarySlot, fallback: true } };
+      }
+
+      const memeImages = [{ url: meme.imageUrl, id: meme.id, title: meme.title || 'Untitled' }];
+      const ogUrl = `${SITE_URL}/meme/${meme.id}`;
+      const { prompt } = buildDiaryPrompt('meme_share', context, { meme });
+
+      return {
+        topic: 'meme_share',
+        prompt,
+        ogUrl,
+        memeImages,
+        subTopic: null,
+        meta: { slot: diarySlot, memeId: meme.id, memeTitle: meme.title },
+      };
     }
 
     case 'flex_1': {
@@ -763,15 +783,8 @@ export function chooseTopicForSlot(diarySlot, context) {
       return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
     }
 
-    case 'flex_2': {
-      const pool = ['dev_update', 'token_spotlight', 'crypto_commentary'];
-      const sub = pickFlexTopic(pool, context);
-      const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
-      return { topic: sub, prompt, ogUrl, subTopic: sub, meta: { slot: diarySlot, flexPool: pool } };
-    }
-
     case 'flex_3': {
-      // Late night slot — pick whatever flex_1 and flex_2 didn't use
+      // Late night slot — pick from full flex pool
       const allFlex = ['personal_vibe', 'feature_showtime', 'token_spotlight', 'crypto_commentary'];
       const sub = pickFlexTopic(allFlex, context);
       const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
@@ -818,7 +831,7 @@ function pickFlexTopic(pool, context) {
 /**
  * Wrap existing buildPrompt() with diary framing per topic.
  */
-function buildDiaryPrompt(topic, context) {
+function buildDiaryPrompt(topic, context, extraOpts = {}) {
   const DIARY_FRAME = `DIARY FRAMING: Write as a work diary entry — genuine, in-the-moment, like you're narrating your day.`;
 
   switch (topic) {
@@ -836,41 +849,36 @@ function buildDiaryPrompt(topic, context) {
       return { prompt: diaryPrompt, ogUrl: null };
     }
 
-    case 'meme_forge': {
-      const { todayMemes } = context;
-      const memeCount = todayMemes.filter(m => m.imageUrl).length;
-      const memeList = todayMemes.slice(0, 3).map(m => {
-        const title = m.title || m.topText || 'Untitled';
-        return `- "${title}"${m.newsSource ? ` (${m.newsSource})` : ''}`;
-      }).join('\n');
+    case 'meme_share': {
+      const { meme } = extraOpts;
+      if (!meme) return buildDiaryPrompt('personal_vibe', context);
 
-      if (memeCount === 0) {
-        // No memes yet — text-only "memes in progress" post
-        return {
-          prompt: [
-            `TOPIC: Forge status update — memes are still cooking.`,
-            `Today's batch isn't ready yet. Tease what's coming.`,
-            `Mention that new memes drop daily on aimemeforge.io.`,
-            DIARY_FRAME,
-            `Keep it short and intriguing. No image today.`,
-          ].join('\n'),
-          ogUrl: SITE_URL,
-        };
-      }
+      const title = meme.title || meme.topText || 'Untitled';
+      const desc = meme.description || meme.bottomText || '';
+      const tokenSymbol = meme.tokenSymbol || null;
+      const xHandle = meme.xHandle || null;
+      const newsSource = meme.newsSource || null;
 
       return {
         prompt: [
-          `TOPIC: Forge report — today's batch is ready.`,
-          `You just finished forging ${memeCount} meme${memeCount > 1 ? 's' : ''} today:`,
-          memeList,
+          `TOPIC: Share a single meme you just forged — tell its story from the creator's perspective.`,
+          `You just forged this meme: "${title}"`,
+          desc ? `Description: ${desc}` : null,
+          newsSource ? `Inspired by: ${newsSource}` : null,
           ``,
-          `Reference the collection as a whole, not individual memes one by one.`,
-          `End with a CTA to check them out and vote on aimemeforge.io.`,
+          `STORYTELLING DIRECTION:`,
+          `- Write from the creator's POV — why you made this, what caught your eye, what you were feeling.`,
+          `- Be personal and specific about THIS meme, not generic forge hype.`,
+          `- React to the meme content itself — the joke, the visual, the timing.`,
+          tokenSymbol ? `- Mention $${tokenSymbol} naturally — this meme is connected to that token/project.` : null,
+          xHandle ? `- Tag ${xHandle} — they're relevant to this meme's story. If the post fails due to tagging, we'll retry without the tag automatically.` : null,
+          `- End with a CTA to vote on this meme.`,
+          ``,
           DIARY_FRAME,
-          `Keep your text under 220 chars — images and link will be attached automatically.`,
+          `Keep your text under 250 chars — one image and the OG link will be attached automatically.`,
           `Do NOT include any URL yourself. Just write the tweet text.`,
-        ].join('\n'),
-        ogUrl: SITE_URL,
+        ].filter(Boolean).join('\n'),
+        ogUrl: `${SITE_URL}/meme/${meme.id}`,
       };
     }
 

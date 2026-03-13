@@ -1828,12 +1828,13 @@ ${recentMemory.slice(-1500)}
     const sched = {
       date: today,
       slots: {
-        reward_recap: { window: [8, 8], status: 'external' },
-        news_digest:  { window: [9, 10], status: 'pending' },
-        meme_forge:   { window: [12, 13], status: 'pending' },
-        flex_1:       { window: [15, 16], status: 'pending' },
-        flex_2:       { window: [18, 19], status: 'pending' },
-        flex_3:       { window: [1, 3], status: 'pending' },
+        reward_recap:  { window: [8, 8], status: 'external' },
+        news_digest:   { window: [9, 10], status: 'pending' },
+        meme_share_1:  { window: [12, 13], status: 'pending' },
+        flex_1:        { window: [15, 16], status: 'pending' },
+        meme_share_2:  { window: [17, 18], status: 'pending' },
+        meme_share_3:  { window: [22, 23], status: 'pending' },
+        flex_3:        { window: [1, 3], status: 'pending' },
       },
       manualPostCount: 0,
     };
@@ -1978,11 +1979,38 @@ ${recentMemory.slice(-1500)}
 
     const currentHour = this._getGMT8Hour();
     const slots = this.diarySchedule.slots;
-    const slotOrder = ['news_digest', 'meme_forge', 'flex_1', 'flex_2', 'flex_3'];
+    const slotOrder = ['news_digest', 'meme_share_1', 'flex_1', 'meme_share_2', 'meme_share_3', 'flex_3'];
 
     // Count total posts today (done slots + manual posts)
     const doneCount = Object.values(slots).filter(s => s.status === 'done').length;
     const totalPostsToday = doneCount + (this.diarySchedule.manualPostCount || 0);
+
+    // Lazily assign today's memes to meme_share slots (persisted across heartbeats)
+    if (!this.diarySchedule.memeAssignments) {
+      try {
+        const res = await fetch('https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today');
+        if (res.ok) {
+          const data = await res.json();
+          const memes = (data.memes || []).filter(m => m.imageUrl);
+          // Fisher-Yates shuffle for random assignment
+          for (let i = memes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [memes[i], memes[j]] = [memes[j], memes[i]];
+          }
+          this.diarySchedule.memeAssignments = {
+            meme_share_1: memes[0]?.id || null,
+            meme_share_2: memes[1]?.id || null,
+            meme_share_3: memes[2]?.id || null,
+          };
+          this._saveDiarySchedule(this.diarySchedule);
+          const assigned = Object.values(this.diarySchedule.memeAssignments).filter(Boolean).length;
+          console.log(`[ChatMode] Meme assignments (${assigned}/3): ${JSON.stringify(this.diarySchedule.memeAssignments)}`);
+          if (assigned < 3) console.warn(`[ChatMode] ⚠️ Only ${assigned} memes available — some meme_share slots may be skipped`);
+        }
+      } catch (e) {
+        console.warn('[ChatMode] Failed to assign memes to slots:', e.message);
+      }
+    }
 
     for (const slotId of slotOrder) {
       const slot = slots[slotId];
@@ -2001,14 +2029,6 @@ ${recentMemory.slice(-1500)}
         continue;
       }
 
-      // Skip flex_2 if 5+ posts today
-      if (slotId === 'flex_2' && totalPostsToday >= 5) {
-        slot.status = 'skipped';
-        this._saveDiarySchedule(this.diarySchedule);
-        console.log(`[ChatMode] Diary slot flex_2: skipped (${totalPostsToday} posts today)`);
-        continue;
-      }
-
       // Randomize fire time within window (persist _readyAt so it's stable across heartbeats)
       if (!slot._readyAt) {
         // Random minute within the window
@@ -2020,16 +2040,32 @@ ${recentMemory.slice(-1500)}
 
       if (currentHour < slot._readyAt) continue; // Not ready yet
 
+      // Defer meme_share slots if meme assignments aren't ready yet (memes may still be generating)
+      if (slotId.startsWith('meme_share_') && !this.diarySchedule.memeAssignments?.[slotId]) {
+        // Still within window — wait for next heartbeat (memes may appear)
+        if (currentHour <= winEnd) {
+          console.log(`[ChatMode] Diary slot ${slotId}: deferred (meme not assigned yet, waiting for memes)`);
+          continue;
+        }
+        // Past window — mark missed rather than posting personal_vibe
+        slot.status = 'missed';
+        this._saveDiarySchedule(this.diarySchedule);
+        console.log(`[ChatMode] Diary slot ${slotId}: missed (meme never assigned)`);
+        continue;
+      }
+
       // Fire this slot!
       console.log(`[ChatMode] Diary slot ${slotId}: firing at ${currentHour.toFixed(2)} GMT+8...`);
       this._lastDiaryFireTime = Date.now();
 
       try {
         const { autoPost } = await import('./skills/x_twitter/index.js');
+        const assignedMemeId = this.diarySchedule.memeAssignments?.[slotId] || null;
         const result = await autoPost({
           baseDir: this.baseDir,
           grokApiKey: this.grokApiKey,
           diarySlot: slotId,
+          assignedMemeId,
         });
 
         if (result.success) {
@@ -2062,11 +2098,11 @@ ${recentMemory.slice(-1500)}
             }
           }
 
-          // Event-driven ambient log: forging after meme_forge slot
-          if (slotId === 'meme_forge') {
+          // Event-driven ambient log: forging after first meme share
+          if (slotId === 'meme_share_1') {
             import('./skills/x_twitter/x-context.js').then(m =>
               m.logAmbientEntry(this.baseDir, 'forging', this.grokApiKey, { memeTitle: result.text?.slice(0, 60) })
-            ).catch(e => console.warn('[ChatMode] Ambient log (meme_forge) failed:', e.message));
+            ).catch(e => console.warn('[ChatMode] Ambient log (meme_share) failed:', e.message));
           }
         } else {
           slot.status = 'failed';
