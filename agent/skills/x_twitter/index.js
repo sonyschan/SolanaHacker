@@ -12,6 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { gatherContext, chooseTopic, chooseTopicForSlot, logPost, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
+import { generateNewsImage } from './news-image.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
 const MEMEYA_PROMPT_BASE = `You are Memeya, the digital blacksmith who owns and runs AiMemeForge.
@@ -608,8 +609,23 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null, assigned
     accessSecret,
   });
 
-  // Multi-image upload (for meme_share slots)
   let mediaIds = [];
+
+  // Generate newspaper banner for news_digest (after tweet text is ready)
+  if (topicChoice.topic === 'news_digest' && tweet) {
+    try {
+      const newsImg = await generateNewsImage(tweet);
+      if (newsImg) {
+        const mediaId = await userClient.v1.uploadMedia(newsImg.buffer, { mimeType: newsImg.mimeType });
+        mediaIds.push(mediaId);
+        console.log(`[autoPost] News banner uploaded → ${mediaId}`);
+      }
+    } catch (err) {
+      console.warn(`[autoPost] News image generation failed (non-fatal): ${err.message}`);
+    }
+  }
+
+  // Multi-image upload (for meme_share slots)
   if (topicChoice.memeImages && topicChoice.memeImages.length > 0) {
     console.log(`[autoPost] Uploading ${topicChoice.memeImages.length} meme images...`);
     for (const img of topicChoice.memeImages) {

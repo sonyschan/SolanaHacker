@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
+    "@google/generative-ai": "^0.24.1",
+    "@virtuals-protocol/acp-node": "^0.3.0-beta.38",
     "dotenv": "^16.4.0",
+    "ethers": "^6.16.0",
     "node-telegram-bot-api": "^0.66.0",
     "playwright": "^1.41.0",
-    "twitter-api-v2": "^1.29.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "twitter-api-v2": "^1.29.0"
   }
 }
