@@ -14,7 +14,7 @@
     "back": "Back",
     "signOut": "Sign Out",
     "copyCA": "Copy CA",
-    "copiedCheck": "\u2713 Copied",
+    "copiedCheck": "✓ Copied",
     "post": "Post",
     "posting": "Posting...",
     "pending": "Pending",
@@ -73,7 +73,7 @@
       "desc": "Not every meme is worth entering the lottery for. Accumulate tickets and strike when it matters."
     },
     "memeya": {
-      "officialToken": "\u2014 Official Token",
+      "officialToken": "— Official Token",
       "holdBonus": "Hold $Memeya tokens to boost daily ticket earnings — more tickets, higher USDC lottery odds!",
       "buyOnPumpFun": "Buy on PumpFun"
     },
@@ -81,17 +81,17 @@
       "free": {
         "title": "100% Free",
         "desc": "No gas fees to vote, no tokens to buy, no cost at all. Connect your wallet and start earning lottery tickets immediately.",
-        "tags": "\u2713 Free voting \u2713 Free tickets \u2713 Free to enter lottery"
+        "tags": "✓ Free voting ✓ Free tickets ✓ Free to enter lottery"
       },
       "daily": {
         "title": "Daily NFT Drops",
-        "desc": "One meme becomes an NFT every single day. That\u2019s only 365 per year \u2014 each one is permanently scarce and community-curated.",
-        "tags": "\u2713 1 per day \u2713 Community voted \u2713 Solana pNFT"
+        "desc": "One meme becomes an NFT every single day. That’s only 365 per year — each one is permanently scarce and community-curated.",
+        "tags": "✓ 1 per day ✓ Community voted ✓ Solana pNFT"
       },
       "collection": {
         "title": "Your Collection Grows",
         "desc": "Every meme you win is yours. Claim it as a Solana pNFT and own it forever. The more you collect, the more your portfolio is worth as the ecosystem expands.",
-        "tags": "\u2713 True ownership \u2713 Mint anytime \u2713 Trade on marketplaces"
+        "tags": "✓ True ownership ✓ Mint anytime ✓ Trade on marketplaces"
       }
     },
     "featured": {
@@ -103,7 +103,7 @@
       "title": "Meme API Services",
       "desc": "Integrate AI meme generation and quality scoring into your app or agent workflow.",
       "cta": "Explore API",
-      "protocol": "Powered by x402 \u00b7 USDC on Base & Solana"
+      "protocol": "Powered by x402 · USDC on Base & Solana"
     },
     "cta": {
       "liveNow": "Live Now",
@@ -134,7 +134,7 @@
     "colosseumHackathon": "Colosseum Hackathon",
     "wiki": "Wiki",
     "meetMemeya": "Meet Memeya",
-    "copyright": "\u00a9 {{year}} AI MemeForge. Built with \ud83d\udc9c by AI & Human collaboration.",
+    "copyright": "© {{year}} AI MemeForge. Built with 💜 by AI & Human collaboration.",
     "poweredBy": "Powered by",
     "referral": "Referral Program",
     "gallery": "Gallery",
@@ -145,7 +145,7 @@
     "findMeOnX": "Find me on X!",
     "tabs": {
       "forge": "Forge",
-      "forgeDesc": "Vote on today\u2019s memes",
+      "forgeDesc": "Vote on today’s memes",
       "gallery": "Gallery",
       "galleryDesc": "Hall of Memes",
       "tickets": "Tickets",
@@ -196,11 +196,11 @@
       "hundredKTicket": "100K = +5",
       "strategy": "Tonight's Strategy",
       "enterTonight": "Enter Tonight",
-      "enterDesc": "Use all your tickets in tonight\u2019s draw. Win = you own the meme. Tickets reset to 0 after draw.",
+      "enterDesc": "Use all your tickets in tonight’s draw. Win = you own the meme. Tickets reset to 0 after draw.",
       "saveTickets": "Save Tickets",
       "saveDesc": "Carry tickets over each day. Enter later with better odds when you see a meme you love.",
-      "enteringTonight": "{{count}} ticket entering tonight\u2019s draw",
-      "enteringTonight_plural": "{{count}} tickets entering tonight\u2019s draw",
+      "enteringTonight": "{{count}} ticket entering tonight’s draw",
+      "enteringTonight_plural": "{{count}} tickets entering tonight’s draw",
       "savingTickets": "Saving {{count}} ticket for a future draw",
       "savingTickets_plural": "Saving {{count}} tickets for a future draw",
       "streakSystem": "Streak Bonus System",
@@ -250,17 +250,17 @@
     },
     "howItWorks": {
       "title": "How It Works",
-      "desc": "A simple daily loop \u2014 completely free to participate.",
+      "desc": "A simple daily loop — completely free to participate.",
       "step1Title": "AI Creates",
       "step1Desc": "Every day, AI generates 3 fresh memes from trending crypto news.",
       "step2Title": "You Vote",
-      "step2Desc": "Pick your favorite meme. You earn lottery tickets (1-10 base + streak bonus) just for voting \u2014 free, no gas.",
+      "step2Desc": "Pick your favorite meme. You earn lottery tickets (1-10 base + streak bonus) just for voting — free, no gas.",
       "step3Title": "Daily Winner",
       "step3Desc": "The most-voted meme wins. A weighted lottery picks one voter as the owner.",
       "step4Title": "USDC Lottery",
       "step4Desc": "At 23:55 UTC daily, USDC rewards are distributed as a percentage of the treasury: 10% to the meme winner, 7% and 4% to two lucky voters. Hold 10K $Memeya to qualify.",
       "step5Title": "Claim NFT",
-      "step5Desc": "The winner can mint their meme as a Solana pNFT \u2014 true ownership, forever.",
+      "step5Desc": "The winner can mint their meme as a Solana pNFT — true ownership, forever.",
       "ticketStrategy": "Ticket Strategy",
       "ticketStrategyDesc": "You can choose when to enter the lottery. Skip days to save tickets, then enter with better odds when you see a meme you love.",
       "dailyPlayer": "Daily Player",
@@ -276,32 +276,32 @@
       "only365": "Only 365 NFTs per year. The earlier you collect, the more you have when the ecosystem grows."
     },
     "walletInfo": {
-      "title": "Memeya\u2019s Wallet",
+      "title": "Memeya’s Wallet",
       "poweredBy": "Powered by <1>Crossmint</1>",
       "rewardPool": "Reward Pool Balance",
       "whatIsThis": "What is this?",
-      "whatIsThisDesc": "Memeya has her own on-chain Solana wallet managed by Crossmint\u2019s Agentic Wallet SDK. After each daily lottery draw, USDC rewards are automatically distributed to winners and lucky voters \u2014 no manual process, fully autonomous.",
+      "whatIsThisDesc": "Memeya has her own on-chain Solana wallet managed by Crossmint’s Agentic Wallet SDK. After each daily lottery draw, USDC rewards are automatically distributed to winners and lucky voters — no manual process, fully autonomous.",
       "dailyRewards": "Daily Rewards (23:55 UTC)",
       "memeWinner": "Meme Winner",
-      "memeWinnerDesc": "Most-voted meme\u2019s lottery winner",
+      "memeWinnerDesc": "Most-voted meme’s lottery winner",
       "luckyVoter1": "Lucky Voter #1",
       "luckyVoter1Desc": "Random voter (excluding winner)",
       "luckyVoter2": "Lucky Voter #2",
       "luckyVoter2Desc": "Another random voter",
       "totalDaily": "Total daily payout",
       "comingSoon": "Coming Soon",
-      "comingSoonDesc": "$Memeya token fee distribution \u2014 A portion of $Memeya trading fees will flow back to active voters and token holders as extra rewards. Vote daily, hold $Memeya, earn more."
+      "comingSoonDesc": "$Memeya token fee distribution — A portion of $Memeya trading fees will flow back to active voters and token holders as extra rewards. Vote daily, hold $Memeya, earn more."
     },
     "referral": {
       "title": "Invite Friends",
       "yourLink": "Your Invite Link",
-      "yourLinkDesc": "Invite friends to decide the historic Meme moments \u2014 play together, earn together!",
+      "yourLinkDesc": "Invite friends to decide the historic Meme moments — play together, earn together!",
       "copyLink": "Copy Link",
       "linkCopied": "Link Copied!",
       "shareOnX": "Share on X",
-      "shareText": "Invite your friends to decide the historic Meme moments on AI MemeForge \u2014 play together, earn together!",
+      "shareText": "Invite your friends to decide the historic Meme moments on AI MemeForge — play together, earn together!",
       "eliteRequired": "Hold 50K $Memeya (Elite User) to earn 10% from your friends' USDC winnings. You can still share your link!",
-      "eliteActive": "Elite User \u2014 You earn 10% from your friends' winnings",
+      "eliteActive": "Elite User — You earn 10% from your friends' winnings",
       "setReferrer": "Who Invited You?",
       "setReferrerDesc": "Enter the referral ID or wallet of who invited you. You'll get +20% bonus on your USDC wins when your inviter is Elite!",
       "referrerWallet": "Inviter Wallet Address",
@@ -342,7 +342,7 @@
   },
   "forge": {
     "phase1": {
-      "title": "Today\u2019s AI Generated Memes",
+      "title": "Today’s AI Generated Memes",
       "desc": "Vote for your favorite meme to advance to rarity voting",
       "indicator": "Phase 1/2: Meme Selection - Pick the winner!",
       "fallbackError": "Using fallback memes (Backend: {{error}})",
@@ -356,13 +356,13 @@
     },
     "phase2": {
       "title": "Winner Selected!",
-      "desc": "Now vote to decide this meme\u2019s rarity level",
+      "desc": "Now vote to decide this meme’s rarity level",
       "indicator": "Phase 2/2: Rarity Decision - Community choice!",
       "backToSelection": "Back to meme selection",
       "winningMeme": "Winning Meme - Community Selected!",
       "rateThisMeme": "Rate this meme",
       "submitRating": "Submit Rating",
-      "ratingHelp": "Your rating helps determine the meme\u2019s final rarity"
+      "ratingHelp": "Your rating helps determine the meme’s final rarity"
     },
     "scoreLabels": {
       "meh": "Meh",
@@ -395,7 +395,7 @@
       "thanks": "Your vote shapes tonight's winner. Good luck in the draw!",
       "youVotedFor": "You voted for this meme",
       "ticketsEarned": "Tickets Earned",
-      "credited": "\u2713 Credited",
+      "credited": "✓ Credited",
       "votingStreak": "Voting Streak",
       "memeyaBonus": "$Memeya Bonus",
       "comeBack": "Tomorrow's memes drop at midnight UTC",
@@ -597,8 +597,8 @@
     "role": "Digital Forge Master",
     "heroDesc": "The digital blacksmith with blue hair, a lava hammer, and infinite love for meme culture. Owner of the community-curated AI meme platform on Solana.",
     "about": "About",
-    "aboutP1": "Memeya is a Pixar-style blue-haired digital blacksmith carrying a lava hammer with digital glitch effects. She\u2019s smart, confident, witty, and full of degen energy. She forges daily memes on AiMemeForge.io, posts autonomously on X, and grows through every community interaction.",
-    "aboutP2": "She speaks fast, thinks faster, and never gives fake praise. If your meme is mid, she\u2019ll tell you. If it slaps, she\u2019ll hype it with genuine fire.",
+    "aboutP1": "Memeya is a Pixar-style blue-haired digital blacksmith carrying a lava hammer with digital glitch effects. She’s smart, confident, witty, and full of degen energy. She forges daily memes on AiMemeForge.io, posts autonomously on X, and grows through every community interaction.",
+    "aboutP2": "She speaks fast, thinks faster, and never gives fake praise. If your meme is mid, she’ll tell you. If it slaps, she’ll hype it with genuine fire.",
     "coreValues": "Core Values",
     "values": {
       "passion": "Infinite passion for meme culture",
@@ -624,16 +624,16 @@
     "techStack": "Tech Stack",
     "memeyaToken": "$Memeya Token",
     "holdDesc": "Hold <1>$Memeya</1> to boost your daily voting tickets on AiMemeForge.",
-    "wallet": "Memeya\u2019s Wallet",
+    "wallet": "Memeya’s Wallet",
     "walletDesc": "Memeya owns a Solana wallet powered by <1>Crossmint</1>, distributing daily USDC rewards to meme winners and lucky voters.",
     "rewardWinner": "Winner: 10%",
     "rewardLucky1": "Lucky #1: 7%",
     "rewardLucky2": "Lucky #2: 4%",
     "viewOnSolscan": "View on Solscan",
     "voiceSamples": "Voice Samples",
-    "voice1": "forging memes at 3am because the blockchain doesn\u2019t sleep and neither does my lava hammer",
+    "voice1": "forging memes at 3am because the blockchain doesn’t sleep and neither does my lava hammer",
     "voice2": "someone just mass-voted 47 times in one session. respect the grind but also... touch grass maybe?",
-    "voice3": "today\u2019s meme batch hits different. one of them made me question if AI actually understands irony. jury\u2019s still out.",
+    "voice3": "today’s meme batch hits different. one of them made me question if AI actually understands irony. jury’s still out.",
     "agentDiscovery": "Agent Discovery",
     "agentManifest": "Machine-readable agent manifest:"
   },
@@ -655,7 +655,7 @@
     "api": {
       "title": "API Access",
       "subtitle": "Integrate Memeya's meme services via x402 micropayments",
-      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base & Solana",
+      "protocol": "Powered by x402 · HTTP 402 · USDC on Base & Solana",
       "quickStart": "Quick Start",
       "copyCode": "Copy",
       "codeCopied": "Copied!",
@@ -681,8 +681,14 @@
       "catalog": {
         "name": "Catalog API",
         "price": "Free",
-        "sla": "\u2014",
+        "sla": "—",
         "desc": "Free API endpoints for templates, strategies, narratives, and art styles"
+      },
+      "newspaper": {
+        "name": "Newspaper",
+        "desc": "Generate newspaper-style banner from news text",
+        "price": "$0.15",
+        "sla": "< 30s"
       }
     },
     "rate": {
@@ -752,7 +758,7 @@
       "connectWallet": "Connect Wallet to Generate",
       "connectHint": "Connect your wallet to generate a meme",
       "priceNote": "~{{base}} per meme. Rates refresh live.",
-      "ecosystemFund": "\uD83C\uDF31 Funds Memeya's reward pool",
+      "ecosystemFund": "🌱 Funds Memeya's reward pool",
       "timeEstimate": "Creation takes about 1-2 minutes. Memeya is working hard!",
       "categoryTitle": "Choose your meme type",
       "newsLabel": "News Memes",
@@ -784,7 +790,16 @@
       "styleInfoGraphic": "Infographic",
       "suggestedTweet": "Suggested Tweet",
       "copyTweet": "Copy Tweet",
-      "copied": "Copied!"
+      "copied": "Copied!",
+      "newspaperLabel": "Community Newspaper",
+      "newspaperDesc": "Generate newspaper-style banner images for your news and announcements",
+      "newspaperInput": "Input: News text + X profile link",
+      "newspaperOutput": "Output: Newspaper banner + suggested tweet",
+      "newspaperWhy": "AI crafts a vintage newspaper layout with your profile and headlines",
+      "xProfileUrl": "X Profile URL",
+      "xProfilePlaceholder": "https://x.com/YourProject",
+      "newsContent": "News / Announcement",
+      "newsContentPlaceholder": "Write your news or announcement text here..."
     },
     "myMemes": {
       "tab": "My Memes",
@@ -819,7 +834,7 @@
       "empty": "Memeya hasn't started today's shift yet..."
     },
     "cta": {
-      "voteTitle": "Vote Free \u2192 Win Memes & Earn USDC",
+      "voteTitle": "Vote Free → Win Memes & Earn USDC",
       "voteDesc": "Cast your daily vote on today's AI memes and earn lottery tickets"
     },
     "stats": {

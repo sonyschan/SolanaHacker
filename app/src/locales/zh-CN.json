@@ -14,7 +14,7 @@
     "back": "返回",
     "signOut": "登出",
     "copyCA": "复制合约地址",
-    "copiedCheck": "\u2713 已复制",
+    "copiedCheck": "✓ 已复制",
     "post": "发布",
     "posting": "发布中...",
     "pending": "处理中",
@@ -81,17 +81,17 @@
       "free": {
         "title": "100% 免费",
         "desc": "投票无需 Gas 费，无需购买代币，完全零成本。连接钱包即可立即开始赚取抽奖票券。",
-        "tags": "\u2713 免费投票 \u2713 免费票券 \u2713 免费参与抽奖"
+        "tags": "✓ 免费投票 ✓ 免费票券 ✓ 免费参与抽奖"
       },
       "daily": {
         "title": "每日 NFT 投放",
         "desc": "每天有一个梗图成为 NFT。每年仅 365 个 — 每一个都是永久稀缺的，由社区投票选出。",
-        "tags": "\u2713 每日 1 个 \u2713 社区投票 \u2713 Solana pNFT"
+        "tags": "✓ 每日 1 个 ✓ 社区投票 ✓ Solana pNFT"
       },
       "collection": {
         "title": "你的收藏不断增长",
         "desc": "每个赢得的梗图都属于你。将其铸造为 Solana pNFT 并永久拥有。收集越多，随着生态扩展你的资产价值越高。",
-        "tags": "\u2713 真正所有权 \u2713 随时铸造 \u2713 在市场交易"
+        "tags": "✓ 真正所有权 ✓ 随时铸造 ✓ 在市场交易"
       }
     },
     "featured": {
@@ -134,7 +134,7 @@
     "colosseumHackathon": "Colosseum 黑客松",
     "wiki": "百科",
     "meetMemeya": "认识 Memeya",
-    "copyright": "\u00a9 {{year}} AI MemeForge。由 AI 与人类协作共同打造 \ud83d\udc9c",
+    "copyright": "© {{year}} AI MemeForge。由 AI 与人类协作共同打造 💜",
     "poweredBy": "技术驱动",
     "referral": "推荐计划",
     "gallery": "画廊",
@@ -395,7 +395,7 @@
       "thanks": "你的投票将影响今晚的赢家。祝好运！",
       "youVotedFor": "你投票给了这个梗图",
       "ticketsEarned": "获得票券",
-      "credited": "\u2713 已入账",
+      "credited": "✓ 已入账",
       "votingStreak": "投票连续天数",
       "memeyaBonus": "$Memeya 加成",
       "comeBack": "明天的迷因将在 UTC 午夜上线",
@@ -655,7 +655,7 @@
     "api": {
       "title": "API 访问",
       "subtitle": "通过 x402 微支付整合 Memeya 的梗图服务",
-      "protocol": "Powered by x402 \u00b7 HTTP 402 \u00b7 USDC on Base & Solana",
+      "protocol": "Powered by x402 · HTTP 402 · USDC on Base & Solana",
       "quickStart": "快速开始",
       "copyCode": "复制",
       "codeCopied": "已复制!",
@@ -681,8 +681,14 @@
       "catalog": {
         "name": "目录 API",
         "price": "Free",
-        "sla": "\u2014",
+        "sla": "—",
         "desc": "免费 API 端点：模板、策略、叙事、艺术风格"
+      },
+      "newspaper": {
+        "name": "报纸",
+        "desc": "从新闻文字生成报纸风格横幅",
+        "price": "$0.15",
+        "sla": "< 30 秒"
       }
     },
     "rate": {
@@ -752,7 +758,7 @@
       "connectWallet": "连接钱包开始创作",
       "connectHint": "连接钱包以生成 meme",
       "priceNote": "每张约 {{base}}，实时汇率更新。",
-      "ecosystemFund": "\uD83C\uDF31 资金注入 Memeya 奖励池",
+      "ecosystemFund": "🌱 资金注入 Memeya 奖励池",
       "timeEstimate": "创作约需 1-2 分钟，Memeya 正在努力中！",
       "categoryTitle": "选择迷因类型",
       "newsLabel": "新闻梗图",
@@ -784,7 +790,16 @@
       "styleInfoGraphic": "信息图表",
       "suggestedTweet": "建议推文",
       "copyTweet": "复制推文",
-      "copied": "已复制！"
+      "copied": "已复制！",
+      "newspaperLabel": "社区报纸",
+      "newspaperDesc": "为你的新闻和公告生成报纸风格的横幅图片",
+      "newspaperInput": "输入：新闻内容 + X 个人链接",
+      "newspaperOutput": "输出：报纸横幅 + 建议推文",
+      "newspaperWhy": "AI 打造复古报纸版面，搭配你的头像和标题",
+      "xProfileUrl": "X 个人页面链接",
+      "xProfilePlaceholder": "https://x.com/YourProject",
+      "newsContent": "新闻 / 公告",
+      "newsContentPlaceholder": "在此输入你的新闻或公告内容..."
     },
     "myMemes": {
       "tab": "我的 Meme",
@@ -819,7 +834,7 @@
       "empty": "Memeya 今天还没开始工作..."
     },
     "cta": {
-      "voteTitle": "免费投票 \u2192 赢取 Meme & 赚取 USDC",
+      "voteTitle": "免费投票 → 赢取 Meme & 赚取 USDC",
       "voteDesc": "为今日 AI Meme 投票，获得抽奖券"
     },
     "stats": {

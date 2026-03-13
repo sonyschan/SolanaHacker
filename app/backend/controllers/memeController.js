@@ -1221,12 +1221,182 @@ Respond with ONLY the tweet text.`;
   return { meme: memeDoc, suggestedTweet };
 }
 
+
+/**
+ * Generate a newspaper-style banner image from user-provided news/announcement text.
+ * Uses the same Gemini image generation as the agent's news_digest feature.
+ */
+async function generateCommunityNewspaper({ description, xProfileUrl }) {
+  console.log(`📰 Newspaper: generating banner — "${description.slice(0, 60)}..."`);
+
+  // 1. Extract headlines from description using Gemini text model
+  let mainHeadline = '';
+  let subHeadlines = [];
+  try {
+    const headlinePrompt = `You are a newspaper editor. Extract newspaper headlines from this text.
+
+TEXT: ${description}
+
+Requirements:
+- Main headline: max 60 characters, punchy and attention-grabbing
+- Sub-headlines: 2-4 supporting points, each max 80 characters
+- Newspaper style — authoritative, factual tone
+- NEVER fabricate specific numbers, dollar amounts, or stats not in the original text
+
+Respond with ONLY valid JSON (no markdown fences):
+{
+  "mainHeadline": "...",
+  "subHeadlines": ["...", "..."]
+}`;
+    const headlineResult = await geminiService.textModel.generateContent(headlinePrompt);
+    let headlineText = (await headlineResult.response).text().trim();
+    // Strip markdown code fences if present
+    headlineText = headlineText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '');
+    const parsed = JSON.parse(headlineText.match(/\{[\s\S]*\}/)?.[0] || headlineText);
+    mainHeadline = parsed.mainHeadline || description.slice(0, 60);
+    subHeadlines = Array.isArray(parsed.subHeadlines) ? parsed.subHeadlines.slice(0, 4) : [];
+  } catch (err) {
+    console.warn('📰 Newspaper: headline extraction failed:', err.message);
+    mainHeadline = description.slice(0, 60);
+    subHeadlines = [];
+  }
+
+  // 2. Fetch X profile picture (or fall back to Memeya PFP)
+  let pfpBase64 = null;
+  let pfpMimeType = 'image/png';
+  let pfpUsername = 'AiMemeForgeIO';
+
+  if (xProfileUrl) {
+    try {
+      const urlMatch = xProfileUrl.match(/(?:x\.com|twitter\.com)\/([^/?#]+)/);
+      if (urlMatch) pfpUsername = urlMatch[1];
+    } catch { /* use default */ }
+  }
+
+  try {
+    const pfpUrl = `https://unavatar.io/x/${pfpUsername}`;
+    const pfpRes = await fetch(pfpUrl, { signal: AbortSignal.timeout(8000) });
+    if (pfpRes.ok) {
+      const buf = Buffer.from(await pfpRes.arrayBuffer());
+      pfpBase64 = buf.toString('base64');
+      pfpMimeType = pfpRes.headers.get('content-type') || 'image/png';
+    }
+  } catch (pfpErr) {
+    console.warn('📰 Newspaper: PFP fetch failed, trying Memeya fallback:', pfpErr.message);
+    // Try Memeya fallback if non-default username failed
+    if (pfpUsername !== 'AiMemeForgeIO') {
+      try {
+        const fallbackRes = await fetch('https://unavatar.io/x/AiMemeForgeIO', { signal: AbortSignal.timeout(8000) });
+        if (fallbackRes.ok) {
+          const buf = Buffer.from(await fallbackRes.arrayBuffer());
+          pfpBase64 = buf.toString('base64');
+          pfpMimeType = fallbackRes.headers.get('content-type') || 'image/png';
+        }
+      } catch { /* best-effort */ }
+    }
+  }
+
+  // 3. Generate newspaper banner image
+  const now = new Date(Date.now() + 8 * 60 * 60 * 1000); // GMT+8
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const imagePrompt = [
+    'Create a newspaper-style HERO BANNER image (landscape 16:9 ratio).',
+    '',
+    'DESIGN SPECIFICATIONS:',
+    '- BACKGROUND: Vintage yellowed/aged paper texture with subtle fold lines and coffee stain marks',
+    '- MASTHEAD: "THE CRYPTO CHRONICLE" in large ornate serif font at the top center, with decorative rule lines above and below',
+    `- DATE LINE: "${dateStr} | Digital Edition" in small italicized serif font below masthead`,
+    `- MAIN HEADLINE: "${mainHeadline}" in bold black serif font (largest text element), centered below date line`,
+    subHeadlines.length > 0 ? `- SUB-HEADLINES: ${subHeadlines.map((h, i) => `"${h}"`).join(', ')} in smaller serif font below the main headline, separated by thin rule lines` : '',
+    '- WATERMARK: Faint candlestick chart pattern in the background behind the text, very subtle',
+    '- LAYOUT: Classic broadsheet newspaper layout with column dividers',
+    pfpBase64 ? '- TOP-RIGHT CORNER: Place the provided reference profile picture in a circular frame with a small "Morning Intel" label underneath it. Do NOT redraw or modify the profile picture — use it exactly as provided.' : '',
+    '',
+    'STYLE: Vintage newspaper aesthetic, sepia-toned, professional journalism look.',
+    'TYPOGRAPHY: All text must use serif fonts (like Times New Roman or Georgia).',
+    'CRITICAL: Text must be clearly legible. This is a newspaper — text readability is the #1 priority.',
+    'CRITICAL LOGO RULE: If a reference profile picture is provided, place it EXACTLY as-is — do NOT redraw, restyle, or reinterpret it. It must appear pixel-perfect as a sticker overlay.',
+  ].filter(Boolean).join('\n');
+
+  let imageData;
+  const referenceImages = [];
+  if (pfpBase64) {
+    referenceImages.push({ data: pfpBase64, mimeType: pfpMimeType, label: pfpUsername });
+  }
+
+  try {
+    if (referenceImages.length > 0 && typeof geminiService.generateMemeImageWithReferences === 'function') {
+      imageData = await geminiService.generateMemeImageWithReferences(imagePrompt, referenceImages);
+    } else {
+      imageData = await geminiService.generateMemeImage(imagePrompt);
+    }
+  } catch (imgErr) {
+    console.warn('📰 Newspaper: image generation with refs failed, falling back:', imgErr.message);
+    imageData = await geminiService.generateMemeImage(imagePrompt);
+  }
+
+  // 4. Generate title + tags
+  const headlineIdea = { caption: mainHeadline, visual_description: description, emotion: 'informative', twist: '' };
+  const title = await geminiService.generateMemeTitle(headlineIdea);
+  const tags = await geminiService.generateMemeTags(headlineIdea, description);
+
+  // 5. Generate suggested tweet
+  let suggestedTweet = '';
+  try {
+    const tweetPrompt = `Write a single tweet (max 250 chars) summarizing this news for a crypto community.
+
+NEWS: ${description}
+HEADLINE: ${mainHeadline}
+
+Rules:
+- Informative and authoritative tone
+- Use 1-2 relevant emojis
+- NO hashtag spam (max 1 hashtag if natural)
+- Keep under 250 chars
+- NEVER fabricate numbers or stats not in the original text
+
+Respond with ONLY the tweet text.`;
+    const tweetResult = await geminiService.textModel.generateContent(tweetPrompt);
+    suggestedTweet = (await tweetResult.response).text().trim().replace(/^["']|["']$/g, '');
+  } catch (tweetErr) {
+    console.warn('📰 Newspaper: tweet generation failed:', tweetErr.message);
+    suggestedTweet = description.slice(0, 240);
+  }
+
+  // 6. Build document and save to Firestore
+  const memeDoc = {
+    id: `newspaper_${Date.now()}_${uuidv4().slice(0, 8)}`,
+    title,
+    description: description,
+    imageUrl: imageData.imageUrl || imageData.fallbackUrl,
+    newsSource: description,
+    generatedAt: new Date().toISOString(),
+    type: 'newspaper',
+    style: 'newspaper',
+    tags,
+    metadata: {
+      source: 'lab',
+      aiModel: 'gemini-3-pro-image-preview',
+      xProfileUrl: xProfileUrl || null,
+      headlines: { mainHeadline, subHeadlines },
+    },
+  };
+
+  await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
+  console.log(`📰 Newspaper: saved ${memeDoc.id}`);
+
+  // 7. Return result
+  return { meme: memeDoc, suggestedTweet };
+}
+
 module.exports = {
   generateMeme,
   generateDailyMemes,
   generateSingleMeme,
   generateCollabMeme,
   generateCommunityMeme,
+  generateCommunityNewspaper,
   getMemes,
   getTodaysMemes,
   getMemeById,

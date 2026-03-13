@@ -141,6 +141,41 @@ const ROUTES = [
       }),
     },
   },
+  {
+    key: 'POST /generate-newspaper',
+    price: '$0.15',
+    description: 'Generate a newspaper-style banner image from news/announcement text',
+    mimeType: 'application/json',
+    extensions: {
+      ...declareDiscoveryExtension({
+        input: {
+          description: 'BTC hits new ATH as institutional demand surges post-ETF approval',
+          xProfileUrl: 'https://x.com/AiMemeForgeIO',
+        },
+        inputSchema: {
+          properties: {
+            description: { type: 'string', description: 'News or announcement text (max 500 chars)' },
+            xProfileUrl: { type: 'string', description: 'X/Twitter profile URL for avatar (optional)' },
+          },
+          required: ['description'],
+        },
+        output: {
+          example: {
+            success: true,
+            meme: {
+              id: 'newspaper_123',
+              title: 'BTC New ATH',
+              imageUrl: 'https://storage.googleapis.com/memeforge-images-web3ai/memes/newspaper_123.jpg',
+              description: 'BTC hits new ATH...',
+              tags: ['bitcoin', 'ath', 'etf'],
+            },
+            suggestedTweet: 'Bitcoin just shattered records',
+          },
+        },
+        bodyType: 'json',
+      }),
+    },
+  },
 ];
 
 // ── Cached middleware instance ────────────────────────────────────────

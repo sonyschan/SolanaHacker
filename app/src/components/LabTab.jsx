@@ -33,6 +33,7 @@ const MEME_PRICES = {
   news: 0.10,       // News Memes (generate-custom)
   generate: 0.10,   // x402 API alias for news/generate-custom
   community: 0.15,  // Community Memes (generate-community)
+  newspaper: 0.15,  // Community Newspaper (generate-newspaper)
   rate: 0.05,       // Rate a Meme
 };
 
@@ -213,6 +214,52 @@ const res = await fetchPaid('${base}/api/memes/generate-community', {
 });
 const { meme, suggestedTweet } = await res.json();`,
   },
+  newspaper: {
+    base: (base) => `npm install @x402/fetch @x402/evm viem
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = new x402Client();
+const account = privateKeyToAccount('0x...');
+registerExactEvmScheme(client, { signer: account });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a community newspaper — $0.15 USDC on Base
+const res = await fetchPaid('\${base}/api/memes/generate-newspaper', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    description: 'BTC hits new ATH as institutional demand surges',
+    xProfileUrl: 'https://x.com/YourProject',
+  }),
+});
+const { meme, suggestedTweet } = await res.json();`,
+    solana: (base) => `npm install @x402/fetch @x402/svm @solana/signers bs58
+
+import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
+import { registerExactSvmScheme } from '@x402/svm/exact/client';
+import { createKeyPairSignerFromBytes } from '@solana/signers';
+import bs58 from 'bs58';
+
+const client = new x402Client();
+const keyBytes = bs58.decode('your-base58-secret-key');
+const signer = await createKeyPairSignerFromBytes(keyBytes);
+registerExactSvmScheme(client, { signer });
+const fetchPaid = wrapFetchWithPayment(fetch, client);
+
+// Generate a community newspaper — $0.15 USDC on Solana (gas sponsored by Dexter)
+const res = await fetchPaid('\${base}/api/memes/generate-newspaper', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    description: 'BTC hits new ATH as institutional demand surges',
+    xProfileUrl: 'https://x.com/YourProject',
+  }),
+});
+const { meme, suggestedTweet } = await res.json();`,
+  },
   catalog: (base) => `// Browse catalog — Free, no x402 needed
 
 // Art styles
@@ -254,9 +301,10 @@ const LabTab = ({ publicMode = false }) => {
   const [activePanel, setActivePanel] = useState(publicMode ? 'create' : 'rate');
 
   // ── Create tab state ──────────────────────────────────────
-  const [createCategory, setCreateCategory] = useState(null); // null | 'news' | 'community'
+  const [createCategory, setCreateCategory] = useState(null); // null | 'news' | 'community' | 'newspaper'
   const [createTopic, setCreateTopic] = useState('');
   const [communityForm, setCommunityForm] = useState({ xAccount: '', description: '', tone: 'hype', style: 'meme' });
+  const [newspaperForm, setNewspaperForm] = useState({ xProfileUrl: '', description: '' });
   const [prices, setPrices] = useState(null);
   const [pricesLoading, setPricesLoading] = useState(false);
   const [headlines, setHeadlines] = useState([]);
@@ -308,7 +356,8 @@ const LabTab = ({ publicMode = false }) => {
   useEffect(() => {
     if (!publicMode || !createCategory) return;
     setPricesLoading(true);
-    const typeParam = createCategory === 'community' ? '?type=community' : '';
+    const type = createCategory === 'community' ? 'community' : createCategory === 'newspaper' ? 'newspaper' : 'news';
+    const typeParam = type !== 'news' ? `?type=${type}` : '';
     fetch(`${API_BASE_URL}/api/memes/generate-price${typeParam}`)
       .then(r => r.json())
       .then(data => { if (data.success) setPrices(data); })
@@ -371,6 +420,8 @@ const LabTab = ({ publicMode = false }) => {
     // Validate input based on category
     if (createCategory === 'community') {
       if (!communityForm.description.trim()) return;
+    } else if (createCategory === 'newspaper') {
+      if (!newspaperForm.description.trim()) return;
     } else {
       if (!createTopic.trim()) return;
     }
@@ -534,6 +585,14 @@ const LabTab = ({ publicMode = false }) => {
           tone: communityForm.tone,
           style: communityForm.style,
           account: communityForm.xAccount.trim() ? { handle: communityForm.xAccount.trim() } : null,
+          txSignature: signature,
+          paymentToken,
+        };
+      } else if (createCategory === 'newspaper') {
+        endpoint = `${API_BASE_URL}/api/memes/generate-newspaper-solana`;
+        body = {
+          description: newspaperForm.description.trim(),
+          xProfileUrl: newspaperForm.xProfileUrl.trim() || null,
           txSignature: signature,
           paymentToken,
         };
@@ -792,7 +851,7 @@ const LabTab = ({ publicMode = false }) => {
           {!createCategory && !createLoading && !createResult && !createError && (
             <div className="max-w-3xl mx-auto space-y-6">
               <h3 className="text-center text-xl font-extrabold text-white tracking-tight">{t('lab.create.categoryTitle')}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* News Memes Card */}
                 <button
                   onClick={() => setCreateCategory('news')}
@@ -826,6 +885,24 @@ const LabTab = ({ publicMode = false }) => {
                   <div className="space-y-1.5">
                     <span className="text-xl font-extrabold font-mono text-emerald-400 block">${MEME_PRICES.community.toFixed(2)}</span>
                     <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.communityWhy')}</span>
+                  </div>
+                </button>
+
+                {/* Community Newspaper Card */}
+                <button
+                  onClick={() => setCreateCategory('newspaper')}
+                  className="group text-left p-7 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5 hover:border-amber-500/40 hover:from-amber-500/10 hover:to-orange-500/10 transition-all"
+                >
+                  <div className="text-3xl mb-4">{String.fromCodePoint(0x1F4F0)}</div>
+                  <h4 className="text-xl font-extrabold text-white mb-3 group-hover:text-amber-400 transition-colors tracking-tight">{t('lab.create.newspaperLabel')}</h4>
+                  <p className="text-sm text-gray-300/90 mb-5 leading-relaxed">{t('lab.create.newspaperDesc')}</p>
+                  <div className="space-y-2 text-xs text-gray-400/80 mb-5">
+                    <p>{String.fromCodePoint(0x1F4E5)} {t('lab.create.newspaperInput')}</p>
+                    <p>{String.fromCodePoint(0x1F4E4)} {t('lab.create.newspaperOutput')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xl font-extrabold font-mono text-amber-400 block">${MEME_PRICES.newspaper.toFixed(2)}</span>
+                    <span className="text-[11px] text-gray-500 leading-snug italic block">{t('lab.create.newspaperWhy')}</span>
                   </div>
                 </button>
               </div>
@@ -983,6 +1060,74 @@ const LabTab = ({ publicMode = false }) => {
                     )}
                     {prices?.usdc && (
                       <button onClick={() => handleCreate('USDC')} disabled={!communityForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
+                        <span className="text-lg font-bold font-mono">{prices.usdc.amount.toFixed(2)} USDC</span>
+                      </button>
+                    )}
+                    {!prices && !pricesLoading && <p className="text-gray-500 text-sm text-center">{t('lab.create.priceUnavailable')}</p>}
+                    {pricesLoading && <p className="text-gray-500 text-sm text-center animate-pulse">{t('lab.create.loadingPrices')}</p>}
+                  </>
+                )}
+              </div>
+
+              {prices && (
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-gray-600">{t('lab.create.priceNote', { base: `$${MEME_PRICES[createCategory || 'news'].toFixed(2)}` })}</p>
+                  <p className="text-xs text-gray-500">{t('lab.create.ecosystemFund')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+
+          {/* ── Step 2c: Community Newspaper Input ── */}
+          {createCategory === 'newspaper' && !createLoading && !createResult && !createError && (
+            <div className="max-w-2xl mx-auto space-y-4">
+              <button onClick={() => setCreateCategory(null)} className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                {t('lab.create.backToCategories')}
+              </button>
+
+              {/* X Profile URL */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.xProfileUrl')}</label>
+                <input
+                  type="text"
+                  value={newspaperForm.xProfileUrl}
+                  onChange={e => setNewspaperForm(f => ({ ...f, xProfileUrl: e.target.value }))}
+                  placeholder={t('lab.create.xProfilePlaceholder')}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                />
+              </div>
+
+              {/* News Content */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold uppercase tracking-wider">{t('lab.create.newsContent')} <span className="text-red-400">*</span></label>
+                <textarea
+                  rows={3}
+                  value={newspaperForm.description}
+                  onChange={e => setNewspaperForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder={t('lab.create.newsContentPlaceholder')}
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-5 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all resize-vertical"
+                />
+              </div>
+
+              {/* Payment buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {!authenticated ? (
+                  <button
+                    onClick={() => login()}
+                    className="px-8 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white shadow-lg shadow-indigo-500/20"
+                  >
+                    {t('lab.create.connectWallet')}
+                  </button>
+                ) : (
+                  <>
+                    {prices?.sol && (
+                      <button onClick={() => handleCreate('SOL')} disabled={!newspaperForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20">
+                        <span className="text-lg font-bold font-mono">{prices.sol.amount.toFixed(6)} SOL</span>
+                      </button>
+                    )}
+                    {prices?.usdc && (
+                      <button onClick={() => handleCreate('USDC')} disabled={!newspaperForm.description.trim()} className="group flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20">
                         <span className="text-lg font-bold font-mono">{prices.usdc.amount.toFixed(2)} USDC</span>
                       </button>
                     )}
@@ -1627,8 +1772,8 @@ const LabTab = ({ publicMode = false }) => {
             <p className="text-gray-400 text-sm mt-1">{t('lab.api.subtitle')}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {['rate', 'generate', 'community', 'catalog'].map(svc => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {['rate', 'generate', 'community', 'newspaper', 'catalog'].map(svc => (
               <div key={svc} className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
                 <p className="text-white font-medium text-sm">{t(`lab.api.${svc}.name`)}</p>
                 <p className="text-green-400 text-2xl font-bold">{MEME_PRICES[svc] ? `$${MEME_PRICES[svc].toFixed(2)}` : t(`lab.api.${svc}.price`)}</p>
@@ -1693,7 +1838,7 @@ const LabTab = ({ publicMode = false }) => {
               </div>
             </div>
             <div className="flex gap-1 mb-1">
-              {['rate', 'generate', 'community', 'catalog'].map(tab => (
+              {['rate', 'generate', 'community', 'newspaper', 'catalog'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setCodeTab(tab)}
