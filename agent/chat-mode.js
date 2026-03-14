@@ -1986,7 +1986,8 @@ ${recentMemory.slice(-1500)}
     const totalPostsToday = doneCount + (this.diarySchedule.manualPostCount || 0);
 
     // Lazily assign today's memes to meme_share slots (persisted across heartbeats)
-    if (!this.diarySchedule.memeAssignments) {
+    // Wait until hour >= 10 to avoid fetching stale yesterday's memes (daily gen runs ~00:04)
+    if (!this.diarySchedule.memeAssignments && currentHour >= 10) {
       try {
         const res = await fetch('https://memeforge-api-836651762884.asia-southeast1.run.app/api/memes/today');
         if (res.ok) {

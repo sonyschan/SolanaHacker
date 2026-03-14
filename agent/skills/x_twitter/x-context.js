@@ -752,9 +752,15 @@ export function chooseTopicForSlot(diarySlot, context, opts = {}) {
       const { assignedMemeId } = opts;
 
       // Find the assigned meme by ID
-      const meme = assignedMemeId
+      let meme = assignedMemeId
         ? todayMemes.find(m => m.id === assignedMemeId)
         : null;
+
+      // If assigned ID not found (stale from yesterday), pick first available meme with an image
+      if (!meme && assignedMemeId && todayMemes.length > 0) {
+        console.warn(`[chooseTopicForSlot] Assigned meme ${assignedMemeId} not in todayMemes, picking fallback meme`);
+        meme = todayMemes.find(m => m.imageUrl) || null;
+      }
 
       if (!meme || !meme.imageUrl) {
         // Fallback: no meme available, post personal_vibe instead
