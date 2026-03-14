@@ -1201,7 +1201,7 @@ Respond with ONLY the tweet text.`;
       artStyleName: artStyle.name,
       communityTone: tone,
       communityStyle: style,
-      account: account ? { name: account.name, handle: account.handle } : null,
+      account: account ? { name: account.name || account.handle || null, handle: account.handle || null } : null,
       memeIdea: {
         caption: memeIdea.caption,
         visual_description: memeIdea.visual_description,
