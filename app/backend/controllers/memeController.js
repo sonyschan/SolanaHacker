@@ -1127,7 +1127,8 @@ Respond with ONLY valid JSON:
     memeIdea.caption ? `TEXT OVERLAY: "${memeIdea.caption}"` : '',
     `ART STYLE: ${artStyle.name}`,
     `The image should be vibrant, eye-catching, social-media-optimized. Professional but fun.`,
-    account ? `BRAND: ${account.name}` : '',
+    account ? `BRAND: ${account.name || account.handle}` : '',
+    `CRITICAL TEXT RULE: Render the text overlay EXACTLY ONCE on the image. Place all text on a SINGLE line or area — NEVER split the same phrase across top and bottom. NEVER repeat any word. If the caption is "Moments Becoming Legends", it must appear once, not "Moments Becoming" at top and "Becoming Legends" at bottom.`,
     `CRITICAL LOGO RULE: If reference logos/avatars are provided, place them EXACTLY as-is — do NOT redraw, restyle, or reinterpret any logo or profile picture. They must appear pixel-perfect as sticker overlays, preserving original colors, proportions, and details.`,
   ].filter(Boolean).join('\n');
 
