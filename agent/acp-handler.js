@@ -36,11 +36,39 @@ const OFFERINGS = {
     timeoutMs: 180_000,
     requiredFields: ['topic'],
   },
+  news_meme_generation: {
+    endpoint: '/api/memes/generate-custom',
+    method: 'POST',
+    price: 0.10,
+    timeoutMs: 180_000,
+    requiredFields: ['topic'],
+  },
+  community_memes_generation: {
+    endpoint: '/api/memes/generate-community',
+    method: 'POST',
+    price: 0.15,
+    timeoutMs: 180_000,
+    requiredFields: ['description'],
+  },
+  newspaper_generation: {
+    endpoint: '/api/memes/generate-newspaper',
+    method: 'POST',
+    price: 0.15,
+    timeoutMs: 180_000,
+    requiredFields: ['description'],
+  },
   meme_templates: {
     endpoint: '/api/catalog/templates',
     method: 'GET',
     price: 0.01,
     timeoutMs: 60_000,
+    requiredFields: [],
+  },
+  health_check_agent: {
+    endpoint: '/health',
+    method: 'GET',
+    price: 0.01,
+    timeoutMs: 10_000,
     requiredFields: [],
   },
 };
@@ -297,12 +325,15 @@ export class AcpHandler {
 
   /**
    * Match context fields to an offering.
-   * Priority: imageUrl → rateMeme, topic → generateMeme, else → getTemplates
+   * Priority: imageUrl → rateMeme, description → community/newspaper, topic → generateMeme, else → health_check
    */
   _matchOffering(context) {
     if (context.imageUrl) return { ...OFFERINGS.meme_rate, key: 'meme_rate' };
+    if (context.description && (context.tone || context.style)) return { ...OFFERINGS.community_memes_generation, key: 'community_memes_generation' };
+    if (context.description && context.xProfileUrl) return { ...OFFERINGS.newspaper_generation, key: 'newspaper_generation' };
+    if (context.description) return { ...OFFERINGS.community_memes_generation, key: 'community_memes_generation' };
     if (context.topic) return { ...OFFERINGS.meme_generate, key: 'meme_generate' };
-    return { ...OFFERINGS.meme_templates, key: 'meme_templates' };
+    return { ...OFFERINGS.health_check_agent, key: 'health_check_agent' };
   }
 
   /**
