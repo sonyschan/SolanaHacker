@@ -325,15 +325,16 @@ export class AcpHandler {
 
   /**
    * Match context fields to an offering.
-   * Priority: imageUrl → rateMeme, description → community/newspaper, topic → generateMeme, else → health_check
+   * Note: news_meme_generation is only reachable via explicit offeringName in job data
+   * (it shares the same backend endpoint as meme_generate).
    */
   _matchOffering(context) {
     if (context.imageUrl) return { ...OFFERINGS.meme_rate, key: 'meme_rate' };
-    if (context.description && (context.tone || context.style)) return { ...OFFERINGS.community_memes_generation, key: 'community_memes_generation' };
     if (context.description && context.xProfileUrl) return { ...OFFERINGS.newspaper_generation, key: 'newspaper_generation' };
+    if (context.description && (context.tone || context.style)) return { ...OFFERINGS.community_memes_generation, key: 'community_memes_generation' };
     if (context.description) return { ...OFFERINGS.community_memes_generation, key: 'community_memes_generation' };
     if (context.topic) return { ...OFFERINGS.meme_generate, key: 'meme_generate' };
-    return { ...OFFERINGS.health_check_agent, key: 'health_check_agent' };
+    return { ...OFFERINGS.meme_templates, key: 'meme_templates' };
   }
 
   /**

@@ -168,7 +168,7 @@ async function syncSelfclaw() {
   const API_KEY = process.env.SELFCLAW_API_KEY;
   const PUB_KEY = process.env.SELFCLAW_PUBLIC_KEY;
   const PRIV_KEY = process.env.SELFCLAW_PRIVATE_KEY;
-  if (!API_KEY || !PUB_KEY) { console.log('[Selfclaw] SELFCLAW keys missing — skipped'); return; }
+  if (!API_KEY || !PUB_KEY || !PRIV_KEY) { console.log('[Selfclaw] SELFCLAW keys missing — skipped'); return; }
 
   const API = 'https://selfclaw.ai/api/selfclaw/v1';
 
