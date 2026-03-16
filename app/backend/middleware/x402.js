@@ -176,26 +176,6 @@ const ROUTES = [
       }),
     },
   },
-  {
-    key: 'GET /health',
-    price: '$0.01',
-    description: 'Health check — verify agent availability and service status',
-    mimeType: 'application/json',
-    extensions: {
-      ...declareDiscoveryExtension({
-        input: {},
-        inputSchema: { properties: {}, required: [] },
-        output: {
-          example: {
-            status: 'healthy',
-            timestamp: '2026-03-16T12:00:00.000Z',
-            version: '1.0.0',
-          },
-        },
-        bodyType: 'json',
-      }),
-    },
-  },
 ];
 
 // ── Cached middleware instance ────────────────────────────────────────
