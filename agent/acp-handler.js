@@ -71,6 +71,44 @@ const OFFERINGS = {
     timeoutMs: 10_000,
     requiredFields: [],
   },
+  meme_engine_guide: {
+    endpoint: 'KNOWLEDGE',
+    method: 'FILE',
+    file: 'meme-engine-guide-v1.md',
+    price: 1.00,
+    timeoutMs: 10_000,
+    requiredFields: [],
+  },
+  meme_prompt_cookbook: {
+    endpoint: 'KNOWLEDGE',
+    method: 'FILE',
+    file: 'meme-prompt-cookbook-v1.md',
+    price: 0.50,
+    timeoutMs: 10_000,
+    requiredFields: [],
+  },
+  meme_infra_blueprint: {
+    endpoint: 'KNOWLEDGE',
+    method: 'FILE',
+    file: 'meme-infra-blueprint-v1.md',
+    price: 0.25,
+    timeoutMs: 10_000,
+    requiredFields: [],
+  },
+  mutual_boost_micro: {
+    endpoint: 'MUTUAL_BOOST',
+    method: 'BOOST',
+    price: 0.01,
+    timeoutMs: 30_000,
+    requiredFields: [],
+  },
+  mutual_boost_basic: {
+    endpoint: 'MUTUAL_BOOST',
+    method: 'BOOST',
+    price: 0.05,
+    timeoutMs: 30_000,
+    requiredFields: [],
+  },
 };
 
 const ACP_API_URL = process.env.ACP_API_URL || 'https://claw-api.virtuals.io';
@@ -353,6 +391,24 @@ export class AcpHandler {
    * Call backend API with Lab API key (bypasses x402 paywall).
    */
   async _callBackend(offering, input) {
+    // Knowledge file delivery — read local markdown file
+    if (offering.method === 'FILE') {
+      const filePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'knowledge', offering.file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return { success: true, document: content, version: offering.file.match(/v(\d+)/)?.[0] || 'V1' };
+    }
+
+    // Mutual boost — acknowledge and queue reciprocal purchase
+    if (offering.method === 'BOOST') {
+      console.log(`[ACP] Mutual boost received — will reciprocate $${offering.price}`);
+      return {
+        success: true,
+        message: `Mutual boost acknowledged. Memeya will reciprocate with a matching $${offering.price} purchase of your service.`,
+        tier: offering.price,
+        note: 'Reciprocal job will be created within 5 minutes.',
+      };
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), offering.timeoutMs);
 
