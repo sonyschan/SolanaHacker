@@ -459,7 +459,17 @@ export class AcpHandler {
    * Buy the cheapest offering from the buyer's agent to complete the mutual boost.
    * Searches for the buyer agent, finds their cheapest service, and creates a job.
    */
+  /** Track recent reciprocations to prevent duplicate boosts */
+  _recentBoosts = new Map(); // wallet → timestamp
+
   async _reciprocalBoost(buyerWallet, targetPrice) {
+    // Dedup guard: skip if we already reciprocated this wallet in the last 5 minutes
+    const lastBoost = this._recentBoosts.get(buyerWallet.toLowerCase());
+    if (lastBoost && Date.now() - lastBoost < 5 * 60 * 1000) {
+      console.log(`[ACP] Reciprocal boost: already reciprocated ${buyerWallet.slice(0, 10)}... within 5min — skipped`);
+      return;
+    }
+
     console.log(`[ACP] Reciprocal boost: searching for agent ${buyerWallet.slice(0, 10)}...`);
 
     // Search for the buyer agent's offerings
@@ -469,18 +479,13 @@ export class AcpHandler {
       const searchData = await searchRes.json();
       const agents = searchData.data || [];
 
-      // Find the exact agent by wallet
-      let targetAgent = agents.find(a =>
+      // Find the exact agent by wallet — NO fallback to random agent
+      const targetAgent = agents.find(a =>
         a.walletAddress?.toLowerCase() === buyerWallet.toLowerCase()
       );
 
-      // Fallback: use first result if wallet match not found
-      if (!targetAgent && agents.length > 0) {
-        targetAgent = agents[0];
-      }
-
       if (!targetAgent || !targetAgent.jobs?.length) {
-        console.log(`[ACP] Reciprocal boost: could not find offerings for ${buyerWallet.slice(0, 10)}...`);
+        console.log(`[ACP] Reciprocal boost: no exact agent match for ${buyerWallet.slice(0, 10)}... — skipped`);
         return;
       }
 
@@ -499,9 +504,9 @@ export class AcpHandler {
         return;
       }
 
-      // Prefer mutual_boost at matching price, else closest price match
+      // Prefer mutual_boost at matching price, else closest price match (no in-place mutation)
       const boostJob = eligible.find(j => /boost/i.test(j.name))
-        || eligible.sort((a, b) => Math.abs((a.priceV2?.value || a.price) - targetPrice) - Math.abs((b.priceV2?.value || b.price) - targetPrice))[0];
+        || [...eligible].sort((a, b) => Math.abs((a.priceV2?.value || a.price) - targetPrice) - Math.abs((b.priceV2?.value || b.price) - targetPrice))[0];
       const boostPrice = boostJob.priceV2?.value || boostJob.price;
 
       console.log(`[ACP] Reciprocal boost: buying ${targetAgent.name} → ${boostJob.name} ($${boostPrice}, limit $${maxPrice})`);
@@ -515,6 +520,7 @@ export class AcpHandler {
       });
 
       const jobId = createRes?.data?.jobId || createRes?.jobId;
+      this._recentBoosts.set(buyerWallet.toLowerCase(), Date.now());
       console.log(`[ACP] Reciprocal boost created: job ${jobId} → ${targetAgent.name} ${boostJob.name}`);
 
       await this.telegram?.sendDevlog(
