@@ -484,14 +484,27 @@ export class AcpHandler {
         return;
       }
 
-      // Find cheapest offering (prefer mutual_boost if available, else cheapest)
-      const sortedJobs = [...targetAgent.jobs].sort(
-        (a, b) => (a.priceV2?.value || a.price) - (b.priceV2?.value || b.price)
-      );
-      const boostJob = sortedJobs.find(j => /boost/i.test(j.name)) || sortedJobs[0];
+      // Find a matching-price offering (must be <= what they paid us)
+      const maxPrice = targetPrice * 1.01; // 1% tolerance for rounding
+      const eligible = targetAgent.jobs.filter(j => {
+        const p = j.priceV2?.value || j.price;
+        return p > 0 && p <= maxPrice;
+      });
+
+      if (eligible.length === 0) {
+        console.log(`[ACP] Reciprocal boost: no offering at $${targetPrice} or below from ${targetAgent.name} — skipped (price protection)`);
+        await this.telegram?.sendDevlog(
+          `⚠️ Mutual boost skipped — ${targetAgent.name} has no service at ≤$${targetPrice}`
+        );
+        return;
+      }
+
+      // Prefer mutual_boost at matching price, else closest price match
+      const boostJob = eligible.find(j => /boost/i.test(j.name))
+        || eligible.sort((a, b) => Math.abs((a.priceV2?.value || a.price) - targetPrice) - Math.abs((b.priceV2?.value || b.price) - targetPrice))[0];
       const boostPrice = boostJob.priceV2?.value || boostJob.price;
 
-      console.log(`[ACP] Reciprocal boost: buying ${targetAgent.name} → ${boostJob.name} ($${boostPrice})`);
+      console.log(`[ACP] Reciprocal boost: buying ${targetAgent.name} → ${boostJob.name} ($${boostPrice}, limit $${maxPrice})`);
 
       // Create the reciprocal job
       const createRes = await this._apiPost('/acp/jobs', {
