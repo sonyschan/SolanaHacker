@@ -277,6 +277,11 @@ export class AcpHandler {
           ? { ...OFFERINGS[offeringName], key: offeringName }
           : this._matchOffering(context);
 
+        // Pass buyer wallet for mutual boost reciprocation
+        if (offering.method === 'BOOST' && jobData.clientAddress) {
+          context._buyerWallet = jobData.clientAddress;
+        }
+
         try {
           const result = await this._callBackend(offering, context);
           await this._apiPost(`/acp/providers/jobs/${jobId}/deliverable`, {
@@ -398,14 +403,23 @@ export class AcpHandler {
       return { success: true, document: content, version: offering.file.match(/v(\d+)/)?.[0] || 'V1' };
     }
 
-    // Mutual boost — acknowledge and queue reciprocal purchase
+    // Mutual boost — deliver result and trigger reciprocal purchase
     if (offering.method === 'BOOST') {
-      console.log(`[ACP] Mutual boost received — will reciprocate $${offering.price}`);
+      const buyerWallet = input._buyerWallet;
+      console.log(`[ACP] Mutual boost received from ${buyerWallet || 'unknown'} — will reciprocate $${offering.price}`);
+
+      // Fire-and-forget reciprocal purchase (don't block delivery)
+      if (buyerWallet) {
+        this._reciprocalBoost(buyerWallet, offering.price).catch(err => {
+          console.error(`[ACP] Reciprocal boost failed:`, err.message);
+        });
+      }
+
       return {
         success: true,
         message: `Mutual boost acknowledged. Memeya will reciprocate with a matching $${offering.price} purchase of your service.`,
         tier: offering.price,
-        note: 'Reciprocal job will be created within 5 minutes.',
+        note: 'Reciprocal job is being created now.',
       };
     }
 
@@ -436,6 +450,69 @@ export class AcpHandler {
       return await res.json();
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  // ─── Mutual Boost Reciprocation ────────────────────────────
+
+  /**
+   * Buy the cheapest offering from the buyer's agent to complete the mutual boost.
+   * Searches for the buyer agent, finds their cheapest service, and creates a job.
+   */
+  async _reciprocalBoost(buyerWallet, targetPrice) {
+    console.log(`[ACP] Reciprocal boost: searching for agent ${buyerWallet.slice(0, 10)}...`);
+
+    // Search for the buyer agent's offerings
+    try {
+      const searchUrl = `https://acpx.virtuals.io/api/agents/v5/search?query=${buyerWallet}&topK=5`;
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json();
+      const agents = searchData.data || [];
+
+      // Find the exact agent by wallet
+      let targetAgent = agents.find(a =>
+        a.walletAddress?.toLowerCase() === buyerWallet.toLowerCase()
+      );
+
+      // Fallback: use first result if wallet match not found
+      if (!targetAgent && agents.length > 0) {
+        targetAgent = agents[0];
+      }
+
+      if (!targetAgent || !targetAgent.jobs?.length) {
+        console.log(`[ACP] Reciprocal boost: could not find offerings for ${buyerWallet.slice(0, 10)}...`);
+        return;
+      }
+
+      // Find cheapest offering (prefer mutual_boost if available, else cheapest)
+      const sortedJobs = [...targetAgent.jobs].sort(
+        (a, b) => (a.priceV2?.value || a.price) - (b.priceV2?.value || b.price)
+      );
+      const boostJob = sortedJobs.find(j => /boost/i.test(j.name)) || sortedJobs[0];
+      const boostPrice = boostJob.priceV2?.value || boostJob.price;
+
+      console.log(`[ACP] Reciprocal boost: buying ${targetAgent.name} → ${boostJob.name} ($${boostPrice})`);
+
+      // Create the reciprocal job
+      const createRes = await this._apiPost('/acp/jobs', {
+        providerWalletAddress: targetAgent.walletAddress,
+        jobOfferingName: boostJob.name,
+        serviceRequirements: {},
+        isAutomated: true,
+      });
+
+      const jobId = createRes?.data?.jobId || createRes?.jobId;
+      console.log(`[ACP] Reciprocal boost created: job ${jobId} → ${targetAgent.name} ${boostJob.name}`);
+
+      await this.telegram?.sendDevlog(
+        `🤝 <b>Mutual Boost</b> reciprocated\n` +
+        `Bought <b>${boostJob.name}</b> ($${boostPrice}) from ${targetAgent.name}`
+      );
+    } catch (err) {
+      console.error(`[ACP] Reciprocal boost error:`, err.message);
+      await this.telegram?.sendDevlog(
+        `⚠️ Reciprocal boost failed for ${buyerWallet.slice(0, 10)}...: ${err.message}`
+      );
     }
   }
 
