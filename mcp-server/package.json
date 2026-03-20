@@ -1,0 +1,43 @@
+{
+  "name": "@aimemeforge/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for AI meme services with x402 crypto payment. Generate, rate, and share memes — agents pay per use with USDC.",
+  "type": "module",
+  "bin": {
+    "aimemeforge-mcp": "./bin/server.mjs"
+  },
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "meme",
+    "ai",
+    "x402",
+    "crypto",
+    "usdc",
+    "base",
+    "solana",
+    "agent"
+  ],
+  "author": "AIMemeForge <hello@aimemeforge.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@x402/fetch": "^2.6.0",
+    "@x402/evm": "^2.6.0",
+    "@x402/svm": "^2.6.0",
+    "viem": "^2.47.0",
+    "bs58": "^6.0.0",
+    "zod": "^3.24.0"
+  }
+}
