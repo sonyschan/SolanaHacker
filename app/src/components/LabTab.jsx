@@ -39,6 +39,18 @@ const MEME_PRICES = {
 
 const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
+/** Extract X handle from URL or raw handle, build account object with avatarUrl */
+function buildAccountFromX(input) {
+  let handle = input.replace(/^@/, '');
+  const urlMatch = input.match(/(?:x\.com|twitter\.com)\/([^/?#]+)/);
+  if (urlMatch) handle = urlMatch[1];
+  return {
+    handle: `@${handle}`,
+    name: handle,
+    avatarUrl: `https://unavatar.io/x/${handle}`,
+  };
+}
+
 // ── Private-mode auth helpers ──────────────────────────────────────────
 const LAB_STORAGE_KEY = 'lab_api_key';
 const LAB_EXPIRY_KEY = 'lab_api_key_expires';
@@ -584,7 +596,7 @@ const LabTab = ({ publicMode = false }) => {
           description: communityForm.description.trim(),
           tone: communityForm.tone,
           style: communityForm.style,
-          account: communityForm.xAccount.trim() ? { handle: communityForm.xAccount.trim() } : null,
+          account: communityForm.xAccount.trim() ? buildAccountFromX(communityForm.xAccount.trim()) : null,
           txSignature: signature,
           paymentToken,
         };
