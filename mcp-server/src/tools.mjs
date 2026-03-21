@@ -9,7 +9,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import crypto from 'crypto';
 
 const WALLET_DIR = join(homedir(), '.aimemeforge');
 const WALLET_FILE = join(WALLET_DIR, 'wallet.json');
@@ -199,9 +198,9 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       if (!address && process.env.SECRET_KEY) {
         try {
           const bs58 = await import('bs58');
-          const { createKeyPairSignerFromBytes } = await import('@solana/signers');
-          const signer = await createKeyPairSignerFromBytes(bs58.default.decode(process.env.SECRET_KEY));
-          address = signer.address;
+          const { Keypair } = await import('@solana/web3.js');
+          const kp = Keypair.fromSecretKey(bs58.default.decode(process.env.SECRET_KEY));
+          address = kp.publicKey.toBase58();
           chain = 'solana';
           source = 'env SECRET_KEY';
         } catch {}
