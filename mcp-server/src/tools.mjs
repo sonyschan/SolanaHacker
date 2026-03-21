@@ -18,9 +18,12 @@ const WALLET_FILE = join(WALLET_DIR, 'wallet.json');
 const SETUP_GUIDE = `
 To use paid meme services, you need a crypto wallet with USDC.
 
-QUICKEST WAY: Run the create_wallet tool — it generates a fresh Base wallet instantly. Then fund it with USDC.
+QUICKEST WAY: Run the create_wallet tool — it generates a fresh Solana wallet instantly. Then fund it with USDC.
 
-MANUAL SETUP: If you prefer to use an existing wallet, set the PRIVATE_KEY env var:
+MANUAL SETUP (Solana, recommended):
+  claude mcp add aimemeforge -e SECRET_KEY=your_base58_key -- npx -y @aimemeforge/mcp-server
+
+MANUAL SETUP (Base, legacy):
   claude mcp add aimemeforge -e PRIVATE_KEY=0x_your_key -- npx -y @aimemeforge/mcp-server
 
 PRICING:
@@ -41,7 +44,7 @@ function walletRequiredResponse(toolName, price) {
   return {
     content: [{
       type: 'text',
-      text: `${toolName} costs $${price} USDC per call. No wallet configured.\n\nRun create_wallet to generate a fresh wallet instantly, then fund it with USDC on Base.\n\nOr run setup_wallet for manual configuration options.`,
+      text: `${toolName} costs $${price} USDC per call. No wallet configured.\n\nRun create_wallet to generate a fresh Solana wallet instantly, then fund it with USDC. Gas is FREE.\n\nOr run setup_wallet for manual configuration options.`,
     }],
     isError: true,
   };

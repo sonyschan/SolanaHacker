@@ -3,19 +3,14 @@
 /**
  * AIMemeForge MCP Server — CLI Entry Point
  *
- * Usage:
+ * Usage (Solana, recommended — gas free):
+ *   SECRET_KEY=your_base58_key npx @aimemeforge/mcp-server
+ *
+ * Usage (Base, legacy):
  *   PRIVATE_KEY=0x... npx @aimemeforge/mcp-server
  *
- * Or add to Claude Desktop config:
- *   {
- *     "mcpServers": {
- *       "aimemeforge": {
- *         "command": "npx",
- *         "args": ["@aimemeforge/mcp-server"],
- *         "env": { "PRIVATE_KEY": "0x..." }
- *       }
- *     }
- *   }
+ * Or install in Claude Code:
+ *   claude mcp add aimemeforge -- npx -y @aimemeforge/mcp-server
  */
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

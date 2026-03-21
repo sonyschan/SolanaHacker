@@ -1,6 +1,6 @@
 # @aimemeforge/mcp-server
 
-AI meme services for your agent. Generate, rate, and share crypto memes — pay per use with USDC.
+AI meme services for your agent. Generate, rate, and share crypto memes — pay per use with USDC. Gas is FREE (Dexter sponsored).
 
 ## Quick Start
 
@@ -10,12 +10,12 @@ AI meme services for your agent. Generate, rate, and share crypto memes — pay 
 claude mcp add aimemeforge -- npx -y @aimemeforge/mcp-server
 ```
 
-No wallet? No problem — the server starts in free-only mode. Run the `setup_wallet` tool inside Claude Code for payment setup instructions.
+No wallet? No problem — the server starts in free-only mode. Run `create_wallet` to generate a Solana wallet instantly.
 
-With a wallet (paid tools enabled):
+With an existing Solana wallet:
 
 ```bash
-claude mcp add aimemeforge -e PRIVATE_KEY=0x_your_key -- npx -y @aimemeforge/mcp-server
+claude mcp add aimemeforge -e SECRET_KEY=your_base58_key -- npx -y @aimemeforge/mcp-server
 ```
 
 ### Claude Desktop
@@ -29,7 +29,7 @@ Add to `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "@aimemeforge/mcp-server"],
       "env": {
-        "PRIVATE_KEY": "0x_your_base_wallet_private_key"
+        "SECRET_KEY": "your_solana_base58_secret_key"
       }
     }
   }
@@ -39,13 +39,17 @@ Add to `claude_desktop_config.json`:
 ### Cursor / Other MCP Clients
 
 ```bash
-PRIVATE_KEY=0x... npx -y @aimemeforge/mcp-server
+SECRET_KEY=your_base58_key npx -y @aimemeforge/mcp-server
 ```
 
 ## Tools
 
 | Tool | Cost | Description |
 |------|------|-------------|
+| `create_wallet` | FREE | Generate a new Solana wallet (gas-free) |
+| `check_balance` | FREE | Check USDC balance and meme credits |
+| `withdraw` | FREE | Send USDC to another address |
+| `setup_wallet` | FREE | Manual wallet setup guide |
 | `health_check` | FREE | Check if AIMemeForge is online |
 | `rate_meme` | $0.05 | Rate a meme image — AI score, grade, suggestions |
 | `generate_meme` | $0.10 | Generate a crypto meme from any topic |
@@ -58,27 +62,26 @@ Payment is automatic via [x402](https://x402.org). When your agent calls a tool,
 
 ### Supported Chains
 
-| Chain | Env Var | Token |
-|-------|---------|-------|
-| Base (EVM) | `PRIVATE_KEY` | USDC |
-| Solana | `SECRET_KEY` | USDC |
-
-Set one or both. Base is recommended (lower fees).
+| Chain | Env Var | Gas | Status |
+|-------|---------|-----|--------|
+| **Solana** | `SECRET_KEY` | **FREE** (Dexter sponsored) | Recommended |
+| Base (EVM) | `PRIVATE_KEY` | ~$0.001 ETH per tx | Legacy fallback |
 
 ### Wallet Requirements
 
-- **USDC** on Base or Solana (at least $0.50 to start)
-- **ETH** on Base for gas (~$0.001 per tx, sponsored by Dexter)
+- **USDC** on Solana (at least $0.50 to start)
+- **No SOL needed** — Dexter sponsors all gas fees
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PRIVATE_KEY` | Yes* | Hex EVM private key (0x...) for Base chain |
-| `SECRET_KEY` | Yes* | Base58 Solana secret key |
+| `SECRET_KEY` | Yes* | Base58 Solana secret key (recommended) |
+| `PRIVATE_KEY` | Yes* | Hex EVM private key (0x...) for Base chain (legacy) |
 | `AIMEMEFORGE_API_URL` | No | API URL (default: `https://api.aimemeforge.io`) |
+| `AIMEMEFORGE_MAX_WITHDRAWAL` | No | Max USDC per withdrawal (default: $10) |
 
-*At least one wallet key is required.
+*At least one wallet key is required. Or run `create_wallet` to generate one.
 
 ## Example Usage
 
@@ -88,12 +91,12 @@ Once configured, your agent can say:
 
 The MCP server will:
 1. Call `generate_meme` with topic "Ethereum ETF approval"
-2. Auto-pay $0.10 USDC via x402
+2. Auto-pay $0.10 USDC via x402 (gas free on Solana)
 3. Return the meme image URL, title, and quality score
 
 ## Pricing
 
-All prices are in USDC. No platform fees (Dexter facilitator sponsors gas).
+All prices in USDC. No platform fees. Gas sponsored by Dexter.
 
 | Service | Price |
 |---------|-------|
