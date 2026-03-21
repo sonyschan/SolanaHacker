@@ -6,6 +6,7 @@
  * If no wallet is configured, paid tools return setup instructions.
  */
 
+import { z } from 'zod';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -289,12 +290,8 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
     'withdraw',
     'Send USDC from your wallet to another address. Supports Solana and Base. Use this to withdraw funds or pay someone.',
     {
-      type: 'object',
-      properties: {
-        to: { type: 'string', description: 'Recipient address (Solana base58 or EVM 0x...)' },
-        amount: { type: 'string', description: 'Amount in USDC (e.g. "1.50")' },
-      },
-      required: ['to', 'amount'],
+      to: z.string().describe('Recipient address (Solana base58 or EVM 0x...)'),
+      amount: z.string().describe('Amount in USDC (e.g. "1.50")'),
     },
     async ({ to, amount }) => {
       // Load wallet
@@ -417,11 +414,7 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
     'rate_meme',
     'Rate a meme image with AI vision analysis. Returns score (0-100), grade, and suggestions. Costs $0.05 USDC.',
     {
-      type: 'object',
-      properties: {
-        imageUrl: { type: 'string', description: 'Public URL of the meme image to rate' },
-      },
-      required: ['imageUrl'],
+      imageUrl: z.string().describe('Public URL of the meme image to rate'),
     },
     async ({ imageUrl }) => {
       if (!paymentState.fetchPaid) return walletRequiredResponse('rate_meme', '0.05');
@@ -449,12 +442,8 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
     'generate_meme',
     'Generate an AI crypto meme from a topic or news headline. Returns image URL, title, and quality score. Costs $0.10 USDC.',
     {
-      type: 'object',
-      properties: {
-        topic: { type: 'string', description: 'Meme topic or news headline' },
-        artStyleId: { type: 'string', description: 'Art style: pixel-art, cyberpunk, watercolor, comic-book, vaporwave, ukiyo-e, bauhaus, synthwave, claymation, stained-glass' },
-      },
-      required: ['topic'],
+      topic: z.string().describe('Meme topic or news headline'),
+      artStyleId: z.string().optional().describe('Art style: pixel-art, cyberpunk, watercolor, comic-book, vaporwave, ukiyo-e, bauhaus, synthwave, claymation, stained-glass'),
     },
     async ({ topic, artStyleId }) => {
       if (!paymentState.fetchPaid) return walletRequiredResponse('generate_meme', '0.10');
@@ -490,13 +479,9 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
     'generate_community_meme',
     'Turn a project announcement into a shareable meme with suggested tweet. Choose tone and visual style. Costs $0.15 USDC.',
     {
-      type: 'object',
-      properties: {
-        description: { type: 'string', description: 'Project announcement or event (max 500 chars)' },
-        tone: { type: 'string', description: 'Meme tone: hype, wholesome, funny, or flex (default: hype)' },
-        style: { type: 'string', description: 'Visual style: meme, announcement, comic, or infographic (default: meme)' },
-      },
-      required: ['description'],
+      description: z.string().describe('Project announcement or event (max 500 chars)'),
+      tone: z.string().optional().describe('Meme tone: hype, wholesome, funny, or flex (default: hype)'),
+      style: z.string().optional().describe('Visual style: meme, announcement, comic, or infographic (default: meme)'),
     },
     async ({ description, tone, style }) => {
       if (!paymentState.fetchPaid) return walletRequiredResponse('generate_community_meme', '0.15');
@@ -525,12 +510,8 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
     'generate_newspaper',
     'Generate a newspaper-style banner image from news text. Great for X posts. Costs $0.15 USDC.',
     {
-      type: 'object',
-      properties: {
-        description: { type: 'string', description: 'News or announcement text (max 500 chars)' },
-        xProfileUrl: { type: 'string', description: 'X/Twitter profile URL for avatar in the newspaper' },
-      },
-      required: ['description'],
+      description: z.string().describe('News or announcement text (max 500 chars)'),
+      xProfileUrl: z.string().optional().describe('X/Twitter profile URL for avatar in the newspaper'),
     },
     async ({ description, xProfileUrl }) => {
       if (!paymentState.fetchPaid) return walletRequiredResponse('generate_newspaper', '0.15');
