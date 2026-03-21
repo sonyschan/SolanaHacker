@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -317,13 +317,12 @@ export function registerTools(server, paymentState, fetchFree, apiUrl) {
       try {
         if (chain === 'solana') {
           // Solana SPL USDC transfer
-          const { Connection, PublicKey, Transaction } = await import('@solana/web3.js');
+          const { Connection, PublicKey, Transaction, Keypair } = await import('@solana/web3.js');
           const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import('@solana/spl-token');
           const bs58 = await import('bs58');
 
           const secretKey = walletInfo?.secretKey || process.env.SECRET_KEY;
           const keyBytes = bs58.default.decode(secretKey);
-          const { Keypair } = await import('@solana/web3.js');
           const payer = Keypair.fromSecretKey(keyBytes);
 
           const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');

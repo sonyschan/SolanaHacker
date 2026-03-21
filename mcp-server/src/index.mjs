@@ -30,7 +30,6 @@ export async function createServer(config = {}) {
   // Payment state — mutable so create_wallet can hot-load after wallet creation
   const paymentState = {
     fetchPaid: await createPaymentFetch(config),
-    config,
   };
 
   // Register all meme tools (pass state object so tools can reload payment)
