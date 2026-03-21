@@ -84,13 +84,20 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
             `Chain: Base (EVM)`,
             `Key file: ${WALLET_FILE}`,
             ``,
-            `NEXT STEP: Send USDC to ${existing.address} on Base chain.`,
-            `Even $0.50 is enough to generate several memes.`,
-            `Gas is sponsored by Dexter — you only need USDC.`,
+            `View: https://basescan.org/address/${existing.address}`,
+            `Created: ${existing.createdAt || 'unknown'}`,
             ``,
-            `Then restart Claude with the wallet configured:`,
-            `  claude mcp remove aimemeforge`,
-            `  claude mcp add aimemeforge -e PRIVATE_KEY=${existing.privateKey} -- npx -y @aimemeforge/mcp-server`,
+            `=== What You Can Do ===`,
+            ``,
+            `  check_balance  — See your USDC balance`,
+            `  withdraw       — Send USDC to another address`,
+            `  health_check   — Check service status`,
+            ``,
+            `To enable paid meme tools, fund the wallet and restart:`,
+            `  1. Send USDC to ${existing.address} on Base chain`,
+            `  2. claude mcp remove aimemeforge`,
+            `     claude mcp add aimemeforge -e PRIVATE_KEY=${existing.privateKey} -- npx -y @aimemeforge/mcp-server`,
+            `  3. Restart Claude Code`,
           ].join('\n') }] };
         } catch { /* corrupted file, regenerate */ }
       }
@@ -111,27 +118,50 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       }, null, 2));
 
       return { content: [{ type: 'text', text: [
-        `New wallet created!`,
+        `=== Wallet Created Successfully! ===`,
         ``,
         `Address: ${account.address}`,
-        `Chain: Base (EVM)`,
-        `Key saved to: ${WALLET_FILE}`,
+        `Chain:   Base (EVM)`,
+        `Key:     ${WALLET_FILE}`,
+        `View:    https://basescan.org/address/${account.address}`,
         ``,
-        `NEXT STEPS:`,
+        `=== How to Fund ===`,
         ``,
-        `1. Send USDC to ${account.address} on Base chain`,
-        `   - Use Coinbase, Binance, or any exchange → withdraw USDC to Base`,
-        `   - Even $0.50 is enough to start`,
-        `   - Gas is sponsored — you only need USDC`,
+        `Send USDC to: ${account.address}`,
+        `Network: Base (Chain ID 8453)`,
         ``,
-        `2. Restart Claude with the wallet:`,
-        `   claude mcp remove aimemeforge`,
-        `   claude mcp add aimemeforge -e PRIVATE_KEY=${privateKey} -- npx -y @aimemeforge/mcp-server`,
+        `Ways to fund:`,
+        `  - Coinbase → Send → USDC → Base network → paste address above`,
+        `  - Binance → Withdraw → USDC → Base chain → paste address above`,
+        `  - Any exchange that supports Base chain USDC withdrawal`,
+        `  - Bridge from Ethereum: https://bridge.base.org`,
         ``,
-        `3. Start generating memes!`,
+        `Amount: $0.50 is enough for 5 memes. Gas is sponsored — you only need USDC.`,
         ``,
-        `IMPORTANT: Your private key is saved at ${WALLET_FILE}`,
-        `Back it up if you plan to hold significant funds.`,
+        `=== Activate Wallet ===`,
+        ``,
+        `After funding, run these commands to enable paid tools:`,
+        ``,
+        `  claude mcp remove aimemeforge`,
+        `  claude mcp add aimemeforge -e PRIVATE_KEY=${privateKey} -- npx -y @aimemeforge/mcp-server`,
+        ``,
+        `Then restart Claude Code.`,
+        ``,
+        `=== Available Tools After Setup ===`,
+        ``,
+        `  check_balance           — Check USDC balance (FREE)`,
+        `  health_check            — Check service status (FREE)`,
+        `  generate_meme           — Generate AI meme ($0.10)`,
+        `  rate_meme               — Rate a meme image ($0.05)`,
+        `  generate_community_meme — Announcement meme + tweet ($0.15)`,
+        `  generate_newspaper      — Newspaper banner ($0.15)`,
+        `  withdraw                — Send USDC to another address`,
+        ``,
+        `=== Security ===`,
+        ``,
+        `Your private key is saved locally at: ${WALLET_FILE}`,
+        `Only you have access. Back it up if you hold significant funds.`,
+        `Never share your private key with anyone.`,
       ].join('\n') }] };
     }
   );
@@ -200,6 +230,84 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
         ].join('\n') }] };
       } catch (err) {
         return { content: [{ type: 'text', text: `Wallet: ${address}\nBalance check failed: ${err.message}` }], isError: true };
+      }
+    }
+  );
+
+  // ─── Withdraw USDC ──────────────────────────────────────────
+
+  server.tool(
+    'withdraw',
+    'Send USDC from your wallet to another address on Base chain. Use this to withdraw funds or pay someone.',
+    {
+      to: z.string().describe('Recipient address (0x...)'),
+      amount: z.string().describe('Amount in USDC (e.g. "1.50")'),
+    },
+    async ({ to, amount }) => {
+      // Get private key
+      let privateKey = process.env.PRIVATE_KEY;
+      if (!privateKey && existsSync(WALLET_FILE)) {
+        try {
+          const w = JSON.parse(readFileSync(WALLET_FILE, 'utf-8'));
+          privateKey = w.privateKey;
+        } catch {}
+      }
+      if (!privateKey) {
+        return { content: [{ type: 'text', text: 'No wallet configured. Run create_wallet first.' }], isError: true };
+      }
+
+      // Validate
+      if (!to.match(/^0x[0-9a-fA-F]{40}$/)) {
+        return { content: [{ type: 'text', text: 'Invalid address. Must be 0x... (42 chars).' }], isError: true };
+      }
+      const usdcAmount = parseFloat(amount);
+      if (isNaN(usdcAmount) || usdcAmount <= 0) {
+        return { content: [{ type: 'text', text: 'Invalid amount. Must be a positive number.' }], isError: true };
+      }
+
+      try {
+        const { createWalletClient, http, parseUnits, encodeFunctionData } = await import('viem');
+        const { privateKeyToAccount } = await import('viem/accounts');
+        const { base } = await import('viem/chains');
+
+        const account = privateKeyToAccount(privateKey);
+        const client = createWalletClient({
+          account,
+          chain: base,
+          transport: http('https://mainnet.base.org'),
+        });
+
+        const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+        const rawAmount = parseUnits(amount, 6); // USDC has 6 decimals
+
+        // ERC-20 transfer(address,uint256)
+        const data = encodeFunctionData({
+          abi: [{ name: 'transfer', type: 'function', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }],
+          functionName: 'transfer',
+          args: [to, rawAmount],
+        });
+
+        const hash = await client.sendTransaction({
+          to: USDC_BASE,
+          data,
+        });
+
+        return { content: [{ type: 'text', text: [
+          `Transfer sent!`,
+          ``,
+          `From: ${account.address}`,
+          `To: ${to}`,
+          `Amount: ${amount} USDC`,
+          `Tx: https://basescan.org/tx/${hash}`,
+          ``,
+          `Transaction may take ~2 seconds to confirm on Base.`,
+        ].join('\n') }] };
+      } catch (err) {
+        const msg = err.message || String(err);
+        if (msg.includes('insufficient')) {
+          return { content: [{ type: 'text', text: `Transfer failed: Insufficient balance. Check with check_balance tool.\nAlso ensure you have a tiny amount of ETH on Base for gas (~$0.001).` }], isError: true };
+        }
+        return { content: [{ type: 'text', text: `Transfer failed: ${msg.slice(0, 300)}` }], isError: true };
       }
     }
   );
