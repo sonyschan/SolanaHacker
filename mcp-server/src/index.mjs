@@ -9,7 +9,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createPaymentFetch } from './payment.mjs';
 import { registerTools } from './tools.mjs';
 
-const VERSION = '0.6.1';
+const VERSION = '0.7.0';
 
 /**
  * Create and configure the MCP server.
@@ -33,10 +33,27 @@ export async function createServer(config = {}) {
   // Register all meme tools
   registerTools(server, fetchPaid, fetch, apiUrl);
 
-  const mode = fetchPaid ? 'full (wallet configured)' : 'free-only (no wallet — run setup_wallet for help)';
+  const mode = fetchPaid ? 'full (wallet configured)' : 'free-only (no wallet — run create_wallet)';
   console.error(`[aimemeforge] MCP server v${VERSION} ready — ${mode}`);
   console.error(`[aimemeforge] API: ${apiUrl}`);
-  console.error(`[aimemeforge] Tools: setup_wallet, health_check, rate_meme, generate_meme, generate_community_meme, generate_newspaper`);
+
+  // Check for updates (non-blocking)
+  checkForUpdates(VERSION);
 
   return server;
+}
+
+async function checkForUpdates(currentVersion) {
+  try {
+    const res = await fetch('https://registry.npmjs.org/@aimemeforge/mcp-server/latest', {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const latest = data.version;
+    if (latest && latest !== currentVersion) {
+      console.error(`[aimemeforge] Update available: v${currentVersion} → v${latest}`);
+      console.error(`[aimemeforge] Run: npx clear-npx-cache && claude mcp remove aimemeforge && claude mcp add aimemeforge -- npx -y @aimemeforge/mcp-server`);
+    }
+  } catch { /* silent — don't block startup */ }
 }
