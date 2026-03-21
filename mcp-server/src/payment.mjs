@@ -3,6 +3,7 @@
  *
  * Creates a fetch wrapper that auto-pays USDC when APIs return HTTP 402.
  * Supports Base (EVM) and Solana (SVM) chains.
+ * Returns null if no wallet configured (server starts in free-only mode).
  */
 
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
@@ -10,19 +11,19 @@ import { registerExactEvmScheme } from '@x402/evm/exact/client';
 
 /**
  * Create a payment-enabled fetch function.
+ * Returns null if no wallet is configured (free-only mode).
  * @param {object} config
  * @param {string} [config.privateKey] - Hex EVM private key (0x...) for Base USDC
  * @param {string} [config.secretKey] - Base58 Solana secret key for Solana USDC
- * @returns {Promise<Function>} fetch function that auto-pays x402
+ * @returns {Promise<Function|null>} fetch function that auto-pays x402, or null
  */
 export async function createPaymentFetch(config) {
   const { privateKey, secretKey } = config;
 
   if (!privateKey && !secretKey) {
-    throw new Error(
-      'No wallet configured. Set PRIVATE_KEY (Base/EVM hex) or SECRET_KEY (Solana base58).\n' +
-      'Your wallet needs USDC to pay for meme services.'
-    );
+    console.error('[aimemeforge] No wallet configured — running in free-only mode');
+    console.error('[aimemeforge] Use the setup_wallet tool to get started');
+    return null;
   }
 
   const client = new x402Client();

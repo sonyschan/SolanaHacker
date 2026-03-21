@@ -9,7 +9,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createPaymentFetch } from './payment.mjs';
 import { registerTools } from './tools.mjs';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 /**
  * Create and configure the MCP server.
@@ -33,9 +33,10 @@ export async function createServer(config = {}) {
   // Register all meme tools
   registerTools(server, fetchPaid, fetch, apiUrl);
 
-  console.error(`[aimemeforge] MCP server v${VERSION} ready`);
+  const mode = fetchPaid ? 'full (wallet configured)' : 'free-only (no wallet — run setup_wallet for help)';
+  console.error(`[aimemeforge] MCP server v${VERSION} ready — ${mode}`);
   console.error(`[aimemeforge] API: ${apiUrl}`);
-  console.error(`[aimemeforge] Tools: health_check, rate_meme, generate_meme, generate_community_meme, generate_newspaper`);
+  console.error(`[aimemeforge] Tools: setup_wallet, health_check, rate_meme, generate_meme, generate_community_meme, generate_newspaper`);
 
   return server;
 }
