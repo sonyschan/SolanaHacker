@@ -775,6 +775,7 @@ const LabTab = ({ publicMode = false }) => {
     { id: 'generate', label: t('lab.panels.generate') },
     { id: 'catalog', label: t('lab.panels.catalog') },
     { id: 'api', label: t('lab.panels.api') },
+    { id: 'mcp', label: 'MCP' },
   ];
   const publicPanels = [
     { id: 'create', label: t('lab.create.tabCreate') },
