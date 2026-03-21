@@ -406,7 +406,7 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
     'rate_meme',
     'Rate a meme image with AI vision analysis. Returns score (0-100), grade, and suggestions. Costs $0.05 USDC.',
     {
-      imageUrl: z.string().url().describe('Public URL of the meme image to rate'),
+      imageUrl: z.string().describe('Public URL of the meme image to rate'),
     },
     async ({ imageUrl }) => {
       if (!fetchPaid) return walletRequiredResponse('rate_meme', '0.05');
@@ -471,9 +471,9 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
     'generate_community_meme',
     'Turn a project announcement into a shareable meme with suggested tweet. Choose tone and visual style. Costs $0.15 USDC.',
     {
-      description: z.string().max(500).describe('Project announcement or event (max 500 chars)'),
-      tone: z.enum(['hype', 'wholesome', 'funny', 'flex']).optional().describe('Meme tone (default: hype)'),
-      style: z.enum(['meme', 'announcement', 'comic', 'infographic']).optional().describe('Visual style (default: meme)'),
+      description: z.string().describe('Project announcement or event (max 500 chars)'),
+      tone: z.string().optional().describe('Meme tone: hype, wholesome, funny, or flex (default: hype)'),
+      style: z.string().optional().describe('Visual style: meme, announcement, comic, or infographic (default: meme)'),
     },
     async ({ description, tone, style }) => {
       if (!fetchPaid) return walletRequiredResponse('generate_community_meme', '0.15');
@@ -502,8 +502,8 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
     'generate_newspaper',
     'Generate a newspaper-style banner image from news text. Great for X posts. Costs $0.15 USDC.',
     {
-      description: z.string().max(500).describe('News or announcement text (max 500 chars)'),
-      xProfileUrl: z.string().url().optional().describe('X/Twitter profile URL for avatar in the newspaper'),
+      description: z.string().describe('News or announcement text (max 500 chars)'),
+      xProfileUrl: z.string().optional().describe('X/Twitter profile URL for avatar in the newspaper'),
     },
     async ({ description, xProfileUrl }) => {
       if (!fetchPaid) return walletRequiredResponse('generate_newspaper', '0.15');
