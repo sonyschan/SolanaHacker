@@ -8,21 +8,37 @@
 
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+
+const WALLET_FILE = join(homedir(), '.aimemeforge', 'wallet.json');
 
 /**
  * Create a payment-enabled fetch function.
- * Returns null if no wallet is configured (free-only mode).
+ * Checks: env var PRIVATE_KEY → saved wallet file → free-only mode.
  * @param {object} config
  * @param {string} [config.privateKey] - Hex EVM private key (0x...) for Base USDC
  * @param {string} [config.secretKey] - Base58 Solana secret key for Solana USDC
  * @returns {Promise<Function|null>} fetch function that auto-pays x402, or null
  */
 export async function createPaymentFetch(config) {
-  const { privateKey, secretKey } = config;
+  let { privateKey, secretKey } = config;
+
+  // Auto-load from saved wallet if no env var set
+  if (!privateKey && !secretKey && existsSync(WALLET_FILE)) {
+    try {
+      const saved = JSON.parse(readFileSync(WALLET_FILE, 'utf-8'));
+      if (saved.privateKey) {
+        privateKey = saved.privateKey;
+        console.error(`[aimemeforge] Loaded wallet from ${WALLET_FILE}`);
+      }
+    } catch { /* ignore corrupt file */ }
+  }
 
   if (!privateKey && !secretKey) {
-    console.error('[aimemeforge] No wallet configured — running in free-only mode');
-    console.error('[aimemeforge] Use the setup_wallet tool to get started');
+    console.error('[aimemeforge] No wallet found — running in free-only mode');
+    console.error('[aimemeforge] Run create_wallet to get started');
     return null;
   }
 
