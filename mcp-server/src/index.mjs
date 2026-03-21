@@ -9,7 +9,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createPaymentFetch } from './payment.mjs';
 import { registerTools } from './tools.mjs';
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 
 /**
  * Create and configure the MCP server.
