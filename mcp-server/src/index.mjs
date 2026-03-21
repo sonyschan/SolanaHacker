@@ -9,7 +9,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createPaymentFetch } from './payment.mjs';
 import { registerTools } from './tools.mjs';
 
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 
 /**
  * Create and configure the MCP server.
@@ -27,13 +27,16 @@ export async function createServer(config = {}) {
     version: VERSION,
   });
 
-  // Create x402 payment-enabled fetch
-  const fetchPaid = await createPaymentFetch(config);
+  // Payment state — mutable so create_wallet can hot-load after wallet creation
+  const paymentState = {
+    fetchPaid: await createPaymentFetch(config),
+    config,
+  };
 
-  // Register all meme tools
-  registerTools(server, fetchPaid, fetch, apiUrl);
+  // Register all meme tools (pass state object so tools can reload payment)
+  registerTools(server, paymentState, fetch, apiUrl);
 
-  const mode = fetchPaid ? 'full (wallet configured)' : 'free-only (no wallet — run create_wallet)';
+  const mode = paymentState.fetchPaid ? 'full (wallet configured)' : 'free-only (no wallet — run create_wallet)';
   console.error(`[aimemeforge] MCP server v${VERSION} ready — ${mode}`);
   console.error(`[aimemeforge] API: ${apiUrl}`);
 

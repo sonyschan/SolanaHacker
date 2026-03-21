@@ -51,11 +51,11 @@ function walletRequiredResponse(toolName, price) {
 /**
  * Register all meme service tools on the MCP server.
  * @param {McpServer} server - MCP server instance
- * @param {Function|null} fetchPaid - x402 payment-enabled fetch (null if no wallet)
+ * @param {object} paymentState - { fetchPaid, config } — mutable so create_wallet can hot-load
  * @param {Function} fetchFree - normal fetch (for free endpoints)
  * @param {string} apiUrl - base API URL
  */
-export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
+export function registerTools(server, paymentState, fetchFree, apiUrl) {
 
   // ─── Setup Guide (always available) ────────────────────────
 
@@ -130,6 +130,15 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
         throw err;
       }
 
+      // Hot-reload payment — activate wallet immediately without restart
+      try {
+        const { createPaymentFetch } = await import('./payment.mjs');
+        paymentState.fetchPaid = await createPaymentFetch({ secretKey: secretKeyBase58 });
+        console.error(`[aimemeforge] Wallet hot-loaded — paid tools now active`);
+      } catch (err) {
+        console.error(`[aimemeforge] Hot-load failed (restart to activate): ${err.message}`);
+      }
+
       return { content: [{ type: 'text', text: [
         `=== Solana Wallet Created! ===`,
         ``,
@@ -152,10 +161,10 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
         `Amount: $0.50 is enough for 5 memes.`,
         `Gas is FREE — Dexter sponsors all transaction fees. You ONLY need USDC.`,
         ``,
-        `=== Activate Wallet ===`,
+        `=== Wallet Status ===`,
         ``,
-        `Your wallet is saved and will be auto-loaded on next restart.`,
-        `Just restart Claude Code — no need to reconfigure anything.`,
+        `Wallet is now ACTIVE — paid tools are ready to use once funded.`,
+        `No restart needed.`,
         ``,
         `=== Available Tools ===`,
         ``,
@@ -415,8 +424,8 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       required: ['imageUrl'],
     },
     async ({ imageUrl }) => {
-      if (!fetchPaid) return walletRequiredResponse('rate_meme', '0.05');
-      const res = await fetchPaid(`${apiUrl}/api/memes/rate`, {
+      if (!paymentState.fetchPaid) return walletRequiredResponse('rate_meme', '0.05');
+      const res = await paymentState.fetchPaid(`${apiUrl}/api/memes/rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl }),
@@ -448,10 +457,10 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       required: ['topic'],
     },
     async ({ topic, artStyleId }) => {
-      if (!fetchPaid) return walletRequiredResponse('generate_meme', '0.10');
+      if (!paymentState.fetchPaid) return walletRequiredResponse('generate_meme', '0.10');
       const body = { topic };
       if (artStyleId) body.artStyleId = artStyleId;
-      const res = await fetchPaid(`${apiUrl}/api/memes/generate-custom`, {
+      const res = await paymentState.fetchPaid(`${apiUrl}/api/memes/generate-custom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -490,8 +499,8 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       required: ['description'],
     },
     async ({ description, tone, style }) => {
-      if (!fetchPaid) return walletRequiredResponse('generate_community_meme', '0.15');
-      const res = await fetchPaid(`${apiUrl}/api/memes/generate-community`, {
+      if (!paymentState.fetchPaid) return walletRequiredResponse('generate_community_meme', '0.15');
+      const res = await paymentState.fetchPaid(`${apiUrl}/api/memes/generate-community`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description, tone: tone || 'hype', style: style || 'meme' }),
@@ -524,10 +533,10 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       required: ['description'],
     },
     async ({ description, xProfileUrl }) => {
-      if (!fetchPaid) return walletRequiredResponse('generate_newspaper', '0.15');
+      if (!paymentState.fetchPaid) return walletRequiredResponse('generate_newspaper', '0.15');
       const body = { description };
       if (xProfileUrl) body.xProfileUrl = xProfileUrl;
-      const res = await fetchPaid(`${apiUrl}/api/memes/generate-newspaper`, {
+      const res = await paymentState.fetchPaid(`${apiUrl}/api/memes/generate-newspaper`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
