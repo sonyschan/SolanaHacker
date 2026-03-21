@@ -106,24 +106,17 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
         } catch { /* corrupted file, regenerate */ }
       }
 
-      // Generate Solana Ed25519 keypair
+      // Generate Solana Ed25519 keypair using @solana/web3.js
       const bs58 = await import('bs58');
-      const { generateKeyPairSigner } = await import('@solana/signers');
-      const signer = await generateKeyPairSigner();
-
-      // Export secret key as base58 (64 bytes: secret + public)
-      const secretKeyBytes = new Uint8Array(64);
-      const keyPair = signer.keyPair;
-      const privBytes = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.privateKey));
-      const pubBytes = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
-      secretKeyBytes.set(privBytes.slice(0, 32), 0);
-      secretKeyBytes.set(pubBytes, 32);
-      const secretKeyBase58 = bs58.default.encode(secretKeyBytes);
+      const { Keypair } = await import('@solana/web3.js');
+      const keypair = Keypair.generate();
+      const address = keypair.publicKey.toBase58();
+      const secretKeyBase58 = bs58.default.encode(keypair.secretKey);
 
       // Save locally
       if (!existsSync(WALLET_DIR)) mkdirSync(WALLET_DIR, { recursive: true, mode: 0o700 });
       const walletData = JSON.stringify({
-        address: signer.address,
+        address,
         secretKey: secretKeyBase58,
         chain: 'solana',
         createdAt: new Date().toISOString(),
@@ -142,14 +135,14 @@ export function registerTools(server, fetchPaid, fetchFree, apiUrl) {
       return { content: [{ type: 'text', text: [
         `=== Solana Wallet Created! ===`,
         ``,
-        `Address: ${signer.address}`,
+        `Address: ${address}`,
         `Chain:   Solana`,
         `Key:     ${WALLET_FILE}`,
-        `View:    https://solscan.io/account/${signer.address}`,
+        `View:    https://solscan.io/account/${address}`,
         ``,
         `=== How to Fund ===`,
         ``,
-        `Send USDC to: ${signer.address}`,
+        `Send USDC to: ${address}`,
         `Network: Solana`,
         ``,
         `Ways to fund:`,

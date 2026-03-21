@@ -1,6 +1,6 @@
 {
   "name": "@aimemeforge/mcp-server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "MCP server for AI meme services with x402 crypto payment. Generate, rate, and share memes — agents pay per use with USDC.",
   "type": "module",
   "bin": {
