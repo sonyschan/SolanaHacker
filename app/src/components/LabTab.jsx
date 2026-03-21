@@ -780,6 +780,7 @@ const LabTab = ({ publicMode = false }) => {
     { id: 'create', label: t('lab.create.tabCreate') },
     { id: 'myMemes', label: t('lab.myMemes.tab') },
     { id: 'api', label: t('lab.panels.api') },
+    { id: 'mcp', label: 'MCP' },
   ];
   const panels = publicMode ? publicPanels : privatePanels;
 
@@ -1886,6 +1887,91 @@ const LabTab = ({ publicMode = false }) => {
                 {urlCopied ? t('common.copied') : t('common.copy')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          MCP TAB — Claude Code / AI Agent integration guide
+          ═══════════════════════════════════════════════════════ */}
+      {activePanel === 'mcp' && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-white">MCP Server</h3>
+            <p className="text-gray-400 text-sm mt-1">Use meme services directly from Claude Code, Cursor, or any MCP client</p>
+          </div>
+
+          {/* Install */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+            <h4 className="text-white font-bold text-sm uppercase tracking-wider">1. Install</h4>
+            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
+              claude mcp add aimemeforge -- npx -y @aimemeforge/mcp-server
+            </div>
+            <p className="text-gray-400 text-xs">Works with Claude Code, Cursor, and any MCP-compatible AI agent.</p>
+          </div>
+
+          {/* Create Wallet */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+            <h4 className="text-white font-bold text-sm uppercase tracking-wider">2. Create Wallet</h4>
+            <p className="text-gray-400 text-sm">Inside Claude Code, say:</p>
+            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-cyan-400">
+              "create a wallet for meme services"
+            </div>
+            <p className="text-gray-400 text-xs">Generates a Solana wallet instantly. Gas is FREE (Dexter sponsored). You only need USDC.</p>
+          </div>
+
+          {/* Fund */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+            <h4 className="text-white font-bold text-sm uppercase tracking-wider">3. Fund with USDC</h4>
+            <p className="text-gray-400 text-sm">Send USDC to the wallet address shown. $0.50 is enough for 5 memes.</p>
+            <div className="text-gray-500 text-xs space-y-1">
+              <p>Coinbase / Binance / Phantom &rarr; Send USDC &rarr; Solana network &rarr; paste address</p>
+            </div>
+          </div>
+
+          {/* Use */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+            <h4 className="text-white font-bold text-sm uppercase tracking-wider">4. Generate Memes</h4>
+            <p className="text-gray-400 text-sm">Just tell your AI agent what you want:</p>
+            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-yellow-400 space-y-2">
+              <p>"generate a meme about Bitcoin hitting $150k"</p>
+              <p>"rate this meme: https://example.com/meme.png"</p>
+              <p>"create a community meme for our token launch"</p>
+            </div>
+            <p className="text-gray-400 text-xs">Payment is automatic via x402. No API keys needed.</p>
+          </div>
+
+          {/* Tools & Pricing */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+            <h4 className="text-white font-bold text-sm uppercase tracking-wider">Available Tools</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-400 text-left text-xs uppercase tracking-wider border-b border-white/10">
+                    <th className="pb-2 pr-4">Tool</th>
+                    <th className="pb-2 pr-4">Cost</th>
+                    <th className="pb-2">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-green-400">create_wallet</td><td className="pr-4 text-green-400">FREE</td><td>Generate Solana wallet</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-green-400">check_balance</td><td className="pr-4 text-green-400">FREE</td><td>Check USDC balance</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-green-400">health_check</td><td className="pr-4 text-green-400">FREE</td><td>Service status</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-cyan-400">generate_meme</td><td className="pr-4">$0.10</td><td>AI meme from any topic</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-cyan-400">rate_meme</td><td className="pr-4">$0.05</td><td>AI quality score + suggestions</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-cyan-400">generate_community_meme</td><td className="pr-4">$0.15</td><td>Announcement meme + tweet</td></tr>
+                  <tr className="border-b border-white/5"><td className="py-2 pr-4 font-mono text-xs text-cyan-400">generate_newspaper</td><td className="pr-4">$0.15</td><td>Newspaper-style banner</td></tr>
+                  <tr><td className="py-2 pr-4 font-mono text-xs text-purple-400">withdraw</td><td className="pr-4 text-green-400">FREE</td><td>Send USDC to another address</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* npm link */}
+          <div className="text-center">
+            <a href="https://www.npmjs.com/package/@aimemeforge/mcp-server" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors">
+              npm: @aimemeforge/mcp-server &rarr;
+            </a>
           </div>
         </div>
       )}

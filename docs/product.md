@@ -13,7 +13,7 @@
 **MemeForge** 是「迷因即服務」(Memes as a Service) 平台，提供兩大核心業務：
 
 1. **AI 創作 + 社群驗證** — 每天 AI 自動生成 3 張梗圖，社群投票選出最佳，抽獎選出贏家，可 Claim 鑄造成 Solana NFT。用戶免費參與，投票賺取票券和 USDC。
-2. **Meme API 服務** — 開發者和 AI 代理可透過按次付費的 x402 API 整合梗圖生成 ($0.10/張) 和品質評分 ($0.005/次)，支付以 USDC on Base 結算。
+2. **Meme API 服務** — 開發者和 AI 代理可透過按次付費的 x402 API 整合梗圖生成 ($0.10/張) 和品質評分 ($0.05/次)，支付以 USDC on Base + Solana 結算。MCP Server 讓 Claude Code / Cursor 等 AI IDE 直接使用，零 gas 自動付費。
 
 **核心價值**: AI 每日創作 · 社區共治驗證品質 · 按需 API 服務 · 免費參與生態 · x402 微支付商務
 
@@ -26,7 +26,8 @@
 - 每日抽獎 (加權隨機) + Ticket 累積策略
 - Hall of Memes 歷史畫廊 — 公開 #gallery 頁面，稀有度篩選 + 標籤搜尋
 - x402 Meme API — 按次付費 USDC on Base + Solana (Rate $0.05 / Generate $0.10 / Catalog Free)
-- 公開 API Lab (#lab) — API 定價展示 + 分頁 Quick Start 程式碼
+- MCP Server (`@aimemeforge/mcp-server`) — AI agent 直接在 Claude Code/Cursor 內使用 meme 服務，Solana 零 gas 自動付費
+- 公開 API Lab (#lab) — API 定價展示 + 分頁 Quick Start 程式碼 + MCP 安裝教學
 - 自訂域名 api.aimemeforge.io (Cloud Run + managed SSL)
 - Homepage 雙業務定位 — 投票生態 + API 服務兩欄式佈局，精選畫廊
 - Agent Memeya X 自主經營 (@AiMemeForgeIO, 7 話題, 三層記憶)
