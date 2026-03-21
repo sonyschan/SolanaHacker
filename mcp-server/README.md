@@ -4,9 +4,23 @@ AI meme services for your agent. Generate, rate, and share crypto memes — pay 
 
 ## Quick Start
 
-### Claude Desktop / Claude Code
+### Claude Code (one-line install)
 
-Add to your MCP config:
+```bash
+claude mcp add aimemeforge -- npx -y @aimemeforge/mcp-server
+```
+
+No wallet? No problem — the server starts in free-only mode. Run the `setup_wallet` tool inside Claude Code for payment setup instructions.
+
+With a wallet (paid tools enabled):
+
+```bash
+claude mcp add aimemeforge -e PRIVATE_KEY=0x_your_key -- npx -y @aimemeforge/mcp-server
+```
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -25,7 +39,7 @@ Add to your MCP config:
 ### Cursor / Other MCP Clients
 
 ```bash
-PRIVATE_KEY=0x... npx @aimemeforge/mcp-server
+PRIVATE_KEY=0x... npx -y @aimemeforge/mcp-server
 ```
 
 ## Tools
