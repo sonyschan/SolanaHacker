@@ -453,6 +453,13 @@ CRITICAL — TEXT RULES (STRICTLY ENFORCED):
 - All non-caption areas must be purely visual (characters, objects, scenery) with ZERO text or letter-like shapes.
 - If the layout specifies 2 text regions, the image must contain exactly 2 text regions — no more, no less.
 
+QUALITY RULES (learned from performance analysis):
+- Characters must have CLEAR, expressive faces with unambiguous emotions. No distortion, pixelation, or uncanny valley effects.
+- Background must SUPPORT the subject, not compete with it. Avoid overly busy or noisy backgrounds that obscure the focal point.
+- Maintain strong compositional hierarchy — one clear focal point, supporting elements recede.
+- If the layout has multiple panels or choices, each option must be VISUALLY DISTINCT. Never repeat identical content across panels.
+- Art style must be consistent across the ENTIRE image — characters, background, and objects all in the same style.
+
 Technical requirements:
 - Square aspect ratio (1:1)
 - High contrast colors for visual impact
@@ -773,6 +780,12 @@ CRITICAL — TEXT RULES (STRICTLY ENFORCED):
 - Do NOT generate fake usernames, brand names, hashtags, URLs, tickers, or any invented small text anywhere in the image.
 - All non-overlay areas must be purely visual (characters, objects, scenery) with ZERO text or letter-like shapes.
 - The image must contain exactly ${[topText, bottomText].filter(Boolean).length} text region(s) — no more, no less.
+
+QUALITY RULES (learned from performance analysis):
+- Characters must have CLEAR, expressive faces with unambiguous emotions. No distortion, pixelation, or uncanny valley effects.
+- Background must SUPPORT the subject, not compete with it. Avoid overly busy or noisy backgrounds that obscure the focal point.
+- Maintain strong compositional hierarchy — one clear focal point, supporting elements recede.
+- Art style must be consistent across the ENTIRE image — characters, background, and objects all in the same style.
 
 Technical requirements:
 - Square aspect ratio (1:1)

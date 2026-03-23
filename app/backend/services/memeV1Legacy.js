@@ -54,7 +54,7 @@ const V1_ART_STYLES = [
   {
     id: 'abstract_glitch',
     name: 'Abstract Glitch Art',
-    prompt: 'Abstract Glitch Art style. Distorted digital artifacts, fragmented imagery, chromatic aberration, vaporwave color palette, data corruption aesthetic.',
+    prompt: 'Abstract Glitch Art style with SUBTLE glitch effects ONLY in the background. Main subject and characters must remain CLEAR and undistorted. Use mild chromatic aberration and vaporwave colors as accents, NOT as the dominant visual. Keep the focal point sharp and readable.',
   },
   {
     id: 'classic_oil',
@@ -103,10 +103,34 @@ function pickRandomStyles(count = 3) {
  * @param {string[]} recentStyleIds - style IDs used in recent memes
  * @param {number} cooldownDays - how many days to avoid repeating (default 3)
  */
+// Quality weights learned from vision AI analysis (2026-03-23)
+// Higher weight = more likely to be selected
+const STYLE_QUALITY_WEIGHTS = {
+  street_graffiti: 2.0,   // top performer — clear, dynamic, modern
+  '3d_clay': 2.0,         // top performer — clean lines, expressive
+  ink_wash: 1.8,           // top performer — crisp, uncluttered
+  modern_flat: 1.8,        // top performer — bold, readable
+  classic_2d: 1.5,         // solid performer
+  cyberpunk_neon: 1.2,     // good but can be busy
+  retro_pixel: 1.0,        // default — struggles with complex backgrounds
+  classic_oil: 1.0,        // double-edged — can be too heavy
+  hyper_realism: 0.8,      // below average
+  abstract_glitch: 0.3,    // worst performer — visual noise, obscures subjects
+};
+
 function pickFreshStyle(recentStyleIds = []) {
   const available = V1_ART_STYLES.filter(s => !recentStyleIds.includes(s.id));
-  if (available.length === 0) return V1_ART_STYLES[Math.floor(Math.random() * V1_ART_STYLES.length)];
-  return available[Math.floor(Math.random() * available.length)];
+  const pool = available.length > 0 ? available : V1_ART_STYLES;
+
+  // Weighted random selection based on quality scores
+  const weights = pool.map(s => STYLE_QUALITY_WEIGHTS[s.id] || 1.0);
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  let rand = Math.random() * totalWeight;
+  for (let i = 0; i < pool.length; i++) {
+    rand -= weights[i];
+    if (rand <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
 }
 
 // ═══════════════════════════════════════════════════════════════
