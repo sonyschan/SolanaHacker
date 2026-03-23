@@ -685,8 +685,6 @@ export function createToolExecutors(deps) {
       delete safeEnv.XAI_API_KEY;
       delete safeEnv.GITHUB_TOKEN;
       delete safeEnv.TELEGRAM_BOT_TOKEN;
-      delete safeEnv.COLOSSEUM_API_KEY;
-      delete safeEnv.COLOSSEUM_CLAIM_CODE;
       try {
         const { stdout, stderr } = await execAsync(resolvedCommand, {
           cwd: workDir,
