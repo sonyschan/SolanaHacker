@@ -571,7 +571,6 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
           </div>
         </div>
       )}
-      `}</style>
     </div>
   );
 };
