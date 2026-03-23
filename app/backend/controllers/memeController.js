@@ -225,8 +225,8 @@ async function generateSingleMeme({ topic, newsTitle, templateId, strategyId, na
 
   // 9. Build image prompt
   const imagePrompt = isOriginalMode
-    ? memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
-    : memeIdeaService.buildImagePrompt(memeIdea, artStyle);
+    ? await memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
+    : await memeIdeaService.buildImagePrompt(memeIdea, artStyle);
 
   // 10. Generate image (random model)
   const generator = AI_IMAGE_MODELS[Math.floor(Math.random() * AI_IMAGE_MODELS.length)];
@@ -469,8 +469,8 @@ async function generateDailyMemes(req, res) {
 
       // 6d. Build image prompt (Mode A vs Mode B)
       const imagePrompt = isOriginalMode
-        ? memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
-        : memeIdeaService.buildImagePrompt(memeIdea, artStyle);
+        ? await memeIdeaService.buildOriginalImagePrompt(memeIdea, artStyle)
+        : await memeIdeaService.buildImagePrompt(memeIdea, artStyle);
 
       // 6e. Generate image
       let imageData;
@@ -829,8 +829,8 @@ async function regenerateMemeImageInternal(memeId, model = 'gemini') {
 
   const isOriginal = meme.metadata.generationMode === 'original';
   const imagePrompt = isOriginal
-    ? memeIdeaService.buildOriginalImagePrompt(meme.metadata.memeIdea, artStyle)
-    : memeIdeaService.buildImagePrompt(meme.metadata.memeIdea, artStyle);
+    ? await memeIdeaService.buildOriginalImagePrompt(meme.metadata.memeIdea, artStyle)
+    : await memeIdeaService.buildImagePrompt(meme.metadata.memeIdea, artStyle);
 
   console.log(`🔄 Regenerating image for meme ${memeId} (${isOriginal ? 'original' : 'template'} mode, style: ${artStyle.id})`);
 

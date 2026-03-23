@@ -4,8 +4,47 @@ const strategyService = require('./memeStrategyService');
 const narrativeService = require('./memeNarrativeService');
 const v1Legacy = require('./memeV1Legacy');
 
+const { getFirestore } = require('firebase-admin/firestore');
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+// ─── Prompt Patches (config-driven evolution, no code changes needed) ────
+// Stored in Firestore config/prompt_patches. Cached in memory with 10-min TTL.
+let _patchCache = null;
+let _patchCacheTime = 0;
+const PATCH_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
+async function getActivePromptPatches() {
+  const now = Date.now();
+  if (_patchCache && (now - _patchCacheTime) < PATCH_CACHE_TTL) return _patchCache;
+
+  try {
+    const db = getFirestore();
+    const doc = await db.collection('config').doc('prompt_patches').get();
+    if (!doc.exists) {
+      _patchCache = [];
+      _patchCacheTime = now;
+      return _patchCache;
+    }
+    const data = doc.data();
+    _patchCache = (data.patches || []).filter(p => p.enabled !== false);
+    _patchCacheTime = now;
+    console.log(`[PromptPatches] Loaded ${_patchCache.length} active patches (v${data.version || '?'})`);
+    return _patchCache;
+  } catch (err) {
+    console.warn('[PromptPatches] Failed to load:', err.message);
+    return _patchCache || [];
+  }
+}
+
+function formatPatchRules(patches) {
+  if (!patches || patches.length === 0) return '';
+  const rules = patches.map(p => p.rules || []).flat();
+  if (rules.length === 0) return '';
+  return '\n\nEVOLUTION PATCHES (auto-applied from quality analysis):\n' +
+    rules.map(r => `- ${r}`).join('\n');
+}
 
 // Crypto-native terms for validation
 const CRYPTO_TERMS = [
@@ -407,7 +446,7 @@ Respond with ONLY this JSON:
  * Build image prompt from meme idea + style mode. Pure function.
  * Uses layout_instructions for panel-by-panel positioning.
  */
-function buildImagePrompt(memeIdea, artStyle = null) {
+async function buildImagePrompt(memeIdea, artStyle = null) {
   const template = templates.find(t => t.id === memeIdea.template_id);
   const layoutInstructions = template?.layout_instructions || template?.layout_guidance || '';
   // Use V1 art style prompt if provided, otherwise fall back to meme_native
@@ -464,7 +503,7 @@ Technical requirements:
 - Square aspect ratio (1:1)
 - High contrast colors for visual impact
 - 1024x1024 pixels resolution
-- The meme template format must be immediately recognizable`;
+- The meme template format must be immediately recognizable${formatPatchRules(await getActivePromptPatches())}`;
 }
 
 /**
@@ -749,7 +788,7 @@ Respond with ONLY this JSON:
  * Build image prompt for Mode B originals — V1-style free composition.
  * Uses visual_description as primary composition + V1 art style.
  */
-function buildOriginalImagePrompt(memeIdea, artStyle) {
+async function buildOriginalImagePrompt(memeIdea, artStyle) {
   const topText = memeIdea.caption_slots?.top_text || '';
   const bottomText = memeIdea.caption_slots?.bottom_text || '';
   const styleInstruction = artStyle?.prompt || STYLE_MODES.meme_native;
@@ -792,7 +831,7 @@ Technical requirements:
 - High contrast colors for visual impact
 - NFT-quality artwork suitable for collection
 - 1024x1024 pixels resolution
-- Clean composition with balanced visual elements`;
+- Clean composition with balanced visual elements${formatPatchRules(await getActivePromptPatches())}`;
 }
 
 /**
