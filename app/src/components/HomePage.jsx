@@ -120,7 +120,8 @@ const HomePage = ({ onConnectWallet, walletConnected, connecting }) => {
   const API_SERVICES = [
     { key: 'rate', price: '$0.05', sla: '~10s', color: 'cyan' },
     { key: 'generate', price: '$0.10', sla: '~60s', color: 'purple' },
-    { key: 'collab', price: '$0.15', sla: '~90s', color: 'pink' },
+    { key: 'community', price: '$0.15', sla: '~60s', color: 'pink' },
+    { key: 'newspaper', price: '$0.15', sla: '~60s', color: 'amber' },
     { key: 'catalog', price: 'Free', sla: null, color: 'green' },
   ];
 
