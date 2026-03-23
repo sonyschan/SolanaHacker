@@ -49,9 +49,10 @@ router.post('/trigger/:taskName', async (req, res) => {
       'lottery_draw',
       'cleanup',
       'voting_progress',
-      'reward_distribution'
+      'reward_distribution',
+      'evolution_cycle'
     ];
-    
+
     if (!validTasks.includes(taskName)) {
       return res.status(400).json({
         success: false,
@@ -63,6 +64,19 @@ router.post('/trigger/:taskName', async (req, res) => {
     console.log(`🔧 Manual trigger requested for task: ${taskName}`);
     if (reason) {
       console.log(`📝 Reason: ${reason}`);
+    }
+
+    // Evolution cycle runs its own service (heavy — Vision AI + Firestore write)
+    if (taskName === 'evolution_cycle') {
+      const { runEvolutionCycle } = require('../services/evolutionService');
+      const result = await runEvolutionCycle();
+      return res.json({
+        success: result.success,
+        data: result,
+        message: result.summary,
+        taskName,
+        triggeredAt: new Date().toISOString(),
+      });
     }
 
     const result = await schedulerService.triggerTask(taskName, { date: req.body.date });
