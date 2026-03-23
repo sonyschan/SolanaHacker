@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { gatherContext, chooseTopic, chooseTopicForSlot, logPost, fetchOwnerMentions, loadProcessedMentionIds, saveTodo } from './x-context.js';
+import { gatherContext, chooseTopic, chooseTopicForSlot, logPost, fetchOwnerMentions, loadProcessedMentionIds, saveTodo, markCommunityMemePosted } from './x-context.js';
 import { generateNewsImage } from './news-image.js';
 
 // ─── Memeya System Prompt ───────────────────────────────────────
@@ -682,6 +682,11 @@ export async function autoPost({ baseDir, grokApiKey, diarySlot = null, assigned
     const url = `https://x.com/AiMemeForgeIO/status/${data.id}`;
 
     logPost(baseDir, topicChoice.topic, postedText, url);
+
+    // Mark community meme as posted to avoid re-showcasing
+    if (topicChoice.topic === 'community_showcase' && topicChoice.meta?.memeId) {
+      markCommunityMemePosted(baseDir, topicChoice.meta.memeId);
+    }
 
     // Mirror to Tapestry (non-fatal)
     try {

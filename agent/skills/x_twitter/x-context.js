@@ -25,13 +25,14 @@ let _lastSyncHash = '';
  * @param {{ grokApiKey?: string }} opts
  */
 export async function gatherContext(baseDir, opts = {}) {
-  const [todayMemes, hallMemes, commits, journal, recentPosts, productDoc] = await Promise.all([
+  const [todayMemes, hallMemes, commits, journal, recentPosts, productDoc, recentCommunityMeme] = await Promise.all([
     fetchTodayMemes(),
     fetchHallOfMemes(),
     getRecentCommits(baseDir),
     loadMemeyaJournal(baseDir),
     loadRecentPosts(baseDir, 15),
     loadProductDoc(baseDir),
+    fetchRecentCommunityMeme(baseDir),
   ]);
 
   // Pick one random past meme from hall of memes
@@ -49,7 +50,7 @@ export async function gatherContext(baseDir, opts = {}) {
 
   const realActivity = getRecentRealActivity(baseDir);
 
-  return { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc, realActivity };
+  return { todayMemes, randomPastMeme, commits, journal, recentPosts, comments, productDoc, realActivity, recentCommunityMeme };
 }
 
 async function fetchTodayMemes() {
@@ -74,6 +75,59 @@ async function fetchHallOfMemes() {
     const data = await res.json();
     return data.memes || [];
   } catch { return []; }
+}
+
+/**
+ * Fetch the most recent unposted community meme (last 48h).
+ * Checks a local file to track which community memes have already been showcased.
+ */
+async function fetchRecentCommunityMeme(baseDir) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${BACKEND_URL}/api/memes/hall-of-memes?days=2&limit=20`, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const communityMemes = (data.memes || []).filter(m => m.type === 'community' && m.imageUrl);
+    if (communityMemes.length === 0) return null;
+
+    // Load posted community meme IDs to avoid re-posting
+    const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
+    let postedIds = [];
+    try {
+      if (fs.existsSync(postedPath)) {
+        postedIds = JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
+      }
+    } catch { /* fresh start */ }
+
+    // Find first unposted community meme (newest first)
+    const unposted = communityMemes.find(m => !postedIds.includes(m.id));
+    return unposted || null;
+  } catch { return null; }
+}
+
+/**
+ * Mark a community meme as posted (called after successful X post).
+ */
+export function markCommunityMemePosted(baseDir, memeId) {
+  try {
+    const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
+    let postedIds = [];
+    try {
+      if (fs.existsSync(postedPath)) {
+        postedIds = JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
+      }
+    } catch { /* fresh */ }
+    if (!postedIds.includes(memeId)) {
+      postedIds.push(memeId);
+      // Keep only last 50 to prevent file bloat
+      if (postedIds.length > 50) postedIds = postedIds.slice(-50);
+      fs.writeFileSync(postedPath, JSON.stringify(postedIds, null, 2));
+    }
+  } catch (err) {
+    console.warn('[x-context] Failed to mark community meme posted:', err.message);
+  }
 }
 
 function getRecentCommits(baseDir) {
@@ -783,6 +837,21 @@ export function chooseTopicForSlot(diarySlot, context, opts = {}) {
     }
 
     case 'flex_1': {
+      // Priority: showcase a recent community meme if one exists (last 24h, not yet posted)
+      const communityMeme = context.recentCommunityMeme;
+      if (communityMeme && communityMeme.imageUrl) {
+        const memeImages = [{ url: communityMeme.imageUrl, id: communityMeme.id, title: communityMeme.title || 'Community Meme' }];
+        const { prompt } = buildDiaryPrompt('community_showcase', context, { meme: communityMeme });
+        return {
+          topic: 'community_showcase',
+          prompt,
+          ogUrl: null,
+          memeImages,
+          subTopic: 'community_showcase',
+          meta: { slot: diarySlot, memeId: communityMeme.id, memeTitle: communityMeme.title, creatorHandle: communityMeme.metadata?.account?.handle },
+        };
+      }
+      // Fallback: normal flex topics
       const pool = ['dev_update', 'personal_vibe', 'feature_showtime'];
       const sub = pickFlexTopic(pool, context);
       const { prompt, ogUrl } = buildDiaryPrompt(sub, context);
@@ -885,6 +954,40 @@ function buildDiaryPrompt(topic, context, extraOpts = {}) {
           `Do NOT include any URL yourself. Just write the tweet text.`,
         ].filter(Boolean).join('\n'),
         ogUrl: `${SITE_URL}/meme/${meme.id}`,
+      };
+    }
+
+    case 'community_showcase': {
+      const { meme } = extraOpts;
+      if (!meme) return buildDiaryPrompt('personal_vibe', context);
+
+      const title = meme.title || 'Community Meme';
+      const desc = meme.description || '';
+      const newsSource = meme.newsSource || '';
+      const handle = meme.metadata?.account?.handle || null;
+      const accountName = meme.metadata?.account?.name || null;
+
+      return {
+        prompt: [
+          `TOPIC: Showcase a community meme created by a user/project using your MaaS platform.`,
+          `A user just created this meme using AIMemeForge: "${title}"`,
+          desc ? `Description: ${desc}` : null,
+          newsSource ? `Their announcement: ${newsSource}` : null,
+          accountName ? `Project: ${accountName}` : null,
+          ``,
+          `STORYTELLING DIRECTION:`,
+          `- You're proud and excited — a real user used YOUR meme engine to create this.`,
+          `- Highlight what makes this meme good (the humor, the visual, the relevance to their project).`,
+          `- This is social proof that AIMemeForge works — real projects use it.`,
+          handle ? `- Tag ${handle} — they created this meme. Give them a shoutout!` : null,
+          `- Invite others to try: "You can create yours too" vibe, but keep it natural.`,
+          `- NEVER fabricate specific numbers, stats, or dollar amounts.`,
+          ``,
+          DIARY_FRAME,
+          `Keep your text under 250 chars — one image will be attached automatically.`,
+          `Do NOT include any URL yourself. Just write the tweet text.`,
+        ].filter(Boolean).join('\n'),
+        ogUrl: null,
       };
     }
 
