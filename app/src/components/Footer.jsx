@@ -24,10 +24,10 @@ const Footer = () => {
               {t('footer.desc')}
             </p>
 
-            {/* Hackathon Badge */}
+            {/* MCP Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-xs text-purple-300 font-medium">{t('footer.hackathon')}</span>
+              <span className="text-xs text-purple-300 font-medium">MCP + x402 Powered</span>
             </div>
           </div>
 

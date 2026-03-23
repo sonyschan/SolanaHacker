@@ -1,12 +1,11 @@
 {
   "name": "solanahacker-agent",
   "version": "1.0.0",
-  "description": "Autonomous Solana developer agent for Colosseum Hackathon",
+  "description": "AIMemeForge autonomous agent — Memes as a Service",
   "type": "module",
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
-    "register": "node register-colosseum.js",
     "dev": "node --watch main.js",
     "test": "node test-connections.js"
   },

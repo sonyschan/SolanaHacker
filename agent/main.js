@@ -1,6 +1,6 @@
 /**
- * SolanaHacker Agent — Tool-Use Architecture
- * Autonomous Solana developer for Colosseum Hackathon
+ * AIMemeForge Agent — Memeya
+ * Autonomous meme engine + multi-platform commerce
  *
  * Architecture:
  *   Claude API (tool_use) → Agent decides what to do → We execute tools → Feed results back

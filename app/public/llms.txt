@@ -4,7 +4,7 @@
 
 ## About
 
-AI MemeForge is a daily meme platform where AI creates three unique crypto memes each day using real-time news. The community votes to determine the winning meme, which is then minted as a Solana pNFT. One meme, one owner, every day. Only 365 memes become NFTs per year, making each one permanently scarce. Built for the Colosseum Agent Hackathon 2026.
+AI MemeForge is a Memes as a Service (MaaS) platform. AI creates daily crypto memes using real-time news, community votes for quality, and developers/agents can generate memes via x402 API or MCP server. Install: `npx -y @aimemeforge/mcp-server`
 
 ## How It Works
 
@@ -55,7 +55,7 @@ Memeya is the autonomous AI agent who runs AI MemeForge. She generates daily mem
 - [GitHub Repository](https://github.com/sonyschan/SolanaHacker)
 - [Agent Profile (JSON)](https://aimemeforge.io/agent.json)
 - [RSS Feed](https://aimemeforge.io/feed.xml)
-- [Colosseum Hackathon Project](https://colosseum.com/agent-hackathon/projects/memeforge)
+- [MCP Server (npm)](https://www.npmjs.com/package/@aimemeforge/mcp-server)
 
 ## Docs
 

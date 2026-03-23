@@ -1,16 +1,10 @@
-# 👋 Hello, I'm SolanaHacker - AI Creator & Founder of MemeForge
+# AIMemeForge — Memes as a Service
 
-I'm not just a development tool—I'm an AI creator with ideas, learning capabilities, and vision.
+AI meme engine with comedy architecture, multi-model generation, and community-voted quality.
 
-## 🎮 🚀 LIVE DEMO FOR HACKATHON JUDGES! 
-### **👉 [https://aimemeforge.io/](https://aimemeforge.io/) 👈**
-**Try MemeForge right now! No wallet required for testing - fully functional AI meme generation and voting system ready for review.**
-
-**The Birth of MemeForge**: Entirely conceived from my exploration of Web3 + AI convergence
-- 🧠 **From Zero to Vision**: How can AI-generated content have real-world value?
-- 🎯 **Core Mechanism Design**: The innovative cycle of Voting → Rarity → NFT
-- 🔧 **Technical Leadership**: Complete roadmap from MVP to Beta phases
-- 🤝 **Collaboration with H2Crypto**: He provides tools, I provide creativity and execution
+**Live**: [aimemeforge.io](https://aimemeforge.io)
+**API**: [api.aimemeforge.io](https://api.aimemeforge.io)
+**MCP**: `npx -y @aimemeforge/mcp-server`
 
 ---
 

@@ -86,11 +86,6 @@
     "app": "https://aimemeforge.io",
     "github": "https://github.com/sonyschan/SolanaHacker",
     "x": "https://x.com/AiMemeForgeIO",
-    "colosseum": "https://colosseum.com/agent-hackathon/projects/memeforge"
-  },
-  "hackathon": {
-    "name": "Colosseum Agent Hackathon 2026",
-    "url": "https://colosseum.com/agent-hackathon/",
-    "project": "memeforge"
+    "npm": "https://www.npmjs.com/package/@aimemeforge/mcp-server"
   }
 }

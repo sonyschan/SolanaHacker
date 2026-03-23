@@ -2,9 +2,7 @@
 
 > 迷因即服務：AI 創作、社群驗證品質、開發者與 AI 代理按需整合
 
-**Live**: [aimemeforge.io](https://aimemeforge.io) ｜ **API**: [api.aimemeforge.io](https://api.aimemeforge.io) ｜ **GitHub**: [SolanaHacker](https://github.com/sonyschan/SolanaHacker) ｜ **Hackathon**: [Colosseum Agent Hackathon](https://arena.colosseum.org/) ｜ **TG**: [t.me/MemeyaOfficialCommunity](https://t.me/MemeyaOfficialCommunity)
-
-> 技術實作細節見 [TDD.md](./TDD.md)
+**Live**: [aimemeforge.io](https://aimemeforge.io) ｜ **API**: [api.aimemeforge.io](https://api.aimemeforge.io) ｜ **MCP**: [@aimemeforge/mcp-server](https://www.npmjs.com/package/@aimemeforge/mcp-server) ｜ **TG**: [t.me/MemeyaOfficialCommunity](https://t.me/MemeyaOfficialCommunity)
 
 ---
 
