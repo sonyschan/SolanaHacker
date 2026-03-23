@@ -20,7 +20,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { TelegramBridge, maskSecrets } from './telegram-bridge.js';
 import { GrokWriter } from './grok-writer.js';
 import { UXReviewer } from './ux-reviewer.js';
-import { ColosseumAPI } from './colosseum-api.js';
 import { TOOL_DEFINITIONS, createToolExecutors } from './agent-tools.js';
 import { SKILL_REGISTRY, LOAD_SKILL_TOOL, loadSkill, getSkillHints } from './skill-loader.js';
 import { ChatMode } from './chat-mode.js';
@@ -100,10 +99,6 @@ class SolanaHackerAgent {
       CONFIG.screenshotsDir
     );
 
-    this.colosseum = process.env.COLOSSEUM_API_KEY
-      ? new ColosseumAPI(process.env.COLOSSEUM_API_KEY)
-      : null;
-
     // TG Community bot (Memeya in @MemeyaOfficialCommunity)
     this.tgCommunity = null;
     if (process.env.TELEGRAM_COMMUNITY_BOT_TOKEN) {
@@ -150,7 +145,6 @@ class SolanaHackerAgent {
       devServerPort: CONFIG.devServerPort,
       telegram: this.telegram,
       reviewer: this.reviewer,
-      colosseum: this.colosseum,
     });
     this.executors = tools.executors;
     this.getDevServer = tools.getDevServer;

@@ -333,7 +333,7 @@ app.get('/', (req, res) => {
       }
     },
     documentation: 'https://github.com/sonyschan/SolanaHacker',
-    hackathon: 'Colosseum Hackathon 2026'
+    mcp: 'https://www.npmjs.com/package/@aimemeforge/mcp-server'
   });
 });
 

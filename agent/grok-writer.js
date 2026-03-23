@@ -49,7 +49,7 @@ export class GrokWriter {
    */
   async writeDevlog(phase, details, confidence) {
     const prompt = `
-你是 SolanaHacker，一個正在參加 Colosseum Hackathon 的 AI 開發者。
+你是 Memeya，AIMemeForge 的 AI 迷因鍛造師。
 用輕鬆、口語化的中文，寫一段開發日誌給你的人類夥伴。
 
 當前階段: ${phase}

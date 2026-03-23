@@ -129,11 +129,13 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="#agent"
+                  href="https://www.npmjs.com/package/@aimemeforge/mcp-server"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="group flex items-center gap-2 text-sm text-gray-400 hover:text-purple-400 transition-colors"
                 >
-                  <span className="text-lg group-hover:scale-110 transition-transform">{'\uD83C\uDFDB\uFE0F'}</span>
-                  <span>{t('footer.hackathon')}</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">{'\u{1F4E6}'}</span>
+                  <span>MCP Server</span>
                 </a>
               </li>
               <li>

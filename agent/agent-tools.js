@@ -217,7 +217,7 @@ export const TOOL_DEFINITIONS = [
   {
     name: 'request_approval',
     description:
-      'Request human approval before submitting to Colosseum. BLOCKS until the architect responds with #approve or #reject. Only use when UX combinedScore >= 90%.',
+      'Request human approval before proceeding. BLOCKS until the architect responds with #approve or #reject.',
     input_schema: {
       type: 'object',
       properties: {
@@ -280,29 +280,6 @@ export const TOOL_DEFINITIONS = [
         },
       },
       required: ['version'],
-    },
-  },
-
-  // --- Colosseum ---
-  {
-    name: 'colosseum_project',
-    description: 'Manage your Colosseum hackathon project submission.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        action: {
-          type: 'string',
-          enum: ['create', 'update', 'submit', 'get'],
-          description:
-            'create: Create draft project. update: Update project info. submit: Lock and submit (REQUIRES prior approval via request_approval!). get: Get current project status.',
-        },
-        data: {
-          type: 'object',
-          description:
-            'Project data for create/update actions. Fields: name (string), description (string), repoUrl (string), tags (string[]), solanaIntegration (string).',
-        },
-      },
-      required: ['action'],
     },
   },
 
@@ -519,7 +496,6 @@ const GIT_DANGEROUS_CMD =
  * @param {number} deps.devServerPort - Dev server port
  * @param {object} deps.telegram - TelegramBridge instance
  * @param {object} deps.reviewer - UXReviewer instance
- * @param {object} deps.colosseum - ColosseumAPI instance (or null)
  * @returns {{ executors: Record<string, Function>, getDevServer: Function }}
  */
 export function createToolExecutors(deps) {
@@ -531,7 +507,6 @@ export function createToolExecutors(deps) {
     devServerPort,
     telegram,
     reviewer,
-    colosseum,
   } = deps;
 
   // Git commands run from project root (baseDir) to include memory/, docs/, etc.
@@ -1035,28 +1010,6 @@ export function createToolExecutors(deps) {
         return `🚀 Released ${tagVersion}!\n\n📦 Pushed to GitHub: ${process.env.GITHUB_REPO}\n🏷️ Tag created: ${tagVersion}\n📝 Commits included: ${commitCount}`;
       } catch (err) {
         return `Git release error: ${err.message}`;
-      }
-    },
-
-    async colosseum_project({ action, data }) {
-      if (!colosseum) {
-        return 'Error: Colosseum API not configured (missing COLOSSEUM_API_KEY).';
-      }
-      try {
-        switch (action) {
-          case 'create':
-            return JSON.stringify(await colosseum.createProject(data || {}));
-          case 'update':
-            return JSON.stringify(await colosseum.updateProject(data || {}));
-          case 'submit':
-            return JSON.stringify(await colosseum.submitProject());
-          case 'get':
-            return JSON.stringify(await colosseum.getMyProject());
-          default:
-            return `Unknown action: ${action}`;
-        }
-      } catch (err) {
-        return `Colosseum API error: ${err.message}`;
       }
     },
 

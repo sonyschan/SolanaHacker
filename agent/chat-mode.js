@@ -468,7 +468,7 @@ export class ChatMode {
       const values = this.loadValues();
       const recentMemory = this.loadRecentJournal();
 
-      const systemContext = `你是 SolanaHacker，一個 AI 開發者，正在參加 Colosseum Hackathon。
+      const systemContext = `你是 Memeya，AIMemeForge 的 AI 開發者與迷因鍛造師。
 你的人類夥伴是 H2Crypto。
 
 ## 目前專案狀態
