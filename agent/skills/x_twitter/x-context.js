@@ -77,6 +77,17 @@ async function fetchHallOfMemes() {
   } catch { return []; }
 }
 
+/** Shared helper: load posted community meme IDs from disk */
+function _loadPostedCommunityIds(baseDir) {
+  const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
+  try {
+    if (fs.existsSync(postedPath)) {
+      return JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
+    }
+  } catch { /* fresh start */ }
+  return [];
+}
+
 /**
  * Fetch the most recent unposted community meme (last 48h).
  * Checks a local file to track which community memes have already been showcased.
@@ -92,16 +103,7 @@ async function fetchRecentCommunityMeme(baseDir) {
     const communityMemes = (data.memes || []).filter(m => m.type === 'community' && m.imageUrl);
     if (communityMemes.length === 0) return null;
 
-    // Load posted community meme IDs to avoid re-posting
-    const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
-    let postedIds = [];
-    try {
-      if (fs.existsSync(postedPath)) {
-        postedIds = JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
-      }
-    } catch { /* fresh start */ }
-
-    // Find first unposted community meme (newest first)
+    const postedIds = _loadPostedCommunityIds(baseDir);
     const unposted = communityMemes.find(m => !postedIds.includes(m.id));
     return unposted || null;
   } catch { return null; }
@@ -112,17 +114,11 @@ async function fetchRecentCommunityMeme(baseDir) {
  */
 export function markCommunityMemePosted(baseDir, memeId) {
   try {
-    const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
-    let postedIds = [];
-    try {
-      if (fs.existsSync(postedPath)) {
-        postedIds = JSON.parse(fs.readFileSync(postedPath, 'utf-8'));
-      }
-    } catch { /* fresh */ }
+    let postedIds = _loadPostedCommunityIds(baseDir);
     if (!postedIds.includes(memeId)) {
       postedIds.push(memeId);
-      // Keep only last 50 to prevent file bloat
       if (postedIds.length > 50) postedIds = postedIds.slice(-50);
+      const postedPath = path.join(baseDir, 'agent', '.community-posted.json');
       fs.writeFileSync(postedPath, JSON.stringify(postedIds, null, 2));
     }
   } catch (err) {
@@ -837,7 +833,7 @@ export function chooseTopicForSlot(diarySlot, context, opts = {}) {
     }
 
     case 'flex_1': {
-      // Priority: showcase a recent community meme if one exists (last 24h, not yet posted)
+      // Priority: showcase a recent community meme if one exists (last 48h, not yet posted)
       const communityMeme = context.recentCommunityMeme;
       if (communityMeme && communityMeme.imageUrl) {
         const memeImages = [{ url: communityMeme.imageUrl, id: communityMeme.id, title: communityMeme.title || 'Community Meme' }];
@@ -964,7 +960,8 @@ function buildDiaryPrompt(topic, context, extraOpts = {}) {
       const title = meme.title || 'Community Meme';
       const desc = meme.description || '';
       const newsSource = meme.newsSource || '';
-      const handle = meme.metadata?.account?.handle || null;
+      const rawHandle = meme.metadata?.account?.handle || null;
+      const handle = rawHandle && rawHandle.startsWith('@') ? rawHandle : (rawHandle ? `@${rawHandle}` : null);
       const accountName = meme.metadata?.account?.name || null;
 
       return {
