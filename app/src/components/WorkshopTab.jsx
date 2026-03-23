@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ChangelogModal from './ChangelogModal';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 
@@ -255,6 +256,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
   const [rewardPool, setRewardPool] = useState(null);
   const [copied, setCopied] = useState(false);
   const [copiedBase, setCopiedBase] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState(null);
   const [floatAmount, setFloatAmount] = useState(null);
   const [phase, setPhase] = useState({ color: '#4ADE80', label: 'LIVE', active: false });
@@ -339,7 +341,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           <div className="flex items-center gap-3">
             <img src="/images/memeya-avatar.png" alt="Memeya" className="w-6 h-6 rounded-full" />
             <span className="text-sm text-gray-300 font-bold">{t('workshop.terminal.title')}</span>
-            <span className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/30">{t('workshop.terminal.version')}</span>
+            <button onClick={() => setShowChangelog(true)} className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/30 hover:bg-cyan-500/30 hover:border-cyan-500/50 transition-colors cursor-pointer">{t('workshop.terminal.version')}</button>
           </div>
           {/* Dynamic LIVE indicator */}
           <div className="flex items-center gap-2">
@@ -622,6 +624,7 @@ const WorkshopTab = ({ setActiveTab, baseWalletUsdc }) => {
           100% { transform: translateX(-50%) translateY(-30px); opacity: 0; }
         }
       `}</style>
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
     </div>
   );
 };
