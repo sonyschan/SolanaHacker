@@ -5,7 +5,34 @@ const { getMemeyaBalance, calculateTokenBonus } = require('../services/solanaSer
 const { authenticateUser, rateLimiter } = require('../middleware/auth');
 const { cacheResponse, TTL } = require('../utils/cache');
 const { getFirestore, collections, dbUtils, admin } = require('../config/firebase');
-const { createReferralIdForWallet } = require('../controllers/votingController');
+// Inline referral ID creation (moved from votingController)
+function generateReferralId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+  return result;
+}
+async function createReferralIdForWallet(wallet, transaction = null) {
+  const db = getFirestore();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const id = generateReferralId();
+    const idRef = db.collection(collections.REFERRAL_IDS).doc(id);
+    if (transaction) {
+      const idDoc = await transaction.get(idRef);
+      if (!idDoc.exists) {
+        transaction.set(idRef, { wallet, createdAt: new Date().toISOString(), isCustom: false });
+        return id;
+      }
+    } else {
+      const idDoc = await idRef.get();
+      if (!idDoc.exists) {
+        await idRef.set({ wallet, createdAt: new Date().toISOString(), isCustom: false });
+        return id;
+      }
+    }
+  }
+  throw new Error('Failed to generate unique referral ID');
+}
 const Joi = require('joi');
 
 // Validation schemas

@@ -7,13 +7,10 @@ require('dotenv').config();
 
 // Import routes
 const memeRoutes = require('./routes/memes');
-const votingRoutes = require('./routes/voting');
 const userRoutes = require('./routes/users');
-const lotteryRoutes = require('./routes/lottery');
 const schedulerRoutes = require('./routes/scheduler');
 const ogRoutes = require('./routes/og');
 const tapestryRoutes = require('./routes/tapestry');
-const rewardRoutes = require('./routes/rewards');
 const memeyaRoutes = require('./routes/memeya');
 const catalogRoutes = require('./routes/catalog');
 const newsRoutes = require('./routes/news');
@@ -86,13 +83,10 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use('/api/memes', memeRoutes);
-app.use('/api/voting', votingRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/lottery', lotteryRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/og', ogRoutes);
 app.use('/api/tapestry', tapestryRoutes);
-app.use('/api/rewards', rewardRoutes);
 app.use('/api/memeya', memeyaRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/news', newsRoutes);
@@ -128,31 +122,15 @@ app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) 
     const memesSnapshot = await db.collection(collections.MEMES).count().get();
     const totalMemes = memesSnapshot.data().count;
 
-    // Get total votes count
-    const votesSnapshot = await db.collection(collections.VOTES).count().get();
-    const totalVotes = votesSnapshot.data().count;
-
     // Get total users count
     const usersSnapshot = await db.collection(collections.USERS).count().get();
     const totalUsers = usersSnapshot.data().count;
-
-    // Get weekly voters — unique wallets that voted in the last 7 days
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const recentVotes = await db.collection(collections.VOTES)
-      .where('timestamp', '>=', weekAgo)
-      .select('walletAddress')
-      .get();
-    const weekWallets = new Set();
-    recentVotes.forEach(doc => weekWallets.add(doc.data().walletAddress));
 
     res.json({
       success: true,
       stats: {
         totalMemes,
-        totalVotes,
         totalUsers,
-        weeklyVoters: weekWallets.size,
-        prizePool: 'Coming Soon',
         timestamp: new Date().toISOString()
       }
     });
@@ -162,10 +140,7 @@ app.get('/api/stats', cacheResponse('global:stats', TTL.LONG), async (req, res) 
       success: true,
       stats: {
         totalMemes: 0,
-        totalVotes: 0,
         totalUsers: 0,
-        weeklyVoters: 0,
-        prizePool: 'Coming Soon',
         timestamp: new Date().toISOString()
       }
     });
@@ -188,7 +163,7 @@ app.get('/feed.xml', async (req, res) => {
     const db = getFirestore();
     const snapshot = await db.collection(collections.MEMES)
       .where('type', '==', 'daily')
-      .where('status', 'in', ['active', 'voting_active', 'voting_completed'])
+      .where('status', 'in', ['active', 'judged', 'winner', 'voting_completed'])
       .orderBy('generatedAt', 'desc')
       .limit(20)
       .get();
@@ -214,7 +189,7 @@ app.get('/feed.xml', async (req, res) => {
   <channel>
     <title>AI MemeForge — Daily AI Memes</title>
     <link>https://aimemeforge.io</link>
-    <description>Daily AI-generated crypto memes. Vote for free, win NFT ownership. One meme, one owner, every day.</description>
+    <description>Daily AI-generated crypto news memes. Scored by three AI judges. Best meme wins.</description>
     <language>en</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="https://memeforge-api-836651762884.asia-southeast1.run.app/feed.xml" rel="self" type="application/rss+xml" />
@@ -243,7 +218,7 @@ app.get('/sitemap.xml', async (req, res) => {
     const db = getFirestore();
     const snapshot = await db.collection(collections.MEMES)
       .where('type', '==', 'daily')
-      .where('status', 'in', ['active', 'voting_active', 'voting_completed'])
+      .where('status', 'in', ['active', 'judged', 'winner', 'voting_completed'])
       .orderBy('generatedAt', 'desc')
       .limit(50)
       .get();
@@ -254,28 +229,8 @@ app.get('/sitemap.xml', async (req, res) => {
     <priority>1.0</priority>
   </url>`,
     `  <url>
-    <loc>https://aimemeforge.io/docs</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>`,
-    `  <url>
-    <loc>https://aimemeforge.io/docs/how-it-works</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`,
-    `  <url>
-    <loc>https://aimemeforge.io/docs/tokenomics</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`,
-    `  <url>
-    <loc>https://aimemeforge.io/docs/rarity-system</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`,
-    `  <url>
-    <loc>https://aimemeforge.io/docs/memeya-agent</loc>
-    <changefreq>weekly</changefreq>
+    <loc>https://aimemeforge.io/#archive</loc>
+    <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>`];
 
@@ -306,34 +261,22 @@ ${urls.join('\n')}
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'MemeForge API is running! 🎨🚀',
-    version: '1.0.0',
+    message: 'MemeNews API is running! 📰🎨',
+    version: '2.0.0',
     endpoints: {
       health: '/health',
       memes: '/api/memes',
-      voting: '/api/voting',
       users: '/api/users',
-      lottery: '/api/lottery',
       scheduler: '/api/scheduler'
     },
     automation: {
-      description: '🔄 Fully automated meme generation, voting, and lottery system',
+      description: '🔄 Daily meme generation + AI judging (Gemini, Grok, ChatGPT)',
       features: [
-        'Daily meme generation at 8:00 AM UTC',
-        'Voting periods: 8:30 AM - 8:00 PM UTC (12 hours)',
-        'Automatic rarity calculation',
-        'Weekly lottery draw on Sundays at 8:00 PM UTC',
-        'Hourly voting progress monitoring'
-      ],
-      management: {
-        status: 'GET /api/scheduler/status',
-        trigger: 'POST /api/scheduler/trigger/:taskName',
-        logs: 'GET /api/scheduler/logs',
-        health: 'GET /api/scheduler/health'
-      }
-    },
-    documentation: 'https://github.com/sonyschan/SolanaHacker',
-    mcp: 'https://www.npmjs.com/package/@aimemeforge/mcp-server'
+        'Daily meme generation at 0:00 UTC (8AM UTC+8)',
+        'AI judging at 0:45 UTC — 3 judges score on visual quality, news clarity, meme impact',
+        'Winner picked by highest average score'
+      ]
+    }
   });
 });
 
@@ -342,7 +285,7 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
     message: `The requested endpoint ${req.originalUrl} does not exist`,
-    availableEndpoints: ['/health', '/api/memes', '/api/voting', '/api/users', '/api/lottery', '/api/scheduler']
+    availableEndpoints: ['/health', '/api/memes', '/api/users', '/api/scheduler']
   });
 });
 
@@ -367,7 +310,7 @@ if (require.main === module) {
     console.log(`🚀 MemeForge API server running on port ${PORT}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    console.log(`🎨 Ready for AI meme generation and voting! 🗳️`);
+    console.log(`📰 MemeNews: AI meme generation + AI judging`);
     console.log(`⏰ Scheduler: GCP Cloud Scheduler (external) triggers /api/scheduler/trigger/:taskName`);
   });
 

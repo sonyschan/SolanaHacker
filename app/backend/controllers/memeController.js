@@ -69,10 +69,6 @@ Technical requirements:
       generatedAt: timestamp,
       type: 'generated',
       status: 'active',
-      votes: {
-        selection: { yes: 0, no: 0 },
-        rarity: { common: 0, uncommon: 0, rare: 0, legendary: 0 }
-      },
       metadata: {
         originalPrompt: prompt,
         aiModel: 'gemini-3-pro-image-preview',
@@ -250,7 +246,6 @@ async function generateSingleMeme({ topic, newsTitle, templateId, strategyId, na
     status: 'active',
     style: artStyle.id,
     tags,
-    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
     metadata: {
       source: 'lab',
       originalNews: newsTitle || topic,
@@ -280,7 +275,6 @@ async function generateSingleMeme({ topic, newsTitle, templateId, strategyId, na
       imageGenerated: imageData.success,
       fileSize: imageData.fileSize || 0,
     },
-    rarity: 'unknown'
   };
 
   // 13. Save to Firestore
@@ -505,10 +499,6 @@ async function generateDailyMemes(req, res) {
         status: 'active',
         style: artStyle.id,
         tags,
-        votes: {
-          selection: { yes: 0, no: 0 },
-          rarity: { common: 0, rare: 0, legendary: 0 }
-        },
         metadata: {
           originalNews: newsItem.title || newsItem,
           aiModel: generator ? generator.modelName : 'gemini-3-pro-image-preview',
@@ -545,25 +535,10 @@ async function generateDailyMemes(req, res) {
           tagsCount: tags.length,
           tokenSymbol,
           xHandle: newsItem.x_handle || null
-        },
-        rarity: 'unknown'
+        }
       };
 
-      // 6h. Mint eligibility gate (Mode A only — Mode B originals always eligible)
-      if (isOriginalMode) {
-        memeDoc.mint_eligible = true;
-        memeDoc.mint_ineligibility_reason = null;
-        console.log(`🏷️ Meme ${i+1}: mint_eligible=true (original mode)`);
-      } else {
-        const { mintEligible, mintReason } = memeIdeaService.checkMintEligibility(
-          template.id, template.archetype, recentThemes
-        );
-        memeDoc.mint_eligible = mintEligible;
-        memeDoc.mint_ineligibility_reason = mintReason;
-        console.log(`🏷️ Meme ${i+1}: mint_eligible=${mintEligible}${mintReason ? ` (${mintReason})` : ''}`);
-      }
-
-      // 6i. Save to Firestore
+      // 6h. Save to Firestore
       await dbUtils.setDocument(collections.MEMES, memeDoc.id, memeDoc);
       savedMemes.push(memeDoc);
 
@@ -700,8 +675,7 @@ async function getTodaysMemes(req, res) {
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
-          votes: { selection: { yes: 89, no: 23 }, rarity: { common: 45, rare: 67, legendary: 123 } },
-          metadata: { devMode: true, titleImproved: true }
+          metadata: { devMode: true }
         },
         {
           id: 'dev-meme-2',
@@ -713,8 +687,7 @@ async function getTodaysMemes(req, res) {
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
-          votes: { selection: { yes: 134, no: 45 }, rarity: { common: 67, rare: 89, legendary: 178 } },
-          metadata: { devMode: true, titleImproved: true }
+          metadata: { devMode: true }
         },
         {
           id: 'dev-meme-3',
@@ -726,8 +699,7 @@ async function getTodaysMemes(req, res) {
           generatedAt: new Date().toISOString(),
           type: 'daily',
           status: 'active',
-          votes: { selection: { yes: 98, no: 67 }, rarity: { common: 56, rare: 78, legendary: 134 } },
-          metadata: { devMode: true, titleImproved: true }
+          metadata: { devMode: true }
         }
       ];
       return res.json({ 
@@ -744,7 +716,7 @@ async function getTodaysMemes(req, res) {
     const startOfDay = new Date(today + 'T00:00:00.000Z');
     const endOfDay = new Date(today + 'T23:59:59.999Z');
     const db = getFirestore();
-    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', 'in', ['active', 'voting_active', 'voting_completed']).where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc').limit(3);
+    const query = db.collection(collections.MEMES).where('type', '==', 'daily').where('status', 'in', ['active', 'judged', 'winner', 'voting_completed']).where('generatedAt', '>=', startOfDay.toISOString()).where('generatedAt', '<=', endOfDay.toISOString()).orderBy('generatedAt', 'desc').limit(3);
     const snapshot = await query.get();
     const memes = [];
     snapshot.forEach(doc => { memes.push(fixImageUrl({ id: doc.id, ...doc.data() })); });
@@ -1020,7 +992,6 @@ Respond with ONLY the tweet text, no quotes or explanation.`;
     status: 'active',
     style: artStyle.id,
     tags,
-    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
     metadata: {
       source: 'lab',
       originalNews: headline,
@@ -1050,7 +1021,6 @@ Respond with ONLY the tweet text, no quotes or explanation.`;
       imageGenerated: imageData.success,
       fileSize: imageData.fileSize || 0,
     },
-    rarity: 'unknown'
   };
 
   // 12. Save to Firestore
@@ -1194,7 +1164,6 @@ Respond with ONLY the tweet text.`;
     status: 'active',
     style: artStyle.id,
     tags,
-    votes: { selection: { yes: 0, no: 0 }, rarity: { common: 0, rare: 0, legendary: 0 } },
     metadata: {
       source: 'lab',
       aiModel: imageData.referenceCount ? 'gemini-3-pro-image-preview+refs' : 'gemini-3-pro-image-preview',
@@ -1212,7 +1181,6 @@ Respond with ONLY the tweet text.`;
       imageGenerated: imageData.success,
       fileSize: imageData.fileSize || 0,
     },
-    rarity: 'unknown'
   };
 
   // 8. Save to Firestore

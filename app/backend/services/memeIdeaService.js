@@ -249,6 +249,11 @@ ${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
 ${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
 ${strategyService.formatPunchlineLibrary()}
 
+NORTH STAR QUALITY METRICS (optimize for ALL three — these are the exact criteria AI judges will score on):
+1. VISUAL QUALITY — Your visual_description must create a clear, well-composed scene. Think about contrast, focal point, and readability at thumbnail size. Avoid cluttered compositions.
+2. NEWS CLARITY — Someone who hasn't read the news should understand WHAT happened just from seeing this meme. The caption + visual must convey the news story, not just react to it.
+3. MEME IMPACT — Maximum humor, satire, and shareability. Would someone screenshot this and send it to their group chat? The twist must land.
+
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
   "template_id": "${template.id}",
@@ -368,9 +373,16 @@ async function evaluateMemeIdea(memeIdea, recentCaptions = [], strategy = null) 
 TEMPLATE: ${memeIdea.template_id}
 CAPTION: "${memeIdea.caption}"
 CAPTION SLOTS: ${JSON.stringify(memeIdea.caption_slots)}
+VISUAL DESCRIPTION: "${memeIdea.visual_description || 'N/A'}"
 EMOTION: ${memeIdea.emotion}
 TWIST: ${memeIdea.twist}
 ${strategyText}${recentCaptionsText}
+REMEMBER: The final meme will be scored by AI judges on three North Star metrics:
+- VISUAL QUALITY (composition, clarity, readability)
+- NEWS CLARITY (can viewer understand the news from the meme alone?)
+- MEME IMPACT (humor, satire, shareability)
+Factor these into your evaluation.
+
 SCORING CRITERIA (1-5 each):
 1. template_familiarity: Does the caption fit how this meme template is actually used on the internet? (culturally correct, not just technically correct)
 2. caption_punchiness: Each slot MUST be <= 6 words. Score 1 if any slot exceeds 6 words. Is it a short punchy phrase (like "Buying the dip") or a wordy sentence? Immediate emotional reaction > description.
@@ -695,6 +707,11 @@ VISUAL SCENE (THIS IS THE KEY — be creative):
 ${strategy ? '\n' + strategyService.formatStrategyPrompt(strategy) + '\n' : ''}
 ${narrative ? '\n' + narrativeService.formatNarrativePrompt(narrative) + '\n' : ''}
 ${strategyService.formatPunchlineLibrary()}
+
+NORTH STAR QUALITY METRICS (optimize for ALL three — these are the exact criteria AI judges will score on):
+1. VISUAL QUALITY — Your visual_description must create a clear, well-composed scene. Think about contrast, focal point, and readability at thumbnail size. Avoid cluttered compositions.
+2. NEWS CLARITY — Someone who hasn't read the news should understand WHAT happened just from seeing this meme. The caption + visual must convey the news story, not just react to it.
+3. MEME IMPACT — Maximum humor, satire, and shareability. Would someone screenshot this and send it to their group chat? The twist must land.
 
 OUTPUT FORMAT — respond with ONLY this JSON, no markdown:
 {
