@@ -1,49 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { AiScoreInline, AiScoreCard } from './AiScoreBar';
+import React, { useState, useEffect, useRef } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://memeforge-api-836651762884.asia-southeast1.run.app';
 
+const JUDGE_CONFIG = {
+  chatgpt: { name: 'GPT-4o', color: '#10a37f', icon: '◆' },
+  gemini:  { name: 'Gemini', color: '#4285f4', icon: '◆' },
+  grok:    { name: 'Grok',   color: '#f97316', icon: '◆' },
+};
+
 function MemeNewsPage() {
   const [todayMemes, setTodayMemes] = useState([]);
-  const [pastDays, setPastDays] = useState([]); // [{date, memes}]
+  const [pastDays, setPastDays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMeme, setSelectedMeme] = useState(null);
 
-  useEffect(() => {
-    fetchMemes();
-  }, []);
+  useEffect(() => { fetchMemes(); }, []);
 
   async function fetchMemes() {
     setLoading(true);
     try {
-      // Fetch today's memes
-      const todayRes = await fetch(`${API_BASE_URL}/api/memes/today`);
+      const [todayRes, hallRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/memes/today`),
+        fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=5&limit=30`)
+      ]);
       const todayData = await todayRes.json();
-      const today = todayData.memes || [];
-      setTodayMemes(today);
+      setTodayMemes(todayData.memes || []);
 
-      // Fetch past 3 days (via hall-of-memes with 4 day window)
-      const hallRes = await fetch(`${API_BASE_URL}/api/memes/hall-of-memes?days=4&limit=20`);
       const hallData = await hallRes.json();
-      const allMemes = hallData.memes || [];
-
-      // Group by date, exclude today
-      const todayDate = new Date().toISOString().split('T')[0];
+      const todayDate = new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0];
       const byDate = {};
-      for (const m of allMemes) {
+      for (const m of (hallData.memes || [])) {
         const d = (m.generatedAt || '').split('T')[0];
         if (d && d !== todayDate && m.type === 'daily') {
           if (!byDate[d]) byDate[d] = [];
           byDate[d].push(m);
         }
       }
-
-      const sorted = Object.entries(byDate)
-        .sort(([a], [b]) => b.localeCompare(a))
-        .slice(0, 3)
-        .map(([date, memes]) => ({ date, memes }));
-
-      setPastDays(sorted);
+      setPastDays(
+        Object.entries(byDate).sort(([a], [b]) => b.localeCompare(a)).slice(0, 3).map(([date, memes]) => ({ date, memes }))
+      );
     } catch (err) {
       console.error('Failed to fetch memes:', err);
     } finally {
@@ -52,281 +47,440 @@ function MemeNewsPage() {
   }
 
   const winner = todayMemes.find(m => m.isWinner || m.status === 'winner');
-  const others = todayMemes.filter(m => m !== winner);
+  const runners = todayMemes.filter(m => m !== winner);
+  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <header className="border-b border-white/10 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">📰</span>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">MemeNews</h1>
-              <p className="text-xs text-gray-500">News through memes, judged by AI</p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap');
+        .mn-page { font-family: 'Source Serif 4', Georgia, serif; background: #0a0a0b; color: #e8e4df; }
+        .mn-display { font-family: 'Playfair Display', Georgia, serif; }
+        .mn-mono { font-family: 'JetBrains Mono', monospace; }
+        .mn-rule { border-top: 1px solid rgba(255,255,255,0.08); }
+        .mn-rule-thick { border-top: 3px double rgba(255,255,255,0.15); }
+        .mn-rule-gold { border-top: 2px solid rgba(234,179,8,0.3); }
+        .mn-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .mn-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .mn-img-hover { transition: transform 0.4s ease; }
+        .mn-card:hover .mn-img-hover { transform: scale(1.03); }
+        .mn-score-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; letter-spacing: 0.5px; }
+        .mn-fade-in { animation: mnFadeIn 0.6s ease both; }
+        .mn-fade-in-delay-1 { animation-delay: 0.1s; }
+        .mn-fade-in-delay-2 { animation-delay: 0.2s; }
+        .mn-fade-in-delay-3 { animation-delay: 0.3s; }
+        @keyframes mnFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .mn-dim-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
+        .mn-dim-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+      `}</style>
+
+      <div className="mn-page min-h-screen">
+        {/* Masthead */}
+        <header className="mn-rule-thick pt-4 pb-3 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-end justify-between">
+              <div>
+                <h1 className="mn-display text-3xl md:text-4xl font-black tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                  MemeNews
+                </h1>
+                <p className="text-xs mt-0.5" style={{ color: '#6b6560', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                  AI-Generated · AI-Judged · Daily
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs" style={{ color: '#6b6560' }}>{todayStr}</p>
+                <a href="#archive" className="text-xs hover:underline" style={{ color: '#8b8580' }}>
+                  Archive →
+                </a>
+              </div>
             </div>
           </div>
-          <a
-            href="#archive"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Past News →
-          </a>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-12">
-        {/* Loading */}
-        {loading && (
-          <div className="text-center py-20">
-            <div className="animate-pulse text-gray-500">Loading today's MemeNews...</div>
-          </div>
-        )}
-
-        {/* Today's MemeNews */}
-        {!loading && todayMemes.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-6">
-              <h2 className="text-lg font-bold">Today's MemeNews</h2>
-              <span className="text-xs text-gray-500">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+        <main className="max-w-6xl mx-auto px-4 pb-16">
+          {/* Loading */}
+          {loading && (
+            <div className="py-32 text-center">
+              <div className="mn-display text-lg italic" style={{ color: '#4a4540' }}>Loading today's edition...</div>
             </div>
+          )}
 
-            {/* Winner highlight */}
-            {winner && (
-              <div className="mb-8">
-                <div className="relative">
-                  <div className="absolute -top-3 left-4 z-10">
-                    <span className="bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full">
-                      🏆 Meme of the Day
-                    </span>
-                  </div>
-                  <MemeNewsCard meme={winner} isWinner onClick={() => setSelectedMeme(winner)} />
-                </div>
+          {/* ══ TODAY'S MEMENEWS ══ */}
+          {!loading && todayMemes.length > 0 && (
+            <div className="mn-fade-in">
+              {/* Section label */}
+              <div className="mn-rule mt-6 pt-3 mb-6">
+                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                  Today's Edition
+                </span>
               </div>
-            )}
 
-            {/* Other memes */}
-            {others.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {others.map(meme => (
-                  <MemeNewsCard key={meme.id} meme={meme} onClick={() => setSelectedMeme(meme)} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+              {/* Winner hero */}
+              {winner && (
+                <div className="mn-fade-in cursor-pointer mn-card rounded-xl overflow-hidden mb-8"
+                     style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.04) 0%, rgba(0,0,0,0) 60%)' }}
+                     onClick={() => setSelectedMeme(winner)}>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                    {/* Image */}
+                    <div className="relative overflow-hidden aspect-square lg:aspect-auto">
+                      <img src={resolveImageUrl(winner.imageUrl)} alt={winner.title}
+                           className="mn-img-hover w-full h-full object-cover" />
+                      {/* Score badge */}
+                      {winner.aiJudging && (
+                        <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg"
+                             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+                          <span className="mn-mono text-xl font-bold" style={{ color: '#eab308' }}>
+                            {winner.aiJudging.averageTotal?.toFixed(1)}
+                          </span>
+                          <span className="mn-mono text-xs" style={{ color: '#6b6560' }}>/30</span>
+                        </div>
+                      )}
+                    </div>
 
-        {/* No memes today */}
-        {!loading && todayMemes.length === 0 && (
-          <div className="text-center py-20 text-gray-500">
-            <p className="text-4xl mb-4">📰</p>
-            <p>No MemeNews yet today. Check back after 8AM UTC+8!</p>
-          </div>
-        )}
-
-        {/* Past 3 days */}
-        {!loading && pastDays.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold mb-4">Recent News</h2>
-            <div className="space-y-8">
-              {pastDays.map(({ date, memes }) => {
-                const dayWinner = memes.find(m => m.isWinner || m.status === 'winner');
-                return (
-                  <div key={date}>
-                    <h3 className="text-sm text-gray-500 mb-3">
-                      {formatDate(date)}
-                    </h3>
-                    {dayWinner ? (
-                      <MemeNewsCard meme={dayWinner} compact onClick={() => setSelectedMeme(dayWinner)} />
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {memes.slice(0, 3).map(m => (
-                          <MemeNewsCard key={m.id} meme={m} compact onClick={() => setSelectedMeme(m)} />
-                        ))}
+                    {/* Content */}
+                    <div className="p-6 lg:p-8 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="mn-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded"
+                              style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
+                          Meme of the Day
+                        </span>
                       </div>
-                    )}
+
+                      <h2 className="mn-display text-2xl md:text-3xl font-bold mb-3" style={{ lineHeight: 1.15, color: '#f5f0eb' }}>
+                        {winner.title}
+                      </h2>
+
+                      {(winner.newsSource || winner.metadata?.originalNews) && (
+                        <p className="text-sm mb-4" style={{ color: '#8b8580', lineHeight: 1.5 }}>
+                          {winner.newsSource || winner.metadata?.originalNews}
+                        </p>
+                      )}
+
+                      <p className="text-sm mb-5" style={{ color: '#a09890', lineHeight: 1.6 }}>
+                        {winner.description}
+                      </p>
+
+                      {/* AI Judges */}
+                      {winner.aiJudging?.judges && (
+                        <div className="mn-rule pt-4">
+                          <p className="mn-mono text-[10px] uppercase tracking-[0.2em] mb-3" style={{ color: '#5a5550' }}>
+                            AI Judge Panel
+                          </p>
+                          <JudgeScoresRow judges={winner.aiJudging.judges} />
+                          {winner.aiJudging.dimensionAverages && (
+                            <DimensionBars dims={winner.aiJudging.dimensionAverages} className="mt-4" />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              {/* Runner-ups */}
+              {runners.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  {runners.map((meme, i) => (
+                    <div key={meme.id}
+                         className={`mn-card mn-fade-in mn-fade-in-delay-${i + 1} cursor-pointer rounded-lg overflow-hidden border`}
+                         style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}
+                         onClick={() => setSelectedMeme(meme)}>
+                      <div className="flex gap-0">
+                        <div className="relative w-32 md:w-40 flex-shrink-0 overflow-hidden">
+                          <img src={resolveImageUrl(meme.imageUrl)} alt={meme.title}
+                               className="mn-img-hover w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 p-4">
+                          <h3 className="mn-display font-bold text-sm mb-1" style={{ color: '#d5d0cb' }}>
+                            {meme.title}
+                          </h3>
+                          {(meme.newsSource || meme.metadata?.originalNews) && (
+                            <p className="text-xs mb-2 line-clamp-1" style={{ color: '#6b6560' }}>
+                              {meme.newsSource || meme.metadata?.originalNews}
+                            </p>
+                          )}
+                          {meme.aiJudging?.judges && (
+                            <JudgeScoresInline judges={meme.aiJudging.judges} avg={meme.aiJudging.averageTotal} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* No winner yet — show all 3 in a grid */}
+              {!winner && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  {todayMemes.map((meme, i) => (
+                    <div key={meme.id}
+                         className={`mn-card mn-fade-in mn-fade-in-delay-${i + 1} cursor-pointer rounded-lg overflow-hidden border`}
+                         style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}
+                         onClick={() => setSelectedMeme(meme)}>
+                      <div className="relative aspect-square overflow-hidden">
+                        <img src={resolveImageUrl(meme.imageUrl)} alt={meme.title}
+                             className="mn-img-hover w-full h-full object-cover" />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="mn-display font-bold text-sm mb-1">{meme.title}</h3>
+                        <p className="text-xs line-clamp-2" style={{ color: '#6b6560' }}>{meme.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </section>
+          )}
+
+          {/* No memes */}
+          {!loading && todayMemes.length === 0 && (
+            <div className="py-32 text-center">
+              <p className="mn-display text-xl italic mb-2" style={{ color: '#4a4540' }}>No edition yet today.</p>
+              <p className="text-sm" style={{ color: '#3a3530' }}>Check back after 8:00 AM UTC+8</p>
+            </div>
+          )}
+
+          {/* ══ PAST DAYS ══ */}
+          {!loading && pastDays.length > 0 && (
+            <div>
+              <div className="mn-rule-thick mt-4 pt-3 mb-6">
+                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                  Recent Editions
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {pastDays.map(({ date, memes }) => {
+                  const dayWinner = memes.find(m => m.isWinner || m.status === 'winner');
+                  const show = dayWinner || memes[0];
+                  if (!show) return null;
+
+                  return (
+                    <div key={date} className="mn-card cursor-pointer flex gap-4 items-start py-3 mn-rule"
+                         onClick={() => setSelectedMeme(show)}>
+                      <div className="flex-shrink-0 w-16 pt-1">
+                        <p className="mn-mono text-xs font-semibold" style={{ color: '#6b6560' }}>
+                          {formatShortDate(date)}
+                        </p>
+                      </div>
+                      <img src={resolveImageUrl(show.imageUrl)} alt={show.title}
+                           className="w-16 h-16 rounded object-cover flex-shrink-0" loading="lazy" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="mn-display font-bold text-sm truncate" style={{ color: '#d5d0cb' }}>
+                            {show.title}
+                          </h4>
+                          {(show.isWinner || show.status === 'winner') && (
+                            <span className="text-[10px]" style={{ color: '#eab308' }}>★</span>
+                          )}
+                        </div>
+                        <p className="text-xs line-clamp-1 mt-0.5" style={{ color: '#5a5550' }}>
+                          {show.newsSource || show.metadata?.originalNews || show.description}
+                        </p>
+                        {show.aiJudging?.judges && (
+                          <div className="mt-1.5">
+                            <JudgeScoresInline judges={show.aiJudging.judges} avg={show.aiJudging.averageTotal} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="text-center mt-8">
+                <a href="#archive" className="mn-mono text-xs uppercase tracking-[0.15em] px-5 py-2.5 rounded-lg border hover:border-white/20 transition-colors"
+                   style={{ borderColor: 'rgba(255,255,255,0.08)', color: '#6b6560' }}>
+                  View Full Archive →
+                </a>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Detail Modal */}
+        {selectedMeme && (
+          <MemeDetailModal meme={selectedMeme} onClose={() => setSelectedMeme(null)} />
         )}
-
-        {/* Archive link */}
-        <div className="text-center pt-4 pb-8">
-          <a
-            href="#archive"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-800 border border-white/10 hover:border-white/20 rounded-xl text-sm text-gray-300 hover:text-white transition-all"
-          >
-            See past news →
-          </a>
-        </div>
-      </main>
-
-      {/* Meme Detail Modal */}
-      {selectedMeme && (
-        <MemeDetailModal meme={selectedMeme} onClose={() => setSelectedMeme(null)} />
-      )}
-    </div>
+      </div>
+    </>
   );
 }
 
-/**
- * MemeNews card — shows meme image, news context, AI scores
- */
-function MemeNewsCard({ meme, isWinner, compact, onClick }) {
-  const judging = meme.aiJudging;
+/* ── Judge Score Components ─────────────────────────────────── */
 
+function JudgeScoresRow({ judges }) {
   return (
-    <div
-      onClick={onClick}
-      className={`group cursor-pointer rounded-xl border transition-all duration-200 overflow-hidden ${
-        isWinner
-          ? 'border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-400/50 hover:shadow-lg hover:shadow-yellow-500/10'
-          : 'border-white/10 bg-gray-900/50 hover:border-white/20 hover:shadow-lg hover:shadow-white/5'
-      }`}
-    >
-      {compact ? (
-        /* Compact layout — horizontal */
-        <div className="flex gap-4 p-3">
-          <img
-            src={resolveImageUrl(meme.imageUrl)}
-            alt={meme.title}
-            className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
-            loading="lazy"
-          />
-          <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm truncate group-hover:text-cyan-300 transition-colors">
-              {meme.title}
-            </h4>
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{meme.description}</p>
-            {judging?.judges && (
-              <div className="mt-2">
-                <AiScoreInline judges={judging.judges} size="sm" />
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* Full layout — vertical */
-        <>
-          <div className="relative aspect-square overflow-hidden">
-            <img
-              src={resolveImageUrl(meme.imageUrl)}
-              alt={meme.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-            {judging?.averageTotal != null && (
-              <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm rounded-lg px-2.5 py-1">
-                <span className="text-lg font-bold text-white">{judging.averageTotal.toFixed(1)}</span>
-                <span className="text-xs text-gray-400">/30</span>
-              </div>
-            )}
-          </div>
-          <div className="p-4 space-y-2">
-            <h3 className={`font-bold text-lg group-hover:text-cyan-300 transition-colors ${isWinner ? 'text-yellow-300' : ''}`}>
-              {meme.title}
-            </h3>
-            {/* News context */}
-            {(meme.newsSource || meme.metadata?.originalNews) && (
-              <p className="text-xs text-gray-500">
-                📰 {meme.newsSource || meme.metadata?.originalNews}
-              </p>
-            )}
-            <p className="text-sm text-gray-400 line-clamp-2">{meme.description}</p>
-            {/* AI Scores inline */}
-            {judging?.judges && (
-              <div className="pt-2">
-                <AiScoreInline judges={judging.judges} />
-              </div>
-            )}
-          </div>
-        </>
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(JUDGE_CONFIG).map(([key, { name, color }]) => {
+        const j = judges[key];
+        if (!j || j.status === 'error') return (
+          <span key={key} className="mn-score-pill" style={{ background: 'rgba(255,255,255,0.03)', color: '#4a4540' }}>
+            {name}: —
+          </span>
+        );
+        return (
+          <span key={key} className="mn-score-pill mn-mono" style={{ background: `${color}12`, border: `1px solid ${color}25` }}>
+            <span style={{ color: `${color}99` }}>{name}</span>
+            <span style={{ color, fontWeight: 600 }}>{j.total?.toFixed(1)}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function JudgeScoresInline({ judges, avg }) {
+  return (
+    <div className="mn-mono flex items-center gap-1.5 text-[11px]">
+      {Object.entries(JUDGE_CONFIG).map(([key, { name, color }]) => {
+        const j = judges[key];
+        if (!j || j.status === 'error') return null;
+        return (
+          <span key={key}>
+            <span style={{ color: `${color}88` }}>{name.split('-')[0]}:</span>
+            <span style={{ color, fontWeight: 600 }}>{j.total?.toFixed(1)}</span>
+          </span>
+        );
+      })}
+      {avg != null && (
+        <span style={{ color: '#5a5550', marginLeft: 2 }}>
+          avg {avg.toFixed(1)}
+        </span>
       )}
     </div>
   );
 }
 
-/**
- * Modal showing full meme details with AI judge breakdown
- */
+function DimensionBars({ dims, className = '' }) {
+  const dimensions = [
+    { key: 'visual_quality', label: 'Visual', color: '#8b5cf6' },
+    { key: 'news_clarity',   label: 'News',   color: '#3b82f6' },
+    { key: 'meme_impact',    label: 'Impact',  color: '#eab308' },
+  ];
+  return (
+    <div className={`flex gap-4 ${className}`}>
+      {dimensions.map(({ key, label, color }) => {
+        const val = dims[key] || 0;
+        return (
+          <div key={key} className="flex-1">
+            <div className="flex justify-between mb-1">
+              <span className="mn-mono text-[10px]" style={{ color: '#5a5550' }}>{label}</span>
+              <span className="mn-mono text-[10px]" style={{ color }}>{val.toFixed(1)}</span>
+            </div>
+            <div className="mn-dim-bar">
+              <div className="mn-dim-fill" style={{ width: `${(val / 10) * 100}%`, backgroundColor: color }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Detail Modal ───────────────────────────────────────────── */
+
 function MemeDetailModal({ meme, onClose }) {
   const judging = meme.aiJudging;
 
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handleEsc);
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
-    };
+    return () => { document.removeEventListener('keydown', h); document.body.style.overflow = ''; };
   }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div
-        className="relative bg-gray-900 rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
-        >
+      <div className="absolute inset-0" style={{ background: 'rgba(5,5,5,0.9)', backdropFilter: 'blur(12px)' }} />
+      <div className="relative rounded-xl overflow-hidden max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+           style={{ background: '#111110', border: '1px solid rgba(255,255,255,0.06)' }}
+           onClick={(e) => e.stopPropagation()}>
+
+        <button onClick={onClose}
+                className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center rounded-full text-sm transition-colors"
+                style={{ background: 'rgba(0,0,0,0.6)', color: '#6b6560' }}>
           ✕
         </button>
 
-        {/* Image */}
-        <img
-          src={resolveImageUrl(meme.imageUrl)}
-          alt={meme.title}
-          className="w-full rounded-t-2xl"
-        />
+        <img src={resolveImageUrl(meme.imageUrl)} alt={meme.title} className="w-full" />
 
         <div className="p-6 space-y-4">
-          {/* Winner badge */}
           {(meme.isWinner || meme.status === 'winner') && (
-            <span className="inline-block bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full">
-              🏆 Meme of the Day
+            <span className="mn-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-block"
+                  style={{ background: 'rgba(234,179,8,0.12)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
+              Meme of the Day
             </span>
           )}
 
-          <h2 className="text-2xl font-bold">{meme.title}</h2>
+          <h2 className="mn-display text-2xl font-bold" style={{ color: '#f5f0eb' }}>{meme.title}</h2>
 
-          {/* News source */}
           {(meme.newsSource || meme.metadata?.originalNews) && (
-            <p className="text-sm text-gray-400">
-              📰 {meme.newsSource || meme.metadata?.originalNews}
+            <p className="text-sm" style={{ color: '#6b6560' }}>
+              {meme.newsSource || meme.metadata?.originalNews}
             </p>
           )}
 
-          <p className="text-gray-300">{meme.description}</p>
+          <p style={{ color: '#a09890', lineHeight: 1.6 }}>{meme.description}</p>
 
-          {/* Tags */}
           {meme.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {meme.tags.map(tag => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500">
+                <span key={tag} className="mn-mono text-[10px] px-2 py-0.5 rounded"
+                      style={{ background: 'rgba(255,255,255,0.04)', color: '#5a5550' }}>
                   #{tag}
                 </span>
               ))}
             </div>
           )}
 
-          {/* AI Judge Scores */}
-          {judging && <AiScoreCard aiJudging={judging} />}
+          {/* Judge scores card */}
+          {judging && (
+            <div className="mn-rule pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                  AI Judge Panel
+                </span>
+                <span className="mn-mono text-lg font-bold" style={{ color: '#f5f0eb' }}>
+                  {judging.averageTotal?.toFixed(1)}
+                  <span className="text-xs" style={{ color: '#4a4540' }}>/30</span>
+                </span>
+              </div>
 
-          {/* Meta */}
-          <div className="text-xs text-gray-600 pt-2 border-t border-white/5 flex flex-wrap gap-4">
-            {meme.generatedAt && (
-              <span>{new Date(meme.generatedAt).toLocaleString()}</span>
-            )}
-            {meme.metadata?.aiModel && (
-              <span>Generated by {meme.metadata.aiModel}</span>
-            )}
+              {judging.dimensionAverages && <DimensionBars dims={judging.dimensionAverages} />}
+
+              {judging.judges && (
+                <div className="space-y-3 mn-rule pt-3">
+                  {Object.entries(JUDGE_CONFIG).map(([key, { name, color }]) => {
+                    const j = judging.judges[key];
+                    if (!j || j.status === 'error') return null;
+                    return (
+                      <div key={key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="mn-mono text-xs font-semibold" style={{ color }}>{name}</span>
+                          <div className="mn-mono text-xs flex gap-3" style={{ color: '#5a5550' }}>
+                            <span>VQ:{j.visual_quality}</span>
+                            <span>NC:{j.news_clarity}</span>
+                            <span>MI:{j.meme_impact}</span>
+                            <span style={{ color: '#a09890', fontWeight: 600 }}>{j.total?.toFixed(1)}</span>
+                          </div>
+                        </div>
+                        {j.reasoning && (
+                          <p className="text-xs italic" style={{ color: '#4a4540', lineHeight: 1.5 }}>
+                            "{j.reasoning}"
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mn-rule pt-3 mn-mono text-[10px] flex flex-wrap gap-4" style={{ color: '#3a3530' }}>
+            {meme.generatedAt && <span>{new Date(meme.generatedAt).toLocaleString()}</span>}
+            {meme.metadata?.aiModel && <span>Generated by {meme.metadata.aiModel}</span>}
             {meme.style && <span>Style: {meme.style}</span>}
           </div>
         </div>
@@ -335,18 +489,18 @@ function MemeDetailModal({ meme, onClose }) {
   );
 }
 
+/* ── Utilities ──────────────────────────────────────────────── */
+
 function resolveImageUrl(url) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  if (url.startsWith('/generated/')) {
-    return `${API_BASE_URL}${url}`;
-  }
+  if (url.startsWith('/generated/')) return `${API_BASE_URL}${url}`;
   return url;
 }
 
-function formatDate(dateStr) {
+function formatShortDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export default MemeNewsPage;
