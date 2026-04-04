@@ -54,7 +54,7 @@ function MemeNewsPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap');
-        .mn-page { font-family: 'Source Serif 4', Georgia, serif; background: #0a0a0b; color: #e8e4df; }
+        .mn-page { font-family: 'Source Serif 4', Georgia, serif; background: #0a0a0b; color: #e8e4df; font-size: 17px; line-height: 1.65; }
         .mn-display { font-family: 'Playfair Display', Georgia, serif; }
         .mn-mono { font-family: 'JetBrains Mono', monospace; }
         .mn-rule { border-top: 1px solid rgba(255,255,255,0.08); }
@@ -64,13 +64,13 @@ function MemeNewsPage() {
         .mn-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
         .mn-img-hover { transition: transform 0.4s ease; }
         .mn-card:hover .mn-img-hover { transform: scale(1.03); }
-        .mn-score-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; letter-spacing: 0.5px; }
+        .mn-score-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 5px; font-size: 13px; letter-spacing: 0.5px; }
         .mn-fade-in { animation: mnFadeIn 0.6s ease both; }
         .mn-fade-in-delay-1 { animation-delay: 0.1s; }
         .mn-fade-in-delay-2 { animation-delay: 0.2s; }
         .mn-fade-in-delay-3 { animation-delay: 0.3s; }
         @keyframes mnFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .mn-dim-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
+        .mn-dim-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
         .mn-dim-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
       `}</style>
 
@@ -80,7 +80,7 @@ function MemeNewsPage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-end justify-between">
               <div>
-                <h1 className="mn-display text-3xl md:text-4xl font-black tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                <h1 className="mn-display text-4xl md:text-5xl font-black tracking-tight" style={{ letterSpacing: '-0.02em' }}>
                   MemeNews
                 </h1>
                 <p className="text-xs mt-0.5" style={{ color: '#6b6560', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
@@ -110,7 +110,7 @@ function MemeNewsPage() {
             <div className="mn-fade-in">
               {/* Section label */}
               <div className="mn-rule mt-6 pt-3 mb-6">
-                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                <span className="mn-mono text-xs uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
                   Today's Edition
                 </span>
               </div>
@@ -130,12 +130,12 @@ function MemeNewsPage() {
                     {/* Content */}
                     <div className="p-6 lg:p-8 flex flex-col justify-center">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="mn-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded"
+                        <span className="mn-mono text-xs uppercase tracking-[0.15em] px-2 py-0.5 rounded"
                               style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
                           Meme of the Day
                         </span>
                         {winner.aiJudging && (
-                          <span className="mn-mono text-[10px] px-2 py-0.5 rounded"
+                          <span className="mn-mono text-xs px-2 py-0.5 rounded"
                                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <span style={{ color: '#eab308', fontWeight: 700 }}>{winner.aiJudging.averageTotal?.toFixed(1)}</span>
                             <span style={{ color: '#4a4540' }}>/30</span>
@@ -143,24 +143,24 @@ function MemeNewsPage() {
                         )}
                       </div>
 
-                      <h2 className="mn-display text-2xl md:text-3xl font-bold mb-3" style={{ lineHeight: 1.15, color: '#f5f0eb' }}>
+                      <h2 className="mn-display text-3xl md:text-4xl font-bold mb-3" style={{ lineHeight: 1.15, color: '#f5f0eb' }}>
                         {winner.title}
                       </h2>
 
                       {(winner.newsSource || winner.metadata?.originalNews) && (
-                        <p className="text-sm mb-4" style={{ color: '#8b8580', lineHeight: 1.5 }}>
+                        <p className="text-base mb-4" style={{ color: '#8b8580', lineHeight: 1.5 }}>
                           {winner.newsSource || winner.metadata?.originalNews}
                         </p>
                       )}
 
-                      <p className="text-sm mb-5" style={{ color: '#a09890', lineHeight: 1.6 }}>
+                      <p className="text-base mb-5" style={{ color: '#a09890', lineHeight: 1.6 }}>
                         {winner.description}
                       </p>
 
                       {/* AI Judges */}
                       {winner.aiJudging?.judges && (
                         <div className="mn-rule pt-4">
-                          <p className="mn-mono text-[10px] uppercase tracking-[0.2em] mb-3" style={{ color: '#5a5550' }}>
+                          <p className="mn-mono text-xs uppercase tracking-[0.2em] mb-3" style={{ color: '#5a5550' }}>
                             AI Judge Panel
                           </p>
                           <JudgeScoresRow judges={winner.aiJudging.judges} />
@@ -188,7 +188,7 @@ function MemeNewsPage() {
                                className="mn-img-hover w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 p-4">
-                          <h3 className="mn-display font-bold text-sm mb-1" style={{ color: '#d5d0cb' }}>
+                          <h3 className="mn-display font-bold text-base mb-1" style={{ color: '#d5d0cb' }}>
                             {meme.title}
                           </h3>
                           {(meme.newsSource || meme.metadata?.originalNews) && (
@@ -219,7 +219,7 @@ function MemeNewsPage() {
                              className="mn-img-hover w-full h-full object-cover" />
                       </div>
                       <div className="p-4">
-                        <h3 className="mn-display font-bold text-sm mb-1">{meme.title}</h3>
+                        <h3 className="mn-display font-bold text-base mb-1">{meme.title}</h3>
                         <p className="text-xs line-clamp-2" style={{ color: '#6b6560' }}>{meme.description}</p>
                       </div>
                     </div>
@@ -241,7 +241,7 @@ function MemeNewsPage() {
           {!loading && pastDays.length > 0 && (
             <div>
               <div className="mn-rule-thick mt-4 pt-3 mb-6">
-                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                <span className="mn-mono text-xs uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
                   Recent Editions
                 </span>
               </div>
@@ -329,7 +329,7 @@ function JudgeScoresRow({ judges }) {
 
 function JudgeScoresInline({ judges, avg }) {
   return (
-    <div className="mn-mono flex items-center gap-1.5 text-[11px]">
+    <div className="mn-mono flex items-center gap-2 text-xs">
       {Object.entries(JUDGE_CONFIG).map(([key, { name, color }]) => {
         const j = judges[key];
         if (!j || j.status === 'error') return null;
@@ -404,13 +404,13 @@ function MemeDetailModal({ meme, onClose }) {
 
         <div className="p-6 space-y-4">
           {(meme.isWinner || meme.status === 'winner') && (
-            <span className="mn-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-block"
+            <span className="mn-mono text-xs uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-block"
                   style={{ background: 'rgba(234,179,8,0.12)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
               Meme of the Day
             </span>
           )}
 
-          <h2 className="mn-display text-2xl font-bold" style={{ color: '#f5f0eb' }}>{meme.title}</h2>
+          <h2 className="mn-display text-3xl font-bold" style={{ color: '#f5f0eb' }}>{meme.title}</h2>
 
           {(meme.newsSource || meme.metadata?.originalNews) && (
             <p className="text-sm" style={{ color: '#6b6560' }}>
@@ -423,7 +423,7 @@ function MemeDetailModal({ meme, onClose }) {
           {meme.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {meme.tags.map(tag => (
-                <span key={tag} className="mn-mono text-[10px] px-2 py-0.5 rounded"
+                <span key={tag} className="mn-mono text-xs px-2 py-0.5 rounded"
                       style={{ background: 'rgba(255,255,255,0.04)', color: '#5a5550' }}>
                   #{tag}
                 </span>
@@ -435,7 +435,7 @@ function MemeDetailModal({ meme, onClose }) {
           {judging && (
             <div className="mn-rule pt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="mn-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
+                <span className="mn-mono text-xs uppercase tracking-[0.2em]" style={{ color: '#5a5550' }}>
                   AI Judge Panel
                 </span>
                 <span className="mn-mono text-lg font-bold" style={{ color: '#f5f0eb' }}>
