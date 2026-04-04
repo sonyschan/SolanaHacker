@@ -122,19 +122,9 @@ function MemeNewsPage() {
                      onClick={() => setSelectedMeme(winner)}>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                     {/* Image */}
-                    <div className="relative overflow-hidden aspect-square lg:aspect-auto">
+                    <div className="overflow-hidden aspect-square lg:aspect-auto">
                       <img src={resolveImageUrl(winner.imageUrl)} alt={winner.title}
                            className="mn-img-hover w-full h-full object-cover" />
-                      {/* Score badge */}
-                      {winner.aiJudging && (
-                        <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg"
-                             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-                          <span className="mn-mono text-xl font-bold" style={{ color: '#eab308' }}>
-                            {winner.aiJudging.averageTotal?.toFixed(1)}
-                          </span>
-                          <span className="mn-mono text-xs" style={{ color: '#6b6560' }}>/30</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Content */}
@@ -144,6 +134,13 @@ function MemeNewsPage() {
                               style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
                           Meme of the Day
                         </span>
+                        {winner.aiJudging && (
+                          <span className="mn-mono text-[10px] px-2 py-0.5 rounded"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <span style={{ color: '#eab308', fontWeight: 700 }}>{winner.aiJudging.averageTotal?.toFixed(1)}</span>
+                            <span style={{ color: '#4a4540' }}>/30</span>
+                          </span>
+                        )}
                       </div>
 
                       <h2 className="mn-display text-2xl md:text-3xl font-bold mb-3" style={{ lineHeight: 1.15, color: '#f5f0eb' }}>
