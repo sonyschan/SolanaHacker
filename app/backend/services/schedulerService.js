@@ -13,6 +13,7 @@
 const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const memeController = require('../controllers/memeController');
 const aiJudgeService = require('./aiJudgeService');
+const { invalidate, invalidatePrefix } = require('../utils/cache');
 
 class SchedulerService {
   constructor() {
@@ -108,6 +109,10 @@ class SchedulerService {
           }
         });
       }
+
+      // Invalidate meme caches so frontend sees updated scores immediately
+      invalidate('memes:today');
+      invalidatePrefix('memes:hall-of-memes');
 
       console.log(`✅ AI judging complete. Winner: ${winnerId}`);
       await this.logTaskExecution('ai_judge', 'success', `winner=${winnerId}`);
