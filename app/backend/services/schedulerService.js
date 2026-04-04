@@ -7,13 +7,29 @@
  *
  * GCP Cloud Scheduler Jobs (all times in UTC, 8AM Taiwan = 0:00 UTC):
  * - daily_memes:    0:00 UTC (8AM UTC+8) - Generate daily memes
- * - ai_judge:       0:45 UTC (8:45AM UTC+8) - AI judges score memes & pick winner
+ * - ai_judge:       1:00 UTC (9AM UTC+8) - AI judges score memes & pick winner
  */
 
 const { getFirestore, collections, dbUtils } = require('../config/firebase');
 const memeController = require('../controllers/memeController');
 const aiJudgeService = require('./aiJudgeService');
 const { invalidate, invalidatePrefix } = require('../utils/cache');
+
+// ─── Telegram Notification ──────────────────────────────────────────────────
+async function sendTgNotify(message) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' })
+    });
+  } catch (e) {
+    console.warn('[TG] Notification failed:', e.message);
+  }
+}
 
 class SchedulerService {
   constructor() {
@@ -53,11 +69,15 @@ class SchedulerService {
       console.log('✅ Daily memes generated successfully:', result);
       await this.logTaskExecution('daily_memes', 'success');
 
+      const count = result?.memes?.length || result?.count || 0;
+      await sendTgNotify(`🎨 <b>Daily Memes Generated</b>\n${count} memes created for today.`);
+
       return result;
 
     } catch (error) {
       console.error('❌ Error in daily meme generation:', error);
       await this.logTaskExecution('daily_memes', 'failed', error.message);
+      await sendTgNotify(`❌ <b>Daily Memes FAILED</b>\n${error.message}`);
       throw error;
     }
   }
@@ -117,11 +137,22 @@ class SchedulerService {
       console.log(`✅ AI judging complete. Winner: ${winnerId}`);
       await this.logTaskExecution('ai_judge', 'success', `winner=${winnerId}`);
 
+      // TG notification with scores
+      const winnerResult = results.find(r => r.memeId === winnerId);
+      const winnerMeme = memes.find(m => m.id === winnerId);
+      const scoreLines = results.map(r => {
+        const m = memes.find(mm => mm.id === r.memeId);
+        const flag = r.memeId === winnerId ? ' 🏆' : '';
+        return `${m?.title || r.memeId}: <b>${r.averageTotal}/30</b> (${r.judgeCount}/3)${flag}`;
+      }).join('\n');
+      await sendTgNotify(`🤖 <b>AI Judging Complete</b>\n\n${scoreLines}\n\nWinner: <b>${winnerMeme?.title || winnerId}</b>`);
+
       return { completed: true, winnerId, judged: results.length };
 
     } catch (error) {
       console.error('❌ AI judging failed:', error);
       await this.logTaskExecution('ai_judge', 'failed', error.message);
+      await sendTgNotify(`❌ <b>AI Judging FAILED</b>\n${error.message}`);
       throw error;
     }
   }
