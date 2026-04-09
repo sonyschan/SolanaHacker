@@ -1,0 +1,18 @@
+name = "memenews-agent"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = [
+  "0 2 * * *",       # 10:00 GMT+8: Post MemeNews to X
+  "0 3 * * *",       # 11:00 GMT+8: Post winner to Moltbook
+  "0 */6 * * *"      # Every 6h: News search → Firestore
+]
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "memenews-state"
+
+[vars]
+BACKEND_URL = "https://memeforge-api-836651762884.asia-southeast1.run.app"
