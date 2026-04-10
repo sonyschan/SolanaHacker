@@ -43,7 +43,7 @@ const Footer = () => {
           </div>
 
           <p className="text-xs text-gray-600">
-            &copy; {currentYear} MemeNews. AI-judged meme journalism.
+            &copy; {currentYear} MemeNews v{__APP_VERSION__}
           </p>
         </div>
       </div>
