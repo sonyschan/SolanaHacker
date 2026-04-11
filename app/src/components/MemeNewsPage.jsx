@@ -500,11 +500,10 @@ function ShareToXButton({ meme, className = '' }) {
   const isWinner = meme.isWinner || meme.status === 'winner';
 
   const text = isWinner
-    ? `\u{1F3C6} Meme of the Day: "${meme.title}"${scoreTag}\n\nAI-judged by GPT-4o, Gemini & Grok\n\n`
-    : `"${meme.title}"${scoreTag} on MemeNews\n\n`;
+    ? `\u{1F3C6} Meme of the Day: "${meme.title}"${scoreTag}\n\nAI-judged by GPT-4o, Gemini & Grok\n\nhttps://aimemeforge.io`
+    : `"${meme.title}"${scoreTag} on MemeNews\n\nhttps://aimemeforge.io`;
 
-  const url = `https://aimemeforge.io`;
-  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 
   return (
     <a
