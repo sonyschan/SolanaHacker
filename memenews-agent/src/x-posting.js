@@ -238,7 +238,7 @@ export async function postMemeNewsToX(env) {
     '',
     scoresLine,
     '',
-    '\u{1F517} aimemeforge.io',
+    '\u{1F517} https://aimemeforge.io',
   ].join('\n');
 
   console.log(`[X] Tweet assembled (${tweet.length} chars)`);
