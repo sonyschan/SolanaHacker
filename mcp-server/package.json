@@ -2,6 +2,15 @@
   "name": "@aimemeforge/mcp-server",
   "version": "0.10.0",
   "description": "MCP server for AI meme services with x402 crypto payment. Generate, rate, and share memes — agents pay per use with USDC.",
+  "homepage": "https://github.com/sonyschan/SolanaHacker/tree/main/mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonyschan/SolanaHacker.git",
+    "directory": "mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/sonyschan/SolanaHacker/issues"
+  },
   "type": "module",
   "bin": {
     "aimemeforge-mcp": "./bin/server.mjs"
